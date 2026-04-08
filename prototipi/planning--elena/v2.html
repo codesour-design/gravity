@@ -109,6 +109,13 @@
     .quick-pill:hover { border-color: #A78BFA; color: #3E00FB; background: #fff; }
     .quick-pill.active { border: 1px solid #3E00FB; background: #F0EEFF; color: #3E00FB; font-weight: 500; }
 
+    /* ── Search hero animation ─────────── */
+    .search-hero-spacer {
+      flex-shrink: 0;
+      min-height: 0;
+      transition: flex-grow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     /* ── View toggle ────────────────────── */
     .view-btn {
       width: 32px; height: 30px; border: none; cursor: pointer;
@@ -644,7 +651,7 @@ function SelectSystemsV2() {
 
         React.createElement(Navbar),
 
-        React.createElement('div', { style: { flex: 1, overflow: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 12 } },
+        React.createElement('div', { style: { flex: 1, overflow: 'hidden', padding: '24px', display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 } },
 
           // ── Card 1: info pianificazione ──────────────────
           React.createElement('div', {
@@ -688,197 +695,207 @@ function SelectSystemsV2() {
             ),
           ),
 
-          // ── Card 2: ricerca ──────────────────────────────
+          // ── Card 2: ricerca + risultati (full height, hero animation) ──
           React.createElement('div', {
-            style: { background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0', padding: '28px 24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }
+            style: { background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }
           },
-            // Row 1: search group + Filters + Search
-            React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center', width: '100%', maxWidth: 760 } },
-              React.createElement('div', { className: 'search-group' },
-                React.createElement(Select, {
-                  value: searchScope,
-                  onChange: setSearchScope,
-                  style: { width: 132, flexShrink: 0 },
-                  bordered: false,
-                  className: 'scope-select',
-                  options: [
-                    { value: 'address',      label: 'Address'     },
-                    { value: 'municipality', label: 'Municipality' },
-                    { value: 'province',     label: 'Province'    },
-                    { value: 'region',       label: 'Region'      },
-                  ],
-                }),
-                React.createElement('div', {
-                  style: { flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 14, gap: 8, minWidth: 0, alignSelf: 'stretch' },
-                  onKeyDown: e => { if (e.key === 'Enter') { setSuggestions([]); handleSearch(); } },
-                },
-                  React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.2)', fontSize: 16, flexShrink: 0 } }),
-                  React.createElement(AutoComplete, {
-                    value: searchText,
-                    options: suggestions,
-                    onSearch: val => { setSearchText(val); setSuggestions(getSuggestions(val)); },
-                    onSelect: val => { setSearchText(val); setSuggestions([]); },
-                    onChange: val => { setSearchText(val || ''); if (!val) setSuggestions([]); },
-                    className: 'gravity-ac-input',
-                    popupClassName: 'gravity-ac-dropdown',
-                    allowClear: true,
-                    placeholder: 'Search by address, city, area…',
-                    style: { flex: 1, minWidth: 0 },
+
+            // Spacer top — si riduce quando l'utente cerca (Google-style lift)
+            React.createElement('div', { className: 'search-hero-spacer', style: { flexGrow: hasSearched ? 0 : 1 } }),
+
+            // Search content
+            React.createElement('div', { style: { padding: '28px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 } },
+
+              // Row 1: search group + Filters + Search
+              React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center', width: '100%', maxWidth: 850 } },
+                React.createElement('div', { className: 'search-group' },
+                  React.createElement(Select, {
+                    value: searchScope,
+                    onChange: setSearchScope,
+                    style: { width: 132, flexShrink: 0 },
+                    bordered: false,
+                    className: 'scope-select',
+                    options: [
+                      { value: 'address',      label: 'Address'     },
+                      { value: 'municipality', label: 'Municipality' },
+                      { value: 'province',     label: 'Province'    },
+                      { value: 'region',       label: 'Region'      },
+                    ],
                   }),
-                ),
-              ),
-              React.createElement(Button, {
-                icon: React.createElement(SlidersOutlined),
-                onClick: () => setDrawerOpen(true),
-                style: {
-                  height: 46, borderRadius: 8, paddingInline: 16, fontSize: 14, flexShrink: 0,
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  borderColor: advCount > 0 ? '#3E00FB' : undefined,
-                  color:       advCount > 0 ? '#3E00FB' : undefined,
-                  background:  advCount > 0 ? '#F0EEFF' : undefined,
-                },
-              },
-                'Filters',
-                advCount > 0 && React.createElement('span', {
-                  style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: 9, background: '#3E00FB', color: '#fff', fontSize: 11, fontWeight: 700 }
-                }, advCount)
-              ),
-              React.createElement(Button, {
-                type: 'primary',
-                onClick: handleSearch,
-                style: { height: 46, borderRadius: 8, paddingInline: 28, fontSize: 14, fontWeight: 500, flexShrink: 0 },
-              }, 'Search'),
-            ),
-
-            // Row 2: quick type filter pills
-            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap', width: '100%', maxWidth: 760, justifyContent: 'center' } },
-              React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.3)', fontWeight: 500, flexShrink: 0, marginRight: 2 } }, 'Type:'),
-              ...SYSTEM_TYPES.map(t => {
-                const active = activeTypes.includes(t);
-                return React.createElement('span', {
-                  key: t,
-                  className: `quick-pill ${active ? 'active' : ''}`,
-                  onClick: () => toggleType(t),
-                },
-                  active && React.createElement(CheckOutlined, { style: { fontSize: 9 } }),
-                  t
-                );
-              }),
-            ),
-          ),
-
-          // ── Risultati (dopo Search) ──────────────────────
-          hasSearched && React.createElement(React.Fragment, null,
-
-            // Toolbar
-            React.createElement('div', {
-              style: { background: '#fff', borderRadius: '8px 8px 0 0', border: '1px solid #F0F0F0', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }
-            },
-              React.createElement(Text, { style: { fontSize: 13, color: 'rgba(0,0,0,0.38)', whiteSpace: 'nowrap' } },
-                React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)', fontWeight: 600 } }, `${displayed.length}`),
-                ' systems'
-              ),
-              React.createElement('div', { style: { display: 'flex', gap: 6, flex: 1, flexWrap: 'wrap', alignItems: 'center' } },
-                ...activeChips.map(c =>
-                  React.createElement(Tag, {
-                    key: c.key, closable: true,
-                    onClose: () => removeChip(c.key),
-                    style: { margin: 0, borderRadius: 20, fontSize: 12, padding: '0 10px', lineHeight: '22px' },
-                  }, c.label)
-                ),
-                activeChips.length > 1 && React.createElement('span', {
-                  onClick: clearAll,
-                  style: { fontSize: 12, color: '#3E00FB', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' },
-                }, 'Clear all'),
-              ),
-              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 } },
-                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-                  React.createElement(Switch, { size: 'small', checked: showSelected, onChange: setShowSelected }),
-                  React.createElement(Text, { style: { fontSize: 13, userSelect: 'none', whiteSpace: 'nowrap' } }, 'Selected only'),
-                ),
-                React.createElement('div', { style: { display: 'flex', border: '1px solid #D9D9D9', borderRadius: 6, overflow: 'hidden' } },
-                  ...viewButtons.map(vb =>
-                    React.createElement('button', {
-                      key: vb.key,
-                      className: `view-btn ${viewMode === vb.key ? 'active' : ''}`,
-                      onClick: () => setViewMode(vb.key),
-                    }, vb.icon)
-                  )
-                ),
-              ),
-            ),
-
-            // Risultati
-            React.createElement('div', {
-              style: { background: '#fff', border: '1px solid #F0F0F0', borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden', position: 'relative', height: 420, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }
-            },
-
-              viewMode === 'map' && React.createElement(React.Fragment, null,
-                React.createElement(MapView, { systems: displayed, selectedIds, onToggle: toggleSystem }),
-                React.createElement('div', {
-                  style: { position: 'absolute', bottom: 20, left: 16, zIndex: 1000, background: '#fff', borderRadius: 8, padding: '10px 14px', boxShadow: '0 2px 12px rgba(0,0,0,0.1)', border: '1px solid #F0F0F0' }
-                },
-                  React.createElement('div', { style: { fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'rgba(0,0,0,0.28)', marginBottom: 7 } }, 'Legend'),
-                  ...Object.entries(STATUS).map(([k, v]) =>
-                    React.createElement('div', { key: k, style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, fontSize: 12, color: 'rgba(0,0,0,0.55)' } },
-                      React.createElement('div', { style: { width: 8, height: 8, borderRadius: '50%', background: v.color } }),
-                      v.label
-                    )
-                  )
-                ),
-                selectedIds.length > 0 && React.createElement('div', {
-                  style: { position: 'absolute', bottom: 20, right: 16, zIndex: 1000, background: '#3E00FB', borderRadius: 8, padding: '8px 16px', color: '#fff', fontSize: 13, fontWeight: 500, boxShadow: '0 2px 12px rgba(62,0,251,0.2)', display: 'flex', alignItems: 'center', gap: 8 }
-                },
-                  React.createElement('span', { style: { width: 20, height: 20, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 } }, selectedIds.length),
-                  `system${selectedIds.length !== 1 ? 's' : ''} selected`
-                )
-              ),
-
-              viewMode === 'grid' && React.createElement('div', {
-                style: { padding: 20, overflowY: 'auto', height: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10, alignContent: 'start' }
-              }, ...displayed.map(sys => React.createElement(SystemCard, { key: sys.id, sys, selected: selectedIds.includes(sys.id), onToggle: toggleSystem }))),
-
-              viewMode === 'list' && React.createElement('div', {
-                style: { padding: '14px 20px', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: 8 }
-              }, ...displayed.map(sys => React.createElement(SystemCard, { key: sys.id, sys, selected: selectedIds.includes(sys.id), onToggle: toggleSystem }))),
-
-              viewMode === 'table' && React.createElement('div', { style: { overflowY: 'auto', height: '100%' } },
-                React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 13 } },
-                  React.createElement('thead', null,
-                    React.createElement('tr', { style: { background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' } },
-                      ['', 'ID', 'Type', 'Address', 'City', 'Status'].map(h =>
-                        React.createElement('th', { key: h, style: { padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: 'rgba(0,0,0,0.45)', fontSize: 12 } }, h)
-                      )
-                    )
+                  React.createElement('div', {
+                    style: { flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 14, gap: 8, minWidth: 0, alignSelf: 'stretch' },
+                    onKeyDown: e => { if (e.key === 'Enter') { setSuggestions([]); handleSearch(); } },
+                  },
+                    React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.2)', fontSize: 16, flexShrink: 0 } }),
+                    React.createElement(AutoComplete, {
+                      value: searchText,
+                      options: suggestions,
+                      onSearch: val => { setSearchText(val); setSuggestions(getSuggestions(val)); },
+                      onSelect: val => { setSearchText(val); setSuggestions([]); },
+                      onChange: val => { setSearchText(val || ''); if (!val) setSuggestions([]); },
+                      className: 'gravity-ac-input',
+                      popupClassName: 'gravity-ac-dropdown',
+                      allowClear: true,
+                      placeholder: 'Search by address, city, area…',
+                      style: { flex: 1, minWidth: 0 },
+                    }),
                   ),
-                  React.createElement('tbody', null,
-                    ...displayed.map(sys => {
-                      const sel = selectedIds.includes(sys.id);
-                      const s = STATUS[sys.status];
-                      return React.createElement('tr', {
-                        key: sys.id, onClick: () => toggleSystem(sys.id),
-                        style: { borderBottom: '1px solid #F5F5F5', background: sel ? '#F5F3FF' : '#fff', cursor: 'pointer' },
+                ),
+                React.createElement(Button, {
+                  icon: React.createElement(SlidersOutlined),
+                  onClick: () => setDrawerOpen(true),
+                  style: {
+                    height: 46, borderRadius: 8, paddingInline: 16, fontSize: 14, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    borderColor: advCount > 0 ? '#3E00FB' : undefined,
+                    color:       advCount > 0 ? '#3E00FB' : undefined,
+                    background:  advCount > 0 ? '#F0EEFF' : undefined,
+                  },
+                },
+                  'Filters',
+                  advCount > 0 && React.createElement('span', {
+                    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: 9, background: '#3E00FB', color: '#fff', fontSize: 11, fontWeight: 700 }
+                  }, advCount)
+                ),
+                React.createElement(Button, {
+                  type: 'primary',
+                  onClick: handleSearch,
+                  style: { height: 46, borderRadius: 8, paddingInline: 28, fontSize: 14, fontWeight: 500, flexShrink: 0 },
+                }, 'Search'),
+              ),
+
+              // Row 2: quick type filter pills
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap', width: '100%', maxWidth: 850, justifyContent: 'center' } },
+                React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.3)', fontWeight: 500, flexShrink: 0, marginRight: 2 } }, 'Type:'),
+                ...SYSTEM_TYPES.map(t => {
+                  const active = activeTypes.includes(t);
+                  return React.createElement('span', {
+                    key: t,
+                    className: `quick-pill ${active ? 'active' : ''}`,
+                    onClick: () => toggleType(t),
+                  },
+                    active && React.createElement(CheckOutlined, { style: { fontSize: 9 } }),
+                    t
+                  );
+                }),
+              ),
+            ),
+
+            // Spacer bottom (centra la ricerca prima della search) oppure risultati
+            hasSearched
+              ? React.createElement(React.Fragment, null,
+
+                  // Toolbar risultati
+                  React.createElement('div', {
+                    style: { borderTop: '1px solid #F0F0F0', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }
+                  },
+                    React.createElement(Text, { style: { fontSize: 13, color: 'rgba(0,0,0,0.38)', whiteSpace: 'nowrap' } },
+                      React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)', fontWeight: 600 } }, `${displayed.length}`),
+                      ' systems'
+                    ),
+                    React.createElement('div', { style: { display: 'flex', gap: 6, flex: 1, flexWrap: 'wrap', alignItems: 'center' } },
+                      ...activeChips.map(c =>
+                        React.createElement(Tag, {
+                          key: c.key, closable: true,
+                          onClose: () => removeChip(c.key),
+                          style: { margin: 0, borderRadius: 20, fontSize: 12, padding: '0 10px', lineHeight: '22px' },
+                        }, c.label)
+                      ),
+                      activeChips.length > 1 && React.createElement('span', {
+                        onClick: clearAll,
+                        style: { fontSize: 12, color: '#3E00FB', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' },
+                      }, 'Clear all'),
+                    ),
+                    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 } },
+                      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+                        React.createElement(Switch, { size: 'small', checked: showSelected, onChange: setShowSelected }),
+                        React.createElement(Text, { style: { fontSize: 13, userSelect: 'none', whiteSpace: 'nowrap' } }, 'Selected only'),
+                      ),
+                      React.createElement('div', { style: { display: 'flex', border: '1px solid #D9D9D9', borderRadius: 6, overflow: 'hidden' } },
+                        ...viewButtons.map(vb =>
+                          React.createElement('button', {
+                            key: vb.key,
+                            className: `view-btn ${viewMode === vb.key ? 'active' : ''}`,
+                            onClick: () => setViewMode(vb.key),
+                          }, vb.icon)
+                        )
+                      ),
+                    ),
+                  ),
+
+                  // Area risultati — flex: 1, prende tutto lo spazio rimanente
+                  React.createElement('div', {
+                    style: { flex: 1, overflow: 'hidden', position: 'relative' }
+                  },
+
+                    viewMode === 'map' && React.createElement(React.Fragment, null,
+                      React.createElement(MapView, { systems: displayed, selectedIds, onToggle: toggleSystem }),
+                      React.createElement('div', {
+                        style: { position: 'absolute', bottom: 20, left: 16, zIndex: 1000, background: '#fff', borderRadius: 8, padding: '10px 14px', boxShadow: '0 2px 12px rgba(0,0,0,0.1)', border: '1px solid #F0F0F0' }
                       },
-                        React.createElement('td', { style: { padding: '10px 16px', width: 40 } },
-                          React.createElement('div', { style: { width: 18, height: 18, borderRadius: 9, background: sel ? '#3E00FB' : 'transparent', border: sel ? 'none' : '1.5px solid #D9D9D9', display: 'flex', alignItems: 'center', justifyContent: 'center' } },
-                            sel && React.createElement(CheckOutlined, { style: { color: '#fff', fontSize: 9 } }))
-                        ),
-                        React.createElement('td', { style: { padding: '10px 16px', fontWeight: 600 } }, sys.id),
-                        React.createElement('td', { style: { padding: '10px 16px', color: 'rgba(0,0,0,0.6)' } }, sys.type),
-                        React.createElement('td', { style: { padding: '10px 16px', color: 'rgba(0,0,0,0.6)' } }, sys.address),
-                        React.createElement('td', { style: { padding: '10px 16px', color: 'rgba(0,0,0,0.6)' } }, sys.city),
-                        React.createElement('td', { style: { padding: '10px 16px' } },
-                          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 } },
-                            React.createElement('div', { style: { width: 7, height: 7, borderRadius: '50%', background: s.color } }),
-                            React.createElement('span', { style: { color: s.color, fontWeight: 500 } }, s.label)
+                        React.createElement('div', { style: { fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'rgba(0,0,0,0.28)', marginBottom: 7 } }, 'Legend'),
+                        ...Object.entries(STATUS).map(([k, v]) =>
+                          React.createElement('div', { key: k, style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, fontSize: 12, color: 'rgba(0,0,0,0.55)' } },
+                            React.createElement('div', { style: { width: 8, height: 8, borderRadius: '50%', background: v.color } }),
+                            v.label
                           )
                         )
-                      );
-                    })
-                  )
+                      ),
+                      selectedIds.length > 0 && React.createElement('div', {
+                        style: { position: 'absolute', bottom: 20, right: 16, zIndex: 1000, background: '#3E00FB', borderRadius: 8, padding: '8px 16px', color: '#fff', fontSize: 13, fontWeight: 500, boxShadow: '0 2px 12px rgba(62,0,251,0.2)', display: 'flex', alignItems: 'center', gap: 8 }
+                      },
+                        React.createElement('span', { style: { width: 20, height: 20, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 } }, selectedIds.length),
+                        `system${selectedIds.length !== 1 ? 's' : ''} selected`
+                      )
+                    ),
+
+                    viewMode === 'grid' && React.createElement('div', {
+                      style: { padding: 20, overflowY: 'auto', height: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10, alignContent: 'start' }
+                    }, ...displayed.map(sys => React.createElement(SystemCard, { key: sys.id, sys, selected: selectedIds.includes(sys.id), onToggle: toggleSystem }))),
+
+                    viewMode === 'list' && React.createElement('div', {
+                      style: { padding: '14px 20px', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: 8 }
+                    }, ...displayed.map(sys => React.createElement(SystemCard, { key: sys.id, sys, selected: selectedIds.includes(sys.id), onToggle: toggleSystem }))),
+
+                    viewMode === 'table' && React.createElement('div', { style: { overflowY: 'auto', height: '100%' } },
+                      React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 13 } },
+                        React.createElement('thead', null,
+                          React.createElement('tr', { style: { background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' } },
+                            ['', 'ID', 'Type', 'Address', 'City', 'Status'].map(h =>
+                              React.createElement('th', { key: h, style: { padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: 'rgba(0,0,0,0.45)', fontSize: 12 } }, h)
+                            )
+                          )
+                        ),
+                        React.createElement('tbody', null,
+                          ...displayed.map(sys => {
+                            const sel = selectedIds.includes(sys.id);
+                            const s = STATUS[sys.status];
+                            return React.createElement('tr', {
+                              key: sys.id, onClick: () => toggleSystem(sys.id),
+                              style: { borderBottom: '1px solid #F5F5F5', background: sel ? '#F5F3FF' : '#fff', cursor: 'pointer' },
+                            },
+                              React.createElement('td', { style: { padding: '10px 16px', width: 40 } },
+                                React.createElement('div', { style: { width: 18, height: 18, borderRadius: 9, background: sel ? '#3E00FB' : 'transparent', border: sel ? 'none' : '1.5px solid #D9D9D9', display: 'flex', alignItems: 'center', justifyContent: 'center' } },
+                                  sel && React.createElement(CheckOutlined, { style: { color: '#fff', fontSize: 9 } }))
+                              ),
+                              React.createElement('td', { style: { padding: '10px 16px', fontWeight: 600 } }, sys.id),
+                              React.createElement('td', { style: { padding: '10px 16px', color: 'rgba(0,0,0,0.6)' } }, sys.type),
+                              React.createElement('td', { style: { padding: '10px 16px', color: 'rgba(0,0,0,0.6)' } }, sys.address),
+                              React.createElement('td', { style: { padding: '10px 16px', color: 'rgba(0,0,0,0.6)' } }, sys.city),
+                              React.createElement('td', { style: { padding: '10px 16px' } },
+                                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 } },
+                                  React.createElement('div', { style: { width: 7, height: 7, borderRadius: '50%', background: s.color } }),
+                                  React.createElement('span', { style: { color: s.color, fontWeight: 500 } }, s.label)
+                                )
+                              )
+                            );
+                          })
+                        )
+                      )
+                    ),
+                  ),
                 )
-              ),
-            ),
+              : React.createElement('div', { style: { flex: 1 } }),
           ),
 
         ),
