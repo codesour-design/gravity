@@ -580,7 +580,7 @@ const PLANNINGS = [
   { id:'0102', name:'Alessi Estate — Outdoor',       category:'OOH',  state:'Completed',start:'13/03/2024', end:'30/03/2024', advertiser:'Fondazione Alessi', budget:'€ 2.000,00', goal:'1.5 M', faces:13, hasSystems:true },
   { id:'0103', name:'Moving Retail Autunno 2025',    category:'DOOH', state:'Draft',    start:'01/09/2025', end:'30/09/2025', advertiser:'Moving Retail',     budget:'€ 3.200,00', goal:'2 M',   faces:8,  hasSystems:false },
   { id:'0104', name:'SushiLab Primavera 2025',       category:'OOH',  state:'Completed',start:'10/04/2025', end:'25/04/2025', advertiser:'SushiLab Palermo',  budget:'€ 1.800,00', goal:'800 K', faces:6,  hasSystems:true },
-  { id:'0105', name:'Campus Digitale Settembre',     category:'WEB',  state:'Draft',    start:'01/09/2025', end:'15/09/2025', advertiser:'Campus Digitale',   budget:'€ 5.000,00', goal:'3 M',   faces:20, hasSystems:false },
+  { id:'0105', name:'Campus Digitale Settembre',     category:'OOH',  state:'Draft',    start:'01/09/2025', end:'15/09/2025', advertiser:'Campus Digitale',   budget:'€ 5.000,00', goal:'3 M',   faces:20, hasSystems:false },
   { id:'0106', name:'Arredo Urbano Palermo Q4',      category:'OOH',  state:'Draft',    start:'01/10/2025', end:'31/12/2025', advertiser:'Comune di Palermo', budget:'€ 4.500,00', goal:'5 M',   faces:35, hasSystems:false },
   { id:'0107', name:'TechConf Milano 2025',          category:'DOOH', state:'Completed',start:'15/11/2024', end:'20/11/2024', advertiser:'TechConf Italia',   budget:'€ 2.800,00', goal:'1.2 M', faces:9,  hasSystems:true },
 ];
@@ -905,7 +905,6 @@ function NewPlanningDrawer({ open, onClose, onCreate }) {
           options: [
             { value: '04_DOOH_SushiLab', label: '04_DOOH_SushiLab' },
             { value: '01_OOH_Alessi', label: '01_OOH_Alessi' },
-            { value: '07_WEB_Campus', label: '07_WEB_Campus' },
           ],
         })
       ),
@@ -925,7 +924,6 @@ function NewPlanningDrawer({ open, onClose, onCreate }) {
             options: [
               { value: 'DOOH', label: 'DOOH' },
               { value: 'OOH', label: 'OOH' },
-              { value: 'WEB', label: 'WEB' },
             ],
           })
         ),
