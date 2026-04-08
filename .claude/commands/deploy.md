@@ -70,7 +70,7 @@ vercel rollback
 
 ## Regole specifiche — Gravity Prototipi
 
-Queste regole si applicano quando si lavora nel progetto **Gravity** (`/Desktop/Gravity`).
+Queste regole si applicano quando si lavora nel progetto **Gravity** (`/Desktop/gravity`).
 Sostituiscono completamente gli step 1–5 precedenti — non usare `vercel --prod` direttamente.
 
 **Deploy tramite GitHub (flusso corretto):**
@@ -79,7 +79,7 @@ Il deploy avviene automaticamente tramite GitHub → Vercel. Non eseguire mai `v
 
 ### Step 1 — Verifica stato
 ```bash
-cd /Users/gloriabonanno/Desktop/Gravity
+cd /Users/gloriabonanno/Desktop/gravity
 git status
 ```
 Mostra i file modificati prima di procedere.
@@ -106,7 +106,7 @@ In caso di problemi controlla i log su: https://vercel.com/codesour-projects/gra
 ---
 
 **Riferimenti:**
-- Repo GitHub: https://github.com/gloriabonanno-ops/gravity-prototipi
+- Repo GitHub: https://github.com/gloriabonanno-ops/gravity
 - URL produzione: https://gravity-prototipi-codesour.vercel.app
 - Vercel Dashboard: https://vercel.com/codesour-projects/gravity-prototipi
 - Account Vercel: `bonnyb` / team `codesour-projects` (MAI usare l'account personale `pianobdesign20`)

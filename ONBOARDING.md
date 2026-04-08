@@ -24,8 +24,8 @@ Apri l'app, fai login con il tuo account Anthropic.
 ## 3. Clona il repository
 
 ```bash
-git clone https://github.com/gloriabonanno-ops/gravity-prototipi.git
-cd gravity-prototipi
+git clone https://github.com/gloriabonanno-ops/gravity.git
+cd gravity
 ```
 
 Per essere aggiunta come collaboratrice al repo, chiedi a Gloria di invitarti da GitHub Settings → Collaborators.
@@ -34,7 +34,7 @@ Per essere aggiunta come collaboratrice al repo, chiedi a Gloria di invitarti da
 
 ## 4. Apri il progetto in Claude Code
 
-Apri Claude Code e punta la working directory su `/percorso/dove/hai-clonato/gravity-prototipi`.
+Apri Claude Code e punta la working directory su `/percorso/dove/hai-clonato/gravity`.
 
 Il progetto contiene già:
 - `CLAUDE.md` — regole del progetto, stack, brand, mappa componenti React → Figma
@@ -117,7 +117,7 @@ Puoi verificare il risultato su: https://gravity-prototipi-codesour.vercel.app
 
 | Risorsa | URL / Percorso |
 |---------|----------------|
-| Repo GitHub | https://github.com/gloriabonanno-ops/gravity-prototipi |
+| Repo GitHub | https://github.com/gloriabonanno-ops/gravity |
 | Deploy produzione | https://gravity-prototipi-codesour.vercel.app |
 | Design System Figma | https://www.figma.com/design/uR6CBOh0Y7dUQvH30SyD0P/Ant-Design-System-for-Gravity |
 | Regole progetto | `CLAUDE.md` |
