@@ -670,9 +670,8 @@ function SelectSystemsV2() {
               ),
               React.createElement(Space, { size: 8, style: { flexShrink: 0 } },
                 React.createElement(Button, {
-                  type: 'text',
                   icon: React.createElement(BarsOutlined),
-                  style: { borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, color: selectedIds.length > 0 ? 'rgba(0,0,0,0.88)' : 'rgba(0,0,0,0.45)' },
+                  style: { borderRadius: 6 },
                 },
                   'Planning List',
                   selectedIds.length > 0 && React.createElement('span', {
@@ -680,7 +679,7 @@ function SelectSystemsV2() {
                   }, selectedIds.length)
                 ),
                 React.createElement(Button, {
-                  type: selectedIds.length > 0 ? 'primary' : 'default',
+                  type: 'primary',
                   icon: React.createElement(SaveOutlined),
                   style: { borderRadius: 6 },
                   onClick: () => messageApi.success('Pianificazione salvata'),
@@ -745,7 +744,6 @@ function SelectSystemsV2() {
                 }, advCount)
               ),
               React.createElement(Button, {
-                type: 'primary',
                 onClick: handleSearch,
                 style: { height: 46, borderRadius: 8, paddingInline: 28, fontSize: 14, fontWeight: 500, flexShrink: 0 },
               }, 'Search'),
