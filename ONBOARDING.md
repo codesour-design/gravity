@@ -85,11 +85,32 @@ Per abilitare la libreria: in Figma → **Assets → Libraries** → cerca "Ant 
 
 ## 8. Workflow quotidiano
 
+### Regola fondamentale: non lavorare mai su `main`
+
+Ogni designer lavora sul proprio branch. `main` è il branch stabile — si aggiorna solo tramite Pull Request.
+
+### Iniziare un nuovo prototipo
+
+```bash
+git checkout main
+git pull origin main                  # aggiorna il tuo main locale
+git checkout -b tuonome/prototipo     # crea il tuo branch
+# es: git checkout -b alice/campagne
+```
+
 ### Costruire un prototipo HTML
 
-1. Parti da `prototipi/_template.html`
-2. Lavora in Claude Code — usa `CLAUDE.md` come riferimento per componenti e stili
-3. Verifica nel browser aprendo il file in locale
+1. Crea la cartella in `prototipi/nome-prototipo/` (kebab-case, inglese, no numeri)
+2. Parti da `prototipi/_template.html` come base
+3. Lavora in Claude Code — `CLAUDE.md`, `LAYOUT.md` e `components/` sono i tuoi riferimenti
+4. Verifica nel browser aprendo il file in locale
+5. Salva spesso con commit:
+
+```bash
+git add .
+git commit -m "descrizione breve del lavoro"
+git push origin tuonome/prototipo
+```
 
 ### Trasporre su Figma
 
@@ -99,13 +120,22 @@ Per abilitare la libreria: in Figma → **Assets → Libraries** → cerca "Ant 
 
 Oppure usa `/handoff` per costruire un flusso completo di handoff.
 
-### Fare il deploy
+### Quando il prototipo è pronto — aprire una PR
 
-```
-/deploy
-```
+1. Vai su [github.com/gloriabonanno-ops/gravity](https://github.com/gloriabonanno-ops/gravity)
+2. Clicca **"Compare & pull request"** sul tuo branch
+3. Descrivi brevemente cosa hai fatto
+4. Chiedi a Gloria (o all'altra designer) di fare una lettura rapida
+5. Una volta approvata, si mergia su `main` — Vercel deploya automaticamente in 10–20 secondi
 
-Il comando guida attraverso git commit + push. Vercel rileva il push su `main` e deploya automaticamente in 10–20 secondi.
+### Ricevere le modifiche delle altre
+
+```bash
+git checkout main
+git pull origin main                  # aggiorna main
+git checkout tuonome/prototipo
+git rebase main                       # porta le novità nel tuo branch
+```
 
 **Non hai bisogno di un account Vercel** — il deploy avviene tramite GitHub e il progetto Vercel è già configurato.
 
