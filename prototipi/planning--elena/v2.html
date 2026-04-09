@@ -721,7 +721,7 @@ function SelectSystemsV2() {
               style: {
                 flexGrow: hasSearched ? 0 : 1,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
-                padding: '0 24px 10px',
+                padding: '0 24px 8px',
                 opacity: hasSearched ? 0 : 1,
                 transition: 'opacity 0.25s ease',
                 pointerEvents: hasSearched ? 'none' : 'auto',
@@ -731,7 +731,7 @@ function SelectSystemsV2() {
             ),
 
             // Search content
-            React.createElement('div', { style: { padding: '16px 24px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 } },
+            React.createElement('div', { style: { padding: '8px 24px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 } },
 
               // Row 1: search group + Filters + Search
               React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center', width: '100%', maxWidth: 850 } },
@@ -961,7 +961,7 @@ function SelectSystemsV2() {
                     ),
                   ),
                 )
-              : React.createElement('div', { style: { flexGrow: 3, flexShrink: 0, minHeight: 0 } }),
+              : React.createElement('div', { style: { flexGrow: 5, flexShrink: 0, minHeight: 0 } }),
           ),
 
         ),
