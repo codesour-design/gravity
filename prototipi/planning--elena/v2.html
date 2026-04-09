@@ -710,28 +710,14 @@ function SelectSystemsV2() {
             ),
           ),
 
-          // ── Card 2: ricerca + risultati (full height, hero animation) ──
+          // ── Card 2: ricerca + risultati ──────────────────────────────────
           React.createElement('div', {
             style: { background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }
           },
 
-            // Spacer top con contenuto hero — si riduce e sfuma quando si cerca
-            React.createElement('div', {
-              className: 'search-hero-spacer',
-              style: {
-                flexGrow: hasSearched ? 0 : 1,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
-                padding: '0 24px 8px',
-                opacity: hasSearched ? 0 : 1,
-                transition: 'opacity 0.25s ease',
-                pointerEvents: hasSearched ? 'none' : 'auto',
-              }
-            },
-              React.createElement(Title, { level: 4, style: { margin: 0, color: 'rgba(0,0,0,0.85)', fontWeight: 700 } }, 'Search systems')
-            ),
-
-            // Search content
-            React.createElement('div', { style: { padding: '8px 24px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 } },
+            // Search content — posizione fissa, aspetto identico prima e dopo la ricerca
+            React.createElement('div', { style: { padding: '32px 24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 } },
+              React.createElement(Title, { level: 4, style: { margin: '0 0 16px', color: 'rgba(0,0,0,0.85)', fontWeight: 700 } }, 'Search systems'),
 
               // Row 1: search group + Filters + Search
               React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center', width: '100%', maxWidth: 850 } },
@@ -847,7 +833,7 @@ function SelectSystemsV2() {
               ),
             ),
 
-            // Spacer bottom (centra la ricerca prima della search) oppure risultati
+            // Risultati oppure spazio vuoto
             hasSearched
               ? React.createElement(React.Fragment, null,
 
@@ -961,7 +947,7 @@ function SelectSystemsV2() {
                     ),
                   ),
                 )
-              : React.createElement('div', { style: { flexGrow: 9, flexShrink: 0, minHeight: 0 } }),
+              : React.createElement('div', { style: { flex: 1 } }),
           ),
 
         ),
