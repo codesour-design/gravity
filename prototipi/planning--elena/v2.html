@@ -78,11 +78,17 @@
       height: 46px !important; padding: 0 !important; background: transparent !important;
     }
     .gravity-ac-input .ant-select-selection-search { left: 0 !important; right: 30px !important; top: 0 !important; bottom: 0 !important; display: flex !important; align-items: center !important; }
-    .gravity-ac-input .ant-select-selection-search-input { height: 28px !important; font-size: 15px !important; line-height: 28px !important; }
+    .gravity-ac-input .ant-select-selection-search-input { height: 28px !important; font-size: 15px !important; line-height: 28px !important; margin: 0 !important; padding: 0 !important; }
     .gravity-ac-input .ant-select-selection-placeholder {
       top: 50% !important; transform: translateY(-50%) !important; bottom: auto !important;
       font-size: 15px !important; color: rgba(0,0,0,0.25) !important;
-      left: 0 !important; right: 30px !important; line-height: 1 !important;
+      left: 0 !important; right: 30px !important; line-height: 1 !important; margin: 0 !important;
+    }
+    /* Stato filled (valore selezionato) — allineamento verticale uguale a placeholder e input */
+    .gravity-ac-input .ant-select-selection-item {
+      display: flex !important; align-items: center !important;
+      height: 46px !important; padding: 0 !important; margin: 0 !important;
+      font-size: 15px !important; line-height: 1 !important; color: rgba(0,0,0,0.85) !important;
     }
     .gravity-ac-input .ant-select-clear { top: 50% !important; margin-top: -7px !important; right: 10px !important; }
 
@@ -721,32 +727,7 @@ function SelectSystemsV2() {
                 pointerEvents: hasSearched ? 'none' : 'auto',
               }
             },
-              React.createElement('div', { style: { textAlign: 'center', width: '100%', maxWidth: 680 } },
-                React.createElement('div', { style: { marginBottom: 16 } },
-                  React.createElement(Title, { level: 5, style: { margin: '0 0 4px', color: 'rgba(0,0,0,0.72)', fontWeight: 600, fontSize: 15 } }, 'Gohan Sushi Planning Luglio'),
-                  React.createElement(Text, { style: { fontSize: 12, color: 'rgba(0,0,0,0.32)' } },
-                    'Zanga Sushi Palermo  ·  OOH  ·  10/06/2025 – 25/06/2025'
-                  ),
-                ),
-                React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' } },
-                  React.createElement('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.25)', fontWeight: 500, marginRight: 2 } }, 'Aree suggerite:'),
-                  ...['Palermo Centro', 'Via Libertà', 'Palermo Mondello', 'Viale Regione Siciliana', 'Palermo Noce'].map(loc =>
-                    React.createElement(Tag, {
-                      key: loc,
-                      style: {
-                        cursor: 'pointer', borderRadius: 10, fontSize: 12, margin: 0,
-                        background: '#FAFAFA', border: '1px solid #E8E8E8', color: 'rgba(0,0,0,0.5)',
-                        lineHeight: '22px', height: 24, display: 'inline-flex', alignItems: 'center', gap: 4,
-                        transition: 'all 0.15s',
-                      },
-                      onClick: () => { setSearchText(loc); setSuggestions(getSuggestions(loc)); },
-                    },
-                      React.createElement(EnvironmentOutlined, { style: { fontSize: 10 } }),
-                      loc
-                    )
-                  ),
-                ),
-              )
+              React.createElement(Title, { level: 4, style: { margin: 0, color: 'rgba(0,0,0,0.85)', fontWeight: 700 } }, 'Search systems')
             ),
 
             // Search content
@@ -831,6 +812,7 @@ function SelectSystemsV2() {
                 }),
                 React.createElement('div', { style: { width: 1, height: 14, background: '#E8E8E8', flexShrink: 0, alignSelf: 'center', margin: '0 2px' } }),
                 ...SYSTEM_SIZES.map(s => {
+
                   const active = activeSizes.includes(s);
                   return React.createElement(Tag, {
                     key: s,
@@ -847,6 +829,21 @@ function SelectSystemsV2() {
                     },
                   }, s, React.createElement('span', { style: { opacity: 0.5, fontSize: 10, marginLeft: 1 } }, ' m'));
                 }),
+                React.createElement('div', { style: { width: 1, height: 14, background: '#E8E8E8', flexShrink: 0, alignSelf: 'center', margin: '0 2px' } }),
+                ...['Palermo Centro', 'Via Libertà', 'Palermo Mondello', 'Viale Regione Siciliana', 'Palermo Noce'].map(loc =>
+                  React.createElement(Tag, {
+                    key: loc,
+                    style: {
+                      cursor: 'pointer', borderRadius: 10, fontSize: 12, margin: 0,
+                      background: '#FAFAFA', border: '1px solid #E8E8E8', color: 'rgba(0,0,0,0.45)',
+                      lineHeight: '22px', height: 24, display: 'inline-flex', alignItems: 'center', gap: 4,
+                    },
+                    onClick: () => { setSearchText(loc); setSuggestions(getSuggestions(loc)); },
+                  },
+                    React.createElement(EnvironmentOutlined, { style: { fontSize: 10 } }),
+                    loc
+                  )
+                ),
               ),
             ),
 
