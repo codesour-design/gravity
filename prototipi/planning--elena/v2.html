@@ -710,13 +710,11 @@ function SelectSystemsV2() {
             ),
           ),
 
-          // ── Card 2: ricerca + risultati ──────────────────────────────────
+          // ── Card 2: area di ricerca ───────────────────────────────────────
           React.createElement('div', {
-            style: { background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }
+            style: { background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flexShrink: 0 }
           },
-
-            // Search content — posizione fissa, aspetto identico prima e dopo la ricerca
-            React.createElement('div', { style: { padding: '32px 24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 } },
+            React.createElement('div', { style: { padding: '32px 24px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center' } },
               React.createElement(Title, { level: 4, style: { margin: '0 0 16px', color: 'rgba(0,0,0,0.85)', fontWeight: 700 } }, 'Search systems'),
 
               // Row 1: search group + Filters + Search
@@ -777,8 +775,8 @@ function SelectSystemsV2() {
                 }, 'Search'),
               ),
 
-              // Row 2: quick type + size filter pills (Tag closable)
-              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap', width: '100%', maxWidth: 850, justifyContent: 'center' } },
+              // Row 2: quick type + size filter pills (Tag closable) — nascosti dopo la ricerca
+              !hasSearched && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap', width: '100%', maxWidth: 850, justifyContent: 'center' } },
                 ...SYSTEM_TYPES.map(t => {
                   const active = activeTypes.includes(t);
                   return React.createElement(Tag, {
@@ -833,14 +831,17 @@ function SelectSystemsV2() {
               ),
             ),
 
-            // Risultati oppure spazio vuoto
-            hasSearched
-              ? React.createElement(React.Fragment, null,
+          ),
 
-                  // Toolbar risultati
-                  React.createElement('div', {
-                    style: { borderTop: '1px solid #F0F0F0', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }
-                  },
+          // ── Card 3: risultati ─────────────────────────────────────────────
+          hasSearched && React.createElement('div', {
+            style: { background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }
+          },
+
+            // Toolbar risultati
+            React.createElement('div', {
+              style: { padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }
+            },
                     React.createElement(Text, { style: { fontSize: 13, color: 'rgba(0,0,0,0.38)', whiteSpace: 'nowrap' } },
                       React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)', fontWeight: 600 } }, `${displayed.length}`),
                       ' systems'
@@ -946,8 +947,6 @@ function SelectSystemsV2() {
                       )
                     ),
                   ),
-                )
-              : React.createElement('div', { style: { flex: 1 } }),
           ),
 
         ),
