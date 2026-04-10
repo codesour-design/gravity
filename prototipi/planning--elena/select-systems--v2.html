@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gravity — Pianificazione v2 · Select Systems</title>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@ant-design/icons@5/dist/index.umd.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
+  <script src="../tokens.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--gravity-font-body);
+      background: #F5F5F5;
+      color: rgba(0,0,0,0.88);
+      font-size: 14px;
+      line-height: 1.5714;
+    }
+
+    /* ── Navbar (spec: components/navbar.md) ── */
+    .top-nav {
+      height: 73px; background: #ffffff;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100; flex-shrink: 0;
+    }
+    .top-nav-logo { display: flex; align-items: center; padding: 0 20px; height: 100%; flex-shrink: 0; }
+    .top-nav-logo img { display: block; }
+    .top-nav-menu-wrap { flex: 1; align-self: stretch; display: flex; align-items: stretch; }
+    .top-nav-menu-wrap .ant-menu-horizontal { border-bottom: none !important; height: 73px; line-height: 73px; }
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-item,
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-submenu { height: 73px; line-height: 73px; padding: 0 16px; top: 0; }
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-item::after,
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-submenu::after { bottom: 0 !important; border-bottom-width: 2px !important; }
+    .top-nav-right { display: flex; align-items: center; gap: 24px; padding: 0 20px; flex-shrink: 0; }
+    .top-nav-bell { background: none; border: none; cursor: pointer; display: flex; align-items: center; color: rgba(0,0,0,0.65); padding: 4px; border-radius: 6px; transition: background 0.15s; }
+    .top-nav-bell:hover { background: rgba(0,0,0,0.04); }
+
+    /* ── Search group unificato ─────────── */
+    .search-group {
+      display: flex; flex: 1; align-items: center; height: 46px;
+      border: 1.5px solid #D9D9D9; border-radius: 8px;
+      overflow: hidden; background: #fff;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .search-group:focus-within {
+      border-color: #3E00FB;
+      box-shadow: 0 0 0 3px rgba(62,0,251,0.08), 0 1px 6px rgba(0,0,0,0.06);
+    }
+    /* Scope select (sinistra del search group) */
+    .scope-select { height: 46px !important; align-self: stretch; display: flex !important; align-items: center !important; }
+    .scope-select .ant-select-selector {
+      border: none !important;
+      border-right: 1.5px solid #F0F0F0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      height: 46px !important;
+      padding: 0 12px !important;
+      display: flex !important; align-items: center !important;
+    }
+    .scope-select .ant-select-selection-item { line-height: 1 !important; font-size: 13px !important; color: rgba(0,0,0,0.65) !important; }
+    .scope-select .ant-select-arrow { color: rgba(0,0,0,0.3) !important; margin-top: -6px !important; }
+
+    /* AutoComplete di ricerca (destra del search group) */
+    .gravity-ac-input { min-width: 0; }
+    .gravity-ac-input .ant-select-selector {
+      border: none !important; box-shadow: none !important;
+      height: 46px !important; padding: 0 !important; background: transparent !important;
+    }
+    .gravity-ac-input .ant-select-selection-search { left: 0 !important; right: 30px !important; top: 0 !important; bottom: 0 !important; display: flex !important; align-items: center !important; }
+    .gravity-ac-input .ant-select-selection-search-input { height: 28px !important; font-size: 15px !important; line-height: 28px !important; margin: 0 !important; padding: 0 !important; }
+    .gravity-ac-input .ant-select-selection-placeholder {
+      top: 50% !important; transform: translateY(-50%) !important; bottom: auto !important;
+      font-size: 15px !important; color: rgba(0,0,0,0.25) !important;
+      left: 0 !important; right: 30px !important; line-height: 1 !important; margin: 0 !important;
+    }
+    /* Stato filled (valore selezionato) — allineamento verticale uguale a placeholder e input */
+    .gravity-ac-input .ant-select-selection-item {
+      display: flex !important; align-items: center !important;
+      height: 46px !important; padding: 0 !important; margin: 0 !important;
+      font-size: 15px !important; line-height: 1 !important; color: rgba(0,0,0,0.85) !important;
+    }
+    .gravity-ac-input .ant-select-clear { top: 50% !important; margin-top: -7px !important; right: 10px !important; }
+
+    /* Dropdown autocomplete */
+    .gravity-ac-dropdown { padding: 6px 0 !important; min-width: 420px !important; }
+    .gravity-ac-dropdown .ant-select-item-group {
+      font-size: 10px !important; font-weight: 700 !important;
+      text-transform: uppercase; letter-spacing: .08em;
+      color: rgba(0,0,0,0.3) !important; padding: 10px 16px 3px !important; line-height: 1.2 !important;
+    }
+    .gravity-ac-dropdown .ant-select-item-option { padding: 5px 16px !important; }
+    .gravity-ac-dropdown .ant-select-item-option-active { background: #F5F3FF !important; }
+    .gravity-ac-dropdown .ant-select-item-option-content { overflow: visible !important; white-space: normal !important; }
+
+    /* ── Quick pill (type shortcut) ────── */
+    .quick-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      height: 24px; padding: 0 10px; border-radius: 12px;
+      font-size: 12px; border: 1px dashed #D9D9D9; background: #FAFAFA;
+      cursor: pointer; user-select: none; white-space: nowrap;
+      color: rgba(0,0,0,0.4);
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .quick-pill:hover { border-color: #A78BFA; color: #3E00FB; background: #fff; }
+    .quick-pill.active { border: 1px solid #3E00FB; background: #F0EEFF; color: #3E00FB; font-weight: 500; }
+
+    /* ── Search hero animation ─────────── */
+    .search-hero-spacer {
+      flex-shrink: 0;
+      min-height: 0;
+      overflow: hidden;
+      transition: flex-grow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── View toggle ────────────────────── */
+    .view-btn {
+      width: 32px; height: 30px; border: none; cursor: pointer;
+      background: #fff; color: rgba(0,0,0,0.35);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; border-right: 1px solid #D9D9D9;
+      transition: background 0.12s, color 0.12s;
+    }
+    .view-btn:last-child { border-right: none; }
+    .view-btn.active { background: #F0EEFF; color: #3E00FB; }
+    .view-btn:hover:not(.active) { background: #FAFAFA; color: rgba(0,0,0,0.6); }
+
+    /* ── System card ────────────────────── */
+    .system-card {
+      border: 1.5px solid #F0F0F0; border-radius: 8px;
+      padding: 12px 16px; background: #fff; cursor: pointer;
+      display: flex; align-items: center; gap: 12px;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .system-card:hover { border-color: #D9D9D9; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .system-card.selected { border-color: #3E00FB; background: #F5F3FF; }
+
+    /* ── Mappa ──────────────────────────── */
+    #leaflet-map { width: 100%; height: 100%; }
+    .leaflet-container { font-family: var(--gravity-font-body) !important; }
+
+    /* ── Drawer ─────────────────────────── */
+    .filter-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: 6px; cursor: pointer;
+      transition: background 0.12s; user-select: none;
+    }
+    .filter-option:hover { background: #FAFAFA; }
+    .filter-option.checked { background: #F5F3FF; }
+    .f-checkbox { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; border: 1.5px solid #D9D9D9; background: #fff; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+    .filter-option.checked .f-checkbox { background: #3E00FB; border-color: #3E00FB; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #D9D9D9; border-radius: 3px; }
+
+    /* ── System list collapse ───────────────────── */
+    .system-list-collapse { padding: 0 16px; }
+    .system-list-collapse .ant-collapse-item {
+      border-top: 1px solid #F0F0F0 !important;
+      border-right: 1px solid #F0F0F0 !important;
+      border-bottom: 1px solid #F0F0F0 !important;
+      border-radius: 0 !important;
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+    .system-list-collapse .ant-collapse-header { align-items: center !important; padding: 10px 16px !important; }
+    .system-list-collapse .ant-collapse-content-box { padding: 0 !important; }
+    .system-list-collapse .ant-collapse-expand-icon { padding-inline-end: 8px !important; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/javascript">
+window.applyGravityTokens();
+
+const { useState, useEffect, useRef } = React;
+const {
+  ConfigProvider, App,
+  Space, Divider, Typography,
+  Button, Input, Select, Tag, AutoComplete, Menu,
+  Avatar, Switch, Drawer, Badge, Collapse, message,
+} = antd;
+
+const {
+  SearchOutlined, SlidersOutlined, SaveOutlined,
+  ArrowLeftOutlined, BellOutlined, UserOutlined,
+  EnvironmentOutlined, AppstoreOutlined, BarsOutlined,
+  TableOutlined, CheckOutlined, PlusOutlined,
+  InboxOutlined, SendOutlined, ExportOutlined, GlobalOutlined,
+} = icons;
+
+const { Title, Text } = Typography;
+
+// ── Dati ─────────────────────────────────────────────────
+
+const SYSTEMS = [
+  { id: 'PA001', type: 'Palina',           size: '6×3',     address: 'Via delle Scienze 10',    city: 'Palermo',   status: 'available', lat: 38.1155, lng: 13.3621,
+    cimasa: 'A001E', account: '100E01',
+    faces: [
+      { id: 'PA001-A', faceType: 'Front Screen', coords: '38.1155, 13.3621', orientation: '90°',  cone: 'r 35m', resolution: '1920×1080', hours: '8:00 - 20:00', status: 'available' },
+    ]},
+  { id: 'PA002', type: 'Poster',           size: '4×3',     address: 'Via Giulio Cesare 14',    city: 'Villabate', status: 'available', lat: 38.0925, lng: 13.4470,
+    cimasa: 'A002E', account: '100E02',
+    faces: [
+      { id: 'PA002-A', faceType: 'Fronte',       coords: '38.0925, 13.4470', orientation: '45°',  cone: 'r 50m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
+      { id: 'PA002-B', faceType: 'Retro',        coords: '38.0925, 13.4470', orientation: '225°', cone: 'r 40m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
+    ]},
+  { id: 'PA003', type: 'Palina Butterfly', size: '1.2×1.8', address: 'Via Filippo Patti 3',     city: 'Misilmeri', status: 'reserved',  lat: 38.0315, lng: 13.4488,
+    cimasa: 'A003E', account: '100E03',
+    faces: [
+      { id: 'PA003-A', faceType: 'Lato A',       coords: '38.0315, 13.4488', orientation: '0°',   cone: 'r 25m', resolution: '1280×720',  hours: '7:00 - 22:00', status: 'reserved' },
+      { id: 'PA003-B', faceType: 'Lato B',       coords: '38.0315, 13.4488', orientation: '180°', cone: 'r 25m', resolution: '1280×720',  hours: '7:00 - 22:00', status: 'reserved' },
+    ]},
+  { id: 'PA004', type: 'Rotor',            size: '6×3',     address: 'Piazza Verdi 6',          city: 'Palermo',   status: 'available', lat: 38.1183, lng: 13.3577,
+    cimasa: 'A004E', account: '100E04',
+    faces: [
+      { id: 'PA004-A', faceType: 'Pannello 1',   coords: '38.1183, 13.3577', orientation: '0°',   cone: 'r 60m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
+      { id: 'PA004-B', faceType: 'Pannello 2',   coords: '38.1183, 13.3577', orientation: '120°', cone: 'r 60m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
+      { id: 'PA004-C', faceType: 'Pannello 3',   coords: '38.1183, 13.3577', orientation: '240°', cone: 'r 60m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
+    ]},
+  { id: 'PA005', type: 'Palina',           size: '4×3',     address: 'Via Oreto 22',            city: 'Palermo',   status: 'available', lat: 38.1073, lng: 13.3751,
+    cimasa: 'A005E', account: '100E05',
+    faces: [
+      { id: 'PA005-A', faceType: 'Front Screen', coords: '38.1073, 13.3751', orientation: '270°', cone: 'r 30m', resolution: '1920×1080', hours: '8:00 - 20:00', status: 'available' },
+    ]},
+  { id: 'PA006', type: 'Poster',           size: '6×3',     address: 'Corso dei Mille 88',      city: 'Palermo',   status: 'option',    lat: 38.1092, lng: 13.3812,
+    cimasa: 'A006E', account: '100E06',
+    faces: [
+      { id: 'PA006-A', faceType: 'Fronte',       coords: '38.1092, 13.3812', orientation: '135°', cone: 'r 55m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'option' },
+      { id: 'PA006-B', faceType: 'Retro',        coords: '38.1092, 13.3812', orientation: '315°', cone: 'r 45m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'option' },
+    ]},
+  { id: 'PA007', type: 'Palina',           size: '1.2×1.8', address: 'Viale Regione Siciliana', city: 'Palermo',   status: 'available', lat: 38.0993, lng: 13.3903,
+    cimasa: 'A007E', account: '100E07',
+    faces: [
+      { id: 'PA007-A', faceType: 'Front Screen', coords: '38.0993, 13.3903', orientation: '60°',  cone: 'r 20m', resolution: '1280×720',  hours: '7:00 - 21:00', status: 'available' },
+    ]},
+  { id: 'PA008', type: 'Palina Butterfly', size: '4×3',     address: 'Via Libertà 112',         city: 'Palermo',   status: 'available', lat: 38.1281, lng: 13.3523,
+    cimasa: 'A008E', account: '100E08',
+    faces: [
+      { id: 'PA008-A', faceType: 'Lato A',       coords: '38.1281, 13.3523', orientation: '30°',  cone: 'r 35m', resolution: '1920×1080', hours: '8:00 - 20:00', status: 'available' },
+      { id: 'PA008-B', faceType: 'Lato B',       coords: '38.1281, 13.3523', orientation: '210°', cone: 'r 35m', resolution: '1920×1080', hours: '8:00 - 20:00', status: 'available' },
+    ]},
+  { id: 'PA009', type: 'Rotor',            size: '1.2×1.8', address: 'Via Roma 278',            city: 'Palermo',   status: 'reserved',  lat: 38.1198, lng: 13.3614,
+    cimasa: 'A009E', account: '100E09',
+    faces: [
+      { id: 'PA009-A', faceType: 'Pannello 1',   coords: '38.1198, 13.3614', orientation: '0°',   cone: 'r 20m', resolution: '1280×720',  hours: '9:00 - 18:00', status: 'reserved' },
+      { id: 'PA009-B', faceType: 'Pannello 2',   coords: '38.1198, 13.3614', orientation: '120°', cone: 'r 20m', resolution: '1280×720',  hours: '9:00 - 18:00', status: 'reserved' },
+    ]},
+  { id: 'PA010', type: 'Palina',           size: '6×3',     address: 'Via Notarbartolo 9',      city: 'Palermo',   status: 'available', lat: 38.1304, lng: 13.3463,
+    cimasa: 'A010E', account: '100E10',
+    faces: [
+      { id: 'PA010-A', faceType: 'Front Screen', coords: '38.1304, 13.3463', orientation: '180°', cone: 'r 40m', resolution: '1920×1080', hours: '8:00 - 20:00', status: 'available' },
+    ]},
+  { id: 'PA011', type: 'Poster',           size: '4×3',     address: 'Via Messina Marine 4',    city: 'Palermo',   status: 'available', lat: 38.0962, lng: 13.3692,
+    cimasa: 'A011E', account: '100E11',
+    faces: [
+      { id: 'PA011-A', faceType: 'Fronte',       coords: '38.0962, 13.3692', orientation: '90°',  cone: 'r 50m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
+      { id: 'PA011-B', faceType: 'Retro',        coords: '38.0962, 13.3692', orientation: '270°', cone: 'r 45m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
+    ]},
+  { id: 'PA012', type: 'Palina',           size: '1.2×1.8', address: 'Via Strasburgo 233',      city: 'Palermo',   status: 'option',    lat: 38.1034, lng: 13.3383,
+    cimasa: 'A012E', account: '100E12',
+    faces: [
+      { id: 'PA012-A', faceType: 'Front Screen', coords: '38.1034, 13.3383', orientation: '315°', cone: 'r 20m', resolution: '1280×720',  hours: '7:00 - 21:00', status: 'option' },
+    ]},
+];
+
+const STATUS = {
+  available: { color: '#52C41A', label: 'Disponibile' },
+  reserved:  { color: '#7B61FF', label: 'Riservato'   },
+  option:    { color: '#FF4A1C', label: 'In Opzione'  },
+};
+
+const SYSTEM_TYPES = ['Palina', 'Poster', 'Rotor'];
+const SYSTEM_SIZES = ['6×3', '4×3', '1.2×1.8'];
+
+// ── Location autocomplete data ────────────────────────────
+
+const LOCATION_DB = [
+  // Palermo città
+  { type: 'city',         text: 'Palermo',                 detail: 'Capoluogo · Sicilia'              },
+  { type: 'province',     text: 'Provincia di Palermo',    detail: 'Provincia · Sicilia · PA'          },
+  { type: 'neighborhood', text: 'Palermo Centro Storico',  detail: 'Quartiere · Palermo, PA'           },
+  { type: 'neighborhood', text: 'Palermo Mondello',        detail: 'Quartiere · Palermo, PA'           },
+  { type: 'neighborhood', text: 'Palermo Zen',             detail: 'Quartiere · Palermo, PA'           },
+  { type: 'neighborhood', text: 'Palermo Noce',            detail: 'Quartiere · Palermo, PA'           },
+  { type: 'neighborhood', text: 'Palermo Uditore',         detail: 'Quartiere · Palermo, PA'           },
+  // Strade a Palermo
+  { type: 'street',       text: 'Via Libertà',             detail: 'Via · Palermo, PA',    city: 'Palermo' },
+  { type: 'street',       text: 'Via Roma',                detail: 'Via · Palermo, PA',    city: 'Palermo' },
+  { type: 'street',       text: 'Via Maqueda',             detail: 'Via · Palermo, PA',    city: 'Palermo' },
+  { type: 'street',       text: 'Via Notarbartolo',        detail: 'Via · Palermo, PA',    city: 'Palermo' },
+  { type: 'street',       text: 'Via Oreto',               detail: 'Via · Palermo, PA',    city: 'Palermo' },
+  { type: 'street',       text: 'Viale Regione Siciliana', detail: 'Viale · Palermo, PA',  city: 'Palermo' },
+  { type: 'street',       text: 'Corso Calatafimi',        detail: 'Corso · Palermo, PA',  city: 'Palermo' },
+  { type: 'street',       text: 'Via delle Scienze',       detail: 'Via · Palermo, PA',    city: 'Palermo' },
+  { type: 'street',       text: 'Via Giulio Cesare',       detail: 'Via · Palermo, PA',    city: 'Palermo' },
+  // Via Palermo in altre città
+  { type: 'street',       text: 'Via Palermo',             detail: 'Via · Roma, RM',       city: 'Roma'    },
+  { type: 'street',       text: 'Via Palermo',             detail: 'Via · Milano, MI',     city: 'Milano'  },
+  { type: 'street',       text: 'Via Palermo',             detail: 'Via · Napoli, NA',     city: 'Napoli'  },
+  { type: 'street',       text: 'Via Palermo',             detail: 'Via · Torino, TO',     city: 'Torino'  },
+  { type: 'street',       text: 'Via Palermo',             detail: 'Via · Bologna, BO',    city: 'Bologna' },
+  { type: 'street',       text: 'Via Palermo',             detail: 'Via · Bari, BA',       city: 'Bari'    },
+  { type: 'street',       text: 'Corso Palermo',           detail: 'Corso · Torino, TO',   city: 'Torino'  },
+  { type: 'street',       text: 'Piazzale Palermo',        detail: 'Piazzale · Genova, GE',city: 'Genova'  },
+  // Comuni provincia Palermo
+  { type: 'city',         text: 'Villabate',               detail: 'Comune · Palermo, PA'              },
+  { type: 'city',         text: 'Misilmeri',               detail: 'Comune · Palermo, PA'              },
+  { type: 'city',         text: 'Bagheria',                detail: 'Comune · Palermo, PA'              },
+  { type: 'city',         text: 'Monreale',                detail: 'Comune · Palermo, PA'              },
+  { type: 'city',         text: 'Ficarazzi',               detail: 'Comune · Palermo, PA'              },
+  // Roma
+  { type: 'city',         text: 'Roma',                    detail: 'Capoluogo · Lazio'                 },
+  { type: 'province',     text: 'Provincia di Roma',       detail: 'Città Metropolitana · Lazio · RM'  },
+  { type: 'neighborhood', text: 'Roma Parioli',            detail: 'Quartiere · Roma, RM'              },
+  { type: 'neighborhood', text: 'Roma Prati',              detail: 'Quartiere · Roma, RM'              },
+  { type: 'neighborhood', text: 'Roma EUR',                detail: 'Quartiere · Roma, RM'              },
+  { type: 'street',       text: 'Via Roma',                detail: 'Via · Milano, MI',     city: 'Milano'  },
+  { type: 'street',       text: 'Via Roma',                detail: 'Via · Torino, TO',     city: 'Torino'  },
+  { type: 'street',       text: 'Via Roma',                detail: 'Via · Napoli, NA',     city: 'Napoli'  },
+  { type: 'street',       text: 'Via Roma',                detail: 'Via · Bologna, BO',    city: 'Bologna' },
+  { type: 'street',       text: 'Via Roma',                detail: 'Via · Firenze, FI',    city: 'Firenze' },
+  // Milano
+  { type: 'city',         text: 'Milano',                  detail: 'Capoluogo · Lombardia'             },
+  { type: 'province',     text: 'Provincia di Milano',     detail: 'Città Metropolitana · Lombardia · MI' },
+  { type: 'neighborhood', text: 'Milano Navigli',          detail: 'Quartiere · Milano, MI'            },
+  { type: 'neighborhood', text: 'Milano Brera',            detail: 'Quartiere · Milano, MI'            },
+  { type: 'neighborhood', text: 'Milano Porta Nuova',      detail: 'Quartiere · Milano, MI'            },
+  { type: 'street',       text: 'Via Milano',              detail: 'Via · Roma, RM',       city: 'Roma'    },
+  { type: 'street',       text: 'Via Milano',              detail: 'Via · Torino, TO',     city: 'Torino'  },
+  // Napoli
+  { type: 'city',         text: 'Napoli',                  detail: 'Capoluogo · Campania'              },
+  { type: 'province',     text: 'Provincia di Napoli',     detail: 'Città Metropolitana · Campania · NA' },
+  { type: 'neighborhood', text: 'Napoli Posillipo',        detail: 'Quartiere · Napoli, NA'            },
+  { type: 'neighborhood', text: 'Napoli Chiaia',           detail: 'Quartiere · Napoli, NA'            },
+  { type: 'street',       text: 'Via Napoli',              detail: 'Via · Roma, RM',       city: 'Roma'    },
+  { type: 'street',       text: 'Via Napoli',              detail: 'Via · Milano, MI',     city: 'Milano'  },
+  // Torino
+  { type: 'city',         text: 'Torino',                  detail: 'Capoluogo · Piemonte'              },
+  { type: 'province',     text: 'Provincia di Torino',     detail: 'Città Metropolitana · Piemonte · TO' },
+  { type: 'neighborhood', text: 'Torino Crocetta',         detail: 'Quartiere · Torino, TO'            },
+  { type: 'street',       text: 'Via Torino',              detail: 'Via · Roma, RM',       city: 'Roma'    },
+  { type: 'street',       text: 'Via Torino',              detail: 'Via · Milano, MI',     city: 'Milano'  },
+  // Bologna
+  { type: 'city',         text: 'Bologna',                 detail: 'Capoluogo · Emilia-Romagna'        },
+  { type: 'province',     text: 'Provincia di Bologna',    detail: 'Provincia · Emilia-Romagna · BO'   },
+  { type: 'street',       text: 'Via Bologna',             detail: 'Via · Roma, RM',       city: 'Roma'    },
+  { type: 'street',       text: 'Via Bologna',             detail: 'Via · Torino, TO',     city: 'Torino'  },
+  // Altre città
+  { type: 'city',         text: 'Firenze',                 detail: 'Capoluogo · Toscana'               },
+  { type: 'province',     text: 'Provincia di Firenze',    detail: 'Città Metropolitana · Toscana · FI'},
+  { type: 'city',         text: 'Catania',                 detail: 'Capoluogo · Sicilia'               },
+  { type: 'province',     text: 'Provincia di Catania',    detail: 'Provincia · Sicilia · CT'          },
+  { type: 'city',         text: 'Messina',                 detail: 'Capoluogo · Sicilia'               },
+  { type: 'province',     text: 'Provincia di Messina',    detail: 'Provincia · Sicilia · ME'          },
+  { type: 'city',         text: 'Agrigento',               detail: 'Capoluogo · Sicilia'               },
+  { type: 'province',     text: 'Provincia di Agrigento',  detail: 'Provincia · Sicilia · AG'          },
+  { type: 'city',         text: 'Venezia',                 detail: 'Capoluogo · Veneto'                },
+  { type: 'city',         text: 'Genova',                  detail: 'Capoluogo · Liguria'               },
+  { type: 'city',         text: 'Bari',                    detail: 'Capoluogo · Puglia'                },
+  { type: 'province',     text: 'Provincia di Bari',       detail: 'Città Metropolitana · Puglia · BA' },
+];
+
+const TYPE_STYLE = {
+  city:         { bg: '#F0EEFF', color: '#3E00FB', label: 'Città'     },
+  province:     { bg: '#E6F7FF', color: '#0091FF', label: 'Provincia' },
+  neighborhood: { bg: '#FFF7E6', color: '#FA8C16', label: 'Zona'      },
+  street:       { bg: '#F6FFED', color: '#389E0D', label: 'Via'       },
+};
+
+function highlightMatch(text, query) {
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx < 0) return React.createElement('span', null, text);
+  return React.createElement('span', null,
+    text.slice(0, idx),
+    React.createElement('strong', { style: { color: '#3E00FB', fontWeight: 600 } }, text.slice(idx, idx + query.length)),
+    text.slice(idx + query.length)
+  );
+}
+
+function SuggestionItem({ item, query }) {
+  const ts = TYPE_STYLE[item.type] || TYPE_STYLE.street;
+  const displayText = item.city ? `${item.text}, ${item.city}` : item.text;
+  return React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '2px 0' } },
+    React.createElement('div', {
+      style: { width: 28, height: 28, borderRadius: 6, background: ts.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
+    },
+      React.createElement(EnvironmentOutlined, { style: { fontSize: 12, color: ts.color } })
+    ),
+    React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+      React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.85)', lineHeight: '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
+        highlightMatch(displayText, query)
+      ),
+      React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.38)', lineHeight: '16px', marginTop: 1 } }, item.detail)
+    ),
+    React.createElement('span', {
+      style: { fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 3, background: ts.bg, color: ts.color, border: `1px solid ${ts.color}22`, flexShrink: 0, textTransform: 'uppercase', letterSpacing: '.04em' }
+    }, ts.label)
+  );
+}
+
+function getSuggestions(query) {
+  if (!query || query.trim().length < 2) return [];
+  const q = query.trim();
+  const ql = q.toLowerCase();
+  const buckets = { city: [], province: [], neighborhood: [], street: [] };
+  LOCATION_DB.forEach(item => {
+    const searchIn = [item.text, item.city, item.detail].filter(Boolean).join(' ').toLowerCase();
+    if (!searchIn.includes(ql)) return;
+    if (buckets[item.type] && buckets[item.type].length < 4) buckets[item.type].push(item);
+  });
+  const GROUP_LABELS = {
+    city: 'Città e Comuni', province: 'Province e Regioni',
+    neighborhood: 'Quartieri e Zone', street: 'Indirizzi',
+  };
+  const result = [];
+  ['city', 'province', 'neighborhood', 'street'].forEach(type => {
+    const items = buckets[type];
+    if (!items.length) return;
+    result.push({
+      label: GROUP_LABELS[type],
+      options: items.map((item, i) => {
+        const displayText = item.city ? `${item.text}, ${item.city}` : item.text;
+        return {
+          value: displayText,
+          label: React.createElement(SuggestionItem, { key: `${type}_${i}`, item, query: q }),
+        };
+      }),
+    });
+  });
+  return result;
+}
+
+// ── Mappa ─────────────────────────────────────────────────
+
+function MapView({ systems, selectedIds, onToggle }) {
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+    mapRef.current = L.map(containerRef.current, { center: [38.107, 13.372], zoom: 13 });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors', maxZoom: 19,
+    }).addTo(mapRef.current);
+    return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.eachLayer(l => { if (l instanceof L.Marker) l.remove(); });
+    systems.forEach(sys => {
+      const sel = selectedIds.includes(sys.id);
+      const s = STATUS[sys.status];
+      const c = sel ? '#3E00FB' : s.color;
+      const icon = L.divIcon({
+        html: `<div style="position:relative;width:30px;height:38px">
+          <svg viewBox="0 0 30 38" xmlns="http://www.w3.org/2000/svg"
+               style="width:30px;height:38px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.18))">
+            <path d="M15 0C6.716 0 0 6.716 0 15C0 26.25 15 38 15 38S30 26.25 30 15C30 6.716 23.284 0 15 0Z" fill="${c}"/>
+            <circle cx="15" cy="15" r="7" fill="white" opacity="0.9"/>
+            <rect x="11" y="11" width="8" height="8" rx="1.5" fill="${c}"/>
+          </svg>
+          ${sel ? '<div style="position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:#3E00FB;border-radius:50%;border:1.5px solid #fff"></div>' : ''}
+        </div>`,
+        iconSize: [30, 38], iconAnchor: [15, 38], className: '',
+      });
+      L.marker([sys.lat, sys.lng], { icon })
+        .bindPopup(L.popup({ offset: [0, -34], closeButton: false }).setContent(`
+          <div style="font-family:-apple-system,sans-serif;min-width:156px;padding:2px 0">
+            <div style="font-weight:600;font-size:13px;margin-bottom:2px">${sys.id} · ${sys.type}</div>
+            <div style="color:#999;font-size:12px;margin-bottom:6px">${sys.address}, ${sys.city}</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px">
+              <div style="width:7px;height:7px;border-radius:50%;background:${s.color}"></div>
+              <span style="color:${s.color};font-weight:500">${s.label}</span>
+            </div>
+          </div>`))
+        .on('click', () => onToggle(sys.id))
+        .addTo(mapRef.current);
+    });
+  }, [systems, selectedIds]);
+
+  return React.createElement('div', { ref: containerRef, id: 'leaflet-map' });
+}
+
+// ── Filters Drawer ────────────────────────────────────────
+
+function FiltersDrawer({ open, onClose, onApply, current }) {
+  const [salesModel,  setSalesModel]  = useState(current.salesModel  || []);
+  const [statusF,     setStatusF]     = useState(current.statusF     || []);
+  const [format,      setFormat]      = useState(current.format      || []);
+  const [illuminated, setIlluminated] = useState(current.illuminated || null);
+
+  useEffect(() => {
+    if (open) {
+      setSalesModel(current.salesModel   || []);
+      setStatusF(current.statusF         || []);
+      setFormat(current.format           || []);
+      setIlluminated(current.illuminated || null);
+    }
+  }, [open]);
+
+  const toggle = (arr, set, v) => set(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
+  const totalActive = salesModel.length + statusF.length + format.length + (illuminated ? 1 : 0);
+
+  const SectionLabel = ({ label }) =>
+    React.createElement('div', {
+      style: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', color: 'rgba(0,0,0,0.3)', marginBottom: 6 }
+    }, label);
+
+  const CheckRow = ({ label, checked, onToggle, dot }) =>
+    React.createElement('div', {
+      className: `filter-option ${checked ? 'checked' : ''}`,
+      onClick: onToggle,
+    },
+      React.createElement('div', { className: 'f-checkbox' },
+        checked && React.createElement(CheckOutlined, { style: { color: '#fff', fontSize: 9 } })
+      ),
+      dot && React.createElement('div', { style: { width: 8, height: 8, borderRadius: '50%', background: dot, flexShrink: 0 } }),
+      React.createElement('span', { style: { fontSize: 13, color: checked ? '#3E00FB' : 'rgba(0,0,0,0.72)' } }, label)
+    );
+
+  return React.createElement(Drawer, {
+    title: React.createElement('span', { style: { fontWeight: 600 } }, 'Filtri'),
+    extra: totalActive > 0 && React.createElement(Text, { type: 'secondary', style: { fontSize: 12 } }, `${totalActive} attivi`),
+    placement: 'right', width: 300, open, onClose,
+    styles: { body: { padding: '20px 24px' } },
+    footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between' } },
+      React.createElement(Button, {
+        onClick: () => { setSalesModel([]); setStatusF([]); setFormat([]); setIlluminated(null); },
+        disabled: !totalActive,
+      }, 'Reimposta tutto'),
+      React.createElement(Button, {
+        type: 'primary',
+        onClick: () => { onApply({ salesModel, statusF, format, illuminated }); onClose(); },
+      }, 'Applica'),
+    ),
+  },
+    React.createElement(SectionLabel, { label: 'Modello di vendita' }),
+    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 22 } },
+      ['Standard', 'Premium', 'Special'].map(v =>
+        React.createElement(CheckRow, { key: v, label: v, checked: salesModel.includes(v), onToggle: () => toggle(salesModel, setSalesModel, v) })
+      )
+    ),
+    React.createElement(Divider, { style: { margin: '0 0 18px' } }),
+
+    React.createElement(SectionLabel, { label: 'Disponibilità' }),
+    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 22 } },
+      Object.entries(STATUS).map(([k, s]) =>
+        React.createElement(CheckRow, { key: k, label: s.label, dot: s.color, checked: statusF.includes(k), onToggle: () => toggle(statusF, setStatusF, k) })
+      )
+    ),
+    React.createElement(Divider, { style: { margin: '0 0 18px' } }),
+
+    React.createElement(SectionLabel, { label: 'Formato' }),
+    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, marginBottom: 22 } },
+      ['6×3 m', '4×3 m', '2×1.4 m', '1.2×1.8 m'].map(v =>
+        React.createElement(CheckRow, { key: v, label: v, checked: format.includes(v), onToggle: () => toggle(format, setFormat, v) })
+      )
+    ),
+    React.createElement(Divider, { style: { margin: '0 0 18px' } }),
+
+    React.createElement(SectionLabel, { label: 'Illuminato' }),
+    React.createElement('div', { style: { display: 'flex', gap: 8 } },
+      ['Sì', 'No'].map(v =>
+        React.createElement('button', {
+          key: v, onClick: () => setIlluminated(illuminated === v ? null : v),
+          style: { flex: 1, height: 34, borderRadius: 6, cursor: 'pointer', fontSize: 13, border: `1.5px solid ${illuminated === v ? '#3E00FB' : '#E8E8E8'}`, background: illuminated === v ? '#F0EEFF' : '#fff', color: illuminated === v ? '#3E00FB' : 'rgba(0,0,0,0.55)', fontWeight: illuminated === v ? 600 : 400, transition: 'all .15s' }
+        }, v)
+      )
+    ),
+  );
+}
+
+// ── System card ───────────────────────────────────────────
+
+function SystemCard({ sys, selected, onToggle }) {
+  const s = STATUS[sys.status];
+  return React.createElement('div', {
+    className: `system-card ${selected ? 'selected' : ''}`,
+    onClick: () => onToggle(sys.id),
+  },
+    React.createElement('div', { style: { width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 } }),
+    React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+      React.createElement('div', { style: { fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, `${sys.id} · ${sys.type}`),
+      React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.38)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, `${sys.address}, ${sys.city}`),
+    ),
+    selected
+      ? React.createElement('div', { style: { width: 20, height: 20, borderRadius: '50%', background: '#3E00FB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
+          React.createElement(CheckOutlined, { style: { color: '#fff', fontSize: 10 } }))
+      : React.createElement('div', { style: { width: 20, height: 20, borderRadius: '50%', border: '1.5px solid #D9D9D9', flexShrink: 0 } })
+  );
+}
+
+// ── Navbar (spec: components/navbar.md) ──────────────────
+
+function Navbar() {
+  const navItems = [
+    { key: 'overview',  icon: React.createElement(AppstoreOutlined), label: 'Panoramica'  },
+    { key: 'inventory', icon: React.createElement(InboxOutlined),    label: 'Inventario' },
+    {
+      key: 'delivery', icon: React.createElement(SendOutlined), label: 'Distribuzione',
+      children: [
+        { key: 'campaigns', label: 'Campagne' },
+        { key: 'plannings', label: 'Pianificazioni' },
+      ],
+    },
+  ];
+
+  return React.createElement('div', { className: 'top-nav' },
+    React.createElement('div', { className: 'top-nav-logo' },
+      React.createElement('img', {
+        src: '../../brand/Gravity_type.svg', alt: 'Gravity',
+        style: { height: 28, width: 'auto' },
+        onError: e => { e.target.style.display = 'none'; },
+      })
+    ),
+    React.createElement('div', { className: 'top-nav-menu-wrap' },
+      React.createElement(Menu, {
+        mode: 'horizontal',
+        selectedKeys: ['plannings'],
+        items: navItems,
+        style: { flex: 1, border: 'none', height: 73, lineHeight: '73px' },
+        theme: 'light',
+      })
+    ),
+    React.createElement('div', { className: 'top-nav-right' },
+      React.createElement('button', { className: 'top-nav-bell' },
+        React.createElement(BellOutlined, { style: { fontSize: 20 } })
+      ),
+      React.createElement('div', {
+        style: { width: 32, height: 32, borderRadius: '999px', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' },
+      },
+        React.createElement('img', {
+          src: 'https://www.figma.com/api/mcp/asset/df094a9b-9185-4165-9f4c-fdb584fa6cac',
+          alt: 'Planner',
+          style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+          onError: e => {
+            e.target.parentElement.style.background = '#3E00FB';
+            e.target.style.display = 'none';
+            e.target.parentElement.innerHTML = '<span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">P</span>';
+          },
+        })
+      )
+    )
+  );
+}
+
+// ── App ───────────────────────────────────────────────────
+
+function SelectSystemsV2() {
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const [searchText,   setSearchText]   = useState('');
+  const [suggestions,  setSuggestions]  = useState([]);
+  const [searchScope,  setSearchScope]  = useState('address');
+  const [activeTypes,  setActiveTypes]  = useState([]);
+  const [activeSizes,  setActiveSizes]  = useState([]);
+  const [hiddenLocs,   setHiddenLocs]   = useState([]);
+  const [activeLocs,   setActiveLocs]   = useState([]);
+  const [drawerOpen,   setDrawerOpen]   = useState(false);
+  const [advFilters,   setAdvFilters]   = useState({ salesModel: [], statusF: [], format: [], illuminated: null });
+  const [hasSearched,  setHasSearched]  = useState(false);
+  const [viewMode,     setViewMode]     = useState('map');
+  const [showSelected, setShowSelected] = useState(false);
+  const [selectedIds,  setSelectedIds]  = useState([]);
+
+  const toggleType = t =>
+    setActiveTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+
+  const toggleSize = s =>
+    setActiveSizes(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+
+  const toggleSystem = id =>
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  const advCount = advFilters.salesModel.length + advFilters.statusF.length +
+                   advFilters.format.length + (advFilters.illuminated ? 1 : 0);
+
+  const activeChips = [
+    ...activeTypes.map(t  => ({ key: `type_${t}`,  label: t, prefix: 'Tipologia', active: true })),
+    ...activeSizes.map(s  => ({ key: `size_${s}`,  label: s, prefix: 'Formato',   active: true })),
+    ...advFilters.salesModel.map(v => ({ key: `sm_${v}`,   label: v, prefix: 'Modello',       active: true })),
+    ...advFilters.statusF.map(v    => ({ key: `st_${v}`,   label: STATUS[v]?.label || v, prefix: 'Disponibilità', active: true })),
+    ...advFilters.format.map(v     => ({ key: `fmt_${v}`,  label: v, prefix: 'Formato',        active: true })),
+    ...(advFilters.illuminated ? [{ key: 'ill', label: advFilters.illuminated, prefix: 'Illuminato', active: true }] : []),
+  ];
+
+  const removeChip = key => {
+    if (key.startsWith('type_'))   setActiveTypes(p => p.filter(x => `type_${x}` !== key));
+    else if (key.startsWith('size_')) setActiveSizes(p => p.filter(x => `size_${x}` !== key));
+    else if (key.startsWith('sm_'))  setAdvFilters(p => ({ ...p, salesModel: p.salesModel.filter(v => `sm_${v}`  !== key) }));
+    else if (key.startsWith('st_'))  setAdvFilters(p => ({ ...p, statusF:    p.statusF.filter(v    => `st_${v}`  !== key) }));
+    else if (key.startsWith('fmt_')) setAdvFilters(p => ({ ...p, format:     p.format.filter(v     => `fmt_${v}` !== key) }));
+    else if (key === 'ill')          setAdvFilters(p => ({ ...p, illuminated: null }));
+  };
+
+  const clearAll = () => {
+    setActiveTypes([]);
+    setActiveSizes([]);
+    setAdvFilters({ salesModel: [], statusF: [], format: [], illuminated: null });
+  };
+
+  const handleSearch = () => {
+    if (!searchText.trim() && activeTypes.length === 0 && activeSizes.length === 0 && advCount === 0) {
+      messageApi.warning('Inserisci un indirizzo o seleziona almeno un filtro');
+      return;
+    }
+    setHasSearched(true);
+  };
+
+  const displayed = (() => {
+    let list = showSelected ? SYSTEMS.filter(s => selectedIds.includes(s.id)) : SYSTEMS;
+    if (activeTypes.length > 0) list = list.filter(s => activeTypes.some(t => s.type.toLowerCase().includes(t.toLowerCase())));
+    if (activeSizes.length > 0) list = list.filter(s => activeSizes.includes(s.size));
+    return list;
+  })();
+
+  const MapIcon = () => React.createElement('svg', {
+    viewBox: '0 0 14 14', width: 14, height: 14, fill: 'none',
+    stroke: 'currentColor', strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round',
+  },
+    React.createElement('path', { d: 'M1 3.5 L4.5 2 L9.5 4 L13 2.5 L13 11 L9.5 12.5 L4.5 10.5 L1 12 Z' }),
+    React.createElement('line', { x1: '4.5', y1: '2', x2: '4.5', y2: '10.5' }),
+    React.createElement('line', { x1: '9.5', y1: '4', x2: '9.5', y2: '12.5' }),
+  );
+
+  const viewButtons = [
+    { key: 'map',  icon: React.createElement(MapIcon)       },
+    { key: 'list', icon: React.createElement(TableOutlined) },
+  ];
+
+  return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
+    React.createElement(App, null,
+      contextHolder,
+
+      React.createElement('div', { style: { height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' } },
+
+        React.createElement(Navbar),
+
+        React.createElement('div', { style: { flex: 1, overflow: 'hidden', padding: '24px', display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 } },
+
+          // ── Card 1: info pianificazione ──────────────────
+          React.createElement('div', {
+            style: { background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0', padding: '16px 24px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flexShrink: 0 }
+          },
+            React.createElement('span', {
+              style: { display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 12, fontSize: 13, color: '#3E00FB', fontWeight: 500, cursor: 'pointer' }
+            },
+              React.createElement(ArrowLeftOutlined, { style: { fontSize: 11 } }),
+              'Pianificazione',
+              React.createElement('span', { style: { margin: '0 2px', fontWeight: 400 } }, '|'),
+              React.createElement('span', { style: { fontWeight: 400 } }, 'Gohan Sushi Planning Luglio'),
+            ),
+            React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 16 } },
+              React.createElement('div', { style: { flex: 1 } },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 } },
+                  React.createElement(Title, { level: 3, style: { margin: 0, fontSize: 22 } }, 'Seleziona impianti'),
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.18)', fontSize: 16, lineHeight: 1 } }, '|'),
+                  React.createElement('span', { style: { fontSize: 16, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, 'Zanga Sushi Palermo'),
+                ),
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', fontSize: 13 } },
+                  React.createElement(Text, { style: { fontSize: 13, color: 'rgba(0,0,0,0.35)' } },
+                    'Periodo di esposizione: ',
+                    React.createElement('span', { style: { color: 'rgba(0,0,0,0.55)', fontWeight: 500 } }, '10/06/2025 – 25/06/2025'),
+                  ),
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.15)' } }, '·'),
+                  React.createElement(Text, { style: { fontSize: 13, color: 'rgba(0,0,0,0.35)' } },
+                    'Campagna: ',
+                    React.createElement('span', {
+                      style: { color: '#3E00FB', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }
+                    },
+                      React.createElement(ExportOutlined, { style: { fontSize: 11 } }),
+                      'Zanga Sushi Palermo OOH',
+                    ),
+                  ),
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.15)' } }, '·'),
+                  React.createElement(Text, { style: { fontSize: 13, color: 'rgba(0,0,0,0.35)' } },
+                    'Stato: ',
+                    React.createElement(Badge, { status: 'warning', text: React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, 'Bozza') }),
+                  ),
+                ),
+              ),
+              React.createElement(Space, { size: 8, style: { flexShrink: 0 } },
+                React.createElement(Button, {
+                  style: { borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 6 },
+                },
+                  React.createElement(Badge, {
+                    count: selectedIds.length,
+                    showZero: true,
+                    style: { backgroundColor: '#3E00FB', color: '#fff', boxShadow: 'none', fontSize: 11, fontWeight: 700 },
+                  }),
+                  'Lista Pianificazione',
+                ),
+                React.createElement(Button, {
+                  type: 'primary',
+                  icon: React.createElement(SaveOutlined),
+                  style: { borderRadius: 6 },
+                  onClick: () => messageApi.success('Pianificazione salvata'),
+                }, 'Salva ed esci'),
+              ),
+            ),
+          ),
+
+          // ── Card 2: area di ricerca ───────────────────────────────────────
+          React.createElement('div', {
+            style: { background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flexShrink: 0 }
+          },
+            React.createElement('div', { style: { padding: '32px 24px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center' } },
+              React.createElement(Title, { level: 4, style: { margin: '0 0 16px', color: 'rgba(0,0,0,0.85)', fontWeight: 700 } }, 'Cerca impianti'),
+
+              // Row 1: search group + Filters + Search
+              React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center', width: '100%', maxWidth: 850 } },
+                React.createElement('div', { className: 'search-group' },
+                  React.createElement(Select, {
+                    value: searchScope,
+                    onChange: setSearchScope,
+                    style: { width: 132, flexShrink: 0 },
+                    bordered: false,
+                    className: 'scope-select',
+                    options: [
+                      { value: 'address',      label: 'Indirizzo' },
+                      { value: 'municipality', label: 'Comune'    },
+                      { value: 'province',     label: 'Provincia' },
+                      { value: 'region',       label: 'Regione'   },
+                    ],
+                  }),
+                  React.createElement('div', {
+                    style: { flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 14, gap: 8, minWidth: 0, alignSelf: 'stretch' },
+                    onKeyDown: e => { if (e.key === 'Enter') { setSuggestions([]); handleSearch(); } },
+                  },
+                    React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.2)', fontSize: 16, flexShrink: 0 } }),
+                    React.createElement(AutoComplete, {
+                      value: searchText,
+                      options: suggestions,
+                      onSearch: val => { setSearchText(val); setSuggestions(getSuggestions(val)); },
+                      onSelect: val => { setSearchText(val); setSuggestions([]); },
+                      onChange: val => { setSearchText(val || ''); if (!val) setSuggestions([]); },
+                      className: 'gravity-ac-input',
+                      popupClassName: 'gravity-ac-dropdown',
+                      allowClear: true,
+                      placeholder: 'Cerca per indirizzo, città, area…',
+                      style: { flex: 1, minWidth: 0 },
+                    }),
+                  ),
+                ),
+                React.createElement(Button, {
+                  icon: React.createElement(SlidersOutlined),
+                  onClick: () => setDrawerOpen(true),
+                  style: {
+                    height: 46, borderRadius: 8, paddingInline: 16, fontSize: 14, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    borderColor: advCount > 0 ? '#3E00FB' : undefined,
+                    color:       advCount > 0 ? '#3E00FB' : undefined,
+                    background:  advCount > 0 ? '#F0EEFF' : undefined,
+                  },
+                },
+                  'Filtri',
+                  advCount > 0 && React.createElement('span', {
+                    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: 9, background: '#3E00FB', color: '#fff', fontSize: 11, fontWeight: 700 }
+                  }, advCount)
+                ),
+                React.createElement(Button, {
+                  type: 'primary',
+                  onClick: handleSearch,
+                  style: { height: 46, borderRadius: 8, paddingInline: 28, fontSize: 14, fontWeight: 500, flexShrink: 0 },
+                }, 'Cerca'),
+              ),
+
+              // Row 2: quick type + size filter pills (Tag closable) — nascosti dopo la ricerca
+              !hasSearched && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'nowrap', width: '100%', justifyContent: 'center', overflow: 'hidden' } },
+                ...SYSTEM_TYPES.map(t => {
+                  const active = activeTypes.includes(t);
+                  return React.createElement(Tag, {
+                    key: t,
+                    closable: active,
+                    onClose: e => { e.preventDefault(); toggleType(t); },
+                    onClick: () => { if (!active) toggleType(t); },
+                    style: {
+                      height: 24, lineHeight: '22px', borderRadius: 6, fontSize: 12,
+                      padding: '0 10px', cursor: 'pointer', userSelect: 'none', margin: 0,
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      ...(active
+                        ? { border: '1px solid #3E00FB', background: '#F0EEFF', color: '#3E00FB', fontWeight: 500 }
+                        : { border: '1px dashed #D9D9D9', background: '#FAFAFA', color: 'rgba(0,0,0,0.4)' }
+                      ),
+                    },
+                  },
+                    React.createElement('span', { style: { fontWeight: 700, fontSize: 11 } }, 'Tipologia:'),
+                    t
+                  );
+                }),
+                React.createElement('div', { style: { width: 1, height: 14, background: '#E8E8E8', flexShrink: 0, alignSelf: 'center', margin: '0 2px' } }),
+                ...SYSTEM_SIZES.map(s => {
+                  const active = activeSizes.includes(s);
+                  return React.createElement(Tag, {
+                    key: s,
+                    closable: active,
+                    onClose: e => { e.preventDefault(); toggleSize(s); },
+                    onClick: () => { if (!active) toggleSize(s); },
+                    style: {
+                      height: 24, lineHeight: '22px', borderRadius: 6, fontSize: 12,
+                      padding: '0 10px', cursor: 'pointer', userSelect: 'none', margin: 0,
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      ...(active
+                        ? { border: '1px solid #3E00FB', background: '#F0EEFF', color: '#3E00FB', fontWeight: 500 }
+                        : { border: '1px dashed #D9D9D9', background: '#FAFAFA', color: 'rgba(0,0,0,0.4)' }
+                      ),
+                    },
+                  },
+                    React.createElement('span', { style: { fontWeight: 700, fontSize: 11 } }, 'Formato:'),
+                    s,
+                    React.createElement('span', { style: { opacity: 0.5, fontSize: 10 } }, 'm')
+                  );
+                }),
+                React.createElement('div', { style: { width: 1, height: 14, background: '#E8E8E8', flexShrink: 0, alignSelf: 'center', margin: '0 2px' } }),
+                ...['Palermo Centro', 'Via Libertà', 'Palermo Mondello'].filter(loc => !hiddenLocs.includes(loc)).map(loc =>
+                  React.createElement(Tag, {
+                    key: loc,
+                    closable: activeLocs.includes(loc),
+                    onClose: e => { e.preventDefault(); setHiddenLocs(prev => [...prev, loc]); setActiveLocs(prev => prev.filter(l => l !== loc)); },
+                    onClick: () => { setSearchText(loc); setSuggestions(getSuggestions(loc)); setActiveLocs(prev => prev.includes(loc) ? prev : [...prev, loc]); },
+                    style: {
+                      height: 24, lineHeight: '22px', borderRadius: 6, fontSize: 12,
+                      padding: '0 10px', cursor: 'pointer', userSelect: 'none', margin: 0,
+                      border: '1px dashed #D9D9D9', background: '#FAFAFA', color: 'rgba(0,0,0,0.4)',
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                    },
+                  },
+                    React.createElement('span', { style: { fontWeight: 700, fontSize: 11 } }, 'Area:'),
+                    React.createElement(EnvironmentOutlined, { style: { fontSize: 10 } }),
+                    loc
+                  )
+                ),
+              ),
+
+              // Chip filtri attivi — visibili dopo la ricerca, stessa posizione dei suggestion
+              hasSearched && activeChips.length > 0 && React.createElement('div', {
+                style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'nowrap', width: '100%', justifyContent: 'center', overflow: 'hidden' }
+              },
+                ...activeChips.map(c =>
+                  React.createElement(Tag, {
+                    key: c.key, closable: true,
+                    onClose: () => removeChip(c.key),
+                    style: {
+                      margin: 0, borderRadius: 6, fontSize: 12, padding: '0 10px',
+                      lineHeight: '22px', height: 24, display: 'inline-flex', alignItems: 'center', gap: 4,
+                      border: '1px solid #3E00FB', background: '#F0EEFF', color: '#3E00FB', fontWeight: 500,
+                    },
+                  },
+                    c.prefix && React.createElement('span', { style: { fontWeight: 700, fontSize: 11 } }, `${c.prefix}:`),
+                    c.label
+                  )
+                ),
+                React.createElement('span', {
+                  onClick: clearAll,
+                  style: { fontSize: 12, color: '#FF4A1C', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', marginLeft: 4 },
+                }, 'Cancella tutti'),
+              ),
+            ),
+
+          ),
+
+          // ── Card 3: risultati ─────────────────────────────────────────────
+          hasSearched && React.createElement('div', {
+            style: { background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }
+          },
+
+            // Toolbar risultati
+            React.createElement('div', {
+              style: { padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }
+            },
+                    React.createElement(Text, { style: { fontSize: 13, whiteSpace: 'nowrap' } },
+                      React.createElement('span', { style: { fontWeight: 700 } }, 'Totale: '),
+                      React.createElement('span', { style: { fontWeight: 400 } }, `${displayed.length}`),
+                      React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.55)' } }, ' impianti'),
+                    ),
+                    React.createElement('div', { style: { flex: 1 } }),
+                    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 } },
+                      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+                        React.createElement(Switch, { size: 'small', checked: showSelected, onChange: setShowSelected }),
+                        React.createElement(Text, { style: { fontSize: 13, userSelect: 'none', whiteSpace: 'nowrap' } }, 'Solo selezionati'),
+                      ),
+                      React.createElement('div', { style: { display: 'flex', border: '1px solid #D9D9D9', borderRadius: 6, overflow: 'hidden' } },
+                        ...viewButtons.map(vb =>
+                          React.createElement('button', {
+                            key: vb.key,
+                            className: `view-btn ${viewMode === vb.key ? 'active' : ''}`,
+                            onClick: () => setViewMode(vb.key),
+                          }, vb.icon)
+                        )
+                      ),
+                    ),
+                  ),
+
+                  // Area risultati — flex: 1, prende tutto lo spazio rimanente
+                  React.createElement('div', {
+                    style: { flex: 1, overflow: 'hidden', position: 'relative' }
+                  },
+
+                    viewMode === 'map' && React.createElement(React.Fragment, null,
+                      React.createElement(MapView, { systems: displayed, selectedIds, onToggle: toggleSystem }),
+                      React.createElement('div', {
+                        style: { position: 'absolute', bottom: 20, left: 16, zIndex: 1000, background: '#fff', borderRadius: 8, padding: '10px 14px', boxShadow: '0 2px 12px rgba(0,0,0,0.1)', border: '1px solid #F0F0F0' }
+                      },
+                        React.createElement('div', { style: { fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'rgba(0,0,0,0.28)', marginBottom: 7 } }, 'Legenda'),
+                        ...Object.entries(STATUS).map(([k, v]) =>
+                          React.createElement('div', { key: k, style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, fontSize: 12, color: 'rgba(0,0,0,0.55)' } },
+                            React.createElement('div', { style: { width: 8, height: 8, borderRadius: '50%', background: v.color } }),
+                            v.label
+                          )
+                        )
+                      ),
+                      selectedIds.length > 0 && React.createElement('div', {
+                        style: { position: 'absolute', bottom: 20, right: 16, zIndex: 1000, background: '#3E00FB', borderRadius: 8, padding: '8px 16px', color: '#fff', fontSize: 13, fontWeight: 500, boxShadow: '0 2px 12px rgba(62,0,251,0.2)', display: 'flex', alignItems: 'center', gap: 8 }
+                      },
+                        React.createElement('span', { style: { width: 20, height: 20, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 } }, selectedIds.length),
+                        `impianto${selectedIds.length !== 1 ? 'i' : ''} selezionat${selectedIds.length !== 1 ? 'i' : 'o'}`
+                      )
+                    ),
+
+                    viewMode === 'list' && React.createElement('div', {
+                      style: { overflowY: 'auto', height: '100%', padding: '8px 0' }
+                    },
+                      React.createElement(Collapse, {
+                        bordered: false,
+                        className: 'system-list-collapse',
+                        items: displayed.map(sys => {
+                          const sel = selectedIds.includes(sys.id);
+                          const s = STATUS[sys.status];
+                          const totalFaces = sys.faces.length;
+                          const selectedFaces = sel ? totalFaces : 0;
+                          return {
+                            key: sys.id,
+                            style: { borderLeft: `10px solid ${sel ? '#3E00FB' : s.color}` },
+                            label: React.createElement('div', {
+                              style: { display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }
+                            },
+                              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 } },
+                                  React.createElement('span', { style: { fontWeight: 600, fontSize: 13 } }, sys.id),
+                                  React.createElement(Tag, {
+                                    style: { margin: 0, fontSize: 11, padding: '0 6px', lineHeight: '18px', height: 18, borderRadius: 3 }
+                                  }, sys.type),
+                                ),
+                                React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.38)', display: 'flex', gap: 12 } },
+                                  React.createElement('span', null, `Cimasa: ${sys.cimasa}`),
+                                  React.createElement('span', null, `Account: ${sys.account}`),
+                                  React.createElement('span', null, `${sys.address}, ${sys.city}`),
+                                )
+                              ),
+                            ),
+                            extra: React.createElement('div', {
+                              style: { display: 'flex', alignItems: 'center', gap: 10 },
+                              onClick: e => e.stopPropagation(),
+                            },
+                              React.createElement('span', {
+                                style: { fontSize: 12, color: sel ? '#3E00FB' : 'rgba(0,0,0,0.38)', whiteSpace: 'nowrap' }
+                              }, `${selectedFaces}/${totalFaces} facce selezionate`),
+                              React.createElement('div', {
+                                onClick: () => toggleSystem(sys.id),
+                                style: { width: 18, height: 18, borderRadius: 3, border: sel ? 'none' : '1.5px solid #D9D9D9', background: sel ? '#3E00FB' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }
+                              },
+                                sel && React.createElement(CheckOutlined, { style: { color: '#fff', fontSize: 9 } })
+                              ),
+                            ),
+                            children: React.createElement('div', { style: { overflowX: 'auto' } },
+                              React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 12 } },
+                                React.createElement('thead', null,
+                                  React.createElement('tr', { style: { background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' } },
+                                    ['Tipo faccia', 'Coordinate', 'Orientamento', 'Cono visibilità', 'Risoluzione', 'Orario', 'Stato'].map(h =>
+                                      React.createElement('th', { key: h, style: { padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'rgba(0,0,0,0.45)', fontSize: 11, whiteSpace: 'nowrap' } }, h)
+                                    )
+                                  )
+                                ),
+                                React.createElement('tbody', null,
+                                  ...sys.faces.map(face => {
+                                    const fs = STATUS[face.status];
+                                    return React.createElement('tr', {
+                                      key: face.id,
+                                      style: { borderBottom: '1px solid #F5F5F5' },
+                                    },
+                                      React.createElement('td', { style: { padding: '8px 12px' } },
+                                        React.createElement(Tag, { style: { margin: 0, fontSize: 11, borderRadius: 3 } }, face.faceType)
+                                      ),
+                                      React.createElement('td', { style: { padding: '8px 12px', color: 'rgba(0,0,0,0.55)', fontFamily: 'monospace' } }, face.coords),
+                                      React.createElement('td', { style: { padding: '8px 12px', color: 'rgba(0,0,0,0.55)' } }, face.orientation),
+                                      React.createElement('td', { style: { padding: '8px 12px', color: 'rgba(0,0,0,0.55)' } }, face.cone),
+                                      React.createElement('td', { style: { padding: '8px 12px', color: 'rgba(0,0,0,0.55)' } }, face.resolution),
+                                      React.createElement('td', { style: { padding: '8px 12px', color: 'rgba(0,0,0,0.55)', whiteSpace: 'nowrap' } }, face.hours),
+                                      React.createElement('td', { style: { padding: '8px 12px' } },
+                                        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 5 } },
+                                          React.createElement('div', { style: { width: 6, height: 6, borderRadius: '50%', background: fs.color, flexShrink: 0 } }),
+                                          React.createElement('span', { style: { color: fs.color, fontWeight: 500 } }, fs.label)
+                                        )
+                                      ),
+                                    );
+                                  })
+                                )
+                              )
+                            ),
+                          };
+                        }),
+                      })
+                    ),
+                  ),
+          ),
+
+        ),
+
+        React.createElement(FiltersDrawer, {
+          open: drawerOpen,
+          onClose: () => setDrawerOpen(false),
+          onApply: vals => setAdvFilters(vals),
+          current: advFilters,
+        }),
+
+      )
+    )
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(SelectSystemsV2));
+</script>
+</body>
+</html>
