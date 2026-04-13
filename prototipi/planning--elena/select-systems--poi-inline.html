@@ -251,80 +251,93 @@ const { Title, Text } = Typography;
 // ── Dati ─────────────────────────────────────────────────
 
 const SYSTEMS = [
-  { id: 'PA001', type: 'Palina',           size: '6×3',     address: 'Via delle Scienze 10',    city: 'Palermo',   status: 'available', lat: 38.1155, lng: 13.3621,
+  // ── OOH ──────────────────────────────────────────────────
+  { id: 'PA001', category: 'OOH', type: 'Palina',           size: '6×3',     address: 'Via delle Scienze 10',    city: 'Palermo',   status: 'available', lat: 38.1155, lng: 13.3621,
     cimasa: 'A001E', account: '100E01',
     faces: [
-      { id: 'PA001-A', faceType: 'Front Screen', coords: '38.1155, 13.3621', orientation: '90°',  cone: 'r 35m', resolution: '1920×1080', hours: '8:00 - 20:00', status: 'available' },
+      { id: 'PA001-A', faceType: 'Front Screen', coords: '38.1155, 13.3621', orientation: '90°',  cone: 'r 35m', postingFormat: 'w 6m × h 3m',     illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
     ]},
-  { id: 'PA002', type: 'Poster',           size: '4×3',     address: 'Via Giulio Cesare 14',    city: 'Villabate', status: 'available', lat: 38.0925, lng: 13.4470,
+  { id: 'PA002', category: 'OOH', type: 'Poster',           size: '4×3',     address: 'Via Giulio Cesare 14',    city: 'Villabate', status: 'available', lat: 38.0925, lng: 13.4470,
     cimasa: 'A002E', account: '100E02',
     faces: [
-      { id: 'PA002-A', faceType: 'Fronte',       coords: '38.0925, 13.4470', orientation: '45°',  cone: 'r 50m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
-      { id: 'PA002-B', faceType: 'Retro',        coords: '38.0925, 13.4470', orientation: '225°', cone: 'r 40m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
+      { id: 'PA002-A', faceType: 'Fronte',       coords: '38.0925, 13.4470', orientation: '45°',  cone: 'r 50m', postingFormat: 'w 4m × h 3m',     illumination: 'None',         salesModel: 'Standard',  status: 'available' },
+      { id: 'PA002-B', faceType: 'Retro',        coords: '38.0925, 13.4470', orientation: '225°', cone: 'r 40m', postingFormat: 'w 4m × h 3m',     illumination: 'None',         salesModel: 'Standard',  status: 'available' },
     ]},
-  { id: 'PA003', type: 'Palina Butterfly', size: '1.2×1.8', address: 'Via Filippo Patti 3',     city: 'Misilmeri', status: 'reserved',  lat: 38.0315, lng: 13.4488,
+  { id: 'PA003', category: 'OOH', type: 'Palina Butterfly', size: '1.2×1.8', address: 'Via Filippo Patti 3',     city: 'Misilmeri', status: 'reserved',  lat: 38.0315, lng: 13.4488,
     cimasa: 'A003E', account: '100E03',
     faces: [
-      { id: 'PA003-A', faceType: 'Lato A',       coords: '38.0315, 13.4488', orientation: '0°',   cone: 'r 25m', resolution: '1280×720',  hours: '7:00 - 22:00', status: 'reserved' },
-      { id: 'PA003-B', faceType: 'Lato B',       coords: '38.0315, 13.4488', orientation: '180°', cone: 'r 25m', resolution: '1280×720',  hours: '7:00 - 22:00', status: 'reserved' },
+      { id: 'PA003-A', faceType: 'Lato A',       coords: '38.0315, 13.4488', orientation: '0°',   cone: 'r 25m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',         salesModel: 'Standard',  status: 'reserved' },
+      { id: 'PA003-B', faceType: 'Lato B',       coords: '38.0315, 13.4488', orientation: '180°', cone: 'r 25m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',         salesModel: 'Standard',  status: 'reserved' },
     ]},
-  { id: 'PA004', type: 'Rotor',            size: '6×3',     address: 'Piazza Verdi 6',          city: 'Palermo',   status: 'available', lat: 38.1183, lng: 13.3577,
+  { id: 'PA004', category: 'OOH', type: 'Rotor',            size: '6×3',     address: 'Piazza Verdi 6',          city: 'Palermo',   status: 'available', lat: 38.1183, lng: 13.3577,
     cimasa: 'A004E', account: '100E04',
     faces: [
-      { id: 'PA004-A', faceType: 'Pannello 1',   coords: '38.1183, 13.3577', orientation: '0°',   cone: 'r 60m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
-      { id: 'PA004-B', faceType: 'Pannello 2',   coords: '38.1183, 13.3577', orientation: '120°', cone: 'r 60m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
-      { id: 'PA004-C', faceType: 'Pannello 3',   coords: '38.1183, 13.3577', orientation: '240°', cone: 'r 60m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
+      { id: 'PA004-A', faceType: 'Pannello Rotor', coords: '38.1183, 13.3577', orientation: '0° / 120° / 240°', cone: 'r 60m', postingFormat: 'w 6m × h 3m', illumination: '2 Spotlights', salesModel: 'Standard', slots: ['available', 'available', 'reserved'] },
     ]},
-  { id: 'PA005', type: 'Palina',           size: '4×3',     address: 'Via Oreto 22',            city: 'Palermo',   status: 'available', lat: 38.1073, lng: 13.3751,
+  { id: 'PA005', category: 'OOH', type: 'Palina',           size: '4×3',     address: 'Via Oreto 22',            city: 'Palermo',   status: 'available', lat: 38.1073, lng: 13.3751,
     cimasa: 'A005E', account: '100E05',
     faces: [
-      { id: 'PA005-A', faceType: 'Front Screen', coords: '38.1073, 13.3751', orientation: '270°', cone: 'r 30m', resolution: '1920×1080', hours: '8:00 - 20:00', status: 'available' },
+      { id: 'PA005-A', faceType: 'Front Screen', coords: '38.1073, 13.3751', orientation: '270°', cone: 'r 30m', postingFormat: 'w 4m × h 3m',     illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
     ]},
-  { id: 'PA006', type: 'Poster',           size: '6×3',     address: 'Corso dei Mille 88',      city: 'Palermo',   status: 'option',    lat: 38.1092, lng: 13.3812,
+  { id: 'PA006', category: 'OOH', type: 'Poster',           size: '6×3',     address: 'Corso dei Mille 88',      city: 'Palermo',   status: 'option',    lat: 38.1092, lng: 13.3812,
     cimasa: 'A006E', account: '100E06',
     faces: [
-      { id: 'PA006-A', faceType: 'Fronte',       coords: '38.1092, 13.3812', orientation: '135°', cone: 'r 55m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'option' },
-      { id: 'PA006-B', faceType: 'Retro',        coords: '38.1092, 13.3812', orientation: '315°', cone: 'r 45m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'option' },
+      { id: 'PA006-A', faceType: 'Fronte',       coords: '38.1092, 13.3812', orientation: '135°', cone: 'r 55m', postingFormat: 'w 6m × h 3m',     illumination: 'None',         salesModel: 'Long Term', status: 'option'    },
+      { id: 'PA006-B', faceType: 'Retro',        coords: '38.1092, 13.3812', orientation: '315°', cone: 'r 45m', postingFormat: 'w 6m × h 3m',     illumination: 'None',         salesModel: 'Long Term', status: 'option'    },
     ]},
-  { id: 'PA007', type: 'Palina',           size: '1.2×1.8', address: 'Viale Regione Siciliana', city: 'Palermo',   status: 'available', lat: 38.0993, lng: 13.3903,
+  { id: 'PA007', category: 'OOH', type: 'Palina',           size: '1.2×1.8', address: 'Viale Regione Siciliana', city: 'Palermo',   status: 'available', lat: 38.0993, lng: 13.3903,
     cimasa: 'A007E', account: '100E07',
     faces: [
-      { id: 'PA007-A', faceType: 'Front Screen', coords: '38.0993, 13.3903', orientation: '60°',  cone: 'r 20m', resolution: '1280×720',  hours: '7:00 - 21:00', status: 'available' },
+      { id: 'PA007-A', faceType: 'Front Screen', coords: '38.0993, 13.3903', orientation: '60°',  cone: 'r 20m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',         salesModel: 'Standard',  status: 'available' },
     ]},
-  { id: 'PA008', type: 'Palina Butterfly', size: '4×3',     address: 'Via Libertà 112',         city: 'Palermo',   status: 'available', lat: 38.1281, lng: 13.3523,
+  { id: 'PA008', category: 'OOH', type: 'Palina Butterfly', size: '4×3',     address: 'Via Libertà 112',         city: 'Palermo',   status: 'available', lat: 38.1281, lng: 13.3523,
     cimasa: 'A008E', account: '100E08',
     faces: [
-      { id: 'PA008-A', faceType: 'Lato A',       coords: '38.1281, 13.3523', orientation: '30°',  cone: 'r 35m', resolution: '1920×1080', hours: '8:00 - 20:00', status: 'available' },
-      { id: 'PA008-B', faceType: 'Lato B',       coords: '38.1281, 13.3523', orientation: '210°', cone: 'r 35m', resolution: '1920×1080', hours: '8:00 - 20:00', status: 'available' },
+      { id: 'PA008-A', faceType: 'Lato A',       coords: '38.1281, 13.3523', orientation: '30°',  cone: 'r 35m', postingFormat: 'w 4m × h 3m',     illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
+      { id: 'PA008-B', faceType: 'Lato B',       coords: '38.1281, 13.3523', orientation: '210°', cone: 'r 35m', postingFormat: 'w 4m × h 3m',     illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
     ]},
-  { id: 'PA009', type: 'Rotor',            size: '1.2×1.8', address: 'Via Roma 278',            city: 'Palermo',   status: 'reserved',  lat: 38.1198, lng: 13.3614,
+  { id: 'PA009', category: 'OOH', type: 'Rotor',            size: '1.2×1.8', address: 'Via Roma 278',            city: 'Palermo',   status: 'reserved',  lat: 38.1198, lng: 13.3614,
     cimasa: 'A009E', account: '100E09',
     faces: [
-      { id: 'PA009-A', faceType: 'Pannello 1',   coords: '38.1198, 13.3614', orientation: '0°',   cone: 'r 20m', resolution: '1280×720',  hours: '9:00 - 18:00', status: 'reserved' },
-      { id: 'PA009-B', faceType: 'Pannello 2',   coords: '38.1198, 13.3614', orientation: '120°', cone: 'r 20m', resolution: '1280×720',  hours: '9:00 - 18:00', status: 'reserved' },
+      { id: 'PA009-A', faceType: 'Pannello Rotor', coords: '38.1198, 13.3614', orientation: '0° / 120° / 240°', cone: 'r 20m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None', salesModel: 'Standard', slots: ['reserved', 'reserved', 'reserved'] },
     ]},
-  { id: 'PA010', type: 'Palina',           size: '6×3',     address: 'Via Notarbartolo 9',      city: 'Palermo',   status: 'available', lat: 38.1304, lng: 13.3463,
+  { id: 'PA010', category: 'OOH', type: 'Palina',           size: '6×3',     address: 'Via Notarbartolo 9',      city: 'Palermo',   status: 'available', lat: 38.1304, lng: 13.3463,
     cimasa: 'A010E', account: '100E10',
     faces: [
-      { id: 'PA010-A', faceType: 'Front Screen', coords: '38.1304, 13.3463', orientation: '180°', cone: 'r 40m', resolution: '1920×1080', hours: '8:00 - 20:00', status: 'available' },
+      { id: 'PA010-A', faceType: 'Front Screen', coords: '38.1304, 13.3463', orientation: '180°', cone: 'r 40m', postingFormat: 'w 6m × h 3m',     illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
     ]},
-  { id: 'PA011', type: 'Poster',           size: '4×3',     address: 'Via Messina Marine 4',    city: 'Palermo',   status: 'available', lat: 38.0962, lng: 13.3692,
+  { id: 'PA011', category: 'OOH', type: 'Poster',           size: '4×3',     address: 'Via Messina Marine 4',    city: 'Palermo',   status: 'available', lat: 38.0962, lng: 13.3692,
     cimasa: 'A011E', account: '100E11',
     faces: [
-      { id: 'PA011-A', faceType: 'Fronte',       coords: '38.0962, 13.3692', orientation: '90°',  cone: 'r 50m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
-      { id: 'PA011-B', faceType: 'Retro',        coords: '38.0962, 13.3692', orientation: '270°', cone: 'r 45m', resolution: '1920×1080', hours: '0:00 - 24:00', status: 'available' },
+      { id: 'PA011-A', faceType: 'Fronte',       coords: '38.0962, 13.3692', orientation: '90°',  cone: 'r 50m', postingFormat: 'w 4m × h 3m',     illumination: 'None',         salesModel: 'Standard',  status: 'available' },
+      { id: 'PA011-B', faceType: 'Retro',        coords: '38.0962, 13.3692', orientation: '270°', cone: 'r 45m', postingFormat: 'w 4m × h 3m',     illumination: 'None',         salesModel: 'Standard',  status: 'available' },
     ]},
-  { id: 'PA012', type: 'Palina',           size: '1.2×1.8', address: 'Via Strasburgo 233',      city: 'Palermo',   status: 'option',    lat: 38.1034, lng: 13.3383,
+  { id: 'PA012', category: 'OOH', type: 'Palina',           size: '1.2×1.8', address: 'Via Strasburgo 233',      city: 'Palermo',   status: 'option',    lat: 38.1034, lng: 13.3383,
     cimasa: 'A012E', account: '100E12',
     faces: [
-      { id: 'PA012-A', faceType: 'Front Screen', coords: '38.1034, 13.3383', orientation: '315°', cone: 'r 20m', resolution: '1280×720',  hours: '7:00 - 21:00', status: 'option' },
+      { id: 'PA012-A', faceType: 'Front Screen', coords: '38.1034, 13.3383', orientation: '315°', cone: 'r 20m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',         salesModel: 'Standard',  status: 'option'    },
+    ]},
+  // ── DOOH ─────────────────────────────────────────────────
+  { id: 'PA013', category: 'DOOH', type: 'LED Screen', size: '4×3', address: 'Via Roma 45', city: 'Palermo', status: 'available', lat: 38.1145, lng: 13.3601,
+    cimasa: 'A013E', account: '100E13',
+    faces: [
+      { id: 'PA013-A', faceType: 'Front Screen', coords: '38.1145, 13.3601', orientation: '90°',  cone: 'r 50m',
+        resolution: 'w 1200px × h 960px', screenResolution: 'w 1920px × h 1080px', hours: '8:00 - 22:00',
+        slots: ['available', 'available', 'available', 'reserved', 'reserved', 'reserved'] },
+    ]},
+  { id: 'PA014', category: 'DOOH', type: 'LED Screen', size: '6×4', address: 'Piazza Castelnuovo 1', city: 'Palermo', status: 'option', lat: 38.1172, lng: 13.3536,
+    cimasa: 'A014E', account: '100E14',
+    faces: [
+      { id: 'PA014-A', faceType: 'Front Screen', coords: '38.1172, 13.3536', orientation: '180°', cone: 'r 70m',
+        resolution: 'w 1600px × h 1200px', screenResolution: 'w 3840px × h 2160px', hours: '0:00 - 24:00',
+        slots: ['option', 'option', 'reserved', 'reserved', 'reserved', 'reserved', 'reserved', 'reserved'] },
     ]},
 ];
 
 const STATUS = {
   available: { color: '#52C41A', label: 'Disponibile' },
-  reserved:  { color: '#7B61FF', label: 'Riservato'   },
-  option:    { color: '#FF4A1C', label: 'In Opzione'  },
+  reserved:  { color: '#722ED1', label: 'Riservato'   },
+  option:    { color: '#EB2F96', label: 'In Opzione'  },
 };
 
 const SYSTEM_TYPES = ['Palina', 'Poster', 'Rotor'];
@@ -652,6 +665,158 @@ function POIPanel({ pois, poiRadii, onRadiusChange, activePOI, onPoiClick }) {
           )
         );
       })
+    )
+  );
+}
+
+// ── Helpers impianto ─────────────────────────────────────
+
+function getFaceSlots(face) {
+  return face.slots || [face.status];
+}
+
+function getFaceStatus(face) {
+  const slots = getFaceSlots(face);
+  if (slots.includes('available')) return 'available';
+  if (slots.includes('option'))    return 'option';
+  return 'reserved';
+}
+
+function getBorderColor(sys) {
+  const all = sys.faces.flatMap(getFaceSlots);
+  if (all.includes('available')) return '#52C41A';
+  if (all.includes('option'))    return '#EB2F96';
+  return '#722ED1';
+}
+
+const FACE_TYPE_STYLE = {
+  'Front Screen':    { bg: '#E6FFFB', border: '#87E8DE', color: '#13C2C2' },
+  'Fronte':          { bg: '#E6FFFB', border: '#87E8DE', color: '#13C2C2' },
+  'Lato A':          { bg: '#E6FFFB', border: '#87E8DE', color: '#13C2C2' },
+  'Pannello Rotor':  { bg: '#E6FFFB', border: '#87E8DE', color: '#13C2C2' },
+  'Back Screen':     { bg: '#FFF2E8', border: '#FFBB96', color: '#FA541C' },
+  'Retro':           { bg: '#FFF2E8', border: '#FFBB96', color: '#FA541C' },
+  'Lato B':          { bg: '#FFF2E8', border: '#FFBB96', color: '#FA541C' },
+};
+function faceTypeStyle(t) {
+  return FACE_TYPE_STYLE[t] || { bg: 'rgba(0,0,0,0.04)', border: '#D9D9D9', color: 'rgba(0,0,0,0.88)' };
+}
+
+const SLOT_COLOR = { available: '#52C41A', reserved: '#722ED1', option: '#EB2F96' };
+
+function FacesTable({ sys, isSelected }) {
+  const isDooh = sys.category === 'DOOH';
+  const thStyle = {
+    background: 'rgba(0,0,0,0.02)',
+    border: '0.5px solid rgba(0,0,0,0.06)',
+    padding: '8px 16px',
+    textAlign: 'left',
+    fontWeight: 600,
+    fontSize: 14,
+    lineHeight: '22px',
+    color: 'rgba(0,0,0,0.88)',
+    whiteSpace: 'nowrap',
+  };
+  const tdStyle = {
+    border: '0.5px solid #F0F0F0',
+    padding: '8px 16px',
+    fontSize: 14,
+    lineHeight: '22px',
+    color: 'rgba(0,0,0,0.88)',
+    whiteSpace: 'nowrap',
+    verticalAlign: 'middle',
+    background: '#ffffff',
+  };
+
+  const oohCols = ['Face Type', 'Coordinate', 'Orientamento', 'Cono vis.', 'Formato', 'Illuminazione', 'Sales Model', 'Slots', 'Stato', ''];
+  const doohCols = ['Face Type', 'Coordinate', 'Orientamento', 'Cono vis.', 'Risoluzione', 'Screen Res.', 'Orario', 'Slots', 'Stato', ''];
+  const cols = isDooh ? doohCols : oohCols;
+
+  return React.createElement('div', { style: { padding: 16, background: '#ffffff' } },
+    React.createElement('div', { style: { overflowX: 'auto' } },
+      React.createElement('table', { style: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'auto' } },
+        React.createElement('thead', null,
+          React.createElement('tr', null,
+            ...cols.map(h => React.createElement('th', { key: h, style: thStyle }, h))
+          )
+        ),
+        React.createElement('tbody', null,
+          ...sys.faces.map(face => {
+            const slots     = getFaceSlots(face);
+            const fStatus   = getFaceStatus(face);
+            const isReservedFace = fStatus === 'reserved';
+            const checked   = isSelected && !isReservedFace;
+            const ftStyle   = faceTypeStyle(face.faceType);
+            const sInfo     = STATUS[fStatus];
+
+            const illumCell = !isDooh
+              ? (face.illumination === 'None'
+                  ? React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'None')
+                  : (() => {
+                      const m = face.illumination.match(/^(\d+)\s+(.+)$/);
+                      return m
+                        ? React.createElement('span', null,
+                            React.createElement('span', { style: { fontWeight: 600, color: '#3E00FB' } }, m[1]),
+                            ' ' + m[2]
+                          )
+                        : face.illumination;
+                    })()
+                )
+              : null;
+
+            const slotsCell = React.createElement('div', { style: { display: 'flex', gap: 4, alignItems: 'center' } },
+              ...slots.map((s, i) => React.createElement('div', {
+                key: i,
+                style: { width: 10, height: 10, background: SLOT_COLOR[s] || '#D9D9D9', flexShrink: 0 },
+              }))
+            );
+
+            const stateCell = React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+              React.createElement('div', { style: { width: 6, height: 6, borderRadius: '50%', background: sInfo.color, flexShrink: 0 } }),
+              React.createElement('span', null, sInfo.label)
+            );
+
+            const ftTag = React.createElement('span', {
+              style: { display: 'inline-block', fontSize: 12, lineHeight: '20px', padding: '0 8px', borderRadius: 4, background: ftStyle.bg, border: `1px solid ${ftStyle.border}`, color: ftStyle.color, whiteSpace: 'nowrap' }
+            }, face.faceType);
+
+            const checkboxCell = React.createElement(Checkbox, {
+              checked,
+              disabled: isReservedFace,
+              onChange: () => {},
+              onClick: e => e.stopPropagation(),
+            });
+
+            const oohCells = [
+              React.createElement('td', { key: 'ft',  style: tdStyle }, ftTag),
+              React.createElement('td', { key: 'co',  style: { ...tdStyle, fontFamily: 'monospace' } }, face.coords),
+              React.createElement('td', { key: 'or',  style: tdStyle }, face.orientation),
+              React.createElement('td', { key: 'cv',  style: tdStyle }, face.cone),
+              React.createElement('td', { key: 'pf',  style: tdStyle }, face.postingFormat),
+              React.createElement('td', { key: 'il',  style: tdStyle }, illumCell),
+              React.createElement('td', { key: 'sm',  style: tdStyle }, face.salesModel),
+              React.createElement('td', { key: 'sl',  style: tdStyle }, slotsCell),
+              React.createElement('td', { key: 'st',  style: tdStyle }, stateCell),
+              React.createElement('td', { key: 'cb',  style: { ...tdStyle, textAlign: 'center', width: 40 } }, checkboxCell),
+            ];
+
+            const doohCells = [
+              React.createElement('td', { key: 'ft',  style: tdStyle }, ftTag),
+              React.createElement('td', { key: 'co',  style: { ...tdStyle, fontFamily: 'monospace' } }, face.coords),
+              React.createElement('td', { key: 'or',  style: tdStyle }, face.orientation),
+              React.createElement('td', { key: 'cv',  style: tdStyle }, face.cone),
+              React.createElement('td', { key: 'res', style: tdStyle }, face.resolution),
+              React.createElement('td', { key: 'scr', style: tdStyle }, face.screenResolution),
+              React.createElement('td', { key: 'hr',  style: tdStyle }, face.hours),
+              React.createElement('td', { key: 'sl',  style: tdStyle }, slotsCell),
+              React.createElement('td', { key: 'st',  style: tdStyle }, stateCell),
+              React.createElement('td', { key: 'cb',  style: { ...tdStyle, textAlign: 'center', width: 40 } }, checkboxCell),
+            ];
+
+            return React.createElement('tr', { key: face.id }, ...(isDooh ? doohCells : oohCells));
+          })
+        )
+      )
     )
   );
 }
@@ -1334,12 +1499,11 @@ function SelectSystemsV2() {
                         className: 'system-list-collapse',
                         items: displayed.map(sys => {
                           const sel = selectedIds.includes(sys.id);
-                          const s = STATUS[sys.status];
                           const totalFaces = sys.faces.length;
-                          const selectedFaces = sel ? totalFaces : 0;
+                          const selectedFaces = sel ? sys.faces.filter(f => getFaceStatus(f) !== 'reserved').length : 0;
                           return {
                             key: sys.id,
-                            style: { borderLeft: `10px solid ${sel ? '#3E00FB' : s.color}` },
+                            style: { borderLeft: `10px solid ${sel ? '#3E00FB' : getBorderColor(sys)}` },
                             label: React.createElement('div', { style: { flex: 1, minWidth: 0 } },
                               React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 } },
                                 React.createElement('span', { style: { fontWeight: 600, fontSize: 16, lineHeight: '24px', color: 'rgba(0,0,0,0.88)' } }, sys.id),
@@ -1377,41 +1541,7 @@ function SelectSystemsV2() {
                                 onChange: () => toggleSystem(sys.id),
                               }),
                             ),
-                            children: React.createElement('div', { style: { overflowX: 'auto' } },
-                              React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: 12 } },
-                                React.createElement('thead', null,
-                                  React.createElement('tr', { style: { background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' } },
-                                    ['Tipo faccia', 'Coordinate', 'Orientamento', 'Cono visibilità', 'Risoluzione', 'Orario', 'Stato'].map(h =>
-                                      React.createElement('th', { key: h, style: { padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'rgba(0,0,0,0.45)', fontSize: 11, whiteSpace: 'nowrap' } }, h)
-                                    )
-                                  )
-                                ),
-                                React.createElement('tbody', null,
-                                  ...sys.faces.map(face => {
-                                    const fs = STATUS[face.status];
-                                    return React.createElement('tr', {
-                                      key: face.id,
-                                      style: { borderBottom: '1px solid #F5F5F5' },
-                                    },
-                                      React.createElement('td', { style: { padding: '8px 12px' } },
-                                        React.createElement(Tag, { style: { margin: 0, fontSize: 11, borderRadius: 3 } }, face.faceType)
-                                      ),
-                                      React.createElement('td', { style: { padding: '8px 12px', color: 'rgba(0,0,0,0.55)', fontFamily: 'monospace' } }, face.coords),
-                                      React.createElement('td', { style: { padding: '8px 12px', color: 'rgba(0,0,0,0.55)' } }, face.orientation),
-                                      React.createElement('td', { style: { padding: '8px 12px', color: 'rgba(0,0,0,0.55)' } }, face.cone),
-                                      React.createElement('td', { style: { padding: '8px 12px', color: 'rgba(0,0,0,0.55)' } }, face.resolution),
-                                      React.createElement('td', { style: { padding: '8px 12px', color: 'rgba(0,0,0,0.55)', whiteSpace: 'nowrap' } }, face.hours),
-                                      React.createElement('td', { style: { padding: '8px 12px' } },
-                                        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 5 } },
-                                          React.createElement('div', { style: { width: 6, height: 6, borderRadius: '50%', background: fs.color, flexShrink: 0 } }),
-                                          React.createElement('span', { style: { color: fs.color, fontWeight: 500 } }, fs.label)
-                                        )
-                                      ),
-                                    );
-                                  })
-                                )
-                              )
-                            ),
+                            children: React.createElement(FacesTable, { sys, isSelected: sel }),
                           };
                         }),
                       })
