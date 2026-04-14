@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gravity — Pianificazione v2 · Select Systems</title>
+  <title>Gravity — Select Systems · Flow A — Selezione Continua</title>
 
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -74,28 +74,49 @@
     .scope-select .ant-select-selection-item { line-height: 1 !important; font-size: 13px !important; color: rgba(0,0,0,0.65) !important; }
     .scope-select .ant-select-arrow { color: rgba(0,0,0,0.3) !important; margin-top: -6px !important; }
 
-    /* AutoComplete di ricerca (destra del search group) */
-    .gravity-ac-input { min-width: 0; }
+    /* AutoComplete di ricerca — dentro Space.Compact */
+    .gravity-ac-input { min-width: 0; flex: 1; }
     .gravity-ac-input .ant-select-selector {
-      border: none !important; box-shadow: none !important;
-      height: 36px !important; padding: 0 !important; background: transparent !important;
+      border-right: none !important; box-shadow: none !important;
+      height: 36px !important; padding: 0 12px !important; background: #fff !important;
       display: flex !important; align-items: center !important;
     }
-    .gravity-ac-input .ant-select-selection-search { left: 0 !important; right: 26px !important; top: 0 !important; bottom: 0 !important; display: flex !important; align-items: center !important; }
+    .gravity-ac-input:hover .ant-select-selector,
+    .gravity-ac-input.ant-select-focused .ant-select-selector {
+      border-color: #3E00FB !important;
+      box-shadow: none !important;
+    }
+    .gravity-ac-input .ant-select-selection-search { left: 12px !important; right: 30px !important; top: 0 !important; bottom: 0 !important; display: flex !important; align-items: center !important; }
     .gravity-ac-input .ant-select-selection-search-input { height: 22px !important; font-size: 14px !important; line-height: 22px !important; margin: 0 !important; padding: 0 !important; }
     .gravity-ac-input .ant-select-selection-placeholder {
       top: 0 !important; bottom: 0 !important; transform: none !important;
       display: flex !important; align-items: center !important;
       font-size: 14px !important; color: rgba(0,0,0,0.25) !important;
-      left: 0 !important; right: 26px !important; line-height: 1 !important; margin: 0 !important;
+      left: 12px !important; right: 30px !important; line-height: 1 !important; margin: 0 !important;
     }
-    /* Stato filled (valore selezionato) — allineamento verticale uguale a placeholder e input */
+    /* Stato filled */
     .gravity-ac-input .ant-select-selection-item {
       display: flex !important; align-items: center !important;
       height: 36px !important; padding: 0 !important; margin: 0 !important;
       font-size: 14px !important; line-height: 1 !important; color: rgba(0,0,0,0.85) !important;
     }
     .gravity-ac-input .ant-select-clear { top: 50% !important; margin-top: -7px !important; right: 8px !important; }
+    /* Space.Compact: stretch autocomplete to fill available space */
+    .search-compact .ant-space-compact { display: flex !important; width: 100% !important; }
+    .search-compact .ant-space-compact > .ant-select { flex: 1 !important; min-width: 0 !important; }
+
+    /* Cursore typewriter nel placeholder */
+    @keyframes tw-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    .gravity-ac-input .ant-select-selection-placeholder::after {
+      content: '|'; margin-left: 1px; opacity: 1;
+      animation: tw-blink 1s step-start infinite;
+      color: rgba(0,0,0,0.3);
+    }
+    .gravity-ac-input.ant-select-focused .ant-select-selection-placeholder::after,
+    .gravity-ac-input .ant-select-selection-item ~ .ant-select-selection-placeholder::after { display: none; }
+
+    /* Hover stato primario search button */
+    .search-compact .ant-btn-primary:hover { background: #2D00C7 !important; }
 
     /* Dropdown autocomplete */
     .gravity-ac-dropdown { padding: 6px 0 !important; min-width: 420px !important; }
@@ -169,6 +190,49 @@
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #D9D9D9; border-radius: 3px; }
 
+    /* ── POI category grid ───────────────────── */
+    .poi-section-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: rgba(0,0,0,0.3);
+      width: 100%; margin: 0 0 8px;
+    }
+    .poi-category-grid {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; width: 100%;
+    }
+    .poi-category-card {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      padding: 10px 6px; border-radius: 8px; cursor: pointer; user-select: none;
+      border: 1px solid #F0F0F0; background: #FAFAFA;
+      font-size: 11px; color: rgba(0,0,0,0.55); transition: all 0.15s; text-align: center;
+    }
+    .poi-category-card:hover { border-color: #C4B5FD; background: #fff; color: rgba(0,0,0,0.75); }
+    .poi-category-card.active { border-color: #3E00FB; background: #F0EEFF; color: #3E00FB; font-weight: 600; }
+    .poi-category-card .poi-icon { font-size: 18px; }
+
+    /* ── POI panel ───────────────────── */
+    .poi-panel {
+      position: absolute; top: 0; right: 0; bottom: 0; width: 300px;
+      background: #fff; border-left: 1px solid #F0F0F0;
+      display: flex; flex-direction: column; z-index: 500;
+      box-shadow: -2px 0 12px rgba(0,0,0,0.06);
+    }
+    .poi-panel-header {
+      padding: 12px 16px; border-bottom: 1px solid #F0F0F0;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; font-weight: 600; color: rgba(0,0,0,0.65); flex-shrink: 0;
+    }
+    .poi-panel-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .poi-panel-item {
+      padding: 10px 16px; cursor: pointer;
+      border-left: 3px solid transparent; transition: background 0.12s;
+    }
+    .poi-panel-item:hover { background: #FAFAFA; }
+    .poi-panel-item.active { background: #F5F3FF; border-left-color: #3E00FB; }
+    .poi-panel-item-name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+    .poi-panel-item-addr { font-size: 11px; color: rgba(0,0,0,0.38); margin-bottom: 8px; }
+    .poi-panel-item-radius { display: flex; align-items: center; gap: 8px; }
+    .poi-panel-item-radius .ant-slider { flex: 1; margin: 0; }
+
     /* ── System list collapse ───────────────────── */
     .system-list-collapse { padding: 0 16px; }
     .system-list-collapse .ant-collapse-item {
@@ -184,48 +248,6 @@
     .system-list-collapse .ant-collapse-header { align-items: center !important; padding: 20px 24px 20px 16px !important; }
     .system-list-collapse .ant-collapse-content-box { padding: 0 !important; }
     .system-list-collapse .ant-collapse-expand-icon { padding-inline-end: 12px !important; }
-
-    /* ── POI panel ───────────────────────────── */
-    .poi-panel {
-      position: absolute; top: 0; right: 0; bottom: 0;
-      width: 300px; background: #fff;
-      border-left: 1px solid #F0F0F0;
-      display: flex; flex-direction: column;
-      z-index: 500; box-shadow: -2px 0 12px rgba(0,0,0,0.06);
-    }
-    .poi-panel-header {
-      padding: 12px 16px; border-bottom: 1px solid #F0F0F0;
-      font-weight: 600; font-size: 13px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .poi-panel-list { flex: 1; overflow-y: auto; padding: 8px 0; }
-    .poi-panel-item {
-      padding: 10px 16px; cursor: pointer;
-      border-left: 3px solid transparent;
-      transition: background 0.12s, border-color 0.12s;
-    }
-    .poi-panel-item:hover { background: #FAFAFA; }
-    .poi-panel-item.active { background: #F5F3FF; border-left-color: #3E00FB; }
-    .poi-panel-item-name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
-    .poi-panel-item-addr { font-size: 11px; color: rgba(0,0,0,0.38); margin-bottom: 8px; }
-    .poi-panel-item-radius { display: flex; align-items: center; gap: 8px; }
-    .poi-panel-item-radius .ant-slider { flex: 1; margin: 0; }
-
-    /* ── POI category grid ───────────────────── */
-    .poi-category-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-      width: 100%; max-width: 850px;
-    }
-    .poi-category-card {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 12px 8px; border-radius: 8px; cursor: pointer;
-      border: 1.5px solid #F0F0F0; background: #FAFAFA;
-      font-size: 12px; color: rgba(0,0,0,0.55);
-      transition: all 0.15s; user-select: none; text-align: center;
-    }
-    .poi-category-card:hover { border-color: #C4B5FD; background: #fff; }
-    .poi-category-card.active { border-color: #3E00FB; background: #F0EEFF; color: #3E00FB; font-weight: 500; }
-    .poi-category-card .icon { font-size: 20px; }
   </style>
 </head>
 <body>
@@ -238,7 +260,7 @@ const {
   ConfigProvider, App,
   Space, Divider, Typography,
   Button, Input, Select, Tag, AutoComplete, Menu,
-  Avatar, Switch, Drawer, Badge, Collapse, Segmented, Slider, Checkbox, message,
+  Avatar, Switch, Drawer, Badge, Collapse, Slider, Checkbox, message,
 } = antd;
 
 const {
@@ -247,7 +269,8 @@ const {
   EnvironmentOutlined, AppstoreOutlined, BarsOutlined,
   TableOutlined, CheckOutlined, PlusOutlined,
   InboxOutlined, SendOutlined, ExportOutlined, GlobalOutlined,
-  ShoppingCartOutlined, ShopOutlined, CarOutlined, CoffeeOutlined, ReadOutlined, StarOutlined, AimOutlined,
+  ShoppingCartOutlined, ShopOutlined, CarOutlined, CoffeeOutlined,
+  ReadOutlined, StarOutlined, AimOutlined,
 } = icons;
 
 const { Title, Text } = Typography;
@@ -259,47 +282,46 @@ const SYSTEMS = [
   { id: 'PA001', category: 'OOH', type: 'Palina',           size: '6×3',     address: 'Via delle Scienze 10',    city: 'Palermo',   status: 'available', lat: 38.1155, lng: 13.3621,
     cimasa: 'A001E', account: '100E01',
     faces: [
-      { id: 'PA001-A', faceType: 'Frontale', coords: '38.1155, 13.3621', orientation: '90°',  cone: 'r 35m', postingFormat: 'w 6m × h 3m',   illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
+      { id: 'PA001-A', faceType: 'Frontale', coords: '38.1155, 13.3621', orientation: '90°',  cone: 'r 35m', postingFormat: 'w 6m × h 3m',     illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
     ]},
   { id: 'PA002', category: 'OOH', type: 'Plancia',           size: '4×3',     address: 'Via Giulio Cesare 14',    city: 'Villabate', status: 'available', lat: 38.0925, lng: 13.4470,
     cimasa: 'A002E', account: '100E02',
     faces: [
-      { id: 'PA002-A', faceType: 'Frontale',       coords: '38.0925, 13.4470', orientation: '45°',  cone: 'r 50m', postingFormat: 'w 4m × h 3m',   illumination: 'None',         salesModel: 'Standard',  status: 'available' },
-      { id: 'PA002-B', faceType: 'Posteriore',        coords: '38.0925, 13.4470', orientation: '225°', cone: 'r 40m', postingFormat: 'w 4m × h 3m',   illumination: 'None',         salesModel: 'Standard',  status: 'available' },
+      { id: 'PA002-A', faceType: 'Frontale',       coords: '38.0925, 13.4470', orientation: '45°',  cone: 'r 50m', postingFormat: 'w 4m × h 3m',     illumination: 'None',         salesModel: 'Standard',  status: 'available' },
+      { id: 'PA002-B', faceType: 'Posteriore',        coords: '38.0925, 13.4470', orientation: '225°', cone: 'r 40m', postingFormat: 'w 4m × h 3m',     illumination: 'None',         salesModel: 'Standard',  status: 'available' },
     ]},
   { id: 'PA003', category: 'OOH', type: 'Palina Butterfly', size: '1.2×1.8', address: 'Via Filippo Patti 3',     city: 'Misilmeri', status: 'reserved',  lat: 38.0315, lng: 13.4488,
     cimasa: 'A003E', account: '100E03',
     faces: [
-      { id: 'PA003-A', faceType: 'Frontale',       coords: '38.0315, 13.4488', orientation: '0°',   cone: 'r 25m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',       salesModel: 'Standard',  status: 'reserved' },
-      { id: 'PA003-B', faceType: 'Posteriore',       coords: '38.0315, 13.4488', orientation: '180°', cone: 'r 25m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',       salesModel: 'Standard',  status: 'reserved' },
+      { id: 'PA003-A', faceType: 'Frontale',       coords: '38.0315, 13.4488', orientation: '0°',   cone: 'r 25m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',         salesModel: 'Standard',  status: 'reserved' },
+      { id: 'PA003-B', faceType: 'Posteriore',       coords: '38.0315, 13.4488', orientation: '180°', cone: 'r 25m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',         salesModel: 'Standard',  status: 'reserved' },
     ]},
   { id: 'PA004', category: 'OOH', type: 'Rotor',            size: '6×3',     address: 'Piazza Verdi 6',          city: 'Palermo',   status: 'available', lat: 38.1183, lng: 13.3577,
     cimasa: 'A004E', account: '100E04',
     faces: [
-      // Rotor: 1 faccia strutturale, 3 slot pubblicitari che ruotano
       { id: 'PA004-A', faceType: 'Frontale', coords: '38.1183, 13.3577', orientation: '0° / 120° / 240°', cone: 'r 60m', postingFormat: 'w 6m × h 3m', illumination: '2 Spotlights', salesModel: 'Standard', slots: ['available', 'available', 'reserved'] },
     ]},
   { id: 'PA005', category: 'OOH', type: 'Palina',           size: '4×3',     address: 'Via Oreto 22',            city: 'Palermo',   status: 'available', lat: 38.1073, lng: 13.3751,
     cimasa: 'A005E', account: '100E05',
     faces: [
-      { id: 'PA005-A', faceType: 'Frontale', coords: '38.1073, 13.3751', orientation: '270°', cone: 'r 30m', postingFormat: 'w 4m × h 3m',   illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
+      { id: 'PA005-A', faceType: 'Frontale', coords: '38.1073, 13.3751', orientation: '270°', cone: 'r 30m', postingFormat: 'w 4m × h 3m',     illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
     ]},
   { id: 'PA006', category: 'OOH', type: 'Plancia',           size: '6×3',     address: 'Corso dei Mille 88',      city: 'Palermo',   status: 'option',    lat: 38.1092, lng: 13.3812,
     cimasa: 'A006E', account: '100E06',
     faces: [
-      { id: 'PA006-A', faceType: 'Frontale',       coords: '38.1092, 13.3812', orientation: '135°', cone: 'r 55m', postingFormat: 'w 6m × h 3m',   illumination: 'None',         salesModel: 'Long Term', status: 'option'    },
-      { id: 'PA006-B', faceType: 'Posteriore',        coords: '38.1092, 13.3812', orientation: '315°', cone: 'r 45m', postingFormat: 'w 6m × h 3m',   illumination: 'None',         salesModel: 'Long Term', status: 'option'    },
+      { id: 'PA006-A', faceType: 'Frontale',       coords: '38.1092, 13.3812', orientation: '135°', cone: 'r 55m', postingFormat: 'w 6m × h 3m',     illumination: 'None',         salesModel: 'Long Term', status: 'option'    },
+      { id: 'PA006-B', faceType: 'Posteriore',        coords: '38.1092, 13.3812', orientation: '315°', cone: 'r 45m', postingFormat: 'w 6m × h 3m',     illumination: 'None',         salesModel: 'Long Term', status: 'option'    },
     ]},
   { id: 'PA007', category: 'OOH', type: 'Palina',           size: '1.2×1.8', address: 'Viale Regione Siciliana', city: 'Palermo',   status: 'available', lat: 38.0993, lng: 13.3903,
     cimasa: 'A007E', account: '100E07',
     faces: [
-      { id: 'PA007-A', faceType: 'Frontale', coords: '38.0993, 13.3903', orientation: '60°',  cone: 'r 20m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',       salesModel: 'Standard',  status: 'available' },
+      { id: 'PA007-A', faceType: 'Frontale', coords: '38.0993, 13.3903', orientation: '60°',  cone: 'r 20m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',         salesModel: 'Standard',  status: 'available' },
     ]},
   { id: 'PA008', category: 'OOH', type: 'Palina Butterfly', size: '4×3',     address: 'Via Libertà 112',         city: 'Palermo',   status: 'available', lat: 38.1281, lng: 13.3523,
     cimasa: 'A008E', account: '100E08',
     faces: [
-      { id: 'PA008-A', faceType: 'Frontale',       coords: '38.1281, 13.3523', orientation: '30°',  cone: 'r 35m', postingFormat: 'w 4m × h 3m',   illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
-      { id: 'PA008-B', faceType: 'Posteriore',       coords: '38.1281, 13.3523', orientation: '210°', cone: 'r 35m', postingFormat: 'w 4m × h 3m',   illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
+      { id: 'PA008-A', faceType: 'Frontale',       coords: '38.1281, 13.3523', orientation: '30°',  cone: 'r 35m', postingFormat: 'w 4m × h 3m',     illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
+      { id: 'PA008-B', faceType: 'Posteriore',       coords: '38.1281, 13.3523', orientation: '210°', cone: 'r 35m', postingFormat: 'w 4m × h 3m',     illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
     ]},
   { id: 'PA009', category: 'OOH', type: 'Rotor',            size: '1.2×1.8', address: 'Via Roma 278',            city: 'Palermo',   status: 'reserved',  lat: 38.1198, lng: 13.3614,
     cimasa: 'A009E', account: '100E09',
@@ -309,18 +331,18 @@ const SYSTEMS = [
   { id: 'PA010', category: 'OOH', type: 'Palina',           size: '6×3',     address: 'Via Notarbartolo 9',      city: 'Palermo',   status: 'available', lat: 38.1304, lng: 13.3463,
     cimasa: 'A010E', account: '100E10',
     faces: [
-      { id: 'PA010-A', faceType: 'Frontale', coords: '38.1304, 13.3463', orientation: '180°', cone: 'r 40m', postingFormat: 'w 6m × h 3m',   illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
+      { id: 'PA010-A', faceType: 'Frontale', coords: '38.1304, 13.3463', orientation: '180°', cone: 'r 40m', postingFormat: 'w 6m × h 3m',     illumination: '2 Spotlights', salesModel: 'Standard',  status: 'available' },
     ]},
   { id: 'PA011', category: 'OOH', type: 'Plancia',           size: '4×3',     address: 'Via Messina Marine 4',    city: 'Palermo',   status: 'available', lat: 38.0962, lng: 13.3692,
     cimasa: 'A011E', account: '100E11',
     faces: [
-      { id: 'PA011-A', faceType: 'Frontale',       coords: '38.0962, 13.3692', orientation: '90°',  cone: 'r 50m', postingFormat: 'w 4m × h 3m',   illumination: 'None',         salesModel: 'Standard',  status: 'available' },
-      { id: 'PA011-B', faceType: 'Posteriore',        coords: '38.0962, 13.3692', orientation: '270°', cone: 'r 45m', postingFormat: 'w 4m × h 3m',   illumination: 'None',         salesModel: 'Standard',  status: 'available' },
+      { id: 'PA011-A', faceType: 'Frontale',       coords: '38.0962, 13.3692', orientation: '90°',  cone: 'r 50m', postingFormat: 'w 4m × h 3m',     illumination: 'None',         salesModel: 'Standard',  status: 'available' },
+      { id: 'PA011-B', faceType: 'Posteriore',        coords: '38.0962, 13.3692', orientation: '270°', cone: 'r 45m', postingFormat: 'w 4m × h 3m',     illumination: 'None',         salesModel: 'Standard',  status: 'available' },
     ]},
   { id: 'PA012', category: 'OOH', type: 'Palina',           size: '1.2×1.8', address: 'Via Strasburgo 233',      city: 'Palermo',   status: 'option',    lat: 38.1034, lng: 13.3383,
     cimasa: 'A012E', account: '100E12',
     faces: [
-      { id: 'PA012-A', faceType: 'Frontale', coords: '38.1034, 13.3383', orientation: '315°', cone: 'r 20m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',       salesModel: 'Standard',  status: 'option'    },
+      { id: 'PA012-A', faceType: 'Frontale', coords: '38.1034, 13.3383', orientation: '315°', cone: 'r 20m', postingFormat: 'w 1.2m × h 1.8m', illumination: 'None',         salesModel: 'Standard',  status: 'option'    },
     ]},
   // ── DOOH ─────────────────────────────────────────────────
   { id: 'PA013', category: 'DOOH', type: 'Billboard', size: '4×3', address: 'Via Roma 45', city: 'Palermo', status: 'available', lat: 38.1145, lng: 13.3601,
@@ -511,53 +533,6 @@ const STATUS = {
   option:    { color: '#EB2F96', label: 'In Opzione'  },
 };
 
-// ── POI ──────────────────────────────────────────────────────
-const POI_CATEGORIES = [
-  { key: 'supermarkets', label: 'Supermercati',       icon: () => React.createElement(ShoppingCartOutlined) },
-  { key: 'malls',        label: 'Centri commerciali', icon: () => React.createElement(ShopOutlined)         },
-  { key: 'transport',    label: 'Trasporti',           icon: () => React.createElement(CarOutlined)          },
-  { key: 'food',         label: 'Ristoranti & Bar',   icon: () => React.createElement(CoffeeOutlined)       },
-  { key: 'schools',      label: 'Scuole',              icon: () => React.createElement(ReadOutlined)         },
-  { key: 'custom',       label: 'Lista custom',        icon: () => React.createElement(StarOutlined)         },
-];
-
-const POI_DATA = {
-  supermarkets: [
-    { id: 'P001', name: 'Lidl Palermo Oreto',         address: 'Via Oreto 122, Palermo',               lat: 38.1065, lng: 13.3755 },
-    { id: 'P002', name: 'Eurospin Corso dei Mille',   address: 'Corso dei Mille 211, Palermo',          lat: 38.1080, lng: 13.3840 },
-    { id: 'P003', name: 'Conad Via Libertà',          address: 'Via Libertà 50, Palermo',               lat: 38.1275, lng: 13.3530 },
-    { id: 'P004', name: 'Carrefour Viale Regione',    address: 'Viale Regione Siciliana 26, Palermo',   lat: 38.0990, lng: 13.3880 },
-    { id: 'P005', name: 'Despar Via Notarbartolo',    address: 'Via Notarbartolo 22, Palermo',          lat: 38.1300, lng: 13.3470 },
-  ],
-  malls: [
-    { id: 'M001', name: 'Forum Palermo',   address: 'Via Francesco Crispi 143, Palermo', lat: 38.1123, lng: 13.3501 },
-    { id: 'M002', name: 'La Torre',        address: 'Via Ugo La Malfa 185, Palermo',     lat: 38.0712, lng: 13.3342 },
-  ],
-  transport: [
-    { id: 'T001', name: 'Stazione Centrale',     address: 'Piazza Giulio Cesare, Palermo', lat: 38.1108, lng: 13.3702 },
-    { id: 'T002', name: 'Stazione Notarbartolo', address: 'Via Notarbartolo, Palermo',     lat: 38.1304, lng: 13.3417 },
-    { id: 'T003', name: 'Porto di Palermo',      address: 'Via F. Crispi, Palermo',        lat: 38.1198, lng: 13.3656 },
-  ],
-  food: [
-    { id: 'F001', name: "McDonald's Via Roma",  address: 'Via Roma 258, Palermo',          lat: 38.1190, lng: 13.3618 },
-    { id: 'F002', name: 'Mercato Ballarò',       address: 'Piazza del Carmine, Palermo',   lat: 38.1128, lng: 13.3573 },
-    { id: 'F003', name: 'Mercato del Capo',      address: 'Via Beati Paoli, Palermo',      lat: 38.1202, lng: 13.3501 },
-  ],
-  schools: [
-    { id: 'S001', name: 'Università di Palermo', address: 'Piazza Marina, Palermo',  lat: 38.1145, lng: 13.3641 },
-    { id: 'S002', name: 'Liceo V. Emanuele II',  address: 'Via Roma 56, Palermo',    lat: 38.1172, lng: 13.3622 },
-  ],
-  custom: [],
-};
-
-function haversineDistance(lat1, lng1, lat2, lng2) {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
 const SYSTEM_TYPES = ['Alux', 'Billboard', 'Cartello', 'Cassonetto', 'Fermata Bus', 'Fioriera', 'Insegna', 'Palina', 'Palina Butterfly', 'Palo Luce', 'Parapedonale', 'Pensilina', 'Plancia', 'Rotor', 'Speciale', 'Stendardo', 'Telo', 'Totem'];
 const SYSTEM_SIZES = ['6×3', '4×3', '3×2', '2×1.5', '1.2×1.8'];
 
@@ -566,11 +541,65 @@ const _campaignCat = 'Zanga Sushi Palermo OOH'.includes('DOOH') ? 'DOOH' : 'OOH'
 const _typeCounts  = SYSTEMS.filter(s => s.category === _campaignCat)
   .reduce((acc, s) => { acc[s.type] = (acc[s.type] || 0) + 1; return acc; }, {});
 const SUGGESTED_TYPES = Object.entries(_typeCounts)
-  .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
+  .sort((a, b) => b[1] - a[1]).slice(0, 1).map(([t]) => t);
 const _sizeCounts = SYSTEMS.filter(s => s.category === _campaignCat)
   .reduce((acc, s) => { acc[s.size] = (acc[s.size] || 0) + 1; return acc; }, {});
 const SUGGESTED_SIZES = Object.entries(_sizeCounts)
-  .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([s]) => s);
+  .sort((a, b) => b[1] - a[1]).slice(0, 1).map(([s]) => s);
+
+const TYPEWRITER_PHRASES = [
+  'Cerca per indirizzo o per punto di interesse',
+  'Digita una via, un comune o un\'area geografica',
+  'Trova impianti vicino a una fermata o un negozio',
+  'Ricerca per zona, quartiere o provincia',
+  'Scrivi un indirizzo o seleziona un POI sulla mappa',
+  'Filtra per prossimità a un landmark o un centro commerciale',
+];
+
+// ── POI ──────────────────────────────────────────────────
+
+const POI_CATEGORIES = [
+  { key: 'supermarkets', label: 'Supermercati',       icon: () => React.createElement(ShoppingCartOutlined) },
+  { key: 'malls',        label: 'Centri comm.',        icon: () => React.createElement(ShopOutlined)         },
+  { key: 'transport',    label: 'Trasporti',            icon: () => React.createElement(CarOutlined)          },
+  { key: 'food',         label: 'Ristoranti',           icon: () => React.createElement(CoffeeOutlined)       },
+  { key: 'schools',      label: 'Scuole',               icon: () => React.createElement(ReadOutlined)         },
+  { key: 'custom',       label: 'Lista custom',         icon: () => React.createElement(StarOutlined)         },
+];
+
+const POI_DATA = {
+  supermarkets: [
+    { id: 'P001', name: 'Lidl Palermo Oreto',       address: 'Via Oreto 122, Palermo',          lat: 38.1065, lng: 13.3755 },
+    { id: 'P002', name: 'Eurospin Corso dei Mille', address: 'Corso dei Mille 211, Palermo',     lat: 38.1080, lng: 13.3840 },
+    { id: 'P003', name: 'Conad Via Libertà',        address: 'Via Libertà 50, Palermo',          lat: 38.1275, lng: 13.3530 },
+  ],
+  malls: [
+    { id: 'P010', name: 'Forum Palermo',            address: 'Via Brunelleschi 4, Palermo',      lat: 38.0910, lng: 13.3480 },
+    { id: 'P011', name: 'La Torre',                 address: 'Viale Regione Sic. 250, Palermo',  lat: 38.0945, lng: 13.3630 },
+  ],
+  transport: [
+    { id: 'P020', name: 'Stazione Palermo Centrale',address: 'Piazza Giulio Cesare, Palermo',    lat: 38.1111, lng: 13.3698 },
+    { id: 'P021', name: 'Aeroporto Falcone Borsellino', address: 'Via Cirenaica, Cinisi',        lat: 38.1797, lng: 13.0960 },
+  ],
+  food: [
+    { id: 'P030', name: 'Mercato di Ballarò',       address: 'Via Ballarò, Palermo',             lat: 38.1116, lng: 13.3583 },
+    { id: 'P031', name: 'Vucciria Market',          address: 'Piazza Caracciolo, Palermo',       lat: 38.1167, lng: 13.3660 },
+  ],
+  schools: [
+    { id: 'P040', name: 'Università degli Studi PA',address: 'Piazza Marina 61, Palermo',        lat: 38.1136, lng: 13.3710 },
+    { id: 'P041', name: 'Liceo Garibaldi',          address: 'Via Canonico Rotolo 17, Palermo',  lat: 38.1215, lng: 13.3545 },
+  ],
+  custom: [],
+};
+
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 // ── Location autocomplete data ────────────────────────────
 
@@ -777,7 +806,6 @@ function MapView({ systems, selectedIds, onToggle, pois = [], poiRadii = {}, act
       attribution: '© OpenStreetMap contributors', maxZoom: 19,
     }).addTo(mapRef.current);
     mapRef.current.on('zoomend', () => setZoom(mapRef.current.getZoom()));
-    // Cluster group con icona brand Gravity
     clusterGroupRef.current = L.markerClusterGroup({
       disableClusteringAtZoom: 16,
       maxClusterRadius: 60,
@@ -793,7 +821,6 @@ function MapView({ systems, selectedIds, onToggle, pois = [], poiRadii = {}, act
     return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; clusterGroupRef.current = null; } };
   }, []);
 
-  // Impianti markers
   useEffect(() => {
     if (!mapRef.current || !clusterGroupRef.current) return;
     clusterGroupRef.current.clearLayers();
@@ -826,54 +853,75 @@ function MapView({ systems, selectedIds, onToggle, pois = [], poiRadii = {}, act
   // POI markers + cerchi di copertura
   useEffect(() => {
     if (!mapRef.current) return;
-    mapRef.current.eachLayer(l => {
-      if (l._poiLayer) l.remove();
-    });
+    mapRef.current.eachLayer(l => { if (l._poiLayer) l.remove(); });
     pois.forEach(poi => {
       const radius = poiRadii[poi.id] || 500;
       const isActive = poi.id === activePOI;
-      const fillColor = '#3E00FB';
-
-      // Cerchio di copertura
       const circle = L.circle([poi.lat, poi.lng], {
-        radius,
-        color: '#3E00FB',
-        weight: 1.5,
-        opacity: isActive ? 0.9 : 0.5,
-        fillColor,
+        radius, color: '#3E00FB', fillColor: '#3E00FB',
         fillOpacity: isActive ? 0.12 : 0.06,
-      });
+        weight: isActive ? 2 : 1, opacity: isActive ? 0.5 : 0.3, dashArray: '4 4',
+      }).addTo(mapRef.current);
       circle._poiLayer = true;
-      circle.addTo(mapRef.current);
-
-      // Marker POI — rettangolo pieno primary
       const poiIcon = L.divIcon({
-        html: `<div style="
-          width:28px;height:28px;background:#3E00FB;border-radius:6px;
-          border:2px solid #fff;box-shadow:0 2px 6px rgba(62,0,251,0.4);
-          display:flex;align-items:center;justify-content:center;
-          ${isActive ? 'box-shadow:0 0 0 3px rgba(62,0,251,0.3),0 2px 6px rgba(62,0,251,0.4);' : ''}
-        ">
-          <svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round">
-            <circle cx="7" cy="6" r="2.5"/><path d="M7 1C4.24 1 2 3.24 2 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5z"/>
-          </svg>
+        html: `<div style="width:28px;height:28px;background:#3E00FB;border-radius:6px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(62,0,251,0.35);${isActive ? 'outline:3px solid #6B3FFF;outline-offset:1px;' : ''}">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="white"><path d="M8 2a4 4 0 1 0 0 8A4 4 0 0 0 8 2zM1 8a7 7 0 1 1 14 0A7 7 0 0 1 1 8z"/><circle cx="8" cy="8" r="2" fill="white"/></svg>
         </div>`,
         iconSize: [28, 28], iconAnchor: [14, 14], className: '',
       });
       const marker = L.marker([poi.lat, poi.lng], { icon: poiIcon });
       marker._poiLayer = true;
-      marker.bindPopup(L.popup({ offset: [0, -14], closeButton: false }).setContent(`
-        <div style="font-family:-apple-system,sans-serif;min-width:160px;padding:2px 0">
-          <div style="font-weight:600;font-size:13px;margin-bottom:2px;color:#3E00FB">${poi.name}</div>
-          <div style="color:#999;font-size:12px;">${poi.address}</div>
-          <div style="font-size:11px;margin-top:4px;color:rgba(0,0,0,0.45)">Raggio: ${radius}m</div>
-        </div>`));
-      marker.on('click', () => { if (onPoiClick) onPoiClick(poi.id); });
+      marker.on('click', () => onPoiClick && onPoiClick(poi.id));
       marker.addTo(mapRef.current);
     });
   }, [pois, poiRadii, activePOI]);
 
   return React.createElement('div', { ref: containerRef, id: 'leaflet-map' });
+}
+
+// ── POI Panel ────────────────────────────────────────────
+
+function POIPanel({ pois, poiRadii, onRadiusChange, activePOI, onPoiClick }) {
+  const panelRef = useRef(null);
+
+  useEffect(() => {
+    if (!activePOI || !panelRef.current) return;
+    const el = panelRef.current.querySelector(`[data-poi="${activePOI}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [activePOI]);
+
+  return React.createElement('div', { className: 'poi-panel' },
+    React.createElement('div', { className: 'poi-panel-header' },
+      React.createElement('span', null, `POI trovati (${pois.length})`),
+      React.createElement(AimOutlined, { style: { color: 'rgba(0,0,0,0.3)', fontSize: 14 } }),
+    ),
+    React.createElement('div', { className: 'poi-panel-list', ref: panelRef },
+      pois.map(poi => {
+        const radius = poiRadii[poi.id] || 500;
+        const isActive = poi.id === activePOI;
+        return React.createElement('div', {
+          key: poi.id, 'data-poi': poi.id,
+          className: `poi-panel-item${isActive ? ' active' : ''}`,
+          onClick: () => onPoiClick(poi.id),
+        },
+          React.createElement('div', { className: 'poi-panel-item-name' }, poi.name),
+          React.createElement('div', { className: 'poi-panel-item-addr' }, poi.address),
+          React.createElement('div', { className: 'poi-panel-item-radius' },
+            React.createElement(Slider, {
+              min: 100, max: 2000, step: 100, value: radius,
+              onChange: v => onRadiusChange(poi.id, v),
+              tooltip: { formatter: v => `${v}m` },
+              onClick: e => e.stopPropagation(),
+              style: { flex: 1 },
+            }),
+            React.createElement('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.38)', whiteSpace: 'nowrap', minWidth: 36 } },
+              radius >= 1000 ? `${radius / 1000}km` : `${radius}m`
+            ),
+          )
+        );
+      })
+    )
+  );
 }
 
 // ── Helpers impianto ─────────────────────────────────────
@@ -956,7 +1004,6 @@ function FacesTable({ sys, selectedFaceKeys, onFaceToggle }) {
             const sInfo     = STATUS[fStatus];
             const rowTdStyle = { ...tdStyle, background: checked ? '#F0EEFF' : '#ffffff' };
 
-            // Illuminazione cell
             const illumCell = !isDooh
               ? (face.illumination === 'None'
                   ? React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'None')
@@ -972,7 +1019,6 @@ function FacesTable({ sys, selectedFaceKeys, onFaceToggle }) {
                 )
               : null;
 
-            // Slots cell
             const slotsCell = React.createElement('div', { style: { display: 'flex', gap: 4, alignItems: 'center' } },
               ...slots.map((s, i) => React.createElement('div', {
                 key: i,
@@ -980,13 +1026,11 @@ function FacesTable({ sys, selectedFaceKeys, onFaceToggle }) {
               }))
             );
 
-            // State cell
             const stateCell = React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
               React.createElement('div', { style: { width: 6, height: 6, borderRadius: '50%', background: sInfo.color, flexShrink: 0 } }),
               React.createElement('span', null, sInfo.label)
             );
 
-            // Face type tag
             const ftTag = React.createElement('span', {
               style: { display: 'inline-block', fontSize: 12, lineHeight: '20px', padding: '0 8px', borderRadius: 4, background: ftStyle.bg, border: `1px solid ${ftStyle.border}`, color: ftStyle.color, whiteSpace: 'nowrap' }
             }, face.faceType);
@@ -1149,54 +1193,98 @@ function SystemCard({ sys, selected, onToggle }) {
   );
 }
 
-// ── POI Panel ────────────────────────────────────────────
+// ── POI Drawer ───────────────────────────────────────────
 
-function POIPanel({ pois, poiRadii, onRadiusChange, activePOI, onPoiClick }) {
-  const panelRef = useRef(null);
+function POIDrawer({ open, onClose, onApply, currentCategory, currentRadii }) {
+  const [draftCategory, setDraftCategory] = useState(currentCategory);
+  const [draftRadii,    setDraftRadii]    = useState(currentRadii);
 
-  // Scroll alla riga attiva
   useEffect(() => {
-    if (!activePOI || !panelRef.current) return;
-    const el = panelRef.current.querySelector(`[data-poi="${activePOI}"]`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [activePOI]);
+    if (open) { setDraftCategory(currentCategory); setDraftRadii(currentRadii); }
+  }, [open]);
 
-  const RADIUS_MARKS = { 100: '100m', 500: '500m', 1000: '1km', 2000: '2km' };
+  const handleCategoryClick = key => {
+    if (draftCategory === key) {
+      setDraftCategory(null); setDraftRadii({});
+    } else {
+      setDraftCategory(key);
+      const pois = POI_DATA[key] || [];
+      const r = {};
+      pois.forEach(p => { r[p.id] = currentRadii[p.id] || 500; });
+      setDraftRadii(r);
+    }
+  };
 
-  return React.createElement('div', { className: 'poi-panel' },
-    React.createElement('div', { className: 'poi-panel-header' },
-      React.createElement('span', null, `POI trovati (${pois.length})`),
-      React.createElement(AimOutlined, { style: { color: 'rgba(0,0,0,0.3)', fontSize: 14 } }),
+  const draftPOIs = draftCategory ? (POI_DATA[draftCategory] || []) : [];
+  const isActive = !!draftCategory;
+
+  return React.createElement(Drawer, {
+    title: React.createElement('span', { style: { fontWeight: 600 } }, 'Cerca vicino a POI'),
+    extra: isActive && React.createElement(Text, { type: 'secondary', style: { fontSize: 12 } },
+      POI_CATEGORIES.find(c => c.key === draftCategory)?.label
     ),
-    React.createElement('div', { className: 'poi-panel-list', ref: panelRef },
-      pois.map(poi => {
-        const radius = poiRadii[poi.id] || 500;
-        const isActive = poi.id === activePOI;
-        return React.createElement('div', {
-          key: poi.id,
-          'data-poi': poi.id,
-          className: `poi-panel-item${isActive ? ' active' : ''}`,
-          onClick: () => onPoiClick(poi.id),
-        },
-          React.createElement('div', { className: 'poi-panel-item-name' }, poi.name),
-          React.createElement('div', { className: 'poi-panel-item-addr' }, poi.address),
-          React.createElement('div', { className: 'poi-panel-item-radius' },
-            React.createElement(Slider, {
-              min: 100, max: 2000, step: 100,
-              value: radius,
-              marks: RADIUS_MARKS,
-              tooltip: { formatter: v => `${v}m` },
-              onChange: v => onRadiusChange(poi.id, v),
-              onClick: e => e.stopPropagation(),
-              style: { flex: 1 },
-            }),
-          ),
-          React.createElement('div', { style: { fontSize: 11, color: '#3E00FB', fontWeight: 500, marginTop: 18, textAlign: 'right' } },
-            `${radius}m`
-          ),
-        );
-      })
+    placement: 'right', width: 340, open, onClose,
+    styles: { body: { padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: 16 } },
+    footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between' } },
+      React.createElement(Button, {
+        onClick: () => { setDraftCategory(null); setDraftRadii({}); },
+        disabled: !isActive,
+      }, 'Reimposta'),
+      React.createElement(Button, {
+        type: 'primary',
+        onClick: () => { onApply(draftCategory, draftRadii); onClose(); },
+      }, 'Applica'),
     ),
+  },
+
+    // Categoria
+    React.createElement('div', null,
+      React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'rgba(0,0,0,0.3)', marginBottom: 10 } }, 'Categoria'),
+      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 } },
+        POI_CATEGORIES.map(cat =>
+          React.createElement('div', {
+            key: cat.key,
+            className: `poi-category-card${draftCategory === cat.key ? ' active' : ''}`,
+            onClick: () => handleCategoryClick(cat.key),
+          },
+            React.createElement('span', { className: 'poi-icon' }, React.createElement(cat.icon)),
+            cat.label
+          )
+        )
+      ),
+    ),
+
+    // Lista POI con slider
+    draftPOIs.length > 0 && React.createElement('div', null,
+      React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'rgba(0,0,0,0.3)', marginBottom: 8 } },
+        `POI trovati (${draftPOIs.length})`
+      ),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
+        draftPOIs.map(poi => {
+          const radius = draftRadii[poi.id] || 500;
+          return React.createElement('div', { key: poi.id, style: { background: '#FAFAFA', borderRadius: 8, padding: '10px 12px' } },
+            React.createElement('div', { style: { fontWeight: 600, fontSize: 13, marginBottom: 2 } }, poi.name),
+            React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.38)', marginBottom: 8 } }, poi.address),
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+              React.createElement(Slider, {
+                min: 100, max: 2000, step: 100, value: radius,
+                onChange: v => setDraftRadii(prev => ({ ...prev, [poi.id]: v })),
+                tooltip: { formatter: v => `${v}m` },
+                style: { flex: 1, margin: 0 },
+              }),
+              React.createElement('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.38)', whiteSpace: 'nowrap', minWidth: 36, textAlign: 'right' } },
+                radius >= 1000 ? `${radius / 1000}km` : `${radius}m`
+              ),
+            ),
+          );
+        })
+      ),
+    ),
+
+    draftCategory && draftPOIs.length === 0 && React.createElement('div', {
+      style: { textAlign: 'center', color: 'rgba(0,0,0,0.3)', fontSize: 13, paddingTop: 20 }
+    }, 'Nessun POI disponibile per questa categoria'),
+
   );
 }
 
@@ -1267,6 +1355,7 @@ function SelectSystemsV2() {
   const [hiddenLocs,   setHiddenLocs]   = useState([]);
   const [activeLocs,   setActiveLocs]   = useState([]);
   const [drawerOpen,   setDrawerOpen]   = useState(false);
+  const [poiDrawerOpen, setPoiDrawerOpen] = useState(false);
   const [advFilters,   setAdvFilters]   = useState({ salesModel: [], statusF: [], format: [], illuminated: null });
   const [hasSearched,  setHasSearched]  = useState(false);
   const [viewMode,     setViewMode]     = useState('map');
@@ -1275,11 +1364,41 @@ function SelectSystemsV2() {
   const [selectedFaceKeys, setSelectedFaceKeys] = useState([]); // chiavi `${sysId}-${faceId}`
 
   // ── POI state ──────────────────────────────────────────
-  const [searchMode,    setSearchMode]    = useState('address'); // 'address' | 'poi'
-  const [poiCategory,   setPoiCategory]   = useState(null);
-  const [foundPOIs,     setFoundPOIs]     = useState([]);
-  const [poiRadii,      setPoiRadii]      = useState({});
-  const [activePOI,     setActivePOI]     = useState(null);
+  const [poiCategory,  setPoiCategory]  = useState(null);
+  const [poiRadii,     setPoiRadii]     = useState({});
+  const [activePOI,    setActivePOI]    = useState(null);
+  const [typedPh,      setTypedPh]      = useState('');
+
+  useEffect(() => {
+    let phraseIdx = 0, charIdx = 0, phase = 'typing';
+    let timeout;
+    const tick = () => {
+      const phrase = TYPEWRITER_PHRASES[phraseIdx];
+      if (phase === 'typing') {
+        charIdx++;
+        setTypedPh(phrase.slice(0, charIdx));
+        if (charIdx >= phrase.length) { phase = 'holding'; timeout = setTimeout(tick, 1800); }
+        else timeout = setTimeout(tick, 46);
+      } else if (phase === 'holding') {
+        phase = 'deleting'; timeout = setTimeout(tick, 30);
+      } else {
+        charIdx--;
+        setTypedPh(phrase.slice(0, charIdx));
+        if (charIdx <= 0) { phraseIdx = (phraseIdx + 1) % TYPEWRITER_PHRASES.length; phase = 'typing'; timeout = setTimeout(tick, 450); }
+        else timeout = setTimeout(tick, 22);
+      }
+    };
+    timeout = setTimeout(tick, 700);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  const foundPOIs = poiCategory ? (POI_DATA[poiCategory] || []) : [];
+
+  const handlePoiApply = (cat, radii) => {
+    setPoiCategory(cat);
+    setPoiRadii(radii);
+    setActivePOI(cat ? (POI_DATA[cat]?.[0]?.id || null) : null);
+  };
 
   const toggleType = t =>
     setActiveTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
@@ -1328,6 +1447,7 @@ function SelectSystemsV2() {
     ...advFilters.statusF.map(v    => ({ key: `st_${v}`,   label: STATUS[v]?.label || v, prefix: 'Disponibilità', active: true })),
     ...advFilters.format.map(v     => ({ key: `fmt_${v}`,  label: v, prefix: 'Formato',        active: true })),
     ...(advFilters.illuminated ? [{ key: 'ill', label: advFilters.illuminated, prefix: 'Illuminato', active: true }] : []),
+    ...(poiCategory ? [{ key: 'poi', label: POI_CATEGORIES.find(c => c.key === poiCategory)?.label || poiCategory, prefix: 'POI', active: true }] : []),
   ];
 
   const removeChip = key => {
@@ -1337,58 +1457,65 @@ function SelectSystemsV2() {
     else if (key.startsWith('st_'))  setAdvFilters(p => ({ ...p, statusF:    p.statusF.filter(v    => `st_${v}`  !== key) }));
     else if (key.startsWith('fmt_')) setAdvFilters(p => ({ ...p, format:     p.format.filter(v     => `fmt_${v}` !== key) }));
     else if (key === 'ill')          setAdvFilters(p => ({ ...p, illuminated: null }));
+    else if (key === 'poi')          { setPoiCategory(null); setPoiRadii({}); setActivePOI(null); }
   };
 
   const clearAll = () => {
     setActiveTypes([]);
     setActiveSizes([]);
     setAdvFilters({ salesModel: [], statusF: [], format: [], illuminated: null });
+    setPoiCategory(null); setPoiRadii({}); setActivePOI(null);
   };
 
   const handleSearch = () => {
-    if (searchMode === 'poi') {
-      if (!poiCategory) {
-        messageApi.warning('Seleziona una categoria POI');
-        return;
-      }
-      const pois = POI_DATA[poiCategory] || [];
-      if (pois.length === 0) {
-        messageApi.info('Nessun POI disponibile per questa categoria');
-        return;
-      }
-      const defaultRadii = {};
-      pois.forEach(p => { defaultRadii[p.id] = 500; });
-      setFoundPOIs(pois);
-      setPoiRadii(defaultRadii);
-      setActivePOI(pois[0]?.id || null);
-    } else {
-      if (!searchText.trim() && activeTypes.length === 0 && activeSizes.length === 0 && advCount === 0) {
-        messageApi.warning('Inserisci un indirizzo o seleziona almeno un filtro');
-        return;
-      }
+    if (!searchText.trim() && activeTypes.length === 0 && activeSizes.length === 0 && advCount === 0) {
+      messageApi.warning('Inserisci un indirizzo o seleziona almeno un filtro');
+      return;
     }
     setHasSearched(true);
   };
 
-  const handlePoiRadiusChange = (poiId, value) => {
-    setPoiRadii(prev => ({ ...prev, [poiId]: value }));
-  };
-
   const displayed = (() => {
     let list = showSelected ? SYSTEMS.filter(s => selectedIds.includes(s.id)) : SYSTEMS;
-    if (searchMode === 'poi' && foundPOIs.length > 0) {
+    if (activeTypes.length > 0) list = list.filter(s => activeTypes.some(t => s.type.toLowerCase().includes(t.toLowerCase())));
+    if (activeSizes.length > 0) list = list.filter(s => activeSizes.includes(s.size));
+    if (foundPOIs.length > 0) {
       list = list.filter(sys =>
-        foundPOIs.some(poi => {
-          const radius = poiRadii[poi.id] || 500;
-          return haversineDistance(poi.lat, poi.lng, sys.lat, sys.lng) <= radius;
-        })
+        foundPOIs.some(poi => haversineDistance(poi.lat, poi.lng, sys.lat, sys.lng) <= (poiRadii[poi.id] || 500))
       );
-    } else {
-      if (activeTypes.length > 0) list = list.filter(s => activeTypes.some(t => s.type.toLowerCase().includes(t.toLowerCase())));
-      if (activeSizes.length > 0) list = list.filter(s => activeSizes.includes(s.size));
     }
     return list;
   })();
+
+  // ── Selezione in massa ────────────────────────────────────
+  const selectableFromResults = displayed.filter(s => !isFullyReserved(s));
+  const selectedFromResults   = selectableFromResults.filter(s => selectedIds.includes(s.id));
+  const allResultsSelected    = selectableFromResults.length > 0 && selectedFromResults.length === selectableFromResults.length;
+  const someResultsSelected   = selectedFromResults.length > 0 && !allResultsSelected;
+
+  const selectAllFromResults = () => {
+    const toAdd = selectableFromResults.filter(s => !selectedIds.includes(s.id));
+    if (!toAdd.length) return;
+    const newFaceKeys = [...selectedFaceKeys];
+    toAdd.forEach(sys => {
+      sys.faces.filter(f => getFaceStatus(f) !== 'reserved').forEach(f => {
+        const key = `${sys.id}-${f.id}`;
+        if (!newFaceKeys.includes(key)) newFaceKeys.push(key);
+      });
+    });
+    setSelectedIds(prev => [...prev, ...toAdd.map(s => s.id)]);
+    setSelectedFaceKeys(newFaceKeys);
+  };
+
+  const deselectAllFromResults = () => {
+    const removeSet = new Set(selectableFromResults.map(s => s.id));
+    setSelectedIds(prev => prev.filter(id => !removeSet.has(id)));
+    setSelectedFaceKeys(prev => prev.filter(k => !selectableFromResults.some(s => k.startsWith(`${s.id}-`))));
+  };
+
+  const toggleSelectAll = () => allResultsSelected || someResultsSelected
+    ? deselectAllFromResults()
+    : selectAllFromResults();
 
   const MapIcon = () => React.createElement('svg', {
     viewBox: '0 0 14 14', width: 14, height: 14, fill: 'none',
@@ -1430,6 +1557,9 @@ function SelectSystemsV2() {
               React.createElement('div', { style: { flex: 1 } },
                 React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 } },
                   React.createElement(Title, { level: 3, style: { margin: 0, fontSize: 22 } }, 'Seleziona impianti'),
+                  React.createElement('span', {
+                    style: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: '#F0EEFF', color: '#3E00FB', letterSpacing: '.04em', textTransform: 'uppercase' }
+                  }, 'Flow A · Selezione continua'),
                   React.createElement('span', { style: { color: 'rgba(0,0,0,0.18)', fontSize: 16, lineHeight: 1 } }, '|'),
                   React.createElement('span', { style: { fontSize: 16, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, 'Zanga Sushi Palermo'),
                 ),
@@ -1481,103 +1611,65 @@ function SelectSystemsV2() {
             style: { background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', flexShrink: 0 }
           },
             React.createElement('div', { style: { padding: '16px 24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' } },
-              React.createElement(Title, { level: 4, style: { margin: '0 0 12px', color: 'rgba(0,0,0,0.85)', fontWeight: 700 } }, 'Cerca impianti'),
+              React.createElement(Title, { level: 3, style: { margin: '0 0 16px', color: 'rgba(0,0,0,0.85)', fontWeight: 700 } }, 'Parco impianti'),
 
-              // Mode toggle
-              React.createElement(Segmented, {
-                value: searchMode,
-                onChange: val => { setSearchMode(val); setHasSearched(false); setFoundPOIs([]); setPoiCategory(null); },
-                options: [
-                  { label: 'Per indirizzo', value: 'address' },
-                  { label: 'Per POI', value: 'poi' },
-                ],
-                style: { marginBottom: 16 },
-              }),
-
-              // ── Address mode: search row ───────────────────────────────
-              searchMode === 'address' && React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center', width: '100%', maxWidth: 850 } },
-                React.createElement('div', { className: 'search-group' },
-                  React.createElement(Select, {
-                    value: searchScope,
-                    onChange: setSearchScope,
-                    style: { width: 132, flexShrink: 0 },
-                    bordered: false,
-                    className: 'scope-select',
-                    options: [
-                      { value: 'address',      label: 'Indirizzo' },
-                      { value: 'municipality', label: 'Comune'    },
-                      { value: 'province',     label: 'Provincia' },
-                      { value: 'region',       label: 'Regione'   },
-                    ],
-                  }),
-                  React.createElement('div', {
-                    style: { flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 14, gap: 8, minWidth: 0, alignSelf: 'stretch' },
+              // Row 1: Space.Compact AntD — AutoComplete + Filtri + POI + Cerca
+              React.createElement('div', { className: 'search-compact', style: { width: '100%', maxWidth: 850 } },
+                React.createElement(Space.Compact, { style: { display: 'flex', width: '100%' } },
+                  React.createElement(AutoComplete, {
+                    value: searchText,
+                    options: suggestions,
+                    onSearch: val => { setSearchText(val); setSuggestions(getSuggestions(val)); },
+                    onSelect: val => { setSearchText(val); setSuggestions([]); },
+                    onChange: val => { setSearchText(val || ''); if (!val) setSuggestions([]); },
                     onKeyDown: e => { if (e.key === 'Enter') { setSuggestions([]); handleSearch(); } },
-                  },
-                    React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.2)', fontSize: 16, flexShrink: 0 } }),
-                    React.createElement(AutoComplete, {
-                      value: searchText,
-                      options: suggestions,
-                      onSearch: val => { setSearchText(val); setSuggestions(getSuggestions(val)); },
-                      onSelect: val => { setSearchText(val); setSuggestions([]); },
-                      onChange: val => { setSearchText(val || ''); if (!val) setSuggestions([]); },
-                      className: 'gravity-ac-input',
-                      popupClassName: 'gravity-ac-dropdown',
-                      allowClear: true,
-                      placeholder: 'Cerca per indirizzo, città, area…',
-                      style: { flex: 1, minWidth: 0 },
-                    }),
-                  ),
-                ),
-                React.createElement(Button, {
-                  icon: React.createElement(SlidersOutlined),
-                  onClick: () => setDrawerOpen(true),
-                  style: {
-                    height: 36, borderRadius: 8, paddingInline: 14, fontSize: 14, flexShrink: 0,
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    borderColor: advCount > 0 ? '#3E00FB' : undefined,
-                    color:       advCount > 0 ? '#3E00FB' : undefined,
-                    background:  advCount > 0 ? '#F0EEFF' : undefined,
-                  },
-                },
-                  'Filtri',
-                  advCount > 0 && React.createElement('span', {
-                    style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: 9, background: '#3E00FB', color: '#fff', fontSize: 11, fontWeight: 700 }
-                  }, advCount)
-                ),
-                React.createElement(Button, {
-                  type: 'primary',
-                  onClick: handleSearch,
-                  style: { height: 36, borderRadius: 8, paddingInline: 20, fontSize: 14, fontWeight: 500, flexShrink: 0 },
-                }, 'Cerca'),
-              ),
-
-              // ── POI mode: category grid ────────────────────────────────
-              searchMode === 'poi' && React.createElement('div', {
-                style: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 850, gap: 16 }
-              },
-                React.createElement('div', { className: 'poi-category-grid', style: { width: '100%' } },
-                  POI_CATEGORIES.map(cat =>
-                    React.createElement('div', {
-                      key: cat.key,
-                      className: `poi-category-card${poiCategory === cat.key ? ' active' : ''}`,
-                      onClick: () => setPoiCategory(cat.key),
+                    className: 'gravity-ac-input',
+                    popupClassName: 'gravity-ac-dropdown',
+                    allowClear: true,
+                    placeholder: typedPh,
+                    style: { flex: 1, minWidth: 0 },
+                  }),
+                  React.createElement(Button, {
+                    onClick: () => setDrawerOpen(true),
+                    icon: React.createElement('span', { style: { position: 'relative', display: 'inline-flex', alignItems: 'center' } },
+                      React.createElement(SlidersOutlined),
+                      advCount > 0 && React.createElement('span', {
+                        style: { position: 'absolute', top: -4, right: -4, width: 6, height: 6, background: '#3E00FB', borderRadius: '50%', border: '1.5px solid #fff' }
+                      })
+                    ),
+                    style: {
+                      height: 36, flexShrink: 0, paddingInline: 14,
+                      borderColor: advCount > 0 ? '#3E00FB' : undefined,
+                      color:       advCount > 0 ? '#3E00FB' : undefined,
+                      background:  advCount > 0 ? '#F0EEFF' : undefined,
                     },
-                      React.createElement('span', { className: 'icon' }, React.createElement(cat.icon)),
-                      cat.label
-                    )
-                  )
+                  }, 'Filtri'),
+                  React.createElement(Button, {
+                    onClick: () => setPoiDrawerOpen(true),
+                    icon: React.createElement('span', { style: { position: 'relative', display: 'inline-flex', alignItems: 'center' } },
+                      React.createElement(AimOutlined),
+                      poiCategory && React.createElement('span', {
+                        style: { position: 'absolute', top: -4, right: -4, width: 6, height: 6, background: '#3E00FB', borderRadius: '50%', border: '1.5px solid #fff' }
+                      })
+                    ),
+                    style: {
+                      height: 36, flexShrink: 0, paddingInline: 14,
+                      borderColor: poiCategory ? '#3E00FB' : undefined,
+                      color:       poiCategory ? '#3E00FB' : undefined,
+                      background:  poiCategory ? '#F0EEFF' : undefined,
+                    },
+                  }, 'POI'),
+                  React.createElement(Button, {
+                    type: 'primary',
+                    icon: React.createElement(SearchOutlined),
+                    onClick: handleSearch,
+                    style: { height: 36, flexShrink: 0, paddingInline: 16, fontWeight: 500 },
+                  }, 'Cerca'),
                 ),
-                React.createElement(Button, {
-                  type: 'primary',
-                  onClick: handleSearch,
-                  disabled: !poiCategory,
-                  style: { height: 36, borderRadius: 8, paddingInline: 24, fontSize: 14, fontWeight: 500 },
-                }, 'Cerca impianti vicini'),
               ),
 
-              // Row 2: quick type + size filter pills (Tag closable) — nascosti dopo la ricerca (solo address mode)
-              searchMode === 'address' && !hasSearched && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'nowrap', width: '100%', justifyContent: 'center', overflow: 'hidden' } },
+              // Row 2: quick type + size filter pills (Tag closable) — nascosti dopo la ricerca
+              !hasSearched && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'nowrap', width: '100%', justifyContent: 'center', overflow: 'hidden' } },
                 ...SUGGESTED_TYPES.map(t => {
                   const active = activeTypes.includes(t);
                   return React.createElement(Tag, {
@@ -1623,7 +1715,7 @@ function SelectSystemsV2() {
                   );
                 }),
                 React.createElement('div', { style: { width: 1, height: 14, background: '#E8E8E8', flexShrink: 0, alignSelf: 'center', margin: '0 2px' } }),
-                ...['Palermo Centro', 'Via Libertà', 'Palermo Mondello'].filter(loc => !hiddenLocs.includes(loc)).map(loc =>
+                ...['Palermo Centro'].filter(loc => !hiddenLocs.includes(loc)).map(loc =>
                   React.createElement(Tag, {
                     key: loc,
                     closable: activeLocs.includes(loc),
@@ -1643,8 +1735,8 @@ function SelectSystemsV2() {
                 ),
               ),
 
-              // Chip filtri attivi — visibili dopo la ricerca, solo address mode
-              searchMode === 'address' && hasSearched && activeChips.length > 0 && React.createElement('div', {
+              // Chip filtri attivi — visibili dopo la ricerca, stessa posizione dei suggestion
+              hasSearched && activeChips.length > 0 && React.createElement('div', {
                 style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'nowrap', width: '100%', justifyContent: 'center', overflow: 'hidden' }
               },
                 ...activeChips.map(c =>
@@ -1666,8 +1758,24 @@ function SelectSystemsV2() {
                   style: { fontSize: 12, color: '#FF4A1C', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', marginLeft: 4 },
                 }, 'Cancella tutti'),
               ),
+
             ),
 
+          ),
+
+          // ── Strip accumulazione (Flow A) ──────────────────────────────────
+          hasSearched && selectedIds.length > 0 && React.createElement('div', {
+            style: { background: '#F0EEFF', border: '1px solid #D4C5FF', borderRadius: 8, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }
+          },
+            React.createElement('span', { style: { width: 24, height: 24, borderRadius: 12, background: '#3E00FB', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 700, flexShrink: 0 } }, selectedIds.length),
+            React.createElement('span', { style: { fontSize: 13, color: '#3E00FB', fontWeight: 500 } },
+              `impianto${selectedIds.length !== 1 ? 'i' : ''} già in lista — una nuova ricerca li mantiene selezionati`
+            ),
+            React.createElement('div', { style: { flex: 1 } }),
+            React.createElement('span', {
+              onClick: () => { setSelectedIds([]); setSelectedFaceKeys([]); },
+              style: { fontSize: 12, color: '#3E00FB', cursor: 'pointer', textDecoration: 'underline', userSelect: 'none', flexShrink: 0 }
+            }, 'Deseleziona tutti'),
           ),
 
           // ── Card 3: risultati ─────────────────────────────────────────────
@@ -1679,6 +1787,33 @@ function SelectSystemsV2() {
             React.createElement('div', {
               style: { padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }
             },
+                    // Opzione A — Checkbox con stato indeterminate
+                    React.createElement(Checkbox, {
+                      checked: allResultsSelected,
+                      indeterminate: someResultsSelected,
+                      onChange: toggleSelectAll,
+                      style: { fontSize: 13, userSelect: 'none', whiteSpace: 'nowrap' },
+                    }, `Seleziona tutti (${selectableFromResults.length})`),
+
+                    // Divisore tra le due opzioni
+                    React.createElement('div', { style: { width: 1, height: 14, background: '#E8E8E8', alignSelf: 'center' } }),
+
+                    // Opzione B — Link testuale
+                    React.createElement('span', {
+                      onClick: toggleSelectAll,
+                      style: {
+                        fontSize: 13, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+                        color: allResultsSelected || someResultsSelected ? '#FF4A1C' : '#3E00FB',
+                        fontWeight: 500,
+                      },
+                    }, allResultsSelected || someResultsSelected
+                      ? 'Deseleziona tutti'
+                      : `Seleziona tutti (${selectableFromResults.length})`
+                    ),
+
+                    // Divisore prima del contatore
+                    React.createElement('div', { style: { width: 1, height: 14, background: '#E8E8E8', alignSelf: 'center' } }),
+
                     React.createElement(Text, { style: { fontSize: 13, whiteSpace: 'nowrap' } },
                       React.createElement('span', { style: { fontWeight: 700 } }, 'Totale: '),
                       React.createElement('span', { style: { fontWeight: 400 } }, `${displayed.length}`),
@@ -1721,17 +1856,15 @@ function SelectSystemsV2() {
                         )
                       ),
                       selectedIds.length > 0 && React.createElement('div', {
-                        style: { position: 'absolute', bottom: 20, right: searchMode === 'poi' && foundPOIs.length > 0 ? 316 : 16, zIndex: 1000, background: '#3E00FB', borderRadius: 8, padding: '8px 16px', color: '#fff', fontSize: 13, fontWeight: 500, boxShadow: '0 2px 12px rgba(62,0,251,0.2)', display: 'flex', alignItems: 'center', gap: 8, transition: 'right 0.2s' }
+                        style: { position: 'absolute', bottom: 20, right: foundPOIs.length > 0 ? 316 : 16, zIndex: 1000, background: '#3E00FB', borderRadius: 8, padding: '8px 14px', color: '#fff', fontSize: 13, fontWeight: 500, boxShadow: '0 2px 12px rgba(62,0,251,0.2)', display: 'flex', alignItems: 'center', gap: 8, transition: 'right 0.2s' }
                       },
                         React.createElement('span', { style: { width: 20, height: 20, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 } }, selectedIds.length),
-                        `impianto${selectedIds.length !== 1 ? 'i' : ''} selezionat${selectedIds.length !== 1 ? 'i' : 'o'}`
+                        React.createElement('span', null, `in lista · accumulati`),
                       ),
-                      searchMode === 'poi' && foundPOIs.length > 0 && React.createElement(POIPanel, {
-                        pois: foundPOIs,
-                        poiRadii,
+                      foundPOIs.length > 0 && React.createElement(POIPanel, {
+                        pois: foundPOIs, poiRadii,
                         onRadiusChange: handlePoiRadiusChange,
-                        activePOI,
-                        onPoiClick: setActivePOI,
+                        activePOI, onPoiClick: setActivePOI,
                       })
                     ),
 
@@ -1800,6 +1933,14 @@ function SelectSystemsV2() {
           onClose: () => setDrawerOpen(false),
           onApply: vals => setAdvFilters(vals),
           current: advFilters,
+        }),
+
+        React.createElement(POIDrawer, {
+          open: poiDrawerOpen,
+          onClose: () => setPoiDrawerOpen(false),
+          onApply: handlePoiApply,
+          currentCategory: poiCategory,
+          currentRadii: poiRadii,
         }),
 
       )
