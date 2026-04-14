@@ -74,28 +74,36 @@
     .scope-select .ant-select-selection-item { line-height: 1 !important; font-size: 13px !important; color: rgba(0,0,0,0.65) !important; }
     .scope-select .ant-select-arrow { color: rgba(0,0,0,0.3) !important; margin-top: -6px !important; }
 
-    /* AutoComplete di ricerca (destra del search group) */
-    .gravity-ac-input { min-width: 0; }
+    /* AutoComplete di ricerca — dentro Space.Compact */
+    .gravity-ac-input { min-width: 0; flex: 1; }
     .gravity-ac-input .ant-select-selector {
-      border: none !important; box-shadow: none !important;
-      height: 36px !important; padding: 0 !important; background: transparent !important;
+      border-right: none !important; box-shadow: none !important;
+      height: 40px !important; padding: 0 12px !important; background: #fff !important;
       display: flex !important; align-items: center !important;
     }
-    .gravity-ac-input .ant-select-selection-search { left: 0 !important; right: 26px !important; top: 0 !important; bottom: 0 !important; display: flex !important; align-items: center !important; }
+    .gravity-ac-input:hover .ant-select-selector,
+    .gravity-ac-input.ant-select-focused .ant-select-selector {
+      border-color: #3E00FB !important;
+      box-shadow: none !important;
+    }
+    .gravity-ac-input .ant-select-selection-search { left: 12px !important; right: 30px !important; top: 0 !important; bottom: 0 !important; display: flex !important; align-items: center !important; }
     .gravity-ac-input .ant-select-selection-search-input { height: 22px !important; font-size: 14px !important; line-height: 22px !important; margin: 0 !important; padding: 0 !important; }
     .gravity-ac-input .ant-select-selection-placeholder {
       top: 0 !important; bottom: 0 !important; transform: none !important;
       display: flex !important; align-items: center !important;
       font-size: 14px !important; color: rgba(0,0,0,0.25) !important;
-      left: 0 !important; right: 26px !important; line-height: 1 !important; margin: 0 !important;
+      left: 12px !important; right: 30px !important; line-height: 1 !important; margin: 0 !important;
     }
-    /* Stato filled (valore selezionato) — allineamento verticale uguale a placeholder e input */
+    /* Stato filled */
     .gravity-ac-input .ant-select-selection-item {
       display: flex !important; align-items: center !important;
-      height: 36px !important; padding: 0 !important; margin: 0 !important;
+      height: 40px !important; padding: 0 !important; margin: 0 !important;
       font-size: 14px !important; line-height: 1 !important; color: rgba(0,0,0,0.85) !important;
     }
     .gravity-ac-input .ant-select-clear { top: 50% !important; margin-top: -7px !important; right: 8px !important; }
+    /* Space.Compact: stretch autocomplete to fill available space */
+    .search-compact .ant-space-compact { display: flex !important; width: 100% !important; }
+    .search-compact .ant-space-compact > .ant-select { flex: 1 !important; min-width: 0 !important; }
 
     /* Cursore typewriter nel placeholder */
     @keyframes tw-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
@@ -107,9 +115,8 @@
     .gravity-ac-input.ant-select-focused .ant-select-selection-placeholder::after,
     .gravity-ac-input .ant-select-selection-item ~ .ant-select-selection-placeholder::after { display: none; }
 
-    /* Bottoni icona dentro search group */
-    .search-group button:hover { background: rgba(62,0,251,0.06) !important; }
-    .search-group button:last-child:hover { background: #2D00C7 !important; }
+    /* Hover stato primario search button */
+    .search-compact .ant-btn-primary:hover { background: #2D00C7 !important; }
 
     /* Dropdown autocomplete */
     .gravity-ac-dropdown { padding: 6px 0 !important; min-width: 420px !important; }
@@ -1573,74 +1580,58 @@ function SelectSystemsV2() {
             React.createElement('div', { style: { padding: '32px 24px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center' } },
               React.createElement(Title, { level: 3, style: { margin: '0 0 16px', color: 'rgba(0,0,0,0.85)', fontWeight: 700 } }, 'Parco impianti'),
 
-              // Row 1: search group compatto — tutto dentro la barra
-              React.createElement('div', { className: 'search-group', style: { width: '100%', maxWidth: 850 } },
-                React.createElement('div', {
-                  style: { paddingLeft: 12, paddingRight: 8, display: 'flex', alignItems: 'center', flexShrink: 0 }
-                },
-                  React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.2)', fontSize: 15 } })
-                ),
-                React.createElement('div', {
-                  style: { flex: 1, display: 'flex', alignItems: 'center', minWidth: 0, alignSelf: 'stretch' },
-                  onKeyDown: e => { if (e.key === 'Enter') { setSuggestions([]); handleSearch(); } },
-                },
+              // Row 1: Space.Compact AntD — AutoComplete + Filtri + POI + Cerca
+              React.createElement('div', { className: 'search-compact', style: { width: '100%', maxWidth: 850 } },
+                React.createElement(Space.Compact, { style: { display: 'flex', width: '100%' } },
                   React.createElement(AutoComplete, {
                     value: searchText,
                     options: suggestions,
                     onSearch: val => { setSearchText(val); setSuggestions(getSuggestions(val)); },
                     onSelect: val => { setSearchText(val); setSuggestions([]); },
                     onChange: val => { setSearchText(val || ''); if (!val) setSuggestions([]); },
+                    onKeyDown: e => { if (e.key === 'Enter') { setSuggestions([]); handleSearch(); } },
                     className: 'gravity-ac-input',
                     popupClassName: 'gravity-ac-dropdown',
                     allowClear: true,
                     placeholder: typedPh,
                     style: { flex: 1, minWidth: 0 },
                   }),
-                ),
-                React.createElement('div', { style: { width: 1, height: 18, background: '#F0F0F0', flexShrink: 0, alignSelf: 'center', margin: '0 2px' } }),
-                React.createElement('button', {
-                  onClick: () => setDrawerOpen(true),
-                  title: 'Filtri',
-                  style: {
-                    background: advCount > 0 ? '#F0EEFF' : 'transparent', border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
-                    width: 32, height: 32, borderRadius: 6, flexShrink: 0,
-                    color: advCount > 0 ? '#3E00FB' : 'rgba(0,0,0,0.45)',
-                  },
-                },
-                  React.createElement(SlidersOutlined, { style: { fontSize: 15 } }),
-                  advCount > 0 && React.createElement('span', {
-                    style: { position: 'absolute', top: 4, right: 4, width: 6, height: 6, background: '#3E00FB', borderRadius: '50%', border: '1.5px solid #fff' }
-                  })
-                ),
-                React.createElement('div', { style: { width: 1, height: 18, background: '#F0F0F0', flexShrink: 0, alignSelf: 'center', margin: '0 2px' } }),
-                React.createElement('button', {
-                  onClick: () => setPoiDrawerOpen(true),
-                  title: 'POI',
-                  style: {
-                    background: poiCategory ? '#F0EEFF' : 'transparent', border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
-                    width: 32, height: 32, borderRadius: 6, flexShrink: 0,
-                    color: poiCategory ? '#3E00FB' : 'rgba(0,0,0,0.45)',
-                  },
-                },
-                  React.createElement(AimOutlined, { style: { fontSize: 15 } }),
-                  poiCategory && React.createElement('span', {
-                    style: { position: 'absolute', top: 4, right: 4, width: 6, height: 6, background: '#3E00FB', borderRadius: '50%', border: '1.5px solid #fff' }
-                  })
-                ),
-                React.createElement('div', { style: { width: 1, height: 18, background: '#F0F0F0', flexShrink: 0, alignSelf: 'center', margin: '0 2px' } }),
-                React.createElement('button', {
-                  onClick: handleSearch,
-                  title: 'Cerca',
-                  style: {
-                    background: '#3E00FB', border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 28, height: 28, borderRadius: 6, flexShrink: 0, margin: '0 4px',
-                    color: '#fff', transition: 'background 0.15s',
-                  },
-                },
-                  React.createElement(SearchOutlined, { style: { fontSize: 14 } })
+                  React.createElement(Button, {
+                    onClick: () => setDrawerOpen(true),
+                    icon: React.createElement('span', { style: { position: 'relative', display: 'inline-flex', alignItems: 'center' } },
+                      React.createElement(SlidersOutlined),
+                      advCount > 0 && React.createElement('span', {
+                        style: { position: 'absolute', top: -4, right: -4, width: 6, height: 6, background: '#3E00FB', borderRadius: '50%', border: '1.5px solid #fff' }
+                      })
+                    ),
+                    style: {
+                      height: 40, flexShrink: 0, paddingInline: 14,
+                      borderColor: advCount > 0 ? '#3E00FB' : undefined,
+                      color:       advCount > 0 ? '#3E00FB' : undefined,
+                      background:  advCount > 0 ? '#F0EEFF' : undefined,
+                    },
+                  }, 'Filtri'),
+                  React.createElement(Button, {
+                    onClick: () => setPoiDrawerOpen(true),
+                    icon: React.createElement('span', { style: { position: 'relative', display: 'inline-flex', alignItems: 'center' } },
+                      React.createElement(AimOutlined),
+                      poiCategory && React.createElement('span', {
+                        style: { position: 'absolute', top: -4, right: -4, width: 6, height: 6, background: '#3E00FB', borderRadius: '50%', border: '1.5px solid #fff' }
+                      })
+                    ),
+                    style: {
+                      height: 40, flexShrink: 0, paddingInline: 14,
+                      borderColor: poiCategory ? '#3E00FB' : undefined,
+                      color:       poiCategory ? '#3E00FB' : undefined,
+                      background:  poiCategory ? '#F0EEFF' : undefined,
+                    },
+                  }, 'POI'),
+                  React.createElement(Button, {
+                    type: 'primary',
+                    icon: React.createElement(SearchOutlined),
+                    onClick: handleSearch,
+                    style: { height: 40, flexShrink: 0 },
+                  }),
                 ),
               ),
 
