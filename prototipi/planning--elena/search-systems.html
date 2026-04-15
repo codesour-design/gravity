@@ -169,7 +169,6 @@
       transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
     }
     .system-card:hover { border-color: #D9D9D9; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    .system-card.selected { border-color: #3E00FB; background: #F5F3FF; }
     .system-card.disabled { cursor: not-allowed; opacity: 0.45; pointer-events: none; }
 
     /* ── Mappa ──────────────────────────── */
@@ -248,6 +247,7 @@
     .system-list-collapse .ant-collapse-header { align-items: center !important; padding: 20px 24px 20px 16px !important; }
     .system-list-collapse .ant-collapse-content-box { padding: 0 !important; }
     .system-list-collapse .ant-collapse-expand-icon { padding-inline-end: 12px !important; }
+    .system-list-collapse--reserved { opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -759,28 +759,34 @@ function getSuggestions(query) {
   return result;
 }
 
-// ── Marker immagini Figma (Shaker UI · valid 7 days) ──────
-const MARKER_IMGS = {
-  'Palina':           ['https://www.figma.com/api/mcp/asset/42b81ca1-8b84-4ea6-b078-f20561a8f1c3','https://www.figma.com/api/mcp/asset/40568ab4-7e20-4708-a4f0-86319aec6b2b','https://www.figma.com/api/mcp/asset/bb6cb59d-ad76-4fc8-9d25-21c2a794b47f'],
-  'Stendardo':        ['https://www.figma.com/api/mcp/asset/9a1c2458-c901-402a-917d-b581003c6d05','https://www.figma.com/api/mcp/asset/ca15c96d-dde2-4919-b6ee-4f0ad9949e4d','https://www.figma.com/api/mcp/asset/d4476896-ec31-4a42-925a-446e4cdc2cfe'],
-  'Plancia':          ['https://www.figma.com/api/mcp/asset/eb5ae27f-b4e9-436d-8cc6-32201df1790a','https://www.figma.com/api/mcp/asset/c31190c7-991a-4624-a510-a2fb7c251279','https://www.figma.com/api/mcp/asset/ceeb0e84-3285-4b13-bb7a-97f418ff4151'],
-  'Palina Butterfly': ['https://www.figma.com/api/mcp/asset/70ab1891-4920-4154-be95-fa3109bdbf1d','https://www.figma.com/api/mcp/asset/ae4dfe72-93dd-41a0-a4cd-41613f692d58','https://www.figma.com/api/mcp/asset/2f6b2932-b614-4d24-9ba7-aa091fac96db'],
-  'Rotor':            ['https://www.figma.com/api/mcp/asset/d1bf1ac2-76be-449c-adf0-de653e6b7901','https://www.figma.com/api/mcp/asset/5d3a930b-1036-4157-b1b2-bd89568bbae0','https://www.figma.com/api/mcp/asset/5bb4a17d-ce76-4603-83ca-1f39fd2b6773'],
-  'Telo':             ['https://www.figma.com/api/mcp/asset/110278d5-d212-4a84-9095-da766fd933a5','https://www.figma.com/api/mcp/asset/5842f9f5-fc2b-46c0-8218-0ed614e96191','https://www.figma.com/api/mcp/asset/b25eac0a-ccb5-4f08-833f-4fd69ffce593'],
-  'Pensilina':        ['https://www.figma.com/api/mcp/asset/4a50a5b4-3175-4b59-902e-29578c840ada','https://www.figma.com/api/mcp/asset/cb096ab7-a375-4663-afeb-4a30a1e7659e','https://www.figma.com/api/mcp/asset/ac628238-818b-47d0-adba-5574dbaa7e91'],
-  'Parapedonale':     ['https://www.figma.com/api/mcp/asset/4f82c1ee-3e89-471f-b7f7-f21e3145f1db','https://www.figma.com/api/mcp/asset/b820bfbe-d0d4-4719-ad7c-999c77793764','https://www.figma.com/api/mcp/asset/c8203583-c906-4d0f-b1ab-ab58694445e3'],
-  'Palo Luce':        ['https://www.figma.com/api/mcp/asset/302303ee-16fd-4987-a04f-c1f0612cd83e','https://www.figma.com/api/mcp/asset/ca55417a-53ef-49f8-b124-a27cb6657fc6','https://www.figma.com/api/mcp/asset/c5afaf52-6b8f-46fd-8d0d-3958165f5353'],
-  'Fioriera':         ['https://www.figma.com/api/mcp/asset/b31d5f6e-dc0d-4446-8248-1b30b4fad876','https://www.figma.com/api/mcp/asset/dbf98edb-dbd8-4571-8337-7084d45cb29d','https://www.figma.com/api/mcp/asset/2bc42485-c374-41d8-8402-504b17ab9b91'],
-  'Cassonetto':       ['https://www.figma.com/api/mcp/asset/e1926172-8003-4890-91ca-596dee596f4e','https://www.figma.com/api/mcp/asset/593e5c95-25ba-4190-af68-6adb4691e887','https://www.figma.com/api/mcp/asset/22c186f9-98c8-4f44-90d8-b20fa37fea47'],
-  'Fermata Bus':      ['https://www.figma.com/api/mcp/asset/28f1d13a-5301-4d64-b432-eb0b1fab0407','https://www.figma.com/api/mcp/asset/aebff408-a86b-40e7-863a-2bec3d37397c','https://www.figma.com/api/mcp/asset/a2ffab54-d9e8-42d3-8a80-ff860a101853'],
-  'Cartello':         ['https://www.figma.com/api/mcp/asset/0f5c3d84-4d27-4b43-a93f-668a1192fb91','https://www.figma.com/api/mcp/asset/c9eae583-44a0-4117-b4f2-4d3e5ce4a818','https://www.figma.com/api/mcp/asset/2ed21beb-8fbc-4975-a6aa-0eddf9dfb6b2'],
-  'Insegna':          ['https://www.figma.com/api/mcp/asset/0f5c3d84-4d27-4b43-a93f-668a1192fb91','https://www.figma.com/api/mcp/asset/c9eae583-44a0-4117-b4f2-4d3e5ce4a818','https://www.figma.com/api/mcp/asset/2ed21beb-8fbc-4975-a6aa-0eddf9dfb6b2'],
-  'Speciale':         ['https://www.figma.com/api/mcp/asset/0f5c3d84-4d27-4b43-a93f-668a1192fb91','https://www.figma.com/api/mcp/asset/c9eae583-44a0-4117-b4f2-4d3e5ce4a818','https://www.figma.com/api/mcp/asset/2ed21beb-8fbc-4975-a6aa-0eddf9dfb6b2'],
-  'Billboard':        ['https://www.figma.com/api/mcp/asset/5dd2e709-6eb5-4631-be4f-e2ebeca021ef','https://www.figma.com/api/mcp/asset/20dba8a5-18e8-4121-95a4-1a144d4d8390','https://www.figma.com/api/mcp/asset/021e603e-0801-4300-bd48-c4114ff78ab7'],
-  'Alux':             ['https://www.figma.com/api/mcp/asset/692f4ca6-8284-4dac-bec0-262b03bf84f1','https://www.figma.com/api/mcp/asset/825f5472-a89e-4366-bdd6-c77a1234c109','https://www.figma.com/api/mcp/asset/b83ea303-ba4a-4a3d-a70b-d9c5599c5971'],
-  'Totem':            ['https://www.figma.com/api/mcp/asset/ac164527-7b05-43ff-9c09-35290f202ae4','https://www.figma.com/api/mcp/asset/b9eac3cd-c3be-42d0-90ca-57deb3c67676','https://www.figma.com/api/mcp/asset/ef21a236-26f6-4215-9388-97d062e2f2df'],
+// ── Marker asset locali ───────────────────────────────────
+const MARKER_FOLDER = {
+  'Palina':           'OOH/palina',
+  'Palina Butterfly': 'OOH/palina_butterfly',
+  'Stendardo':        'OOH/stendardo',
+  'Plancia':          'OOH/plancia',
+  'Pensilina':        'OOH/pensilina',
+  'Cassonetto':       'OOH/cassonetto',
+  'Fermata Bus':      'OOH/fermata_bus',
+  'Parapedonale':     'OOH/parapedonale',
+  'Palo Luce':        'OOH/palo_luce',
+  'Telo':             'OOH/telo',
+  'Rotor':            'OOH/rotor',
+  'Fioriera':         'OOH/fioriera',
+  'Cartello':         'OOH/cartello',
+  'Insegna':          'OOH/insegna',
+  'Speciale':         'OOH/speciale',
+  'Billboard':        'DOOH/billboard',
+  'Totem':            'DOOH/totem',
+  'Alux':             'DOOH/alux',
 };
-const _MARKER_STATUS_IDX = { available: 0, option: 1, reserved: 2 };
+const MARKER_STATUS_FILE = { available: 'available', option: 'inOption', reserved: 'reserved' };
+
+function markerSrc(type, status) {
+  const folder = MARKER_FOLDER[type] || 'OOH/palina';
+  const file   = MARKER_STATUS_FILE[status] || 'available';
+  return `../assets/${folder}/${file}.svg`;
+}
 
 // ── Mappa ─────────────────────────────────────────────────
 
@@ -818,6 +824,7 @@ function MapView({ systems, selectedIds, onToggle, pois = [], poiRadii = {}, act
       },
     });
     clusterGroupRef.current.addTo(mapRef.current);
+    setTimeout(() => { mapRef.current?.invalidateSize(); }, 100);
     return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; clusterGroupRef.current = null; } };
   }, []);
 
@@ -826,13 +833,9 @@ function MapView({ systems, selectedIds, onToggle, pois = [], poiRadii = {}, act
     clusterGroupRef.current.clearLayers();
     const [mw, mh] = getMarkerSize(zoom);
     systems.forEach(sys => {
-      const sel = selectedIds.includes(sys.id);
       const s = STATUS[sys.status];
-      const imgs = MARKER_IMGS[sys.type] || MARKER_IMGS['Palina'];
       const icon = L.divIcon({
-        html: `<div style="width:${mw}px;height:${mh}px;${sel ? 'filter:drop-shadow(0 0 6px #3E00FB) drop-shadow(0 0 2px #3E00FB);' : ''}">
-          <img src="${imgs[_MARKER_STATUS_IDX[sys.status] || 0]}" style="width:${mw}px;height:${mh}px;display:block" />
-        </div>`,
+        html: `<img src="${markerSrc(sys.type, sys.status)}" style="width:${mw}px;height:${mh}px;display:block"/>`,
         iconSize: [mw, mh], iconAnchor: [mw / 2, mh], className: '',
       });
       L.marker([sys.lat, sys.lng], { icon })
@@ -848,7 +851,7 @@ function MapView({ systems, selectedIds, onToggle, pois = [], poiRadii = {}, act
         .on('click', () => onToggle(sys.id))
         .addTo(clusterGroupRef.current);
     });
-  }, [systems, selectedIds, zoom]);
+  }, [systems, zoom]);
 
   // POI markers + cerchi di copertura
   useEffect(() => {
@@ -1082,89 +1085,189 @@ function FacesTable({ sys, selectedFaceKeys, onFaceToggle }) {
 // ── Filters Drawer ────────────────────────────────────────
 
 function FiltersDrawer({ open, onClose, onApply, current }) {
-  const [salesModel,  setSalesModel]  = useState(current.salesModel  || []);
   const [statusF,     setStatusF]     = useState(current.statusF     || []);
+  const [types,       setTypes]       = useState(current.types       || []);
   const [format,      setFormat]      = useState(current.format      || []);
   const [illuminated, setIlluminated] = useState(current.illuminated || null);
+  const [salesModel,  setSalesModel]  = useState(current.salesModel  || []);
+  const [minFaces,    setMinFaces]    = useState(current.minFaces    || null);
 
   useEffect(() => {
     if (open) {
-      setSalesModel(current.salesModel   || []);
       setStatusF(current.statusF         || []);
+      setTypes(current.types             || []);
       setFormat(current.format           || []);
       setIlluminated(current.illuminated || null);
+      setSalesModel(current.salesModel   || []);
+      setMinFaces(current.minFaces       || null);
     }
   }, [open]);
 
   const toggle = (arr, set, v) => set(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
-  const totalActive = salesModel.length + statusF.length + format.length + (illuminated ? 1 : 0);
+  const totalActive = statusF.length + types.length + format.length + salesModel.length +
+                      (illuminated ? 1 : 0) + (minFaces ? 1 : 0);
 
   const SectionLabel = ({ label }) =>
     React.createElement('div', {
-      style: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', color: 'rgba(0,0,0,0.3)', marginBottom: 6 }
+      style: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', color: 'rgba(0,0,0,0.3)', marginBottom: 8 }
     }, label);
 
-  const CheckRow = ({ label, checked, onToggle, dot }) =>
+  const CheckRow = ({ label, checked, onToggle, dot, img }) =>
     React.createElement('div', {
       className: `filter-option ${checked ? 'checked' : ''}`,
       onClick: onToggle,
+      style: { padding: '6px 8px' },
     },
       React.createElement('div', { className: 'f-checkbox' },
         checked && React.createElement(CheckOutlined, { style: { color: '#fff', fontSize: 9 } })
       ),
       dot && React.createElement('div', { style: { width: 8, height: 8, borderRadius: '50%', background: dot, flexShrink: 0 } }),
-      React.createElement('span', { style: { fontSize: 13, color: checked ? '#3E00FB' : 'rgba(0,0,0,0.72)' } }, label)
+      img && React.createElement('img', { src: img, style: { height: 18, width: 'auto', flexShrink: 0 } }),
+      React.createElement('span', { style: { fontSize: 13, color: checked ? '#3E00FB' : 'rgba(0,0,0,0.72)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, label)
     );
+
+  const ToggleBtn = ({ label, active, onClick }) =>
+    React.createElement('button', {
+      onClick,
+      style: { flex: 1, height: 34, borderRadius: 6, cursor: 'pointer', fontSize: 13, border: `1.5px solid ${active ? '#3E00FB' : '#E8E8E8'}`, background: active ? '#F0EEFF' : '#fff', color: active ? '#3E00FB' : 'rgba(0,0,0,0.55)', fontWeight: active ? 600 : 400, transition: 'all .15s' }
+    }, label);
 
   return React.createElement(Drawer, {
     title: React.createElement('span', { style: { fontWeight: 600 } }, 'Filtri'),
     extra: totalActive > 0 && React.createElement(Text, { type: 'secondary', style: { fontSize: 12 } }, `${totalActive} attivi`),
-    placement: 'right', width: 300, open, onClose,
-    styles: { body: { padding: '20px 24px' } },
+    placement: 'right', width: 340, open, onClose,
+    styles: { body: { padding: '20px 20px', overflowY: 'auto' } },
     footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between' } },
       React.createElement(Button, {
-        onClick: () => { setSalesModel([]); setStatusF([]); setFormat([]); setIlluminated(null); },
+        onClick: () => { setStatusF([]); setTypes([]); setFormat([]); setIlluminated(null); setSalesModel([]); setMinFaces(null); },
         disabled: !totalActive,
       }, 'Reimposta tutto'),
       React.createElement(Button, {
         type: 'primary',
-        onClick: () => { onApply({ salesModel, statusF, format, illuminated }); onClose(); },
+        onClick: () => { onApply({ statusF, types, format, illuminated, salesModel, minFaces }); onClose(); },
       }, 'Applica'),
     ),
   },
-    React.createElement(SectionLabel, { label: 'Modello di vendita' }),
-    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 22 } },
-      ['Standard', 'Premium', 'Special'].map(v =>
-        React.createElement(CheckRow, { key: v, label: v, checked: salesModel.includes(v), onToggle: () => toggle(salesModel, setSalesModel, v) })
-      )
-    ),
-    React.createElement(Divider, { style: { margin: '0 0 18px' } }),
 
+    // ── Disponibilità ─────────────────────────────────────
     React.createElement(SectionLabel, { label: 'Disponibilità' }),
-    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 22 } },
+    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 20 } },
       Object.entries(STATUS).map(([k, s]) =>
         React.createElement(CheckRow, { key: k, label: s.label, dot: s.color, checked: statusF.includes(k), onToggle: () => toggle(statusF, setStatusF, k) })
       )
     ),
-    React.createElement(Divider, { style: { margin: '0 0 18px' } }),
+    React.createElement(Divider, { style: { margin: '0 0 16px' } }),
 
+    // ── Tipologia impianto ────────────────────────────────
+    React.createElement(SectionLabel, { label: 'Tipologia impianto' }),
+    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, marginBottom: 20 } },
+      SYSTEM_TYPES.map(t =>
+        React.createElement(CheckRow, {
+          key: t, label: t,
+          checked: types.includes(t),
+          onToggle: () => toggle(types, setTypes, t),
+        })
+      )
+    ),
+    React.createElement(Divider, { style: { margin: '0 0 16px' } }),
+
+    // ── Formato ───────────────────────────────────────────
     React.createElement(SectionLabel, { label: 'Formato' }),
-    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, marginBottom: 22 } },
-      ['6×3 m', '4×3 m', '2×1.4 m', '1.2×1.8 m'].map(v =>
-        React.createElement(CheckRow, { key: v, label: v, checked: format.includes(v), onToggle: () => toggle(format, setFormat, v) })
+    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, marginBottom: 20 } },
+      ['6×3', '4×3', '3×2', '2×1.5', '1.2×1.8'].map(v =>
+        React.createElement(CheckRow, { key: v, label: `${v} m`, checked: format.includes(v), onToggle: () => toggle(format, setFormat, v) })
       )
     ),
-    React.createElement(Divider, { style: { margin: '0 0 18px' } }),
+    React.createElement(Divider, { style: { margin: '0 0 16px' } }),
 
-    React.createElement(SectionLabel, { label: 'Illuminato' }),
-    React.createElement('div', { style: { display: 'flex', gap: 8 } },
-      ['Sì', 'No'].map(v =>
-        React.createElement('button', {
-          key: v, onClick: () => setIlluminated(illuminated === v ? null : v),
-          style: { flex: 1, height: 34, borderRadius: 6, cursor: 'pointer', fontSize: 13, border: `1.5px solid ${illuminated === v ? '#3E00FB' : '#E8E8E8'}`, background: illuminated === v ? '#F0EEFF' : '#fff', color: illuminated === v ? '#3E00FB' : 'rgba(0,0,0,0.55)', fontWeight: illuminated === v ? 600 : 400, transition: 'all .15s' }
-        }, v)
+    // ── Illuminazione ─────────────────────────────────────
+    React.createElement(SectionLabel, { label: 'Illuminazione' }),
+    React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 20 } },
+      React.createElement(ToggleBtn, { label: 'Illuminato', active: illuminated === 'Sì', onClick: () => setIlluminated(illuminated === 'Sì' ? null : 'Sì') }),
+      React.createElement(ToggleBtn, { label: 'Non illuminato', active: illuminated === 'No', onClick: () => setIlluminated(illuminated === 'No' ? null : 'No') }),
+    ),
+    React.createElement(Divider, { style: { margin: '0 0 16px' } }),
+
+    // ── Facce disponibili ─────────────────────────────────
+    React.createElement(SectionLabel, { label: 'Facce disponibili' }),
+    React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 20 } },
+      [['1+', 1], ['2+', 2], ['3+', 3]].map(([label, val]) =>
+        React.createElement(ToggleBtn, { key: val, label, active: minFaces === val, onClick: () => setMinFaces(minFaces === val ? null : val) })
       )
     ),
+    React.createElement(Divider, { style: { margin: '0 0 16px' } }),
+
+    // ── Modello di vendita ────────────────────────────────
+    React.createElement(SectionLabel, { label: 'Modello di vendita' }),
+    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 1 } },
+      ['Standard', 'Long Term', 'Premium'].map(v =>
+        React.createElement(CheckRow, { key: v, label: v, checked: salesModel.includes(v), onToggle: () => toggle(salesModel, setSalesModel, v) })
+      )
+    ),
+  );
+}
+
+// ── Planning List Drawer ──────────────────────────────────
+
+function PlanningListDrawer({ open, onClose, selectedIds, selectedFaceKeys, onRemove }) {
+  const selected = SYSTEMS.filter(s => selectedIds.includes(s.id));
+  const totalFacesSelected = selectedFaceKeys.length;
+
+  return React.createElement(Drawer, {
+    title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+      React.createElement('span', { style: { fontWeight: 600 } }, 'Lista Pianificazione'),
+      React.createElement('span', {
+        style: { fontSize: 12, fontWeight: 600, background: '#3E00FB', color: '#fff', borderRadius: 10, padding: '1px 8px' }
+      }, selectedIds.length),
+    ),
+    placement: 'right', width: 420, open, onClose,
+    styles: { body: { padding: 0, overflowY: 'auto' } },
+    footer: selected.length > 0 && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } },
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'rgba(0,0,0,0.55)' } },
+        React.createElement('span', null, `${selected.length} impianti · ${totalFacesSelected} facce`),
+      ),
+      React.createElement(Button, { type: 'primary', block: true, size: 'large' }, 'Conferma e procedi'),
+    ),
+  },
+    selected.length === 0
+      ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8, color: 'rgba(0,0,0,0.35)', padding: 40 } },
+          React.createElement('span', { style: { fontSize: 32 } }, '📋'),
+          React.createElement('span', { style: { fontSize: 14 } }, 'Nessun impianto selezionato'),
+        )
+      : React.createElement('div', { style: { display: 'flex', flexDirection: 'column' } },
+          selected.map(sys => {
+            const s = STATUS[sys.status];
+            const facesSelected = sys.faces.filter(f => selectedFaceKeys.includes(`${sys.id}-${f.id}`));
+            const facesTotal    = sys.faces.length;
+            return React.createElement('div', {
+              key: sys.id,
+              style: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 20px', borderBottom: '1px solid #F5F5F5' },
+            },
+              React.createElement('img', { src: markerSrc(sys.type, sys.status), style: { height: 36, width: 'auto', flexShrink: 0, marginTop: 2 } }),
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 } },
+                  React.createElement('span', { style: { fontWeight: 600, fontSize: 13 } }, sys.id),
+                  React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }, '·'),
+                  React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.55)' } }, sys.type),
+                ),
+                React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.38)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
+                  `${sys.address}, ${sys.city}`
+                ),
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                  React.createElement('div', { style: { width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 } }),
+                  React.createElement('span', { style: { fontSize: 12, color: s.color, fontWeight: 500 } }, s.label),
+                  React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }, `· ${facesSelected.length}/${facesTotal} facce · ${sys.size} m`),
+                ),
+              ),
+              React.createElement('button', {
+                onClick: () => onRemove(sys.id),
+                style: { background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'rgba(0,0,0,0.25)', fontSize: 16, lineHeight: 1, flexShrink: 0, borderRadius: 4, transition: 'color .15s' },
+                onMouseEnter: e => e.target.style.color = '#FF4A1C',
+                onMouseLeave: e => e.target.style.color = 'rgba(0,0,0,0.25)',
+              }, '×'),
+            );
+          })
+        )
   );
 }
 
@@ -1174,14 +1277,14 @@ function SystemCard({ sys, selected, onToggle }) {
   const s = STATUS[sys.status];
   const disabled = isFullyReserved(sys);
   return React.createElement('div', {
-    className: `system-card${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}`,
+    className: `system-card${disabled ? ' disabled' : ''}`,
     onClick: disabled ? undefined : () => onToggle(sys.id),
   },
     React.createElement('div', { style: { width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 } }),
     React.createElement('div', { style: { flex: 1, minWidth: 0 } },
       React.createElement('div', { style: { fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' } },
         React.createElement('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, `${sys.id} · `),
-        React.createElement('img', { src: (MARKER_IMGS[sys.type] || MARKER_IMGS['Palina'])[0], style: { height: 20, width: 'auto', flexShrink: 0 } }),
+        React.createElement('img', { src: markerSrc(sys.type, sys.status), style: { height: 22, width: 'auto', flexShrink: 0 } }),
         React.createElement('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, sys.type),
       ),
       React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.38)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, `${sys.address}, ${sys.city}`),
@@ -1354,9 +1457,10 @@ function SelectSystemsV2() {
   const [activeSizes,  setActiveSizes]  = useState([]);
   const [hiddenLocs,   setHiddenLocs]   = useState([]);
   const [activeLocs,   setActiveLocs]   = useState([]);
-  const [drawerOpen,   setDrawerOpen]   = useState(false);
-  const [poiDrawerOpen, setPoiDrawerOpen] = useState(false);
-  const [advFilters,   setAdvFilters]   = useState({ salesModel: [], statusF: [], format: [], illuminated: null });
+  const [drawerOpen,        setDrawerOpen]        = useState(false);
+  const [poiDrawerOpen,     setPoiDrawerOpen]     = useState(false);
+  const [listDrawerOpen,    setListDrawerOpen]    = useState(false);
+  const [advFilters,   setAdvFilters]   = useState({ statusF: [], types: [], format: [], illuminated: null, salesModel: [], minFaces: null });
   const [hasSearched,  setHasSearched]  = useState(false);
   const [viewMode,     setViewMode]     = useState('map');
   const [showSelected, setShowSelected] = useState(false);
@@ -1437,33 +1541,37 @@ function SelectSystemsV2() {
     });
   };
 
-  const advCount = advFilters.salesModel.length + advFilters.statusF.length +
-                   advFilters.format.length + (advFilters.illuminated ? 1 : 0);
+  const advCount = advFilters.statusF.length + advFilters.types.length + advFilters.format.length +
+                   advFilters.salesModel.length + (advFilters.illuminated ? 1 : 0) + (advFilters.minFaces ? 1 : 0);
 
   const activeChips = [
     ...activeTypes.map(t  => ({ key: `type_${t}`,  label: t, prefix: 'Tipologia', active: true })),
     ...activeSizes.map(s  => ({ key: `size_${s}`,  label: s, prefix: 'Formato',   active: true })),
-    ...advFilters.salesModel.map(v => ({ key: `sm_${v}`,   label: v, prefix: 'Modello',       active: true })),
-    ...advFilters.statusF.map(v    => ({ key: `st_${v}`,   label: STATUS[v]?.label || v, prefix: 'Disponibilità', active: true })),
-    ...advFilters.format.map(v     => ({ key: `fmt_${v}`,  label: v, prefix: 'Formato',        active: true })),
-    ...(advFilters.illuminated ? [{ key: 'ill', label: advFilters.illuminated, prefix: 'Illuminato', active: true }] : []),
+    ...advFilters.statusF.map(v    => ({ key: `st_${v}`,    label: STATUS[v]?.label || v, prefix: 'Disponibilità', active: true })),
+    ...advFilters.types.map(v      => ({ key: `ftype_${v}`, label: v,                     prefix: 'Tipologia',     active: true })),
+    ...advFilters.format.map(v     => ({ key: `fmt_${v}`,   label: `${v} m`,              prefix: 'Formato',       active: true })),
+    ...advFilters.salesModel.map(v => ({ key: `sm_${v}`,    label: v,                     prefix: 'Modello',       active: true })),
+    ...(advFilters.illuminated ? [{ key: 'ill', label: advFilters.illuminated === 'Sì' ? 'Illuminato' : 'Non illuminato', prefix: 'Illuminazione', active: true }] : []),
+    ...(advFilters.minFaces    ? [{ key: 'mf',  label: `≥${advFilters.minFaces} facce`, prefix: 'Facce', active: true }] : []),
     ...(poiCategory ? [{ key: 'poi', label: POI_CATEGORIES.find(c => c.key === poiCategory)?.label || poiCategory, prefix: 'POI', active: true }] : []),
   ];
 
   const removeChip = key => {
-    if (key.startsWith('type_'))   setActiveTypes(p => p.filter(x => `type_${x}` !== key));
-    else if (key.startsWith('size_')) setActiveSizes(p => p.filter(x => `size_${x}` !== key));
-    else if (key.startsWith('sm_'))  setAdvFilters(p => ({ ...p, salesModel: p.salesModel.filter(v => `sm_${v}`  !== key) }));
-    else if (key.startsWith('st_'))  setAdvFilters(p => ({ ...p, statusF:    p.statusF.filter(v    => `st_${v}`  !== key) }));
-    else if (key.startsWith('fmt_')) setAdvFilters(p => ({ ...p, format:     p.format.filter(v     => `fmt_${v}` !== key) }));
-    else if (key === 'ill')          setAdvFilters(p => ({ ...p, illuminated: null }));
-    else if (key === 'poi')          { setPoiCategory(null); setPoiRadii({}); setActivePOI(null); }
+    if      (key.startsWith('type_'))   setActiveTypes(p => p.filter(x => `type_${x}` !== key));
+    else if (key.startsWith('size_'))   setActiveSizes(p => p.filter(x => `size_${x}` !== key));
+    else if (key.startsWith('st_'))     setAdvFilters(p => ({ ...p, statusF:    p.statusF.filter(v    => `st_${v}`    !== key) }));
+    else if (key.startsWith('ftype_'))  setAdvFilters(p => ({ ...p, types:      p.types.filter(v      => `ftype_${v}` !== key) }));
+    else if (key.startsWith('fmt_'))    setAdvFilters(p => ({ ...p, format:     p.format.filter(v     => `fmt_${v}`   !== key) }));
+    else if (key.startsWith('sm_'))     setAdvFilters(p => ({ ...p, salesModel: p.salesModel.filter(v => `sm_${v}`    !== key) }));
+    else if (key === 'ill')             setAdvFilters(p => ({ ...p, illuminated: null }));
+    else if (key === 'mf')              setAdvFilters(p => ({ ...p, minFaces: null }));
+    else if (key === 'poi')             { setPoiCategory(null); setPoiRadii({}); setActivePOI(null); }
   };
 
   const clearAll = () => {
     setActiveTypes([]);
     setActiveSizes([]);
-    setAdvFilters({ salesModel: [], statusF: [], format: [], illuminated: null });
+    setAdvFilters({ statusF: [], types: [], format: [], illuminated: null, salesModel: [], minFaces: null });
     setPoiCategory(null); setPoiRadii({}); setActivePOI(null);
   };
 
@@ -1477,13 +1585,16 @@ function SelectSystemsV2() {
 
   const displayed = (() => {
     let list = showSelected ? SYSTEMS.filter(s => selectedIds.includes(s.id)) : SYSTEMS;
-    if (activeTypes.length > 0) list = list.filter(s => activeTypes.some(t => s.type.toLowerCase().includes(t.toLowerCase())));
-    if (activeSizes.length > 0) list = list.filter(s => activeSizes.includes(s.size));
-    if (foundPOIs.length > 0) {
-      list = list.filter(sys =>
-        foundPOIs.some(poi => haversineDistance(poi.lat, poi.lng, sys.lat, sys.lng) <= (poiRadii[poi.id] || 500))
-      );
-    }
+    if (activeTypes.length > 0)  list = list.filter(s => activeTypes.some(t => s.type.toLowerCase().includes(t.toLowerCase())));
+    if (activeSizes.length > 0)  list = list.filter(s => activeSizes.includes(s.size));
+    if (foundPOIs.length > 0)    list = list.filter(sys => foundPOIs.some(poi => haversineDistance(poi.lat, poi.lng, sys.lat, sys.lng) <= (poiRadii[poi.id] || 500)));
+    if (advFilters.statusF.length > 0)    list = list.filter(s => advFilters.statusF.includes(s.status));
+    if (advFilters.types.length > 0)      list = list.filter(s => advFilters.types.includes(s.type));
+    if (advFilters.format.length > 0)     list = list.filter(s => advFilters.format.includes(s.size));
+    if (advFilters.salesModel.length > 0) list = list.filter(s => s.faces.some(f => advFilters.salesModel.includes(f.salesModel)));
+    if (advFilters.illuminated === 'Sì')  list = list.filter(s => s.faces.some(f => f.illumination && f.illumination !== 'None'));
+    if (advFilters.illuminated === 'No')  list = list.filter(s => s.faces.every(f => !f.illumination || f.illumination === 'None'));
+    if (advFilters.minFaces)              list = list.filter(s => s.faces.filter(f => getFaceStatus(f) !== 'reserved').length >= advFilters.minFaces);
     return list;
   })();
 
@@ -1585,6 +1696,7 @@ function SelectSystemsV2() {
               React.createElement(Space, { size: 8, style: { flexShrink: 0 } },
                 React.createElement(Button, {
                   style: { borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 6 },
+                  onClick: () => setListDrawerOpen(true),
                 },
                   React.createElement(Badge, {
                     count: selectedIds.length,
@@ -1770,16 +1882,19 @@ function SelectSystemsV2() {
               style: { padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }
             },
                     React.createElement(Text, { style: { fontSize: 13, whiteSpace: 'nowrap' } },
-                      React.createElement('span', { style: { fontWeight: 700 } }, 'Totale: '),
+                      React.createElement('span', { style: { fontWeight: 700 } }, 'Trovati: '),
                       React.createElement('span', { style: { fontWeight: 400 } }, `${displayed.length}`),
                       React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.55)' } }, ' impianti'),
+                      selectableFromResults.length < displayed.length && React.createElement('span', { style: { color: 'rgba(0,0,0,0.38)', fontSize: 12 } },
+                        ` · ${selectableFromResults.length} selezionabili`
+                      ),
                     ),
                     React.createElement(Checkbox, {
                       checked: allResultsSelected,
                       indeterminate: someResultsSelected,
                       onChange: toggleSelectAll,
-                      style: { userSelect: 'none' },
-                    }),
+                      style: { userSelect: 'none', fontSize: 13 },
+                    }, 'Seleziona tutti'),
                     React.createElement('div', { style: { flex: 1 } }),
                     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 } },
                       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
@@ -1816,12 +1931,6 @@ function SelectSystemsV2() {
                           )
                         )
                       ),
-                      selectedIds.length > 0 && React.createElement('div', {
-                        style: { position: 'absolute', bottom: 20, right: foundPOIs.length > 0 ? 316 : 16, zIndex: 1000, background: '#3E00FB', borderRadius: 8, padding: '8px 14px', color: '#fff', fontSize: 13, fontWeight: 500, boxShadow: '0 2px 12px rgba(62,0,251,0.2)', display: 'flex', alignItems: 'center', gap: 8, transition: 'right 0.2s' }
-                      },
-                        React.createElement('span', { style: { width: 20, height: 20, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 } }, selectedIds.length),
-                        React.createElement('span', null, `in lista · accumulati`),
-                      ),
                       foundPOIs.length > 0 && React.createElement(POIPanel, {
                         pois: foundPOIs, poiRadii,
                         onRadiusChange: handlePoiRadiusChange,
@@ -1832,57 +1941,85 @@ function SelectSystemsV2() {
                     viewMode === 'list' && React.createElement('div', {
                       style: { overflowY: 'auto', height: '100%', padding: '8px 0' }
                     },
-                      React.createElement(Collapse, {
-                        bordered: false,
-                        className: 'system-list-collapse',
-                        items: displayed.map(sys => {
-                          const sel = selectedIds.includes(sys.id);
-                          const totalFaces = sys.faces.length;
-                          const selectedFaces = sys.faces.filter(f => selectedFaceKeys.includes(`${sys.id}-${f.id}`)).length;
-                          return {
-                            key: sys.id,
-                            style: { borderLeft: `10px solid ${sel && !isFullyReserved(sys) ? '#3E00FB' : getBorderColor(sys)}` },
-                            label: React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 } },
-                                React.createElement('span', { style: { fontWeight: 600, fontSize: 16, lineHeight: '24px', color: 'rgba(0,0,0,0.88)' } }, sys.id),
-                                React.createElement(Tag, {
-                                  style: { margin: 0, fontSize: 12, padding: '0 8px', lineHeight: '20px', height: 22, borderRadius: 4, background: 'rgba(0,0,0,0.04)', border: '1px solid #D9D9D9', color: 'rgba(0,0,0,0.88)', fontWeight: 400 }
-                                }, sys.type),
+                      (() => {
+                        const displayedSelectable = displayed.filter(s => !isFullyReserved(s));
+                        const displayedReserved = displayed.filter(s => isFullyReserved(s));
+
+                        function buildCollapseItems(list) {
+                          return list.map(sys => {
+                            const sel = selectedIds.includes(sys.id);
+                            const totalFaces = sys.faces.length;
+                            const selectedFaces = sys.faces.filter(f => selectedFaceKeys.includes(`${sys.id}-${f.id}`)).length;
+                            return {
+                              key: sys.id,
+                              style: { borderLeft: `10px solid ${getBorderColor(sys)}` },
+                              label: React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 } },
+                                  React.createElement('span', { style: { fontWeight: 600, fontSize: 16, lineHeight: '24px', color: 'rgba(0,0,0,0.88)' } }, sys.id),
+                                  React.createElement(Tag, {
+                                    style: { margin: 0, fontSize: 12, padding: '0 8px', lineHeight: '20px', height: 22, borderRadius: 4, background: 'rgba(0,0,0,0.04)', border: '1px solid #D9D9D9', color: 'rgba(0,0,0,0.88)', fontWeight: 400 }
+                                  }, sys.type),
+                                ),
+                                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 16, fontSize: 14, lineHeight: '22px' } },
+                                  React.createElement('span', null,
+                                    React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Cimasa: '),
+                                    React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, sys.cimasa),
+                                  ),
+                                  React.createElement('span', null,
+                                    React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Utenza: '),
+                                    React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, sys.account),
+                                  ),
+                                  React.createElement('span', null,
+                                    React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Indirizzo: '),
+                                    React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, `${sys.address}, ${sys.city}`),
+                                  ),
+                                ),
                               ),
-                              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 16, fontSize: 14, lineHeight: '22px' } },
-                                React.createElement('span', null,
-                                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Cimasa: '),
-                                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, sys.cimasa),
+                              extra: React.createElement('div', {
+                                style: { display: 'flex', alignItems: 'center', gap: 16 },
+                                onClick: e => e.stopPropagation(),
+                              },
+                                !isFullyReserved(sys) && React.createElement('span', { style: { fontSize: 14, lineHeight: '22px', whiteSpace: 'nowrap' } },
+                                  React.createElement('span', { style: { fontWeight: 600, fontSize: 16, color: '#3E00FB', lineHeight: '24px' } },
+                                    `${selectedFaces}/${totalFaces}`
+                                  ),
+                                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, ' facce selezionate'),
                                 ),
-                                React.createElement('span', null,
-                                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Utenza: '),
-                                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, sys.account),
-                                ),
-                                React.createElement('span', null,
-                                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Indirizzo: '),
-                                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, `${sys.address}, ${sys.city}`),
-                                ),
+                                !isFullyReserved(sys) && React.createElement(Checkbox, {
+                                  checked: sel,
+                                  onChange: () => toggleSystem(sys.id),
+                                }),
                               ),
-                            ),
-                            extra: React.createElement('div', {
-                              style: { display: 'flex', alignItems: 'center', gap: 16 },
-                              onClick: e => e.stopPropagation(),
+                              children: React.createElement(FacesTable, { sys, selectedFaceKeys, onFaceToggle: toggleFace }),
+                            };
+                          });
+                        }
+
+                        return React.createElement(React.Fragment, null,
+                          React.createElement(Collapse, {
+                            bordered: false,
+                            className: 'system-list-collapse',
+                            items: buildCollapseItems(displayedSelectable),
+                          }),
+                          displayedReserved.length > 0 && React.createElement(React.Fragment, null,
+                            React.createElement('div', {
+                              style: { padding: '20px 16px 8px 16px', display: 'flex', alignItems: 'center', gap: 10 }
                             },
-                              !isFullyReserved(sys) && React.createElement('span', { style: { fontSize: 14, lineHeight: '22px', whiteSpace: 'nowrap' } },
-                                React.createElement('span', { style: { fontWeight: 600, fontSize: 16, color: '#3E00FB', lineHeight: '24px' } },
-                                  `${selectedFaces}/${totalFaces}`
-                                ),
-                                React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, ' facce selezionate'),
+                              React.createElement('div', { style: { flex: 1, height: 1, background: '#F0F0F0' } }),
+                              React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', fontWeight: 500, whiteSpace: 'nowrap' } },
+                                `Non disponibili (${displayedReserved.length})`
                               ),
-                              !isFullyReserved(sys) && React.createElement(Checkbox, {
-                                checked: sel,
-                                onChange: () => toggleSystem(sys.id),
-                              }),
+                              React.createElement('div', { style: { flex: 1, height: 1, background: '#F0F0F0' } }),
                             ),
-                            children: React.createElement(FacesTable, { sys, selectedFaceKeys, onFaceToggle: toggleFace }),
-                          };
-                        }),
-                      })
+                            React.createElement(Collapse, {
+                              bordered: false,
+                              className: 'system-list-collapse system-list-collapse--reserved',
+                              defaultActiveKey: [],
+                              items: buildCollapseItems(displayedReserved),
+                            }),
+                          ),
+                        );
+                      })()
                     ),
                   ),
           ),
@@ -1902,6 +2039,17 @@ function SelectSystemsV2() {
           onApply: handlePoiApply,
           currentCategory: poiCategory,
           currentRadii: poiRadii,
+        }),
+
+        React.createElement(PlanningListDrawer, {
+          open: listDrawerOpen,
+          onClose: () => setListDrawerOpen(false),
+          selectedIds,
+          selectedFaceKeys,
+          onRemove: id => {
+            setSelectedIds(prev => prev.filter(x => x !== id));
+            setSelectedFaceKeys(prev => prev.filter(k => !k.startsWith(`${id}-`)));
+          },
         }),
 
       )
