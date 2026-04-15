@@ -24,7 +24,7 @@ Apri l'app, fai login con il tuo account Anthropic.
 ## 3. Clona il repository
 
 ```bash
-git clone https://github.com/gloriabonanno-ops/gravity.git
+git clone https://github.com/codesour-design/gravity.git
 cd gravity
 ```
 
@@ -122,7 +122,7 @@ Oppure usa `/handoff` per costruire un flusso completo di handoff.
 
 ### Quando il prototipo è pronto — aprire una PR
 
-1. Vai su [github.com/gloriabonanno-ops/gravity](https://github.com/gloriabonanno-ops/gravity)
+1. Vai su [github.com/codesour-design/gravity](https://github.com/codesour-design/gravity)
 2. Clicca **"Compare & pull request"** sul tuo branch
 3. Descrivi brevemente cosa hai fatto
 4. Chiedi a Gloria (o all'altra designer) di fare una lettura rapida
@@ -147,7 +147,7 @@ Puoi verificare il risultato su: https://gravity-prototipi-codesour.vercel.app
 
 | Risorsa | URL / Percorso |
 |---------|----------------|
-| Repo GitHub | https://github.com/gloriabonanno-ops/gravity |
+| Repo GitHub | https://github.com/codesour-design/gravity |
 | Deploy produzione | https://gravity-prototipi-codesour.vercel.app |
 | Design System Figma | https://www.figma.com/design/uR6CBOh0Y7dUQvH30SyD0P/Ant-Design-System-for-Gravity |
 | Regole progetto | `CLAUDE.md` |

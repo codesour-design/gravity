@@ -106,7 +106,7 @@ In caso di problemi controlla i log su: https://vercel.com/codesour-projects/gra
 ---
 
 **Riferimenti:**
-- Repo GitHub: https://github.com/gloriabonanno-ops/gravity
+- Repo GitHub: https://github.com/codesour-design/gravity
 - URL produzione: https://gravity-prototipi-codesour.vercel.app
 - Vercel Dashboard: https://vercel.com/codesour-projects/gravity-prototipi
 - Account Vercel: `bonnyb` / team `codesour-projects` (MAI usare l'account personale `pianobdesign20`)
