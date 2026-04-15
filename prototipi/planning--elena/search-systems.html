@@ -1886,20 +1886,21 @@ function SelectSystemsV2() {
                       React.createElement('span', { style: { fontWeight: 400 } }, `${displayed.length}`),
                       React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.55)' } }, ' impianti'),
                     ),
+                    React.createElement(Checkbox, {
+                      checked: allResultsSelected,
+                      indeterminate: someResultsSelected,
+                      onChange: toggleSelectAll,
+                      style: { userSelect: 'none', fontSize: 13 },
+                    },
+                      React.createElement('span', null,
+                        'Seleziona tutti',
+                        selectableFromResults.length < displayed.length && React.createElement('span', { style: { color: 'rgba(0,0,0,0.38)', fontWeight: 400 } },
+                          ` (${selectableFromResults.length} selezionabili)`
+                        ),
+                      )
+                    ),
                     React.createElement('div', { style: { flex: 1 } }),
                     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 } },
-                      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-                        selectableFromResults.length < displayed.length && React.createElement(Text, { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', whiteSpace: 'nowrap' } },
-                          `${selectableFromResults.length} selezionabili`
-                        ),
-                        React.createElement(Checkbox, {
-                          checked: allResultsSelected,
-                          indeterminate: someResultsSelected,
-                          onChange: toggleSelectAll,
-                          style: { userSelect: 'none', fontSize: 13 },
-                        }, 'Seleziona tutti'),
-                      ),
-                      React.createElement('div', { style: { width: 1, height: 16, background: '#E8E8E8' } }),
                       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
                         React.createElement(Switch, { size: 'small', checked: showSelected, onChange: setShowSelected }),
                         React.createElement(Text, { style: { fontSize: 13, userSelect: 'none', whiteSpace: 'nowrap' } }, 'Solo selezionati'),
