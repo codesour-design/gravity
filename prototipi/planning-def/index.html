@@ -1,0 +1,4297 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gravity — Planning (nuova rotta)</title>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@ant-design/icons@5/dist/index.umd.js"></script>
+  <script src="../tokens.js"></script>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5/dist/leaflet.markercluster.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--gravity-font-body);
+      background: var(--gravity-bg);
+      color: var(--gravity-text);
+      font-size: 14px;
+      line-height: 1.5714;
+    }
+
+    /* ── App shell ─────────────────────────────────────── */
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .app-main {
+      flex: 1;
+      overflow-y: auto;
+      background: #F5F5F5;
+    }
+
+    /* ── Navbar (Ant Design System for Gravity) ────────── */
+    .top-nav {
+      height: 73px;
+      background: #ffffff;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+    .top-nav-logo {
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      height: 100%;
+      flex-shrink: 0;
+    }
+    .top-nav-logo img { display: block; }
+    .top-nav-menu-wrap {
+      flex: 1;
+      align-self: stretch;
+      display: flex;
+      align-items: stretch;
+    }
+    /* override antd Menu horizontal border */
+    .top-nav-menu-wrap .ant-menu-horizontal {
+      border-bottom: none !important;
+      height: 73px;
+      line-height: 73px;
+    }
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-item,
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-submenu {
+      height: 73px;
+      line-height: 73px;
+      padding: 0 16px;
+      top: 0;
+    }
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-item::after,
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-submenu::after {
+      bottom: 0 !important;
+      border-bottom-width: 2px !important;
+    }
+    .top-nav-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 0 20px;
+      flex-shrink: 0;
+    }
+    .top-nav-bell {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      color: rgba(0,0,0,0.65);
+      padding: 4px;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .top-nav-bell:hover { background: rgba(0,0,0,0.04); }
+
+    /* ── back link (usato nell'header card) ── */
+    .plh-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      color: rgba(0,0,0,0.35);
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .plh-back:hover { color: #3E00FB; }
+    /* ── NuovaRotta: brief panel sinistro ── */
+    .ss-workspace-nr {
+      display: flex;
+      flex-direction: row;
+      flex: 1;
+      min-height: 0;
+    }
+    .bpn {
+      width: 264px;
+      flex-shrink: 0;
+      overflow-y: auto;
+      background: transparent;
+      border-right: 1px solid rgba(0,0,0,0.06);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .ss-main-nr {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-left: 16px;
+    }
+
+    .bpn-footer {
+      margin-top: auto;
+      padding-top: 8px;
+    }
+    .bpn-toggle-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 6px;
+      border: 1px solid #E8E8E8;
+      background: #fff;
+      color: rgba(0,0,0,0.45);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .bpn-toggle-btn:hover {
+      border-color: #3E00FB;
+      color: #3E00FB;
+      background: #F9F7FF;
+    }
+    .bpn-collapsed {
+      width: 28px;
+      flex-shrink: 0;
+      background: #fff;
+      border-right: 1px solid #F0F0F0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .bpn-collapsed:hover { background: #F9F7FF; }
+    .bpn-collapsed-label {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.35);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      user-select: none;
+    }
+    .bpn-collapsed:hover .bpn-collapsed-label { color: #3E00FB; }
+    /* ── DataCard — pattern comune a tutte le schermate ── */
+    .data-card {
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #F0F0F0;
+      overflow: hidden;
+    }
+    .data-card-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: none;
+    }
+    .data-card-head-icon {
+      color: rgba(0,0,0,0.25);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+    }
+    .data-card-head-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.88);
+    }
+    .data-card-body {
+      padding: 20px 12px 12px;
+    }
+    .data-card-value {
+      font-size: 24px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.88);
+      line-height: 1.3;
+      display: block;
+    }
+    .data-card-action {
+      padding: 8px 12px;
+      border-top: 1px solid #F0F0F0;
+    }
+    /* DataCard value — ridotto nel brief panel sidebar */
+    .bpn .data-card-value {
+      font-size: 16px;
+    }
+    .bpn .data-card-body {
+      padding: 12px;
+    }
+    /* SelectSystems root (nuova rotta) */
+    .ss-root-nr {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 73px);
+      overflow: hidden;
+    }
+    /* SelectSystems content wrapper */
+    .ss-content-nr {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      overflow: hidden;
+      background: #F5F5F5;
+    }
+
+    /* ── Shared page layout ────────────────────────────── */
+    .page-content {
+      padding: 24px;
+      min-height: 100%;
+    }
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    /* ── Plannings List ─────────────────────────────────── */
+    .ant-table-tbody > tr.ant-table-row:hover > td { background: rgba(62,0,251,0.04) !important; }
+
+    .advertiser-link {
+      color: #3E00FB;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+    }
+    .advertiser-link:hover { text-decoration: underline; }
+    .share-link {
+      color: #3E00FB;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── Planning Detail ───────────────────────────────── */
+    .detail-layout {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .detail-sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 49px;
+    }
+    .detail-main {
+      flex: 1;
+      min-width: 0;
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #F0F0F0;
+      overflow: hidden;
+    }
+
+    .detail-main-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid #F0F0F0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ── View toggle buttons ───────────────────────────── */
+    .view-toggle { display: flex; gap: 2px; }
+    .view-toggle-btn {
+      background: none;
+      border: 1px solid #D9D9D9;
+      cursor: pointer;
+      padding: 5px 8px;
+      color: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+    .view-toggle-btn:first-child { border-radius: 6px 0 0 6px; }
+    .view-toggle-btn:last-child { border-radius: 0 6px 6px 0; }
+    .view-toggle-btn:not(:first-child) { border-left: none; }
+    .view-toggle-btn.active {
+      background: #F0EAFF;
+      color: #3E00FB;
+      border-color: #3E00FB;
+      z-index: 1;
+    }
+    .view-toggle-btn:hover:not(.active) { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.65); }
+
+    /* ── SVG Map ───────────────────────────────────────── */
+    .map-container {
+      position: relative;
+      width: 100%;
+      height: 480px;
+      overflow: hidden;
+      background: #E3EBF3;
+    }
+    .map-svg { width: 100%; height: 100%; display: block; }
+    .map-legend {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .map-legend-item { display: flex; align-items: center; gap: 8px; }
+
+    /* ── Systems list view ─────────────────────────────── */
+    .system-card {
+      border-bottom: 1px solid #F0F0F0;
+    }
+    .system-card:last-child { border-bottom: none; }
+    .system-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      cursor: pointer;
+    }
+    .system-card-header:hover { background: rgba(0,0,0,0.02); }
+    .system-card-left { display: flex; align-items: center; gap: 8px; }
+    .system-avail-bar {
+      width: 4px;
+      align-self: stretch;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .system-card-expanded {
+      padding: 0 16px 16px 20px;
+      border-top: 1px solid #F5F5F5;
+      background: #FAFAFA;
+    }
+    .system-face-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .system-face-table th {
+      text-align: left;
+      padding: 6px 8px;
+      color: rgba(0,0,0,0.45);
+      font-weight: 500;
+      border-bottom: 1px solid #F0F0F0;
+      background: #fff;
+    }
+    .system-face-table td {
+      padding: 8px 8px;
+      border-bottom: 1px solid #F5F5F5;
+      color: rgba(0,0,0,0.65);
+    }
+
+    /* ── Select Systems ─────────────────────────────────── */
+    .ss-root {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 73px);
+      overflow: hidden;
+      background: #F5F5F5;
+      padding: 24px;
+      gap: 12px;
+    }
+    .ss-card {
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #F0F0F0;
+      flex-shrink: 0;
+    }
+    /* Card 1 — Header */
+    .ss-card-header { padding: 14px 20px 16px; }
+    .ss-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .ss-breadcrumb {
+      color: rgba(0,0,0,0.45);
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .ss-breadcrumb:hover { color: #3E00FB; }
+    .ss-title-row { display: flex; align-items: center; justify-content: space-between; }
+    .ss-title-meta { display: flex; align-items: center; gap: 10px; }
+    /* Card 2 — Search */
+    .ss-card-search { padding: 16px 20px; }
+    .ss-search-bar { display: flex; gap: 8px; align-items: center; }
+    .ss-search-input-wrap { flex: 1; position: relative; }
+    .ss-suggestions-wrap {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: #fff;
+      border: 1px solid #E8E8E8;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      z-index: 9999;
+      overflow: hidden;
+    }
+    .ss-suggestion-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      cursor: pointer;
+      font-size: 13px;
+      color: rgba(0,0,0,0.65);
+      transition: background 0.1s;
+    }
+    .ss-suggestion-item:hover { background: #F5F5F5; }
+    .ss-brief-chips {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .ss-brief-label {
+      font-size: 11px;
+      color: rgba(0,0,0,0.35);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      margin-right: 2px;
+    }
+    .ss-brief-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      border: 1px solid #E8E8E8;
+      font-size: 12px;
+      color: rgba(0,0,0,0.65);
+      cursor: pointer;
+      background: #FAFAFA;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .ss-brief-chip:hover { border-color: #3E00FB; color: #3E00FB; background: #F0EAFF; }
+    .ss-brief-chip-active {
+      background: #F0EAFF;
+      border-color: #3E00FB;
+      color: #3E00FB;
+      font-weight: 500;
+    }
+    .ss-brief-chip-active:hover { background: #E8DFFF; }
+    /* ── Brief bar (info brief nel header SelectSystems) ────── */
+    .ss-brief-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px 0;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+    }
+    .ss-brief-field {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 14px;
+      border-right: 1px solid rgba(0,0,0,0.08);
+    }
+    .ss-brief-field:first-child { padding-left: 0; }
+    .ss-brief-field:last-child { border-right: none; }
+    .ss-brief-key {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.35);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+    .ss-brief-val {
+      font-size: 13px;
+      color: rgba(0,0,0,0.88);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .ss-brief-tags {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    /* Card 3 — Map */
+    .ss-card-map {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      min-height: 0;
+    }
+    .ss-leaflet-map {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    /* Right panel (Google Maps style) */
+    .ss-panel {
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 420px;
+      background: #fff;
+      box-shadow: -2px 0 20px rgba(0,0,0,0.13);
+      display: flex;
+      flex-direction: column;
+      z-index: 500;
+      transition: transform 0.25s ease;
+    }
+    .ss-panel-hidden { transform: translateX(420px); }
+    .ss-panel-toggle {
+      position: absolute;
+      left: -32px; top: 50%;
+      transform: translateY(-50%);
+      background: #fff;
+      border: 1px solid #E8E8E8;
+      border-right: none;
+      border-radius: 6px 0 0 6px;
+      width: 32px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      box-shadow: -3px 0 8px rgba(0,0,0,0.08);
+      color: rgba(0,0,0,0.4);
+      z-index: 501;
+      transition: color 0.15s;
+    }
+    .ss-panel-toggle:hover { color: #3E00FB; }
+    .ss-panel-header {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid #F0F0F0;
+      gap: 4px;
+      flex-shrink: 0;
+      background: #FAFAFA;
+    }
+    .ss-panel-tab {
+      flex: 1;
+      padding: 6px 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.45);
+      cursor: pointer;
+      text-align: center;
+      border-radius: 6px;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .ss-panel-tab.active { background: #F0EAFF; color: #3E00FB; }
+    .ss-panel-body { flex: 1; overflow-y: auto; }
+    .ss-system-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid #F5F5F5;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .ss-system-item:last-child { border-bottom: none; }
+    .ss-system-item:hover { background: #FAFAFA; }
+    .ss-system-item.ss-item-selected { background: #F7F5FF; }
+    .ss-system-item.ss-item-hovered { background: #F2F2F2; }
+    .ss-system-info { flex: 1; min-width: 0; }
+    .ss-system-code {
+      font-size: 11px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: rgba(0,0,0,0.30);
+      margin-bottom: 2px;
+    }
+    .ss-system-address {
+      font-size: 13px;
+      color: rgba(0,0,0,0.88);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ss-system-tags {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+    .ss-panel-empty { padding: 40px 20px; text-align: center; }
+
+    /* Panel toolbar — select all */
+    .ss-panel-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: #F7F5FF;
+      border-bottom: 1px solid #E4DCFF;
+      flex-shrink: 0;
+    }
+    .ss-panel-toolbar-info {
+      font-size: 12px;
+      color: rgba(0,0,0,0.45);
+    }
+    .ss-panel-toolbar-action {
+      font-size: 12px;
+      color: #3E00FB;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .ss-panel-toolbar-action:hover { text-decoration: underline; }
+
+    /* Accordion system row */
+    .ss-sys-row { border-bottom: 1px solid #F0F0F0; }
+    .ss-sys-row:last-child { border-bottom: none; }
+
+    .ss-sys-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      transition: background 0.1s;
+    }
+    .ss-sys-head:hover { background: #FAFAFA; }
+    .ss-sys-head.ss-sys-selected { background: #F7F5FF; }
+    .ss-sys-head.ss-sys-hovered  { background: #F3F3F3; }
+
+    /* Left accent bar */
+    .ss-sys-accent {
+      width: 3px;
+      align-self: stretch;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* Premium star */
+    .ss-premium-star {
+      color: #FAAD14;
+      font-size: 13px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    /* System info */
+    .ss-sys-info { flex: 1; min-width: 0; }
+    .ss-sys-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.88);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.4;
+    }
+    .ss-sys-label.ss-sys-premium { font-weight: 600; }
+    .ss-sys-code {
+      font-size: 10px;
+      font-family: 'SF Mono','Fira Code',monospace;
+      color: rgba(0,0,0,0.28);
+      margin-top: 1px;
+    }
+    .ss-sys-addr {
+      font-size: 11px;
+      color: rgba(0,0,0,0.45);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+
+    /* Face badge */
+    .ss-face-badge {
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .ss-face-badge-all  { color: #52C41A; }
+    .ss-face-badge-part { color: #3E00FB; }
+    .ss-face-badge-none { color: rgba(0,0,0,0.35); }
+
+    /* Expand toggle */
+    .ss-expand-btn {
+      color: rgba(0,0,0,0.25);
+      font-size: 10px;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      transition: color 0.15s, background 0.1s;
+    }
+    .ss-expand-btn:hover { color: #3E00FB; background: rgba(62,0,251,0.06); }
+
+    /* Expanded faces */
+    .ss-faces-body {
+      background: #FAFAFA;
+      border-top: 1px solid #F0F0F0;
+      padding: 3px 0 5px;
+    }
+    .ss-face-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px 5px 30px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .ss-face-row:hover { background: rgba(0,0,0,0.02); }
+    .ss-face-row.ss-face-selected { background: rgba(62,0,251,0.05); }
+    .ss-face-row.ss-face-disabled { opacity: 0.5; cursor: not-allowed; }
+    .ss-face-type {
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.65);
+      min-width: 95px;
+      flex-shrink: 0;
+    }
+    .ss-face-format {
+      font-size: 10px;
+      color: rgba(0,0,0,0.30);
+      font-family: 'SF Mono','Fira Code',monospace;
+      flex: 1;
+      white-space: nowrap;
+    }
+    .ss-face-state {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: rgba(0,0,0,0.45);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .ss-face-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .ss-face-price {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.55);
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .ss-face-lit {
+      color: #FA8C16;
+      font-size: 11px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Type + format meta row */
+    .ss-sys-meta {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 3px;
+      font-size: 11px;
+      color: rgba(0,0,0,0.40);
+    }
+    .ss-sys-meta-icon {
+      font-size: 11px;
+      color: rgba(0,0,0,0.30);
+      flex-shrink: 0;
+    }
+    .ss-sys-meta-type {
+      font-weight: 500;
+      color: rgba(0,0,0,0.45);
+    }
+    .ss-sys-meta-sep {
+      color: rgba(0,0,0,0.20);
+      margin: 0 1px;
+    }
+    .ss-sys-meta-fmt {
+      font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 10px;
+      color: rgba(0,0,0,0.30);
+    }
+    /* Label chips (Gmail-style) */
+    .ss-sys-labels {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      margin-top: 3px;
+    }
+    .ss-label-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 7px 1px 5px;
+      border-radius: 3px;
+      border: 1px solid;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      line-height: 1.6;
+    }
+    .ss-label-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    /* Label picker trigger */
+    .ss-label-btn {
+      color: rgba(0,0,0,0.20);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 4px 5px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      transition: color 0.15s, background 0.1s;
+      line-height: 1;
+    }
+    .ss-label-btn:hover { color: #3E00FB; background: rgba(62,0,251,0.06); }
+    /* Popover label list */
+    .ss-label-picker { width: 210px; }
+    .ss-label-picker-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.35);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0 0 8px;
+    }
+    .ss-label-picker-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .ss-label-picker-row:hover { background: #F5F5F5; padding-left: 4px; margin: 0 -4px; }
+    .ss-label-color-swatch {
+      width: 10px; height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .ss-color-palette {
+      display: flex;
+      gap: 5px;
+      margin: 8px 0;
+    }
+    .ss-color-swatch {
+      width: 18px; height: 18px;
+      border-radius: 3px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.1s;
+    }
+    .ss-color-swatch:hover { transform: scale(1.15); }
+    /* Map info box (stato default Available-only) */
+    .ss-map-infobox {
+      position: absolute;
+      bottom: 40px;
+      left: 16px;
+      background: rgba(255,255,255,0.98);
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.06);
+      z-index: 400;
+      width: 244px;
+      overflow: hidden;
+    }
+    .ss-infobox-header {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .ss-infobox-count {
+      font-size: 30px;
+      font-weight: 700;
+      color: rgba(0,0,0,0.88);
+      line-height: 1;
+      letter-spacing: -0.5px;
+    }
+    .ss-infobox-count-label {
+      font-size: 12px;
+      font-weight: 400;
+      color: rgba(0,0,0,0.45);
+      margin-top: 3px;
+    }
+    .ss-infobox-body {
+      padding: 8px 16px 6px;
+    }
+    .ss-infobox-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 12px;
+    }
+    .ss-infobox-label {
+      color: rgba(0,0,0,0.35);
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+    .ss-infobox-value {
+      color: rgba(0,0,0,0.75);
+      font-weight: 500;
+      text-align: right;
+      margin-left: 8px;
+    }
+    .ss-infobox-footer {
+      padding: 8px 16px 12px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+    }
+    .ss-infobox-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 12px;
+      border-top: 1px solid #F5F5F5;
+      cursor: pointer;
+      border-radius: 0;
+      transition: background 0.15s;
+      gap: 8px;
+    }
+    .ss-infobox-toggle:hover { background: #F9F7FF !important; }
+    .ss-infobox-link {
+      display: block;
+      font-size: 11px;
+      color: #3E00FB;
+      cursor: pointer;
+      text-align: right;
+    }
+    .ss-infobox-link:hover { text-decoration: underline; }
+    /* Map legend */
+    .ss-map-legend {
+      position: absolute;
+      bottom: 40px;
+      left: 16px;
+      background: rgba(255,255,255,0.97);
+      border-radius: 8px;
+      padding: 10px 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+      z-index: 400;
+    }
+    /* Leaflet tooltip override */
+    .ss-leaflet-tooltip.leaflet-tooltip {
+      background: rgba(0,0,0,0.82) !important;
+      color: #fff !important;
+      border: none !important;
+      border-radius: 6px !important;
+      font-size: 12px !important;
+      padding: 6px 10px !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+      white-space: nowrap;
+    }
+    .ss-leaflet-tooltip.leaflet-tooltip::before {
+      border-top-color: rgba(0,0,0,0.82) !important;
+    }
+    .ss-row-selected td { background: #F0EAFF !important; }
+    .filter-section {
+      padding: 12px 16px;
+      border-bottom: 1px solid #F0F0F0;
+    }
+    .filter-section:last-child { border-bottom: none; }
+    .filter-section-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.65);
+      margin-bottom: 10px;
+    }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 16px;
+      border: 1px solid #D9D9D9;
+      font-size: 12px;
+      cursor: pointer;
+      margin: 3px;
+      background: #fff;
+      color: rgba(0,0,0,0.65);
+      transition: all 0.15s;
+    }
+    .filter-chip.selected {
+      background: #F0EAFF;
+      border-color: #3E00FB;
+      color: #3E00FB;
+    }
+    .filter-checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      font-size: 13px;
+      color: rgba(0,0,0,0.65);
+      cursor: pointer;
+    }
+    .filter-checkbox {
+      width: 14px;
+      height: 14px;
+      border: 1.5px solid #D9D9D9;
+      border-radius: 3px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .filter-checkbox.checked {
+      background: #3E00FB;
+      border-color: #3E00FB;
+    }
+    .filter-subsection-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.35);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 0 4px;
+    }
+    /* (search-result / history / active-filter styles moved to .ss-* above) */
+
+    /* ── Mini calendar ─────────────────────────────────── */
+    .mini-cal { font-size: 12px; }
+    .mini-cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-weight: 500;
+      font-size: 12px;
+    }
+    .mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+    .mini-cal-day-label {
+      text-align: center;
+      font-size: 10px;
+      color: rgba(0,0,0,0.45);
+      padding: 2px 0;
+    }
+    .mini-cal-day {
+      text-align: center;
+      padding: 3px 0;
+      border-radius: 4px;
+      font-size: 11px;
+      color: rgba(0,0,0,0.65);
+    }
+    .mini-cal-day.in-range {
+      background: rgba(62,0,251,0.12);
+      color: #3E00FB;
+      border-radius: 0;
+    }
+    .mini-cal-day.range-start, .mini-cal-day.range-end {
+      background: #3E00FB;
+      color: #fff;
+      border-radius: 4px;
+    }
+    .mini-cal-day.empty { color: transparent; }
+
+    /* ── Scrollable results ────────────────────────────── */
+    .search-results-scroll { flex: 1; overflow-y: auto; }
+
+    /* ── New Planning Drawer form ──────────────────────── */
+    .brief-section {
+      border: 1px solid #F0F0F0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 8px;
+    }
+    .brief-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.45);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+    .advertiser-card {
+      border: 1px solid #F0F0F0;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #FAFAFA;
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/javascript">
+window.applyGravityTokens();
+
+// ══════════════════════════════════════════════════════
+// Globals
+// ══════════════════════════════════════════════════════
+const { useState, useCallback } = React;
+const {
+  ConfigProvider, App,
+  Menu, Space, Divider,
+  Typography, Button, Input, Select, Form, Checkbox, DatePicker,
+  Table, Card, Tag, Badge, Avatar, Tooltip, Dropdown, Empty,
+  Drawer, Pagination, InputNumber, Switch, Slider, Popover, Alert, TreeSelect,
+} = antd;
+
+const {
+  UserOutlined, BellOutlined, PlusOutlined, EditOutlined,
+  ShareAltOutlined, SearchOutlined, FilterOutlined,
+  CheckOutlined, CloseOutlined, ArrowLeftOutlined,
+  AppstoreOutlined, InboxOutlined, SendOutlined, CalendarOutlined,
+  TableOutlined, EnvironmentOutlined, MoreOutlined,
+  EllipsisOutlined, LeftOutlined, RightOutlined, DownOutlined,
+  DeleteOutlined, PlayCircleOutlined, CheckCircleOutlined, LinkOutlined,
+  CaretRightOutlined, CaretDownOutlined,
+  BarChartOutlined, BarsOutlined, MoneyCollectOutlined,
+  // Icone per tipologie impianto (proxy — saranno sostituite con le SVG Gravity)
+  StarFilled, NodeIndexOutlined, PictureOutlined,
+  ContainerOutlined, CarOutlined, TagOutlined,
+  BulbOutlined, HomeOutlined, FlagOutlined,
+  SyncOutlined, ExpandOutlined, StarOutlined,
+  EuroOutlined, ExclamationCircleOutlined, AimOutlined,
+} = icons;
+
+// Mappa tipo impianto → icona Ant Design (placeholder per le SVG Gravity)
+const TYPE_ICON = {
+  'Palina':          () => React.createElement(NodeIndexOutlined),
+  'Palina Butterfly':() => React.createElement(NodeIndexOutlined),
+  'Cartello':        () => React.createElement(PictureOutlined),
+  'Cassonetto':      () => React.createElement(ContainerOutlined),
+  'Fermata Bus':     () => React.createElement(CarOutlined),
+  'Fioriera':        () => React.createElement(AppstoreOutlined),
+  'Insegna':         () => React.createElement(TagOutlined),
+  'Palo Luce':       () => React.createElement(BulbOutlined),
+  'Parapedonale':    () => React.createElement(NodeIndexOutlined),
+  'Pensilina':       () => React.createElement(HomeOutlined),
+  'Plancia':         () => React.createElement(TableOutlined),
+  'Rotor':           () => React.createElement(SyncOutlined),
+  'Speciale':        () => React.createElement(StarOutlined),
+  'Stendardo':       () => React.createElement(FlagOutlined),
+  'Telo':            () => React.createElement(ExpandOutlined),
+};
+
+// ── Label system (Gmail-style) ─────────────────────────
+const LABEL_COLORS = ['#FF4A1C','#FAAD14','#52C41A','#1677FF','#722ED1','#EB2F96','#13C2C2','#595959'];
+const INITIAL_LABELS = [
+  { id: 'lbl-1', name: 'Ottima visibilità',  color: '#52C41A' },
+  { id: 'lbl-2', name: 'Alta frequentazione',color: '#1677FF' },
+  { id: 'lbl-3', name: 'Fronte traffico',    color: '#13C2C2' },
+  { id: 'lbl-4', name: 'Posizione angolare', color: '#722ED1' },
+  { id: 'lbl-5', name: 'Grande formato',     color: '#EB2F96' },
+  { id: 'lbl-6', name: 'Centro storico',     color: '#FAAD14' },
+];
+
+const { Title, Text, Paragraph } = Typography;
+
+// ══════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════
+
+const CAT_STYLE = {
+  DOOH: { color: '#C41D7F', background: '#FFF0F6', borderColor: '#FFADD2' },
+  OOH:  { color: '#389E0D', background: '#F6FFED', borderColor: '#B7EB8F' },
+  WEB:  { color: '#1677FF', background: '#E6F7FF', borderColor: '#91D5FF' },
+};
+
+const STATE_DOT = {
+  'Bozza':         '#FAAD14',
+  'In trattativa': '#1677FF',
+  'Completata':    '#52C41A',
+};
+
+// Profilo pianificatore
+const PLANNER = {
+  name:         'Gloria Bonanno',
+  initials:     'GB',
+  role:         'Pianificatrice',
+  area:         'Sicilia Occidentale',
+  provinces:    ['Palermo', 'Trapani', 'Agrigento', 'Caltanissetta'],
+  areaBounds:   [[36.6, 12.3], [38.2, 13.7]],
+  areaCenter:   [37.7, 13.0],
+  areaZoom:     9,
+  defaultChips: [
+    { label: 'Palermo',   city: 'Palermo',   lat: 38.1157, lng: 13.3615, zoom: 12 },
+    { label: 'Trapani',   city: 'Trapani',   lat: 37.9800, lng: 12.6150, zoom: 12 },
+    { label: 'Agrigento', city: 'Agrigento', lat: 37.3104, lng: 13.5765, zoom: 12 },
+    { label: 'Marsala',   city: 'Marsala',   lat: 37.7998, lng: 12.4289, zoom: 13 },
+    { label: 'Sciacca',   city: 'Sciacca',   lat: 37.5076, lng: 13.0783, zoom: 13 },
+  ],
+};
+
+const AVAIL_COLOR = {
+  Available:  '#52C41A',
+  Reserved:   '#1677FF',
+  'In Option':'#EB2F96',
+};
+const STATE_LABELS = { Available: 'Disponibile', 'In Option': 'In Opzione', Reserved: 'Riservato' };
+
+const AGENTS = {
+  gloria: { id:'gloria', name:'Gloria Bonanno', initials:'GB', color:'#3E00FB' },
+  marco:  { id:'marco',  name:'Marco Ferrara',  initials:'MF', color:'#13C2C2' },
+};
+
+const ADVERTISER_LOGO = {
+  'Visit Sicily':       { initials:'VS', bg:'#0066CC', fg:'#fff' },
+  'Comune di Palermo':  { initials:'CP', bg:'#8B0000', fg:'#fff' },
+  'Gohan Sushi':        { initials:'GS', bg:'#D4380D', fg:'#fff' },
+  'Moving Retail':      { initials:'MR', bg:'#389E0D', fg:'#fff' },
+  'Campus Digitale':    { initials:'CD', bg:'#722ED1', fg:'#fff' },
+  'Cantine Firriato':   { initials:'CF', bg:'#874D00', fg:'#fff' },
+  'MediaWorld':         { initials:'MW', bg:'#E6162D', fg:'#fff' },
+  'Fondazione Alessi':  { initials:'FA', bg:'#595959', fg:'#fff' },
+  'SushiLab Palermo':   { initials:'SL', bg:'#D4380D', fg:'#fff' },
+  'TechConf Italia':    { initials:'TC', bg:'#1677FF', fg:'#fff' },
+};
+
+function AdvertiserAvatar({ name, size = 32 }) {
+  const logo = ADVERTISER_LOGO[name] || { initials: (name||'?')[0], bg:'#F0F0F0', fg:'rgba(0,0,0,0.55)' };
+  return React.createElement(Avatar, {
+    size,
+    shape: 'circle',
+    style: { background: logo.bg, color: logo.fg, fontWeight: 700, fontSize: size * 0.38, flexShrink: 0 },
+  }, logo.initials);
+}
+
+const PLANNINGS = [
+  // ── Bozza — Gloria ───────────────────────────────────────────────────────────
+  { id:'0108', name:'Visit Sicily — Estate Trapani',    category:'OOH',  state:'Bozza', start:'01/07/2025', end:'31/07/2025', advertiser:'Visit Sicily',      goal:'traffico', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'10/03/2025', assignee:'gloria',
+    briefZones:[{ label:'Trapani', city:'Trapani', lat:37.9800, lng:12.6150, zoom:13 },{ label:'Marsala', city:'Marsala', lat:37.7998, lng:12.4289, zoom:13 },{ label:'Mazara del Vallo', city:'Mazara del Vallo', lat:37.6555, lng:12.5908, zoom:13 }],
+    requestedTypes:['Pensilina', 'Stendardo'] },
+  { id:'0111', name:'Comune di Palermo — Autunno DOOH', category:'DOOH', state:'Bozza', start:'01/10/2025', end:'31/10/2025', advertiser:'Comune di Palermo', goal:'consapevolezza del brand', budget:'€ 40.000', faces:0,  hasSystems:false, createdAt:'15/03/2025', assignee:'gloria',
+    briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 },{ label:'Palermo Est', city:'Palermo', lat:38.1100, lng:13.4200, zoom:13 }],
+    requestedTypes:['Stendardo', 'Parapedonale'] },
+  // ── In trattativa — Gloria ────────────────────────────────────────────────
+  { id:'0101', name:'Gohan Sushi Pianificazione Luglio',category:'DOOH', state:'In trattativa', start:'01/06/2025', end:'30/06/2025', advertiser:'Gohan Sushi',       goal:'traffico', budget:'€ 22.000', faces:12, hasSystems:true,  createdAt:'01/04/2025', assignee:'gloria',
+    briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 },{ label:'Viale della Libertà', city:'Palermo', lat:38.1230, lng:13.3521, zoom:15 }],
+    requestedTypes:['Stendardo', 'Pensilina'] },
+  // ── Bozza — Marco ────────────────────────────────────────────────────────
+  { id:'0103', name:'Moving Retail Autunno 2025',       category:'DOOH', state:'Bozza', start:'01/09/2025', end:'30/09/2025', advertiser:'Moving Retail',     goal:'conversione', budget:'€ 35.000', faces:8,  hasSystems:false, createdAt:'05/03/2025', assignee:'marco',
+    briefZones:[], requestedTypes:[] },
+  { id:'0105', name:'Campus Digitale Settembre',        category:'OOH',  state:'Bozza', start:'01/09/2025', end:'15/09/2025', advertiser:'Campus Digitale',   goal:'consapevolezza del brand', budget:'€ 50.000', faces:20, hasSystems:false, createdAt:'20/02/2025', assignee:'marco',
+    briefZones:[{ label:'Palermo Nord', city:'Palermo', lat:38.1500, lng:13.3400, zoom:13 }],
+    requestedTypes:['Pensilina', 'Palina'] },
+  // ── Bozza — non assegnate ─────────────────────────────────────────────────
+  { id:'0109', name:'Cantine Firriato — Agrigento',     category:'OOH',  state:'Bozza', start:'15/07/2025', end:'15/08/2025', advertiser:'Cantine Firriato',  goal:'consapevolezza del brand', budget:'€ 12.000', faces:0,  hasSystems:false, createdAt:'12/03/2025', assignee:null,
+    briefZones:[{ label:'Agrigento', city:'Agrigento', lat:37.3104, lng:13.5765, zoom:13 },{ label:'Sciacca', city:'Sciacca', lat:37.5076, lng:13.0783, zoom:13 }],
+    requestedTypes:['Poster', 'Cassonetto'] },
+  { id:'0110', name:'MediaWorld — Sicilia Occidentale', category:'OOH',  state:'Bozza', start:'01/09/2025', end:'30/09/2025', advertiser:'MediaWorld',        goal:'traffico', budget:'€ 70.000', faces:0,  hasSystems:false, createdAt:'18/03/2025', assignee:null,
+    briefZones:[], requestedTypes:['Poster', 'Palina', 'Pensilina'] },
+  { id:'0106', name:'Arredo Urbano Palermo Q4',         category:'OOH',  state:'Bozza', start:'01/10/2025', end:'31/12/2025', advertiser:'Comune di Palermo', goal:'coinvolgimento', budget:'€ 90.000', faces:35, hasSystems:false, createdAt:'22/01/2025', assignee:null,
+    briefZones:[], requestedTypes:['Pensilina', 'Cassonetto', 'Palina'] },
+  // ── Completate ──────────────────────────────────────────────────────────────
+  { id:'0102', name:'Alessi Estate — Outdoor',          category:'OOH',  state:'Completata', start:'13/03/2024', end:'30/03/2024', advertiser:'Fondazione Alessi', goal:'consapevolezza del brand', budget:'€ 28.000', faces:13, hasSystems:true,  createdAt:'01/01/2024', assignee:'gloria', briefZones:[], requestedTypes:[] },
+  { id:'0104', name:'SushiLab Primavera 2025',          category:'OOH',  state:'Completata', start:'10/04/2025', end:'25/04/2025', advertiser:'SushiLab Palermo',  goal:'fidelizzazione dei clienti', budget:'€ 15.000', faces:6,  hasSystems:true,  createdAt:'15/02/2025', assignee:'marco',  briefZones:[], requestedTypes:[] },
+  { id:'0107', name:'TechConf Milano 2025',             category:'DOOH', state:'Completata', start:'15/11/2024', end:'20/11/2024', advertiser:'TechConf Italia',   goal:'generazione di lead', budget:'€ 24.000', faces:9,  hasSystems:true,  createdAt:'01/09/2024', assignee:'gloria', briefZones:[], requestedTypes:[] },
+];
+
+const GOAL_KPIS = {
+  'consapevolezza del brand': {
+    label: 'Consapevolezza del brand',
+    description: 'Aumentare la notorietà del marchio presso un pubblico ampio nel territorio. L\'obiettivo è raggiunto quando il brand viene riconosciuto e ricordato nelle aree di campagna.',
+    kpis: [
+      { name: 'Reach netto',           unit: 'persone uniche',        desc: 'Individui esposti almeno una volta alla campagna nel periodo' },
+      { name: 'GRP',                   unit: 'punti',                 desc: 'Gross Rating Points — pressione pubblicitaria totale sul target' },
+      { name: 'OTS medio',             unit: 'contatti / impianto',   desc: 'Opportunità di contatto stimate per ogni impianto attivo' },
+      { name: 'Frequenza media',       unit: 'esposizioni / persona', desc: 'Numero medio di volte che una persona è esposta al messaggio' },
+      { name: 'Copertura geografica',  unit: '% zone target',         desc: 'Percentuale di zone target coperte dagli impianti selezionati' },
+    ]
+  },
+  'fidelizzazione dei clienti': {
+    label: 'Fidelizzazione dei clienti',
+    description: 'Rafforzare la relazione con i clienti esistenti e aumentare la frequenza di visita o acquisto. L\'obiettivo è raggiunto quando il tasso di riacquisto o la frequenza di visita cresce nelle aree esposte.',
+    kpis: [
+      { name: 'Reach su target fidelizzato', unit: 'persone',              desc: 'Clienti già acquisiti raggiunti dalla campagna nell\'area geografica' },
+      { name: 'Frequenza di esposizione',    unit: 'x / settimana',        desc: 'Numero di volte che un cliente fedele vede il messaggio in media' },
+      { name: 'Uplift visite',               unit: '% incremento',         desc: 'Aumento delle visite rispetto allo stesso periodo dell\'anno precedente' },
+      { name: 'Share of presence',           unit: '%',                    desc: 'Presenza del brand nei percorsi abituali del target fidelizzato' },
+      { name: 'Brand recognition',           unit: '% ricordo spontaneo',  desc: 'Percentuale di clienti che riconoscono la comunicazione (rilevazione survey)' },
+    ]
+  },
+  'traffico': {
+    label: 'Traffico',
+    description: 'Generare flusso verso un punto vendita, una destinazione fisica o un canale digitale. L\'obiettivo è raggiunto quando si registra un incremento misurabile di visite nelle aree di campagna.',
+    kpis: [
+      { name: 'Uplift traffico pedonale', unit: '% incremento',   desc: 'Aumento del passaggio pedonale nelle zone coperte dagli impianti' },
+      { name: 'Visite incrementali',      unit: 'visite',         desc: 'Visite aggiuntive al punto vendita o destinazione attribuibili alla campagna' },
+      { name: 'Catchment area reach',     unit: 'persone',        desc: 'Persone uniche raggiunte nel raggio di influenza degli impianti' },
+      { name: 'QR scan / CTA digitali',  unit: 'interazioni',    desc: 'DOOH: azioni digitali misurabili innescate dall\'esposizione (QR, NFC, URL)' },
+      { name: 'Costo per visita',         unit: '€',              desc: 'Budget media speso per ogni visita incrementale generata' },
+    ]
+  },
+  'generazione di lead': {
+    label: 'Generazione di lead',
+    description: 'Acquisire nuovi contatti qualificati interessati al prodotto o servizio. L\'obiettivo è raggiunto quando si registra un volume di lead superiore al benchmark di riferimento.',
+    kpis: [
+      { name: 'Lead generati',              unit: 'contatti',       desc: 'Nuovi contatti acquisiti attribuibili all\'esposizione OOH/DOOH' },
+      { name: 'Tasso di conversione',       unit: '%',              desc: 'Percentuale di persone esposte che intraprendono un\'azione di contatto' },
+      { name: 'Costo per lead (CPL)',        unit: '€',              desc: 'Costo media per ogni lead acquisito tramite la campagna' },
+      { name: 'Interazioni CTA',            unit: 'scan / click',   desc: 'Scansioni QR, URL o NFC direttamente riconducibili agli impianti' },
+      { name: 'Reach su profilo decisore',  unit: 'persone',        desc: 'Copertura stimata sul segmento demografico con potere decisionale' },
+    ]
+  },
+  'coinvolgimento': {
+    label: 'Coinvolgimento',
+    description: 'Creare una connessione attiva con il pubblico, stimolando interazioni e partecipazione. L\'obiettivo è raggiunto quando si genera un engagement misurabile oltre la semplice esposizione.',
+    kpis: [
+      { name: 'Dwell time medio',         unit: 'secondi',       desc: 'Tempo medio di esposizione al messaggio per ogni contatto stimato' },
+      { name: 'Interazioni DOOH',         unit: 'touch / scan',  desc: 'DOOH: interazioni fisiche o digitali dirette con l\'impianto' },
+      { name: 'Social mention correlate', unit: 'menzioni',      desc: 'Menzioni organiche sui social network riconducibili alla campagna' },
+      { name: 'Engagement rate',          unit: '%',             desc: 'Percentuale di esposti che intraprendono almeno un\'azione misurabile' },
+      { name: 'Share of attention',       unit: '% attenzione',  desc: 'Attenzione catturata rispetto agli altri messaggi nello stesso contesto' },
+    ]
+  },
+  'conversione': {
+    label: 'Conversione',
+    description: 'Trasformare l\'esposizione pubblicitaria in vendite, acquisti o azioni concrete misurabili. L\'obiettivo è raggiunto quando si registra un incremento di revenue o conversioni direttamente attribuibile alla campagna.',
+    kpis: [
+      { name: 'Uplift vendite',                unit: '% incremento',      desc: 'Aumento delle vendite nelle aree esposte rispetto al gruppo di controllo' },
+      { name: 'ROAS',                          unit: '€ / €1 investito',  desc: 'Return on Ad Spend — ricavi generati per ogni euro di investimento media' },
+      { name: 'Tasso di conversione',          unit: '%',                 desc: 'Percentuale di persone esposte che effettuano un acquisto nel periodo' },
+      { name: 'Costo per acquisizione (CPA)',  unit: '€',                 desc: 'Costo media per ogni nuovo cliente acquisito tramite la campagna' },
+      { name: 'Revenue lift',                  unit: '€',                 desc: 'Incremento di fatturato direttamente attribuibile alla pressione OOH/DOOH' },
+    ]
+  },
+};
+
+const SYSTEMS = [
+  { id:'S01', name:'Nome Impianto', type:'Pensilina',       address:'Via Libertà, 48',      city:'90141 Palermo (PA)', cimasa:'A234E', account:'234E45', faces:2, state:'Available'  },
+  { id:'S02', name:'Nome Impianto', type:'Telo',            address:'Via Roma, 12',          city:'90133 Palermo (PA)', cimasa:'B456F', account:'456F78', faces:1, state:'Available'  },
+  { id:'S03', name:'Nome Impianto', type:'Poster',          address:'Viale Regione Sic., 234',city:'90100 Palermo (PA)',cimasa:'C789G', account:'789G12', faces:1, state:'In Option'  },
+  { id:'S04', name:'Nome Impianto', type:'Poster',          address:'Via Maqueda, 78',       city:'90134 Palermo (PA)', cimasa:'D012H', account:'012H34', faces:2, state:'Available'  },
+  { id:'S05', name:'Nome Impianto', type:'Fioriera',        address:'Piazza Verdi, 3',       city:'90138 Palermo (PA)', cimasa:'E345I', account:'345I56', faces:1, state:'Reserved'   },
+  { id:'S06', name:'Nome Impianto', type:'Palina',          address:'Via Emerico Amari, 5',  city:'90139 Palermo (PA)', cimasa:'F678J', account:'678J90', faces:1, state:'Available'  },
+  { id:'S07', name:'Nome Impianto', type:'Palo Luce',       address:'Via Cavour, 91',        city:'90133 Palermo (PA)', cimasa:'G901K', account:'901K23', faces:2, state:'Available'  },
+  { id:'S08', name:'Nome Impianto', type:'Stendardo',       address:'Corso V. Emanuele, 3',  city:'90133 Palermo (PA)', cimasa:'H234L', account:'234L45', faces:1, state:'In Option'  },
+];
+
+const SEARCH_RESULTS = (() => {
+  // Palina e Cartello sono i più numerosi — compaiono più volte nell'array per il campionamento
+  const TYPES  = [
+    'Palina','Palina','Palina','Palina','Palina',
+    'Cartello','Cartello','Cartello','Cartello',
+    'Pensilina','Pensilina',
+    'Cassonetto','Cassonetto',
+    'Fermata Bus','Stendardo','Telo',
+    'Palina Butterfly','Palo Luce','Parapedonale',
+    'Fioriera','Plancia','Rotor','Speciale','Insegna',
+  ];
+  const STATES = ['Available','Available','Available','Available','Available','In Option','In Option','Reserved','Reserved'];
+  // [street, baseLat, baseLng, count, city, province, capPrefix]
+  const ZONES  = [
+    // ── PALERMO ───────────────────────────────────────────────────────────────
+    ['Via della Libertà',        38.1230, 13.3521, 14, 'Palermo',          'PA', 'PA'],
+    ['Via Roma',                 38.1118, 13.3666, 12, 'Palermo',          'PA', 'PA'],
+    ['Via Maqueda',              38.1100, 13.3600, 12, 'Palermo',          'PA', 'PA'],
+    ['Corso V. Emanuele',        38.1118, 13.3612, 10, 'Palermo',          'PA', 'PA'],
+    ['Via Notarbartolo',         38.1310, 13.3478, 10, 'Palermo',          'PA', 'PA'],
+    ['Viale Reg. Siciliana',     38.0960, 13.3454, 16, 'Palermo',          'PA', 'PA'],
+    ['Via Cavour',               38.1155, 13.3690, 10, 'Palermo',          'PA', 'PA'],
+    ['Via Dante',                38.1195, 13.3560,  8, 'Palermo',          'PA', 'PA'],
+    ['Corso Calatafimi',         38.1024, 13.3349, 12, 'Palermo',          'PA', 'PA'],
+    ['Via Oreto',                38.1052, 13.3578, 10, 'Palermo',          'PA', 'PA'],
+    ['Viale Lazio',              38.1092, 13.3383,  8, 'Palermo',          'PA', 'PA'],
+    ['Via Ugo La Malfa',         38.1175, 13.3365, 10, 'Palermo',          'PA', 'PA'],
+    ['Via Resuttana',            38.1355, 13.3405,  8, 'Palermo',          'PA', 'PA'],
+    ['Via Messina Marine',       38.0950, 13.3800,  8, 'Palermo',          'PA', 'PA'],
+    ['Piazza Politeama',         38.1196, 13.3564,  6, 'Palermo',          'PA', 'PA'],
+    ['Via Marchese Ugo',         38.1230, 13.3480,  8, 'Palermo',          'PA', 'PA'],
+    // ── TRAPANI (città) ───────────────────────────────────────────────────────
+    ['Via Fardella',             37.9830, 12.6095, 10, 'Trapani',          'TP', 'TP'],
+    ['Piazza Vittorio Veneto',   37.9816, 12.5985,  8, 'Trapani',          'TP', 'TP'],
+    ['Corso Vittorio Emanuele',  37.9695, 12.5991,  8, 'Trapani',          'TP', 'TP'],
+    ['Via G. B. Fardella',       37.9780, 12.6070,  6, 'Trapani',          'TP', 'TP'],
+    // ── MARSALA ───────────────────────────────────────────────────────────────
+    ['Viale delle Sirene',       37.8010, 12.4340,  8, 'Marsala',          'TP', 'TP'],
+    ['Via XI Maggio',            37.7990, 12.4390,  8, 'Marsala',          'TP', 'TP'],
+    ['Lungomare Mediterraneo',   37.7955, 12.4270,  6, 'Marsala',          'TP', 'TP'],
+    // ── MAZARA DEL VALLO ──────────────────────────────────────────────────────
+    ['Lungomare Mazzini',        37.6580, 12.5930,  8, 'Mazara del Vallo', 'TP', 'TP'],
+    ['Via Castelvetrano',        37.6510, 12.5880,  6, 'Mazara del Vallo', 'TP', 'TP'],
+    // ── ALCAMO ────────────────────────────────────────────────────────────────
+    ['Via Alcide De Gasperi',    37.9800, 13.0280,  6, 'Alcamo',           'TP', 'TP'],
+    ['Corso 6 Aprile',           37.9770, 13.0250,  6, 'Alcamo',           'TP', 'TP'],
+    // ── AGRIGENTO (città) ────────────────────────────────────────────────────
+    ['Via Atenea',               37.3115, 13.5780, 10, 'Agrigento',        'AG', 'AG'],
+    ['Viale della Vittoria',     37.3085, 13.5710,  8, 'Agrigento',        'AG', 'AG'],
+    ['Via Empedocle',            37.3060, 13.5760,  6, 'Agrigento',        'AG', 'AG'],
+    // ── SCIACCA ───────────────────────────────────────────────────────────────
+    ['Lungomare Cristoforo Colombo', 37.5090, 13.0700,  8, 'Sciacca',      'AG', 'AG'],
+    ['Viale della Vittoria',         37.5080, 13.0860,  8, 'Sciacca',      'AG', 'AG'],
+    ['Via Licata',               37.5050, 13.0820,  6, 'Sciacca',          'AG', 'AG'],
+    // ── PORTO EMPEDOCLE ───────────────────────────────────────────────────────
+    ['Via Roma',                 37.2950, 13.5270,  8, 'Porto Empedocle',  'AG', 'AG'],
+    // ── CALTANISSETTA ────────────────────────────────────────────────────────
+    ['Corso Vittorio Emanuele',  37.4920, 14.0640, 10, 'Caltanissetta',    'CL', 'CL'],
+    ['Via Turati',               37.4900, 14.0560,  8, 'Caltanissetta',    'CL', 'CL'],
+    ['Viale Amedeo',             37.4940, 14.0610,  6, 'Caltanissetta',    'CL', 'CL'],
+    // ── GELA ──────────────────────────────────────────────────────────────────
+    ['Corso Vittorio Emanuele',  37.0710, 14.2540,  8, 'Gela',             'CL', 'CL'],
+    ['Lungomare Federico II',    37.0660, 14.2580,  8, 'Gela',             'CL', 'CL'],
+    ['Via Generale Cascino',     37.0740, 14.2500,  6, 'Gela',             'CL', 'CL'],
+  ];
+
+  // Face labels by system type
+  const FACE_LABELS = {
+    'Palina':          ['Anteriore','Posteriore'],
+    'Palina Butterfly':['Anteriore','Posteriore'],
+    'Cartello':        ['Anteriore'],
+    'Cassonetto':      ['Anteriore','Posteriore'],
+    'Fermata Bus':     ['Anteriore','Posteriore'],
+    'Fioriera':        ['Anteriore','Posteriore'],
+    'Insegna':         ['Anteriore'],
+    'Palo Luce':       ['Anteriore','Posteriore'],
+    'Parapedonale':    ['Anteriore','Posteriore'],
+    'Pensilina':       ['Anteriore','Posteriore','Laterale Sx','Laterale Dx'],
+    'Plancia':         ['Anteriore'],
+    'Rotor':           ['Faccia A','Faccia B','Faccia C'],
+    'Speciale':        ['Faccia A','Faccia B'],
+    'Stendardo':       ['Anteriore','Posteriore'],
+    'Telo':            ['Anteriore'],
+  };
+  // Tipi con formato unico proprio della tipologia
+  const FACE_FORMAT = {
+    'Pensilina':       '170×120cm',
+    'Fermata Bus':     '120×180cm',
+    'Fioriera':        '80×120cm',
+    'Insegna':         '100×200cm',
+    'Parapedonale':    '70×100cm',
+    'Plancia':         '300×200cm',
+    'Rotor':           '4×3m per faccia',
+    'Speciale':        'variabile',
+    'Telo':            '8×4m',
+  };
+  // Tipi con più formati possibili — il formato varia per impianto (non per faccia)
+  const FACE_FORMAT_MULTI = {
+    'Palina':          ['70×100cm', '100×140cm', '50×70cm'],
+    'Palina Butterfly':['80×120cm', '100×140cm'],
+    'Cartello':        ['100×140cm', '70×100cm', '200×140cm', '140×200cm'],
+    'Cassonetto':      ['120×180cm', '100×140cm'],
+    'Palo Luce':       ['70×100cm', '50×70cm'],
+    'Stendardo':       ['80×180cm', '100×250cm'],
+  };
+  // Deterministic face-level state (available-weighted)
+  const FACE_STATES = ['Available','Available','Available','In Option','Reserved'];
+
+  // Spectacular: label commerciale per impianti in posizione notevole
+  const PREMIUM = {
+    'SYS-013': 'Spectacular Politeama',
+    'SYS-001': 'Spectacular Gold',
+    'SYS-031': 'Spectacular Prime',
+    'SYS-047': 'Spectacular Verdi',
+    'SYS-158': 'Spectacular Fardella',
+    'SYS-172': 'Spectacular Marsala',
+    'SYS-203': 'Spectacular Atenea',
+    'SYS-241': 'Spectacular Caltanissetta',
+  };
+
+  // Prezzo base per faccia per tipologia (€, campagna 4 settimane — mercato OOH siciliano)
+  const TYPE_FACE_PRICE = {
+    'Palina': 180, 'Palina Butterfly': 220, 'Cartello': 320,
+    'Cassonetto': 280, 'Fermata Bus': 350, 'Fioriera': 190,
+    'Insegna': 260, 'Palo Luce': 150, 'Parapedonale': 200,
+    'Pensilina': 480, 'Plancia': 650, 'Rotor': 950,
+    'Speciale': 1400, 'Stendardo': 520, 'Telo': 1800,
+  };
+  // Probabilità di illuminazione per tipo (su 10) — le illuminated hanno +20% di prezzo
+  const ILLUMINATED_PROB = {
+    'Pensilina': 8, 'Cassonetto': 8, 'Fermata Bus': 7, 'Palina Butterfly': 6,
+    'Palina': 4, 'Cartello': 3, 'Stendardo': 3, 'Palo Luce': 2,
+    'Parapedonale': 2, 'Fioriera': 1, 'Plancia': 1,
+  };
+
+  const out = [];
+  let n = 1;
+  ZONES.forEach(([street, bLat, bLng, count, city, province]) => {
+    for (let i = 0; i < count; i++, n++) {
+      const latOff   = ((n * 17 + i * 31) % 200 - 100) * 0.000065;
+      const lngOff   = ((n * 23 + i * 13) % 200 - 100) * 0.000065;
+      const type     = TYPES[(n * 3 + i * 7) % TYPES.length];
+      const sysState = STATES[(n * 7 + i * 11) % STATES.length];
+      const id       = `SYS-${String(n).padStart(3,'0')}`;
+      const labels      = FACE_LABELS[type] || ['Anteriore','Posteriore'];
+      // Formato: unico per tipologia OPPURE uno dei formati possibili (varia per impianto, costante per le sue facce)
+      const fmtOptions  = FACE_FORMAT_MULTI[type];
+      const fmt         = fmtOptions
+        ? fmtOptions[(n * 11) % fmtOptions.length]
+        : (FACE_FORMAT[type] || '140×200cm');
+      // Prezzo per faccia: base tipo + variazione ±15% + premium illuminazione
+      const basePrice = TYPE_FACE_PRICE[type] || 250;
+      const faceObjs = labels.map((lbl, fi) => {
+        const illuminated = (n * 7 + fi * 3) % 10 < (ILLUMINATED_PROB[type] || 0);
+        const rawPrice = basePrice * (85 + (n * 7 + fi * 13) % 30) / 100;
+        const price = Math.round(rawPrice * (illuminated ? 1.2 : 1) / 10) * 10;
+        return {
+          id:     `${id}-F${fi + 1}`,
+          label:  lbl,
+          format: fmt,
+          state:  sysState === 'Reserved'   ? 'Reserved' :
+                  sysState === 'In Option'  ? (fi === 0 ? 'Available' : 'In Option') :
+                  FACE_STATES[(n * 5 + fi * 7) % FACE_STATES.length],
+          price,
+          illuminated,
+        };
+      });
+      out.push({
+        id,
+        type,
+        address: `${street}, ${4 + (i * 13 + n * 3) % 180}`,
+        city,
+        province,
+        cimasa:  `${province}-${String(n).padStart(3,'0')}`,
+        state:   sysState,
+        lat:     +(bLat + latOff).toFixed(6),
+        lng:     +(bLng + lngOff).toFixed(6),
+        faces:   faceObjs.length,
+        faceObjs,
+        label:   PREMIUM[id] || null,
+      });
+    }
+  });
+  return out;
+})();
+
+// Lookup rapido faceId → prezzo
+const FACE_PRICE_MAP = {};
+SEARCH_RESULTS.forEach(sys => (sys.faceObjs || []).forEach(f => { FACE_PRICE_MAP[f.id] = f.price || 0; }));
+
+// Parsing budget string "€ 22.000" → 22000
+function parseBudget(str) {
+  return parseInt((str || '0').replace(/[^\d]/g, ''), 10) || 0;
+}
+function formatEuro(n) {
+  return '€\u00a0' + n.toLocaleString('it-IT');
+}
+
+const GEO_SUGGESTIONS = [
+  // Palermo
+  { label: 'Via della Libertà, Palermo',       lat:38.1230, lng:13.3521 },
+  { label: 'Via Roma, Palermo',                lat:38.1118, lng:13.3666 },
+  { label: 'Via Maqueda, Palermo',             lat:38.1100, lng:13.3600 },
+  { label: 'Piazza Politeama, Palermo',        lat:38.1196, lng:13.3564 },
+  { label: 'Viale Regione Siciliana, Palermo', lat:38.0960, lng:13.3454 },
+  { label: 'Corso Calatafimi, Palermo',        lat:38.1024, lng:13.3349 },
+  { label: 'Via Notarbartolo, Palermo',        lat:38.1310, lng:13.3478 },
+  { label: 'Corso V. Emanuele, Palermo',       lat:38.1118, lng:13.3610 },
+  // Trapani
+  { label: 'Via Fardella, Trapani',            lat:37.9830, lng:12.6095 },
+  { label: 'Piazza Vittorio Veneto, Trapani',  lat:37.9816, lng:12.5985 },
+  { label: 'Corso V. Emanuele, Trapani',       lat:37.9695, lng:12.5991 },
+  { label: 'Viale delle Sirene, Marsala',      lat:37.8010, lng:12.4340 },
+  { label: 'Via XI Maggio, Marsala',           lat:37.7990, lng:12.4390 },
+  { label: 'Lungomare Mazzini, Mazara del Vallo', lat:37.6580, lng:12.5930 },
+  { label: 'Corso 6 Aprile, Alcamo',           lat:37.9770, lng:13.0250 },
+  // Agrigento
+  { label: 'Via Atenea, Agrigento',            lat:37.3115, lng:13.5780 },
+  { label: 'Viale della Vittoria, Agrigento',  lat:37.3085, lng:13.5710 },
+  { label: 'Lungomare C. Colombo, Sciacca',    lat:37.5090, lng:13.0700 },
+  { label: 'Via Roma, Porto Empedocle',        lat:37.2950, lng:13.5270 },
+  // Caltanissetta
+  { label: 'Corso V. Emanuele, Caltanissetta', lat:37.4920, lng:14.0640 },
+  { label: 'Via Turati, Caltanissetta',        lat:37.4900, lng:14.0560 },
+  { label: 'Corso V. Emanuele, Gela',          lat:37.0710, lng:14.2540 },
+  { label: 'Lungomare Federico II, Gela',      lat:37.0660, lng:14.2580 },
+];
+
+const POI_CATEGORIES = [
+  { key: 'food',          label: 'Ristorazione' },
+  { key: 'education',     label: 'Istruzione' },
+  { key: 'health',        label: 'Salute' },
+  { key: 'retail',        label: 'Retail' },
+  { key: 'transport',     label: 'Trasporti' },
+  { key: 'entertainment', label: 'Intrattenimento' },
+];
+
+const POI_COLLECTIONS = [
+  { id:'col1', name:'Ristoranti Centro PA',    count:8 },
+  { id:'col2', name:'Università Palermo',      count:3 },
+  { id:'col3', name:'Centri Commerciali PA',   count:4 },
+];
+
+// ══════════════════════════════════════════════════════
+// SMALL COMPONENTS
+// ══════════════════════════════════════════════════════
+
+function GravityLogo({ height = 28 }) {
+  return React.createElement('img', {
+    src: '../../brand/Gravity_mark.svg',
+    alt: 'Gravity',
+    style: { height, width: 'auto', display: 'block' },
+    onError: (e) => {
+      e.target.style.display = 'none';
+      e.target.parentElement.innerHTML += '<span style="color:#fff;font-weight:700;font-size:18px;letter-spacing:-1px">G</span>';
+    },
+  });
+}
+
+function CategoryTag({ category }) {
+  const s = CAT_STYLE[category] || {};
+  return React.createElement(Tag, {
+    style: { ...s, fontWeight: 500, fontSize: 12, marginRight: 0 },
+  }, category);
+}
+
+function StateBadge({ state }) {
+  return React.createElement('span', {
+    style: { display: 'inline-flex', alignItems: 'center', gap: 6 },
+  },
+    React.createElement('span', {
+      style: {
+        width: 7, height: 7, borderRadius: '50%',
+        background: STATE_DOT[state] || '#D9D9D9',
+        display: 'inline-block', flexShrink: 0,
+      },
+    }),
+    React.createElement(Text, { style: { fontSize: 13 } }, state)
+  );
+}
+
+function AvailDot({ state }) {
+  const color = AVAIL_COLOR[state] || '#D9D9D9';
+  return React.createElement('span', {
+    style: { display: 'inline-flex', alignItems: 'center', gap: 5 },
+  },
+    React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block' } }),
+    React.createElement('span', { style: { fontSize: 12 } }, state)
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// TOP NAV
+// ══════════════════════════════════════════════════════
+
+function TopNav({ activeNavKey, onNavSelect }) {
+  const [avatarOpen, setAvatarOpen] = useState(false);
+
+  const plannerCard = React.createElement('div', { style: { width: 220, padding: '4px 0' } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 } },
+      React.createElement('div', {
+        style: { width: 40, height: 40, borderRadius: '50%', background: '#3E00FB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+      },
+        React.createElement('span', { style: { color: '#fff', fontWeight: 700, fontSize: 14 } }, PLANNER.initials)
+      ),
+      React.createElement('div', null,
+        React.createElement('div', { style: { fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.88)' } }, PLANNER.name),
+        React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, PLANNER.role),
+      )
+    ),
+    React.createElement(Divider, { style: { margin: '8px 0' } }),
+    React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 4 } }, 'Area di competenza'),
+    React.createElement('div', { style: { fontWeight: 500, fontSize: 13, color: 'rgba(0,0,0,0.88)', marginBottom: 8 } }, PLANNER.area),
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
+      PLANNER.provinces.map(p =>
+        React.createElement(Tag, { key: p, style: { margin: 0, fontSize: 11 } }, p)
+      )
+    ),
+    React.createElement(Divider, { style: { margin: '12px 0 8px' } }),
+    React.createElement(Button, { type: 'text', size: 'small', danger: true, style: { padding: 0 } }, 'Esci')
+  );
+  const navItems = [
+    {
+      key: 'overview',
+      icon: React.createElement(AppstoreOutlined),
+      label: 'Panoramica',
+    },
+    {
+      key: 'inventory',
+      icon: React.createElement(InboxOutlined),
+      label: 'Inventario',
+    },
+    {
+      key: 'espletamento',
+      icon: React.createElement(SendOutlined),
+      label: 'Espletamento',
+      children: [
+        { key: 'campaigns', label: 'Campagne' },
+        { key: 'plannings', label: 'Pianificazioni' },
+      ],
+    },
+  ];
+
+  return React.createElement('div', { className: 'top-nav' },
+    // Logo
+    React.createElement('div', { className: 'top-nav-logo' },
+      React.createElement('img', {
+        src: '../../brand/Gravity_type.svg',
+        alt: 'Gravity',
+        style: { height: 28, width: 'auto' },
+        onError: e => { e.target.style.display = 'none'; },
+      })
+    ),
+    // Horizontal menu
+    React.createElement('div', { className: 'top-nav-menu-wrap' },
+      React.createElement(Menu, {
+        mode: 'horizontal',
+        selectedKeys: [activeNavKey],
+        items: navItems,
+        onSelect: ({ key }) => onNavSelect(key),
+        style: { flex: 1, border: 'none', height: 73, lineHeight: '73px' },
+        theme: 'light',
+      })
+    ),
+    // Right: Bell + Avatar
+    React.createElement('div', { className: 'top-nav-right' },
+      React.createElement('button', { className: 'top-nav-bell' },
+        React.createElement(BellOutlined, { style: { fontSize: 20, color: 'rgba(0,0,0,0.65)' } })
+      ),
+      React.createElement(Popover, {
+        open: avatarOpen,
+        onOpenChange: setAvatarOpen,
+        content: plannerCard,
+        placement: 'bottomRight',
+        trigger: 'click',
+        arrow: false,
+      },
+        React.createElement('div', {
+          style: { width: 32, height: 32, borderRadius: '50%', background: '#3E00FB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer' },
+        },
+          React.createElement('span', { style: { color: '#fff', fontWeight: 700, fontSize: 12 } }, PLANNER.initials)
+        )
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// PLANNINGS LIST
+// ══════════════════════════════════════════════════════
+
+function PlanningsList({ onSelect, onNew, stateOverrides }) {
+  const [takenIds, setTakenIds] = useState(new Set());
+  const effectiveState = row => (stateOverrides && stateOverrides[row.id]) || row.state;
+  const parseDate   = s => { if (!s) return null; const [d,m,y]=s.split('/'); return new Date(+y,+m-1,+d); };
+
+  const getAssignee = row => takenIds.has(row.id) ? 'gloria' : row.assignee;
+
+  const bozze           = PLANNINGS.filter(p => p.state === 'Bozza');
+  const completati      = PLANNINGS.filter(p => p.state === 'Completata');
+  const mie             = bozze.filter(p => getAssignee(p) === 'gloria');
+  const libere          = bozze.filter(p => !getAssignee(p));
+  const upcoming        = [...mie].filter(p => p.start).sort((a,b) => parseDate(a.start)-parseDate(b.start))[0];
+
+  const mieInTrattativa = PLANNINGS.filter(p => p.state === 'In trattativa' && getAssignee(p) === 'gloria');
+
+  const kpiCards = [
+    { label: 'Da prendere in carico', value: libere.length,              icon: InboxOutlined, color: '#FF4A1C' },
+    { label: 'Le mie bozze',          value: mie.length,                 icon: EditOutlined,  color: '#3E00FB' },
+    { label: 'In trattativa',         value: mieInTrattativa.length,     icon: SyncOutlined,  color: '#1677FF' },
+  ];
+
+  // Helper per filtro testuale inline
+  const textSearchProps = (dataIndex, placeholder) => ({
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) =>
+      React.createElement('div', { style:{ padding: 12, display:'flex', flexDirection:'column', gap: 8 } },
+        React.createElement(Input, {
+          placeholder,
+          value: selectedKeys[0] || '',
+          onChange: e => setSelectedKeys(e.target.value ? [e.target.value] : []),
+          onPressEnter: () => confirm(),
+          style:{ width: 200 },
+          autoFocus: true,
+        }),
+        React.createElement('div', { style:{ display:'flex', gap: 8 } },
+          React.createElement(Button, {
+            type: 'primary', size: 'small', icon: React.createElement(SearchOutlined),
+            onClick: () => confirm(), style:{ flex: 1 },
+          }, 'Cerca'),
+          React.createElement(Button, {
+            size: 'small', style:{ flex: 1 },
+            onClick: () => { clearFilters && clearFilters(); confirm(); },
+          }, 'Reset'),
+        ),
+      ),
+    filterIcon: filtered => React.createElement(SearchOutlined, { style:{ color: filtered ? '#3E00FB' : undefined } }),
+    onFilter: (value, record) =>
+      String(record[dataIndex] || '').toLowerCase().includes(value.toLowerCase()),
+  });
+
+  const columns = [
+    // 1. Pianificazione — ricerca testuale sul nome
+    {
+      title: 'Pianificazione',
+      key: 'pianificazione',
+      ...textSearchProps('name', 'Cerca per nome…'),
+      render: (_, row) => React.createElement('a', {
+        style:{ color:'rgba(0,0,0,0.88)', fontWeight: 400, fontSize: 13, cursor:'pointer', lineHeight: 1.3 },
+        onClick: () => onSelect(row),
+      }, row.name),
+    },
+    // 2. Tipo — OOH / DOOH con filtro
+    {
+      title: 'Tipo',
+      dataIndex: 'category',
+      width: 84,
+      filters: [
+        { text: 'OOH',  value: 'OOH'  },
+        { text: 'DOOH', value: 'DOOH' },
+      ],
+      onFilter: (value, record) => record.category === value,
+      render: v => React.createElement(CategoryTag, { category: v }),
+    },
+    // 3. Inserzionista — per chi, con filtro a selezione
+    {
+      title: 'Inserzionista',
+      dataIndex: 'advertiser',
+      width: 180,
+      filters: [...new Set(PLANNINGS.map(p => p.advertiser))].sort().map(a => ({ text: a, value: a })),
+      filterSearch: true,
+      onFilter: (value, record) => record.advertiser === value,
+      render: v => React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7 } },
+        React.createElement(AdvertiserAvatar, { name: v, size: 24 }),
+        React.createElement('span', { className: 'advertiser-link' }, v),
+      ),
+    },
+    // 3. Agente — chi ci lavora, con filtro per agente
+    {
+      title: 'Agente',
+      key: 'agente',
+      width: 180,
+      filters: [
+        { text: 'Gloria Bonanno (tu)', value: 'gloria' },
+        { text: 'Marco Ferrara',       value: 'marco'  },
+        { text: 'Non assegnate',       value: 'none'   },
+      ],
+      onFilter: (value, record) => {
+        const a = getAssignee(record);
+        return value === 'none' ? !a : a === value;
+      },
+      render: (_, row) => {
+        const agentKey = getAssignee(row);
+        const agent = agentKey ? AGENTS[agentKey] : null;
+        if (agent) {
+          const isMe = agentKey === 'gloria';
+          return React.createElement('div', { style:{ display:'flex', alignItems:'center', gap: 8 } },
+            React.createElement('div', {
+              style:{
+                width: 24, height: 24, borderRadius:'50%', background: agent.color,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize: 10, fontWeight: 700, color:'#fff', flexShrink: 0,
+              },
+            }, agent.initials),
+            React.createElement('span', {
+              style:{ fontSize: 13, color:'rgba(0,0,0,0.88)', fontWeight: isMe ? 500 : 400 },
+            }, isMe ? `${agent.name} (tu)` : agent.name),
+          );
+        }
+        return React.createElement(Button, {
+          size: 'small', type: 'dashed',
+          onClick: e => { e.stopPropagation(); setTakenIds(prev => new Set([...prev, row.id])); },
+          style:{ fontSize: 12, color:'#3E00FB', borderColor:'#D3B8FF' },
+        }, 'Prendi in carico');
+      },
+    },
+    // 4. Stato — filtro per valore
+    {
+      title: 'Stato',
+      key: 'state',
+      width: 148,
+      filters: [
+        { text: 'Bozza',          value: 'Bozza'          },
+        { text: 'In trattativa',  value: 'In trattativa'  },
+        { text: 'Completata',     value: 'Completata'     },
+      ],
+      onFilter: (value, record) => effectiveState(record) === value,
+      render: (_, record) => React.createElement(StateBadge, { state: effectiveState(record) }),
+    },
+    // 5. Creata il — ordinabile per data
+    {
+      title: 'Creata il',
+      dataIndex: 'createdAt',
+      width: 108,
+      sorter: (a, b) => parseDate(a.createdAt) - parseDate(b.createdAt),
+      render: v => React.createElement('span', { style:{ fontSize: 13, color:'rgba(0,0,0,0.65)' } }, v),
+    },
+    // 6. Data inizio — ordinabile per data
+    {
+      title: 'Data inizio',
+      dataIndex: 'start',
+      width: 108,
+      sorter: (a, b) => parseDate(a.start) - parseDate(b.start),
+      render: v => React.createElement('span', { style:{ fontSize: 13 } }, v),
+    },
+    // 7. Data fine — ordinabile per data
+    {
+      title: 'Data fine',
+      dataIndex: 'end',
+      width: 100,
+      sorter: (a, b) => parseDate(a.end) - parseDate(b.end),
+      render: v => React.createElement('span', { style:{ fontSize: 13 } }, v),
+    },
+    // 8. Spazi — ordinabile numericamente
+    {
+      title: 'Spazi',
+      dataIndex: 'faces',
+      width: 72,
+      align: 'center',
+      sorter: (a, b) => a.faces - b.faces,
+      render: v => v > 0
+        ? React.createElement(Tag, { style:{ background:'#F0EAFF', color:'#3E00FB', border:'1px solid #D3B8FF', fontWeight: 600, fontSize: 12, margin: 0 } }, v)
+        : React.createElement('span', { style:{ color:'rgba(0,0,0,0.2)', fontSize: 13 } }, '—'),
+    },
+    // 9. Azioni
+    {
+      title: '',
+      key: 'actions',
+      width: 68,
+      render: (_, row) => React.createElement('div', {
+        style:{ display:'flex', alignItems:'center', justifyContent:'flex-end' },
+        onClick: e => e.stopPropagation(),
+      },
+        React.createElement(Button, { type:'text', size:'small', icon: React.createElement(ShareAltOutlined), style:{ color:'rgba(0,0,0,0.3)' } }),
+        React.createElement(Button, { type:'text', size:'small', icon: React.createElement(MoreOutlined),     style:{ color:'rgba(0,0,0,0.3)' } }),
+      ),
+    },
+  ];
+
+  return React.createElement('div', { className: 'page-content' },
+
+    // ── Page header ───────────────────────────────────────
+    React.createElement('div', {
+      style: { display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom: 24 },
+    },
+      React.createElement('div', null,
+        React.createElement(Title, { level: 3, style:{ margin: 0, lineHeight: 1.2 } }, 'Pianificazioni'),
+        React.createElement('div', {
+          style: { display:'flex', alignItems:'center', gap: 6, marginTop: 4 },
+        },
+          React.createElement(AimOutlined, { style:{ fontSize: 12, color:'rgba(0,0,0,0.35)' } }),
+          React.createElement(Text, { type:'secondary', style:{ fontSize: 13 } },
+            `Area di competenza: ${PLANNER.area} — ${PLANNER.provinces.join(', ')}`),
+        ),
+      ),
+      React.createElement(Button, {
+        type: 'primary',
+        icon: React.createElement(PlusOutlined),
+        size: 'large',
+        onClick: onNew,
+      }, 'Nuova Pianificazione'),
+    ),
+
+    // ── KPI cards ─────────────────────────────────────────
+    React.createElement('div', {
+      style: { display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12, marginBottom: 28 },
+    },
+      kpiCards.map((c, i) =>
+        React.createElement(DataCard, {
+          key: i,
+          icon: c.icon,
+          label: c.label,
+          value: c.value,
+        })
+      )
+    ),
+
+    // ── Tabella in card ────────────────────────────────────
+    React.createElement('div', {
+      style: {
+        background: '#fff',
+        borderRadius: 10,
+        border: '1px solid rgba(0,0,0,0.06)',
+        overflow: 'hidden',
+      },
+    },
+      // Counter
+      React.createElement('div', {
+        style: {
+          padding: '14px 20px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        },
+      },
+        React.createElement(Text, { style:{ fontSize: 13, color:'rgba(0,0,0,0.45)' } },
+          `Visualizzate ${Math.min(10, PLANNINGS.length)} di ${PLANNINGS.length} pianificazioni totali`),
+      ),
+      React.createElement('div', { style: { padding: '0 20px 20px' } },
+        React.createElement(Table, {
+          dataSource: [...PLANNINGS].sort((a, b) => {
+            const aFree = !getAssignee(a) ? 0 : 1;
+            const bFree = !getAssignee(b) ? 0 : 1;
+            return aFree - bFree;
+          }),
+          columns,
+          rowKey: 'id',
+          size: 'middle',
+          pagination: { pageSize: 10, showSizeChanger: false, style:{ margin: '12px 0 16px' } },
+          style: { borderRadius: 0 },
+          onRow: row => ({ onClick: () => onSelect(row), style:{ cursor:'pointer' } }),
+        }),
+      ),
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// NEW PLANNING DRAWER
+// ══════════════════════════════════════════════════════
+
+function NewPlanningDrawer({ open, onClose, onCreate }) {
+  const [linkCampaign, setLinkCampaign] = useState(true);
+
+  const drawerTitle = React.createElement('div', {
+    style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' },
+  },
+    React.createElement(Text, { strong: true, style: { fontSize: 16 } }, 'Nuova Pianificazione'),
+    React.createElement(Button, {
+      type: 'primary',
+      icon: React.createElement(PlusOutlined),
+      onClick: () => { onCreate(); onClose(); },
+    }, 'Crea Pianificazione')
+  );
+
+  return React.createElement(Drawer, {
+    open,
+    onClose,
+    width: 520,
+    title: drawerTitle,
+    closable: true,
+    destroyOnClose: true,
+    styles: { header: { borderBottom: '1px solid #F0F0F0' }, body: { padding: 24 } },
+  },
+    React.createElement(Form, { layout: 'vertical', style: { gap: 0 } },
+      // Planning Name
+      React.createElement(Form.Item, {
+        label: React.createElement(Text, { strong: true, style: { fontSize: 13 } }, 'Nome Planning'),
+        required: true,
+        style: { marginBottom: 20 },
+      },
+        React.createElement(Input, { placeholder: 'es. Gohan Sushi', size: 'large', defaultValue: 'Gohan Sushi' })
+      ),
+      // Campaign checkbox
+      React.createElement(Form.Item, { style: { marginBottom: 16 } },
+        React.createElement(Checkbox, {
+          checked: linkCampaign,
+          onChange: e => setLinkCampaign(e.target.checked),
+        }, 'Ho una campagna da collegare')
+      ),
+      // Campaign select (conditional)
+      linkCampaign && React.createElement(Form.Item, {
+        label: React.createElement(Text, { style: { fontSize: 13 } }, 'Campagna'),
+        style: { marginBottom: 24 },
+      },
+        React.createElement(Select, {
+          size: 'large',
+          defaultValue: '04_DOOH_SushiLab',
+          style: { width: '100%' },
+          options: [
+            { value: '04_DOOH_SushiLab', label: '04_DOOH_SushiLab' },
+            { value: '01_OOH_Alessi', label: '01_OOH_Alessi' },
+          ],
+        })
+      ),
+      // Brief section
+      React.createElement('div', { className: 'brief-section' },
+        React.createElement('div', { className: 'brief-section-title' }, 'Brief Planning'),
+        // Category
+        React.createElement(Form.Item, {
+          label: React.createElement(Text, { style: { fontSize: 13 } }, 'Categoria'),
+          required: true,
+          style: { marginBottom: 16 },
+        },
+          React.createElement(Select, {
+            size: 'large',
+            defaultValue: 'DOOH',
+            style: { width: '100%' },
+            options: [
+              { value: 'DOOH', label: 'DOOH' },
+              { value: 'OOH', label: 'OOH' },
+            ],
+          })
+        ),
+        // Exposure Period
+        React.createElement(Form.Item, {
+          label: React.createElement(Text, { style: { fontSize: 13 } }, 'Periodo di esposizione'),
+          required: true,
+          style: { marginBottom: 16 },
+        },
+          React.createElement(DatePicker.RangePicker, {
+            size: 'large',
+            style: { width: '100%' },
+            format: 'DD/MM/YYYY',
+          })
+        ),
+        // Advertiser
+        React.createElement(Form.Item, {
+          label: React.createElement(Text, { style: { fontSize: 13 } }, 'Inserzionista'),
+          style: { marginBottom: 16 },
+        },
+          React.createElement('div', { className: 'advertiser-card' },
+            React.createElement(AdvertiserAvatar, { name: 'Gohan Sushi', size: 40 }),
+            React.createElement('div', { style: { flex: 1 } },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 } },
+                React.createElement(Text, { strong: true, style: { fontSize: 13 } }, 'Gohan Sushi'),
+                React.createElement(Tag, { style: { fontSize: 11, padding: '0 6px', color: '#3E00FB', background: '#F0EAFF', border: '1px solid #D3B8FF' } }, '#234')
+              ),
+              React.createElement(Text, { type: 'secondary', style: { fontSize: 12, display: 'block' } }, 'Via Pietro Nenni, 28  90147 Palermo (PA)'),
+              React.createElement(Text, { type: 'secondary', style: { fontSize: 12, display: 'block' } }, 'P.IVA IT9294850220'),
+            )
+          )
+        ),
+        // Budget
+        React.createElement(Form.Item, {
+          label: React.createElement(Text, { style: { fontSize: 13 } }, 'Budget'),
+          style: { marginBottom: 16 },
+        },
+          React.createElement(InputNumber, {
+            prefix: '€',
+            size: 'large',
+            style: { width: '100%' },
+            defaultValue: 1567,
+            formatter: v => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, '.'),
+          })
+        ),
+        // Goals
+        React.createElement(Form.Item, {
+          label: React.createElement(Text, { style: { fontSize: 13 } }, 'Obiettivi'),
+          style: { marginBottom: 0 },
+        },
+          React.createElement(Space.Compact, { style: { width: '100%' } },
+            React.createElement(InputNumber, {
+              size: 'large',
+              style: { width: '60%' },
+              defaultValue: 1000000,
+              formatter: v => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, '.'),
+            }),
+            React.createElement(Select, {
+              size: 'large',
+              defaultValue: 'views',
+              style: { width: '40%' },
+              options: [
+                { value: 'views', label: 'Visualizzazioni' },
+                { value: 'ots', label: 'OTS' },
+                { value: 'reach', label: 'Reach' },
+              ],
+            })
+          )
+        )
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// SVG MAP
+// ══════════════════════════════════════════════════════
+
+function SvgMap() {
+  const pins = [
+    { cx:8,  cy:20, type:'available'  },
+    { cx:18, cy:35, type:'available'  },
+    { cx:22, cy:8,  type:'reserved'   },
+    { cx:33, cy:25, type:'available'  },
+    { cx:40, cy:48, type:'available'  },
+    { cx:52, cy:18, type:'in-option'  },
+    { cx:58, cy:38, type:'available'  },
+    { cx:65, cy:55, type:'available'  },
+    { cx:72, cy:22, type:'reserved'   },
+    { cx:80, cy:42, type:'available'  },
+    { cx:87, cy:14, type:'in-option'  },
+    { cx:93, cy:50, type:'available'  },
+  ];
+  const pinColor = { available:'#52C41A', reserved:'#3E00FB', 'in-option':'#FAAD14' };
+
+  return React.createElement('svg', {
+    className: 'map-svg',
+    viewBox: '0 0 100 62',
+    preserveAspectRatio: 'xMidYMid slice',
+    xmlns: 'http://www.w3.org/2000/svg',
+  },
+    // Background (asphalt/non-road)
+    React.createElement('rect', { fill:'#E3EBF3', x:0, y:0, width:100, height:62 }),
+
+    // Building blocks
+    ...[
+      [0,0,14,10], [16,0,15,10], [33,0,13,10], [48,0,11,10], [61,0,15,10], [78,0,20,10],
+      [0,13,14,14], [16,13,15,14], [33,13,13,14], [48,13,11,14], [61,13,15,14], [78,13,20,14],
+      [0,30,14,13], [16,30,15,13], [33,30,13,13], [48,30,11,13], [61,30,15,13], [78,30,20,13],
+      [0,46,14,14], [16,46,15,14], [33,46,13,14], [48,46,11,14], [61,46,15,14], [78,46,20,14],
+    ].map(([x,y,w,h],i) =>
+      React.createElement('rect', { key:`block-${i}`, fill:'#F0EFEB', x, y, width:w, height:h, rx:0.5 })
+    ),
+
+    // Major horizontal roads (white)
+    React.createElement('rect', { fill:'#FFFFFF', x:0, y:10, width:100, height:3, opacity:0.95 }),
+    React.createElement('rect', { fill:'#FFFFFF', x:0, y:27, width:100, height:2.5, opacity:0.95 }),
+    React.createElement('rect', { fill:'#FFFFFF', x:0, y:43, width:100, height:2, opacity:0.9 }),
+
+    // Major vertical roads
+    React.createElement('rect', { fill:'#FFFFFF', x:14, y:0, width:2.5, height:62, opacity:0.95 }),
+    React.createElement('rect', { fill:'#FFFFFF', x:31, y:0, width:2.5, height:62, opacity:0.9 }),
+    React.createElement('rect', { fill:'#FFFFFF', x:46, y:0, width:2, height:62, opacity:0.9 }),
+    React.createElement('rect', { fill:'#FFFFFF', x:59, y:0, width:2, height:62, opacity:0.9 }),
+    React.createElement('rect', { fill:'#FFFFFF', x:76, y:0, width:2.5, height:62, opacity:0.95 }),
+
+    // Road labels
+    React.createElement('text', { x:1, y:9, fontSize:1.8, fill:'rgba(0,0,0,0.35)', fontFamily:'sans-serif' }, 'Viale della Regione Siciliana'),
+    React.createElement('text', { x:1, y:26.5, fontSize:1.5, fill:'rgba(0,0,0,0.30)', fontFamily:'sans-serif' }, 'Via Pietro Nenni'),
+    React.createElement('text', { x:1, y:42.5, fontSize:1.5, fill:'rgba(0,0,0,0.30)', fontFamily:'sans-serif' }, 'Via Gen. A. Scavo'),
+
+    // Pins
+    ...pins.map((p, i) =>
+      React.createElement('g', { key:`pin-${i}` },
+        // Drop shadow
+        React.createElement('circle', { cx:p.cx, cy:p.cy+0.3, r:3.2, fill:'rgba(0,0,0,0.15)' }),
+        // Outer circle
+        React.createElement('circle', { cx:p.cx, cy:p.cy, r:3, fill:pinColor[p.type], stroke:'#fff', strokeWidth:0.7 }),
+        // Inner icon dot
+        React.createElement('circle', { cx:p.cx, cy:p.cy, r:1, fill:'rgba(255,255,255,0.7)' })
+      )
+    ),
+
+    // Total badge
+    React.createElement('rect', { x:1, y:1, width:14, height:4.5, rx:1, fill:'#3E00FB' }),
+    React.createElement('text', { x:8, y:4.2, fontSize:2, fill:'#fff', fontFamily:'sans-serif', textAnchor:'middle', fontWeight:'bold' }, '32 impianti')
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// PLANNING DETAIL — EMPTY STATE
+// ══════════════════════════════════════════════════════
+
+function EmptyPlanningState({ onStart }) {
+  // Astronaut illustration using SVG
+  return React.createElement('div', {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 420,
+      gap: 16,
+      padding: 24,
+    },
+  },
+    // SVG illustration placeholder (simplified astronaut)
+    React.createElement('svg', { width: 120, height: 120, viewBox: '0 0 120 120', xmlns: 'http://www.w3.org/2000/svg' },
+      // Background circle
+      React.createElement('circle', { cx: 60, cy: 60, r: 55, fill: '#F0EAFF', opacity: 0.6 }),
+      // Body
+      React.createElement('ellipse', { cx: 60, cy: 72, rx: 22, ry: 28, fill: '#6B3FFF' }),
+      // Helmet
+      React.createElement('circle', { cx: 60, cy: 44, r: 22, fill: '#7B4FFF' }),
+      React.createElement('circle', { cx: 60, cy: 44, r: 17, fill: '#BEA4FF', opacity: 0.6 }),
+      // Visor reflection
+      React.createElement('ellipse', { cx: 55, cy: 39, rx: 6, ry: 4, fill: 'white', opacity: 0.4 }),
+      // Arms
+      React.createElement('ellipse', { cx: 35, cy: 68, rx: 8, ry: 14, fill: '#6B3FFF', transform: 'rotate(15, 35, 68)' }),
+      React.createElement('ellipse', { cx: 85, cy: 68, rx: 8, ry: 14, fill: '#6B3FFF', transform: 'rotate(-15, 85, 68)' }),
+      // Legs
+      React.createElement('rect', { x: 50, y: 96, width: 10, height: 14, rx: 5, fill: '#5B2FEF' }),
+      React.createElement('rect', { x: 62, y: 96, width: 10, height: 14, rx: 5, fill: '#5B2FEF' }),
+      // Stars
+      React.createElement('circle', { cx: 20, cy: 25, r: 2, fill: '#3E00FB', opacity: 0.5 }),
+      React.createElement('circle', { cx: 95, cy: 20, r: 1.5, fill: '#3E00FB', opacity: 0.4 }),
+      React.createElement('circle', { cx: 15, cy: 85, r: 1, fill: '#3E00FB', opacity: 0.3 }),
+      React.createElement('circle', { cx: 100, cy: 90, r: 2, fill: '#3E00FB', opacity: 0.4 }),
+    ),
+    React.createElement(Title, { level: 4, style: { margin: 0, color: 'rgba(0,0,0,0.65)' } }, 'Nessun impianto!'),
+    React.createElement(Text, {
+      type: 'secondary',
+      style: { textAlign: 'center', maxWidth: 280, fontSize: 13 },
+    }, 'Aggiungi impianti al planning per visualizzarli qui'),
+    React.createElement(Button, {
+      type: 'primary',
+      size: 'large',
+      icon: React.createElement(PlayCircleOutlined),
+      onClick: onStart,
+      style: { marginTop: 8 },
+    }, 'Inizia a pianificare')
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// PLANNING DETAIL — LIST VIEW (systems)
+// ══════════════════════════════════════════════════════
+
+function DetailListView() {
+  const [expandedId, setExpandedId] = useState('S01');
+
+  const faceColumns = ['Tipo faccia', 'Coordinate', 'Orient.', 'Visibilità', 'Formato', 'Illuminazione', 'Modello comm.', 'Stato'];
+
+  return React.createElement('div', null,
+    ...SYSTEMS.map(s =>
+      React.createElement('div', { key: s.id, className: 'system-card' },
+        // Card header
+        React.createElement('div', {
+          className: 'system-card-header',
+          onClick: () => setExpandedId(expandedId === s.id ? null : s.id),
+          style: { display: 'flex', alignItems: 'center', gap: 10 },
+        },
+          React.createElement(CaretDownOutlined, {
+            style: {
+              fontSize: 10, color: 'rgba(0,0,0,0.35)', flexShrink: 0,
+              transform: expandedId === s.id ? 'rotate(0)' : 'rotate(-90deg)',
+              transition: 'transform 0.15s',
+            }
+          }),
+          React.createElement('div', { className: 'system-card-left', style: { flex: 1 } },
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+              TYPE_ICON[s.type] && React.createElement(TYPE_ICON[s.type], { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }),
+              React.createElement(Text, { strong: true, style: { fontSize: 13 } }, s.name),
+            ),
+            React.createElement(Text, { type: 'secondary', style: { fontSize: 12, display: 'block', marginTop: 1 } },
+              `${s.address}, ${s.city}  ·  Cimasa: ${s.cimasa}  ·  Account N°: ${s.account}`
+            )
+          ),
+          React.createElement(Tag, { style: { background: '#F0EAFF', color: '#3E00FB', border: '1px solid #D3B8FF', fontSize: 12, flexShrink: 0 } },
+            `${s.faces} ${s.faces === 1 ? 'faccia' : 'facce'} selezionate`
+          ),
+        ),
+        // Expanded detail
+        expandedId === s.id && React.createElement('div', { className: 'system-card-expanded' },
+          React.createElement('table', { className: 'system-face-table' },
+            React.createElement('thead', null,
+              React.createElement('tr', null,
+                ...faceColumns.map(col =>
+                  React.createElement('th', { key: col }, col)
+                )
+              )
+            ),
+            React.createElement('tbody', null,
+              ...Array.from({ length: s.faces }, (_, fi) =>
+                React.createElement('tr', { key: fi },
+                  React.createElement('td', null,
+                    React.createElement(Tag, { style: { background: '#E6F7FF', color: '#1677FF', border: '1px solid #91D5FF', fontSize: 11, marginRight: 0 } }, 'Schermo front.')
+                  ),
+                  React.createElement('td', null, `38.1157°N 13.3615°E`),
+                  React.createElement('td', null, '125°'),
+                  React.createElement('td', null, 'r 40m'),
+                  React.createElement('td', null, 'W 6m x H 3m'),
+                  React.createElement('td', null, '2 Faretti'),
+                  React.createElement('td', null, 'Standard'),
+                  React.createElement('td', null, React.createElement(AvailDot, { state: s.state }))
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
+    // Pagination
+    React.createElement('div', { style: { padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #F0F0F0' } },
+      React.createElement(Pagination, { total: 32, pageSize: 8, size: 'small', showSizeChanger: false })
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// MINI CALENDAR
+// ══════════════════════════════════════════════════════
+
+function MiniCalendar({ month = 'Maggio 2025', rangeStart = 10, rangeEnd = 24 }) {
+  const days = ['Do', 'Lu', 'Ma', 'Me', 'Gi', 'Ve', 'Sa'];
+  // May 2025 starts on Thursday (index 4)
+  const firstDay = 4;
+  const totalDays = 31;
+  const cells = [...Array(firstDay).fill(null), ...Array.from({ length: totalDays }, (_, i) => i + 1)];
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return React.createElement('div', { className: 'mini-cal' },
+    React.createElement('div', { className: 'mini-cal-header' },
+      React.createElement('button', {
+        style: { background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(0,0,0,0.45)', padding: 2 },
+      }, React.createElement(LeftOutlined, { style: { fontSize: 10 } })),
+      React.createElement(Text, { style: { fontSize: 12, fontWeight: 500 } }, month),
+      React.createElement('button', {
+        style: { background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(0,0,0,0.45)', padding: 2 },
+      }, React.createElement(RightOutlined, { style: { fontSize: 10 } }))
+    ),
+    React.createElement('div', { className: 'mini-cal-grid' },
+      ...days.map(d => React.createElement('div', { key: d, className: 'mini-cal-day-label' }, d)),
+      ...cells.map((day, i) => {
+        let cls = 'mini-cal-day';
+        if (!day) cls += ' empty';
+        else if (day === rangeStart || day === rangeEnd) cls += ' range-start';
+        else if (day > rangeStart && day < rangeEnd) cls += ' in-range';
+        return React.createElement('div', { key: i, className: cls }, day || '');
+      })
+    ),
+    React.createElement('div', { style: { marginTop: 8, fontSize: 11, color: 'rgba(0,0,0,0.45)', display: 'flex', justifyContent: 'space-between' } },
+      React.createElement('span', null, `Inizio: ${rangeStart}/05/2025`),
+      React.createElement('span', null, `Fine: ${rangeEnd}/05/2025`)
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// PLANNING DETAIL
+// ══════════════════════════════════════════════════════
+
+function PlanningDetail({ planning, onBack, onStartPlanning }) {
+  const [subview, setSubview] = useState(planning.hasSystems ? 'map' : 'empty');
+  const [editMenuOpen, setEditMenuOpen] = useState(false);
+
+  const editItems = [
+    { key: '1', label: 'Modifica Campagna o Brief' },
+    { key: '2', label: 'Modifica Selezione Impianti', disabled: !planning.hasSystems },
+  ];
+
+  const viewButtons = [
+    { key: 'map',  icon: React.createElement(EnvironmentOutlined) },
+    { key: 'list', icon: React.createElement(BarsOutlined) },
+    { key: 'grid', icon: React.createElement(AppstoreOutlined) },
+    { key: 'table',icon: React.createElement(TableOutlined) },
+  ];
+
+  return React.createElement('div', { className: 'page-content' },
+    // Breadcrumb
+    React.createElement('div', { style: { marginBottom: 12 } },
+      React.createElement('a', {
+        style: { color: 'rgba(0,0,0,0.45)', cursor: 'pointer', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 },
+        onClick: onBack,
+      },
+        React.createElement(ArrowLeftOutlined, { style: { fontSize: 12 } }),
+        'Torna alla lista'
+      )
+    ),
+    // Page title row
+    React.createElement('div', { className: 'page-header', style: { alignItems: 'flex-start', marginBottom: 6 } },
+      React.createElement('div', null,
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 } },
+          React.createElement(Title, { level: 4, style: { margin: 0, fontWeight: 600 } },
+            `Planning | ${planning.name}`
+          ),
+          React.createElement(CategoryTag, { category: planning.category })
+        ),
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, color: 'rgba(0,0,0,0.45)', flexWrap: 'wrap' } },
+          React.createElement('span', null, `#${planning.id}`),
+          React.createElement('span', null, '·'),
+          React.createElement('span', null, `Data creazione: ${planning.start}`),
+          React.createElement('span', null, '·'),
+          React.createElement('span', null, 'Campagna: '),
+          React.createElement('a', { style: { color: '#3E00FB', display: 'inline-flex', alignItems: 'center', gap: 3 } },
+            React.createElement(LinkOutlined, { style: { fontSize: 11 } }),
+            '04_DOOH_SushiLab'
+          ),
+          React.createElement('span', null, '·'),
+          React.createElement(StateBadge, { state: planning.state })
+        )
+      ),
+      React.createElement(Space, null,
+        React.createElement(Dropdown, {
+          menu: { items: editItems, onClick: () => setEditMenuOpen(false) },
+          trigger: ['click'],
+          open: editMenuOpen,
+          onOpenChange: setEditMenuOpen,
+        },
+          React.createElement(Button, { icon: React.createElement(DownOutlined) }, 'Modifica Planning')
+        ),
+        planning.state === 'In trattativa'
+          ? React.createElement(Button, {
+              disabled: true,
+              icon: React.createElement(LinkOutlined),
+              style: { color: '#1677FF', borderColor: '#1677FF', background: '#E6F4FF' },
+            }, 'In trattativa')
+          : planning.state === 'Completata'
+          ? React.createElement(Button, {
+              disabled: true,
+              style: { background: '#52C41A', color: '#fff', border: 'none' },
+              icon: React.createElement(CheckOutlined),
+            }, 'Completata')
+          : React.createElement(Button, {
+              type: 'primary',
+              icon: React.createElement(PlayCircleOutlined),
+              onClick: onStartPlanning,
+            }, 'Inizia a pianificare')
+      )
+    ),
+
+    React.createElement(Divider, { style: { margin: '12px 0' } }),
+
+    // Detail layout: left card + right content
+    React.createElement('div', { className: 'detail-layout' },
+
+      // Left summary card
+      React.createElement('div', { className: 'detail-sidebar' },
+        React.createElement(DataCard, {
+          icon: UserOutlined,
+          label: 'Inserzionista',
+          body: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+            React.createElement(AdvertiserAvatar, { name: planning.advertiser, size: 36 }),
+            React.createElement('span', { className: 'data-card-value', style: { fontSize: 15 } }, planning.advertiser),
+          ),
+          action: React.createElement(Button, { type: 'link', size: 'small', icon: React.createElement(LinkOutlined), style: { padding: 0 } }, 'Vai al profilo'),
+        }),
+        React.createElement(DataCard, {
+          icon: MoneyCollectOutlined,
+          label: 'Budget',
+          value: planning.budget,
+        }),
+        React.createElement(DataCard, {
+          icon: BarChartOutlined,
+          label: 'Obiettivo',
+          value: planning.goal,
+          valueExtra: 'visualizzazioni',
+        }),
+        React.createElement(DataCard, {
+          icon: CalendarOutlined,
+          label: 'Periodo',
+          value: `${planning.start} – ${planning.end}`,
+        }),
+      ),
+
+      // Right content area
+      React.createElement('div', { className: 'detail-main' },
+        // Sub-header
+        React.createElement('div', { className: 'detail-main-header' },
+          planning.hasSystems
+            ? React.createElement(Text, { style: { fontSize: 13 } },
+                React.createElement('span', { style: { fontWeight: 500 } }, 'Totale: '),
+                '32 impianti'
+              )
+            : React.createElement(Text, { type: 'secondary', style: { fontSize: 13 } }, 'Nessun impianto aggiunto'),
+          planning.hasSystems && React.createElement('div', { className: 'view-toggle' },
+            ...viewButtons.map(({ key, icon }) =>
+              React.createElement('button', {
+                key,
+                className: 'view-toggle-btn' + (subview === key ? ' active' : ''),
+                onClick: () => setSubview(key),
+              }, icon)
+            )
+          )
+        ),
+        // Content
+        subview === 'empty' && React.createElement(EmptyPlanningState, { onStart: onStartPlanning }),
+        subview === 'map' && React.createElement('div', { className: 'map-container' },
+          React.createElement(SvgMap),
+          // Legend
+          React.createElement('div', { className: 'map-legend' },
+            React.createElement('div', { className: 'map-legend-item' },
+              React.createElement('span', { style: { width: 10, height: 10, borderRadius: '50%', background: '#52C41A', flexShrink: 0 } }),
+              React.createElement(Text, { style: { fontSize: 12 } }, 'Disponibile')
+            ),
+            React.createElement('div', { className: 'map-legend-item' },
+              React.createElement('span', { style: { width: 10, height: 10, borderRadius: '50%', background: '#3E00FB', flexShrink: 0 } }),
+              React.createElement(Text, { style: { fontSize: 12 } }, 'Riservato')
+            ),
+            React.createElement('div', { className: 'map-legend-item' },
+              React.createElement('span', { style: { width: 10, height: 10, borderRadius: '50%', background: '#FAAD14', flexShrink: 0 } }),
+              React.createElement(Text, { style: { fontSize: 12 } }, 'In Opzione')
+            ),
+          )
+        ),
+        subview === 'list' && React.createElement(DetailListView),
+        (subview === 'grid' || subview === 'table') && React.createElement('div', {
+          style: { padding: 24, color: 'rgba(0,0,0,0.45)', textAlign: 'center', height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center' }
+        },
+          React.createElement(Text, { type: 'secondary' }, `Vista "${subview}" — funzionalità in arrivo`)
+        )
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// FILTER PANEL (Select Systems)
+// ══════════════════════════════════════════════════════
+
+const ALL_TYPES = {
+  'Impianto':      ['Poster', 'Stendardo', 'Palina', 'Palina Butterfly', 'Plancia', 'Rotor', 'Telo'],
+  'Arredo urbano': ['Pensilina', 'Parapedonale', 'Palo Luce', 'Cassonetto', 'Fioriera'],
+  'Altro':         ['Autobus', 'Custom'],
+};
+const ALL_TYPE_FLAT = Object.values(ALL_TYPES).flat();
+
+// Mappa quartieri → città per il filtro zona
+const ZONE_CITY_MAP = {
+  'Centro Storico':       'Palermo',
+  'Politeama':            'Palermo',
+  'Libertà':              'Palermo',
+  'Zisa':                 'Palermo',
+  'Noce':                 'Palermo',
+  'Mondello':             'Palermo',
+  'Arenella':             'Palermo',
+  'Brancaccio':           'Palermo',
+  'Kalsa':                'Palermo',
+  'Ballarò':              'Palermo',
+  'Vucciria':             'Palermo',
+  'Borgo Nuovo':          'Palermo',
+  'Cruillas':             'Palermo',
+  'Oreto':                'Palermo',
+  'Uditore':              'Palermo',
+  'Resuttana':            'Palermo',
+  'Palagonia':            'Palermo',
+  'Zen':                  'Palermo',
+  'Villagrazia':          'Palermo',
+  'Boccadifalco':         'Palermo',
+  'Cuba':                 'Palermo',
+  'Tommaso Natale':       'Palermo',
+};
+
+const ZONE_TREE = [
+  { label: 'Palermo', code: 'PA', cities: [
+    { label: 'Palermo', neighborhoods: [
+      'Centro Storico','Kalsa','Ballarò','Vucciria',
+      'Politeama','Libertà','Palagonia',
+      'Zisa','Cuba','Boccadifalco',
+      'Noce','Uditore','Resuttana',
+      'Arenella','Mondello','Tommaso Natale',
+      'Brancaccio','Oreto',
+      'Borgo Nuovo','Cruillas','Villagrazia','Zen',
+    ]},
+    { label: 'Bagheria',                  neighborhoods: [] },
+    { label: 'Misilmeri',                 neighborhoods: [] },
+    { label: 'Ficarazzi',                 neighborhoods: [] },
+    { label: 'Altavilla Milicia',         neighborhoods: [] },
+    { label: 'Villabate',                 neighborhoods: [] },
+    { label: 'Carini',                    neighborhoods: [] },
+    { label: 'Capaci',                    neighborhoods: [] },
+    { label: 'Isola delle Femmine',       neighborhoods: [] },
+    { label: 'Terrasini',                 neighborhoods: [] },
+    { label: 'Trappeto',                  neighborhoods: [] },
+    { label: 'Balestrate',                neighborhoods: [] },
+    { label: 'Partinico',                 neighborhoods: [] },
+    { label: 'Borgetto',                  neighborhoods: [] },
+    { label: 'Montelepre',                neighborhoods: [] },
+    { label: 'Giardinello',               neighborhoods: [] },
+    { label: 'Cinisi',                    neighborhoods: [] },
+    { label: 'Torretta',                  neighborhoods: [] },
+    { label: 'Monreale',                  neighborhoods: [] },
+    { label: 'Altofonte',                 neighborhoods: [] },
+    { label: 'San Giuseppe Jato',         neighborhoods: [] },
+    { label: 'San Cipirello',             neighborhoods: [] },
+    { label: 'Piana degli Albanesi',      neighborhoods: [] },
+    { label: 'Corleone',                  neighborhoods: [] },
+    { label: 'Bisacquino',                neighborhoods: [] },
+    { label: 'Chiusa Sclafani',           neighborhoods: [] },
+    { label: 'Giuliana',                  neighborhoods: [] },
+    { label: 'Prizzi',                    neighborhoods: [] },
+    { label: 'Palazzo Adriano',           neighborhoods: [] },
+    { label: 'Contessa Entellina',        neighborhoods: [] },
+    { label: 'Camporeale',                neighborhoods: [] },
+    { label: 'Roccamena',                 neighborhoods: [] },
+    { label: 'Mezzojuso',                 neighborhoods: [] },
+    { label: 'Marineo',                   neighborhoods: [] },
+    { label: 'Cefalà Diana',              neighborhoods: [] },
+    { label: 'Ciminna',                   neighborhoods: [] },
+    { label: 'Bolognetta',                neighborhoods: [] },
+    { label: 'Villafrati',                neighborhoods: [] },
+    { label: 'Godrano',                   neighborhoods: [] },
+    { label: 'Baucina',                   neighborhoods: [] },
+    { label: 'Santa Cristina Gela',       neighborhoods: [] },
+    { label: 'Santa Flavia',              neighborhoods: [] },
+    { label: 'Casteldaccia',              neighborhoods: [] },
+    { label: 'Trabia',                    neighborhoods: [] },
+    { label: 'Termini Imerese',           neighborhoods: [] },
+    { label: 'Caccamo',                   neighborhoods: [] },
+    { label: 'Ventimiglia di Sicilia',    neighborhoods: [] },
+    { label: 'Lascari',                   neighborhoods: [] },
+    { label: 'Campofelice di Roccella',   neighborhoods: [] },
+    { label: 'Cefalù',                    neighborhoods: [] },
+    { label: 'Collesano',                 neighborhoods: [] },
+    { label: 'Aliminusa',                 neighborhoods: [] },
+    { label: 'Gratteri',                  neighborhoods: [] },
+    { label: 'Isnello',                   neighborhoods: [] },
+    { label: 'Castelbuono',               neighborhoods: [] },
+    { label: 'Geraci Siculo',             neighborhoods: [] },
+    { label: 'Pollina',                   neighborhoods: [] },
+    { label: 'Gangi',                     neighborhoods: [] },
+    { label: 'Petralia Soprana',          neighborhoods: [] },
+    { label: 'Petralia Sottana',          neighborhoods: [] },
+    { label: 'Alimena',                   neighborhoods: [] },
+    { label: 'Bompietro',                 neighborhoods: [] },
+    { label: 'Blufi',                     neighborhoods: [] },
+    { label: 'Castellana Sicula',         neighborhoods: [] },
+    { label: 'Polizzi Generosa',          neighborhoods: [] },
+    { label: 'Scillato',                  neighborhoods: [] },
+    { label: 'Sclafani Bagni',            neighborhoods: [] },
+    { label: 'Valledolmo',                neighborhoods: [] },
+    { label: 'Alia',                      neighborhoods: [] },
+    { label: 'Castronovo di Sicilia',     neighborhoods: [] },
+    { label: 'Campofelice di Fitalia',    neighborhoods: [] },
+    { label: 'Campofiorito',              neighborhoods: [] },
+    { label: 'Lercara Friddi',            neighborhoods: [] },
+    { label: 'Roccapalumba',              neighborhoods: [] },
+    { label: 'Vicari',                    neighborhoods: [] },
+    { label: 'Belmonte Mezzagra',         neighborhoods: [] },
+    { label: 'Ustica',                    neighborhoods: [] },
+  ]},
+  { label: 'Trapani', code: 'TP', cities: [
+    { label: 'Trapani',                   neighborhoods: [] },
+    { label: 'Marsala',                   neighborhoods: [] },
+    { label: 'Mazara del Vallo',          neighborhoods: [] },
+    { label: 'Castelvetrano',             neighborhoods: [] },
+    { label: 'Alcamo',                    neighborhoods: [] },
+    { label: 'Erice',                     neighborhoods: [] },
+    { label: 'Valderice',                 neighborhoods: [] },
+    { label: 'Custonaci',                 neighborhoods: [] },
+    { label: 'San Vito Lo Capo',          neighborhoods: [] },
+    { label: 'Castellammare del Golfo',   neighborhoods: [] },
+    { label: 'Campobello di Mazara',      neighborhoods: [] },
+    { label: 'Petrosino',                 neighborhoods: [] },
+    { label: 'Salemi',                    neighborhoods: [] },
+    { label: 'Santa Ninfa',               neighborhoods: [] },
+    { label: 'Gibellina',                 neighborhoods: [] },
+    { label: 'Poggioreale',               neighborhoods: [] },
+    { label: 'Salaparuta',                neighborhoods: [] },
+    { label: 'Partanna',                  neighborhoods: [] },
+    { label: 'Calatafimi-Segesta',        neighborhoods: [] },
+    { label: 'Paceco',                    neighborhoods: [] },
+    { label: 'Buseto Palizzolo',          neighborhoods: [] },
+    { label: 'Vita',                      neighborhoods: [] },
+    { label: 'Misiliscemi',               neighborhoods: [] },
+    { label: 'Pantelleria',               neighborhoods: [] },
+    { label: 'Favignana',                 neighborhoods: [] },
+  ]},
+  { label: 'Agrigento', code: 'AG', cities: [
+    { label: 'Agrigento',                 neighborhoods: [] },
+    { label: 'Canicattì',                 neighborhoods: [] },
+    { label: 'Licata',                    neighborhoods: [] },
+    { label: 'Sciacca',                   neighborhoods: [] },
+    { label: 'Porto Empedocle',           neighborhoods: [] },
+    { label: 'Favara',                    neighborhoods: [] },
+    { label: 'Ribera',                    neighborhoods: [] },
+    { label: 'Campobello di Licata',      neighborhoods: [] },
+    { label: 'Menfi',                     neighborhoods: [] },
+    { label: 'Ravanusa',                  neighborhoods: [] },
+    { label: 'Palma di Montechiaro',      neighborhoods: [] },
+    { label: 'Aragona',                   neighborhoods: [] },
+    { label: 'Casteltermini',             neighborhoods: [] },
+    { label: 'Grotte',                    neighborhoods: [] },
+    { label: 'Raffadali',                 neighborhoods: [] },
+    { label: 'Naro',                      neighborhoods: [] },
+    { label: 'Racalmuto',                 neighborhoods: [] },
+    { label: 'Santa Margherita Belice',   neighborhoods: [] },
+    { label: 'Sambuca di Sicilia',        neighborhoods: [] },
+    { label: 'Montevago',                 neighborhoods: [] },
+    { label: 'Siculiana',                 neighborhoods: [] },
+    { label: 'Realmonte',                 neighborhoods: [] },
+    { label: 'Montallegro',               neighborhoods: [] },
+    { label: 'Cattolica Eraclea',         neighborhoods: [] },
+    { label: 'Bivona',                    neighborhoods: [] },
+    { label: 'Alessandria della Rocca',   neighborhoods: [] },
+    { label: 'Cianciana',                 neighborhoods: [] },
+    { label: 'Lucca Sicula',              neighborhoods: [] },
+    { label: 'Burgio',                    neighborhoods: [] },
+    { label: 'Calamonaci',                neighborhoods: [] },
+    { label: 'Villafranca Sicula',        neighborhoods: [] },
+    { label: 'Cammarata',                 neighborhoods: [] },
+    { label: 'Castrofilippo',             neighborhoods: [] },
+    { label: 'Comitini',                  neighborhoods: [] },
+    { label: 'Joppolo Giancaxio',         neighborhoods: [] },
+    { label: "Sant'Elisabetta",           neighborhoods: [] },
+    { label: "Sant'Angelo Muxaro",        neighborhoods: [] },
+  ]},
+  { label: 'Caltanissetta', code: 'CL', cities: [
+    { label: 'Caltanissetta',             neighborhoods: [] },
+    { label: 'Gela',                      neighborhoods: [] },
+    { label: 'San Cataldo',               neighborhoods: [] },
+    { label: 'Niscemi',                   neighborhoods: [] },
+    { label: 'Mussomeli',                 neighborhoods: [] },
+    { label: 'Riesi',                     neighborhoods: [] },
+    { label: 'Butera',                    neighborhoods: [] },
+    { label: 'Mazzarino',                 neighborhoods: [] },
+    { label: 'Sommatino',                 neighborhoods: [] },
+    { label: 'Delia',                     neighborhoods: [] },
+    { label: 'Serradifalco',              neighborhoods: [] },
+    { label: 'Milena',                    neighborhoods: [] },
+    { label: 'Campofranco',               neighborhoods: [] },
+    { label: 'Marianopoli',               neighborhoods: [] },
+    { label: 'Santa Caterina Villarmosa', neighborhoods: [] },
+    { label: 'Montedoro',                 neighborhoods: [] },
+    { label: 'Villalba',                  neighborhoods: [] },
+    { label: 'Sutera',                    neighborhoods: [] },
+    { label: 'Vallelunga Pratameno',      neighborhoods: [] },
+    { label: 'Resuttano',                 neighborhoods: [] },
+    { label: 'Acquaviva Platani',         neighborhoods: [] },
+    { label: 'Bompensiero',               neighborhoods: [] },
+  ]},
+];
+
+// Controlla se un sistema soddisfa il filtro zone (OR: almeno un match)
+function sysMatchesZones(sys, selectedZones) {
+  if (selectedZones.length === 0) return true;
+  return selectedZones.some(z => {
+    if (z === sys.province) return true;           // codice provincia, es. 'PA'
+    if (z === sys.city) return true;               // nome città, es. 'Palermo'
+    const nhCity = ZONE_CITY_MAP[z];               // quartiere → città
+    return nhCity && nhCity === sys.city;
+  });
+}
+
+function FilterPanel({
+  visibleStates, onVisibleStatesChange,
+  selectedTypes, onSelectedTypesChange,
+  selectedModels, onSelectedModelsChange,
+  selectedIllumination, onSelectedIlluminationChange,
+  minFacesEnabled, onMinFacesEnabledChange,
+  minFacesValue, onMinFacesValueChange,
+  selectedZones, onSelectedZonesChange,
+}) {
+  const toggleState = (s) => onVisibleStatesChange(prev =>
+    prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+  );
+  const toggleType = (t) => onSelectedTypesChange(prev =>
+    prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]
+  );
+  const toggleModel = (m) => onSelectedModelsChange(prev =>
+    prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]
+  );
+  const toggleIllumination = (ill) => onSelectedIlluminationChange(prev =>
+    prev.includes(ill) ? prev.filter(x => x !== ill) : [...prev, ill]
+  );
+  const toggleZone = (z) => onSelectedZonesChange(prev =>
+    prev.includes(z) ? prev.filter(x => x !== z) : [...prev, z]
+  );
+
+  return React.createElement(React.Fragment, null,
+
+    // Commercial State
+    React.createElement('div', { className: 'filter-section' },
+      React.createElement('div', { className: 'filter-section-label' }, 'Stato commerciale'),
+      React.createElement('div', null,
+        ['Available', 'In Option', 'Reserved'].map(s =>
+          React.createElement('span', {
+            key: s,
+            className: 'filter-chip' + (visibleStates.includes(s) ? ' selected' : ''),
+            onClick: () => toggleState(s),
+          },
+            React.createElement('span', {
+              style: { width: 6, height: 6, borderRadius: '50%', background: AVAIL_COLOR[s], flexShrink: 0 }
+            }),
+            STATE_LABELS[s] || s
+          )
+        )
+      )
+    ),
+
+    // Numero facce
+    React.createElement('div', { className: 'filter-section' },
+      React.createElement('div', { className: 'filter-section-label' }, 'Numero facce'),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+        React.createElement('input', {
+          type: 'checkbox',
+          checked: minFacesEnabled,
+          onChange: e => onMinFacesEnabledChange(e.target.checked),
+          style: { accentColor: '#3E00FB', cursor: 'pointer' },
+        }),
+        React.createElement(Text, { style: { fontSize: 13, color: minFacesEnabled ? 'inherit' : 'rgba(0,0,0,0.35)' } }, 'Numero facce ≥ '),
+        React.createElement(InputNumber, {
+          value: minFacesValue,
+          min: 1,
+          size: 'small',
+          style: { width: 60 },
+          disabled: !minFacesEnabled,
+          onChange: v => v && onMinFacesValueChange(v),
+        })
+      )
+    ),
+
+    // System Type
+    React.createElement('div', { className: 'filter-section' },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+          React.createElement('span', { className: 'filter-section-label', style: { marginBottom: 0 } }, 'Tipo impianto'),
+          React.createElement(Tag, { style: { fontSize: 11, background: '#F6FFED', color: '#389E0D', border: '1px solid #B7EB8F' } }, 'OOH'),
+        ),
+        React.createElement('a', {
+          style: { fontSize: 12, color: '#FF4A1C' },
+          onClick: () => onSelectedTypesChange(ALL_TYPE_FLAT),
+        }, 'Azzera filtro')
+      ),
+      ...Object.entries(ALL_TYPES).map(([group, types]) =>
+        React.createElement('div', { key: group },
+          React.createElement('div', { className: 'filter-subsection-label' }, group),
+          ...types.map(t =>
+            React.createElement('div', {
+              key: t,
+              className: 'filter-checkbox-item',
+              onClick: () => toggleType(t),
+            },
+              React.createElement('div', {
+                className: 'filter-checkbox' + (selectedTypes.includes(t) ? ' checked' : ''),
+              },
+                selectedTypes.includes(t) && React.createElement(CheckOutlined, { style: { fontSize: 9, color: '#fff' } })
+              ),
+              React.createElement('span', null, t)
+            )
+          )
+        )
+      )
+    ),
+
+    // Sales Model
+    React.createElement('div', { className: 'filter-section' },
+      React.createElement('div', { className: 'filter-section-label' }, 'Modello commerciale'),
+      ['Standard', 'Lungo termine', 'Stagionale'].map(m =>
+        React.createElement('div', {
+          key: m,
+          className: 'filter-checkbox-item',
+          onClick: () => toggleModel(m),
+        },
+          React.createElement('div', {
+            className: 'filter-checkbox' + (selectedModels.includes(m) ? ' checked' : ''),
+          },
+            selectedModels.includes(m) && React.createElement(CheckOutlined, { style: { fontSize: 9, color: '#fff' } })
+          ),
+          React.createElement('span', null, m)
+        )
+      )
+    ),
+
+    // Illumination
+    React.createElement('div', { className: 'filter-section' },
+      React.createElement('div', { className: 'filter-section-label' }, 'Illuminazione'),
+      ['Nessuna', 'Faretti', 'Retroilluminato'].map(ill =>
+        React.createElement('div', {
+          key: ill,
+          className: 'filter-checkbox-item',
+          onClick: () => toggleIllumination(ill),
+        },
+          React.createElement('div', {
+            className: 'filter-checkbox' + (selectedIllumination.includes(ill) ? ' checked' : ''),
+          },
+            selectedIllumination.includes(ill) && React.createElement(CheckOutlined, { style: { fontSize: 9, color: '#fff' } })
+          ),
+          React.createElement('span', null, ill)
+        )
+      )
+    ),
+
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// POI PANEL
+// ══════════════════════════════════════════════════════
+
+function POIPanel() {
+  const [poiQuery, setPoiQuery]             = useState('');
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [radius, setRadius]                 = useState(500);
+  const [selectedCollections, setSelectedCollections] = useState([]);
+
+  const toggleCat = (key) => setSelectedCategories(prev =>
+    prev.includes(key) ? prev.filter(x => x !== key) : [...prev, key]
+  );
+  const toggleCol = (id) => setSelectedCollections(prev =>
+    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+  );
+
+  return React.createElement(React.Fragment, null,
+
+    // Ricerca libera
+    React.createElement('div', { className: 'filter-section' },
+      React.createElement('div', { className: 'filter-section-label' }, 'Cerca un POI'),
+      React.createElement(Input, {
+        placeholder: 'Es. McDonald\'s, Università, Farmacia…',
+        prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.35)' } }),
+        value: poiQuery,
+        onChange: e => setPoiQuery(e.target.value),
+        allowClear: true,
+      })
+    ),
+
+    // Categorie rapide
+    React.createElement('div', { className: 'filter-section' },
+      React.createElement('div', { className: 'filter-section-label' }, 'Categorie rapide'),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
+        ...POI_CATEGORIES.map(cat =>
+          React.createElement('span', {
+            key: cat.key,
+            className: 'filter-chip' + (selectedCategories.includes(cat.key) ? ' selected' : ''),
+            onClick: () => toggleCat(cat.key),
+          }, cat.label)
+        )
+      )
+    ),
+
+    // Raggio
+    React.createElement('div', { className: 'filter-section' },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 } },
+        React.createElement('div', { className: 'filter-section-label', style: { marginBottom: 0 } }, 'Raggio di ricerca'),
+        React.createElement(Tag, { style: { fontSize: 12, fontWeight: 600 } }, `${radius} m`)
+      ),
+      React.createElement(Slider, {
+        min: 100, max: 2000, step: 100,
+        value: radius,
+        onChange: setRadius,
+        marks: { 100: '100m', 500: '500m', 1000: '1km', 2000: '2km' },
+        tooltip: { formatter: v => `${v} m` },
+      })
+    ),
+
+    // Collezioni
+    React.createElement('div', { className: 'filter-section' },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 } },
+        React.createElement('div', { className: 'filter-section-label', style: { marginBottom: 0 } }, 'Le mie collezioni'),
+        React.createElement(Button, {
+          type: 'link', size: 'small',
+          icon: React.createElement(PlusOutlined),
+          style: { padding: 0, fontSize: 12 },
+        }, 'Nuova collezione')
+      ),
+      ...POI_COLLECTIONS.map(col =>
+        React.createElement('div', {
+          key: col.id,
+          className: 'filter-checkbox-item',
+          onClick: () => toggleCol(col.id),
+        },
+          React.createElement('div', {
+            className: 'filter-checkbox' + (selectedCollections.includes(col.id) ? ' checked' : ''),
+          },
+            selectedCollections.includes(col.id) && React.createElement(CheckOutlined, { style: { fontSize: 9, color: '#fff' } })
+          ),
+          React.createElement('span', { style: { flex: 1 } }, col.name),
+          React.createElement(Tag, { style: { fontSize: 11, margin: 0 } }, `${col.count} punti`)
+        )
+      ),
+      React.createElement('div', {
+        style: { marginTop: 12, padding: '10px 12px', background: '#F9F0FF', borderRadius: 6, border: '1px dashed #D3ADF7' }
+      },
+        React.createElement(Text, { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } },
+          'Seleziona una o più categorie o collezioni, imposta il raggio e clicca "Applica POI" per vedere gli impianti nelle vicinanze.'
+        )
+      )
+    ),
+
+    // Zone — TreeSelect compatto
+    React.createElement('div', { className: 'filter-section' },
+      React.createElement('div', { className: 'filter-section-label' }, 'Zone'),
+      React.createElement(TreeSelect, {
+        style: { width: '100%' },
+        treeCheckable: true,
+        treeCheckStrictly: true,
+        showSearch: true,
+        allowClear: true,
+        placeholder: 'Province, città o quartieri…',
+        maxTagCount: 'responsive',
+        treeData: ZONE_TREE.map(prov => ({
+          title: `${prov.label} (${prov.code})`,
+          value: prov.code,
+          children: prov.cities.map(city => ({
+            title: city.label,
+            value: city.label,
+            children: city.neighborhoods.length > 0
+              ? city.neighborhoods.map(nh => ({ title: nh, value: nh }))
+              : undefined,
+          })),
+        })),
+        value: selectedZones,
+        onChange: (vals) => onSelectedZonesChange(vals || []),
+      })
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// SELECT SYSTEMS
+// ══════════════════════════════════════════════════════
+
+// ── Brief Sidebar (Variant B) ────────────────────────────
+function PlanningHeaderNR({ planning, onBack, readOnly }) {
+  const { Popover, Divider: AntDivider } = antd;
+  const { Text, Title } = Typography;
+  const [allegata, setAllegata] = useState(planning.state === 'In trattativa');
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const trattativaRef = `TRT-2025-${planning.id}`;
+
+  const popoverContent = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 4, minWidth: 210 } },
+    React.createElement('div', { style: { fontSize: 12, marginBottom: 4 } },
+      React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.65)', display: 'block' } }, trattativaRef),
+      React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, planning.advertiser + ' · ' + planning.name),
+    ),
+    React.createElement(Button, {
+      type: 'primary', size: 'small',
+      icon: React.createElement(icons.ExportOutlined),
+      style: { width: '100%' },
+      onClick: () => setPopoverOpen(false),
+    }, 'Apri trattativa'),
+    React.createElement(AntDivider, { style: { margin: '6px 0' } }),
+    React.createElement(Button, {
+      type: 'text', size: 'small', danger: true,
+      style: { width: '100%', textAlign: 'left' },
+      onClick: () => { setAllegata(false); setPopoverOpen(false); },
+    }, 'Scollega pianificazione'),
+  );
+
+  const alleataButton = React.createElement(Button, {
+    size: 'large',
+    icon: React.createElement(allegata ? CheckOutlined : LinkOutlined),
+    onClick: allegata ? undefined : () => setAllegata(true),
+    style: allegata ? { borderColor: '#52C41A', color: '#52C41A', background: '#F6FFED' } : {},
+  }, allegata ? 'Allegata a trattativa' : 'Allega a trattativa');
+
+  return React.createElement('div', {
+    style: {
+      background: '#fff',
+      borderRadius: 8,
+      border: '1px solid #F0F0F0',
+      padding: '20px 24px',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+    }
+  },
+    // Breadcrumb
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontSize: 13 } },
+      React.createElement('a', { className: 'plh-back', onClick: onBack },
+        React.createElement(ArrowLeftOutlined, { style: { fontSize: 11 } }),
+        'Pianificazioni'
+      ),
+      React.createElement('span', { style: { color: 'rgba(0,0,0,0.2)', margin: '0 2px' } }, '|'),
+      React.createElement('span', { style: { color: 'rgba(0,0,0,0.4)' } }, planning.name),
+    ),
+    // Title + actions
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 16 } },
+      React.createElement('div', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 10 } },
+        React.createElement(Title, { level: 4, style: { margin: 0, fontSize: 20, fontWeight: 600 } }, 'Pianificazione'),
+        React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 13, fontWeight: 400 } }, planning.name),
+      ),
+      React.createElement(Space, { size: 8 },
+        React.createElement(Button, { size: 'large', icon: React.createElement(ShareAltOutlined) }, 'Condividi'),
+        allegata
+          ? React.createElement(Popover, {
+              content: popoverContent,
+              trigger: 'click',
+              placement: 'bottomRight',
+              open: popoverOpen,
+              onOpenChange: setPopoverOpen,
+            }, alleataButton)
+          : alleataButton,
+      ),
+    ),
+  );
+}
+
+function DataCard({ icon: Icon, label, value, valueExtra, action, body }) {
+  return React.createElement('div', { className: 'data-card' },
+    React.createElement('div', { className: 'data-card-head' },
+      React.createElement('span', { className: 'data-card-head-icon' },
+        React.createElement(Icon, { style: { fontSize: 16 } })
+      ),
+      React.createElement('span', { className: 'data-card-head-label' }, label)
+    ),
+    React.createElement('div', { className: 'data-card-body' },
+      body
+        ? body
+        : React.createElement(React.Fragment, null,
+            React.createElement('span', { className: 'data-card-value' }, value),
+            valueExtra && React.createElement(Typography.Text, { type: 'secondary', style: { fontSize: 12, marginTop: 4, display: 'block' } }, valueExtra)
+          )
+    ),
+    action && React.createElement('div', { className: 'data-card-action' }, action)
+  );
+}
+
+function KpiModal({ goal, category, open, onClose }) {
+  const { Modal, Typography, Tag } = antd;
+  const { Title, Text, Paragraph } = Typography;
+  const goalData = GOAL_KPIS[goal];
+  if (!goalData) return null;
+
+  return React.createElement(Modal, {
+    open,
+    onCancel: onClose,
+    footer: null,
+    width: 560,
+    title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+      React.createElement(Title, { level: 5, style: { margin: 0 } }, 'KPI — ' + goalData.label),
+      React.createElement(Tag, { color: category === 'DOOH' ? 'purple' : 'blue', style: { margin: 0 } }, category)
+    ),
+  },
+    React.createElement('div', { style: { paddingTop: 4 } },
+      React.createElement(Paragraph, { type: 'secondary', style: { fontSize: 13, marginBottom: 20 } }, goalData.description),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid #F0F0F0', borderRadius: 8, overflow: 'hidden' } },
+        goalData.kpis.map((kpi, i) =>
+          React.createElement('div', {
+            key: kpi.name,
+            style: {
+              display: 'grid',
+              gridTemplateColumns: '1fr auto',
+              gap: '4px 12px',
+              padding: '12px 16px',
+              borderBottom: i < goalData.kpis.length - 1 ? '1px solid #F0F0F0' : 'none',
+              background: '#fff',
+            }
+          },
+            React.createElement('div', null,
+              React.createElement(Text, { strong: true, style: { fontSize: 13, display: 'block' } }, kpi.name),
+              React.createElement(Text, { type: 'secondary', style: { fontSize: 12 } }, kpi.desc)
+            ),
+            React.createElement('div', { style: { textAlign: 'right', whiteSpace: 'nowrap', paddingTop: 2 } },
+              React.createElement(Text, { style: { fontSize: 11, color: '#3E00FB', fontWeight: 600, background: '#F0EAFF', padding: '2px 8px', borderRadius: 4, border: '1px solid #D3B8FF' } }, kpi.unit)
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+function BriefPanelNR({ planning, onToggle, selectedFaceIds }) {
+  const { Avatar, Progress } = antd;
+  const { UserOutlined, EuroOutlined, AimOutlined, LeftOutlined } = icons;
+  const [kpiOpen, setKpiOpen] = useState(false);
+
+  const initials = planning.advertiser.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+  const goalData = GOAL_KPIS[planning.goal];
+
+  // Calcolo spesa corrente da facce selezionate
+  const budget = parseBudget(planning.budget);
+  const spent  = [...(selectedFaceIds || [])].reduce((sum, id) => sum + (FACE_PRICE_MAP[id] || 0), 0);
+  const pct    = budget > 0 ? Math.min(100, Math.round(spent / budget * 100)) : 0;
+  const over   = spent > budget;
+  const strokeColor = over ? '#FF4A1C' : pct >= 80 ? '#FA8C16' : '#3E00FB';
+
+  const budgetBody = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+    React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 4 } },
+      React.createElement('span', { className: 'data-card-value' }, planning.budget),
+      spent > 0 && React.createElement(Typography.Text, {
+        style: { fontSize: 11, color: over ? '#FF4A1C' : 'rgba(0,0,0,0.45)', whiteSpace: 'nowrap' }
+      }, formatEuro(spent) + ' imp.'),
+    ),
+    React.createElement(Progress, {
+      percent: pct,
+      showInfo: false,
+      strokeColor,
+      trailColor: '#F0F0F0',
+      size: 'small',
+      style: { margin: 0, lineHeight: 1 },
+    })
+  );
+
+  return React.createElement('div', { className: 'bpn' },
+
+    React.createElement(KpiModal, { goal: planning.goal, category: planning.category, open: kpiOpen, onClose: () => setKpiOpen(false) }),
+
+    // Inserzionista
+    React.createElement(DataCard, {
+      icon: UserOutlined,
+      label: 'Inserzionista',
+      body: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+        React.createElement(Avatar, {
+          shape: 'square', size: 36,
+          style: { background: '#F0F0F0', color: 'rgba(0,0,0,0.55)', flexShrink: 0, fontSize: 13, fontWeight: 700 }
+        }, initials),
+        React.createElement('span', { className: 'data-card-value' }, planning.advertiser)
+      ),
+      action: React.createElement(Button, { type: 'link', size: 'small', icon: React.createElement(icons.LinkOutlined), style: { padding: 0 } }, 'Vai al profilo'),
+    }),
+
+    // Budget con progress
+    React.createElement(DataCard, {
+      icon: EuroOutlined,
+      label: 'Budget',
+      body: budgetBody,
+    }),
+
+    // Obiettivo
+    React.createElement(DataCard, {
+      icon: AimOutlined,
+      label: 'Obiettivo',
+      body: React.createElement('span', { className: 'data-card-value', style: { textTransform: 'capitalize' } }, planning.goal),
+      action: goalData
+        ? React.createElement(Button, {
+            type: 'link', size: 'small',
+            icon: React.createElement(icons.BarChartOutlined),
+            style: { padding: 0 },
+            onClick: () => setKpiOpen(true),
+          }, 'Vedi KPI')
+        : null,
+    }),
+
+    // Pulsante chiudi
+    React.createElement('div', { className: 'bpn-footer' },
+      React.createElement('button', { className: 'bpn-toggle-btn', onClick: onToggle },
+        React.createElement(LeftOutlined, { style: { fontSize: 10 } }),
+        'Nascondi brief'
+      )
+    )
+  );
+}
+
+function SelectSystems({ planning, onBack, onApply }) {
+  const readOnly = planning.state === 'Completata';
+  const [searchQuery, setSearchQuery]           = useState('');
+  const [showSuggestions, setShowSuggestions]   = useState(false);
+  const [selectedFaceIds, setSelectedFaceIds]   = useState(new Set());
+  const [expandedSysIds, setExpandedSysIds]     = useState(new Set());
+  const [hoveredId, setHoveredId]               = useState(null);
+  const [panelOpen, setPanelOpen]               = useState(true);
+  const [panelTab, setPanelTab]                 = useState(readOnly ? 'selected' : 'results');
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [poiDrawerOpen, setPoiDrawerOpen]       = useState(false);
+  const [visibleStates, setVisibleStates]       = useState(['Available']);
+  const [selectedTypes, setSelectedTypes]       = useState(ALL_TYPE_FLAT);
+  const [selectedModels, setSelectedModels]     = useState([]);
+  const [selectedIllumination, setSelectedIllumination] = useState([]);
+  const [minFacesEnabled, setMinFacesEnabled]   = useState(false);
+  const [minFacesValue, setMinFacesValue]       = useState(2);
+  const [selectedZones, setSelectedZones] = useState([]);
+  const [showOnlySelected, setShowOnlySelected] = useState(false);
+  const [showBrief, setShowBrief] = useState(true);
+
+  // Conteggio filtri attivi (esclude stato commerciale, gestito visivamente a parte)
+  const activeFilterCount = [
+    selectedTypes.length !== ALL_TYPE_FLAT.length,  // tipo impianto: selezione parziale
+    selectedIllumination.length > 0,                 // illuminazione: almeno una selezionata
+    selectedModels.length > 0,                       // modello commerciale: almeno uno selezionato
+    minFacesEnabled,                                 // numero facce: filtro abilitato
+    selectedZones.length > 0,                        // zone attive
+  ].filter(Boolean).length;
+
+  const resetFilters = () => {
+    setSelectedTypes(ALL_TYPE_FLAT);
+    setSelectedModels([]);
+    setSelectedIllumination([]);
+    setMinFacesEnabled(false);
+    setVisibleStates(['Available']);
+    setSelectedZones([]);
+  };
+
+  // ── Label system ─────────────────────────────────────────
+  const [availableLabels, setAvailableLabels]   = useState(INITIAL_LABELS);
+  const [systemLabels, setSystemLabels]         = useState({
+    'SYS-001': ['lbl-1'],   // Ottima visibilità
+    'SYS-002': ['lbl-6'],   // Centro storico
+    'SYS-004': ['lbl-3'],   // Fronte traffico
+    'SYS-006': ['lbl-4'],   // Posizione angolare
+    'SYS-008': ['lbl-5'],   // Grande formato
+    'SYS-010': ['lbl-2'],   // Alta frequentazione
+    'SYS-013': ['lbl-1'],   // Ottima visibilità
+    'SYS-015': ['lbl-3'],   // Fronte traffico
+    'SYS-017': ['lbl-4'],   // Posizione angolare
+    'SYS-020': ['lbl-6'],   // Centro storico
+    'SYS-023': ['lbl-5'],   // Grande formato
+    'SYS-027': ['lbl-2'],   // Alta frequentazione
+  });      // { sysId: labelId[] — max 1 }
+  const [pickerOpenId, setPickerOpenId]         = useState(null);    // sistema con picker aperto
+  const [newLabelName, setNewLabelName]         = useState('');
+  const [newLabelColor, setNewLabelColor]       = useState(LABEL_COLORS[0]);
+  const [showNewForm, setShowNewForm]           = useState(false);
+
+  const toggleSysLabel = (sysId, labelId) => {
+    setSystemLabels(prev => {
+      const cur = prev[sysId]?.[0];
+      // stessa label → rimuovi; diversa → sostituisci
+      return { ...prev, [sysId]: cur === labelId ? [] : [labelId] };
+    });
+  };
+  const createLabel = () => {
+    if (!newLabelName.trim()) return;
+    const lbl = { id: `lbl-${Date.now()}`, name: newLabelName.trim(), color: newLabelColor };
+    setAvailableLabels(prev => [...prev, lbl]);
+    setNewLabelName('');
+    setShowNewForm(false);
+  };
+  const closePicker = () => { setPickerOpenId(null); setShowNewForm(false); setNewLabelName(''); };
+
+  const renderLabelPicker = (sysId) => {
+    const current = systemLabels[sysId]?.[0] || null;
+    return React.createElement('div', { className: 'ss-label-picker', onClick: e => e.stopPropagation() },
+      React.createElement('div', { className: 'ss-label-picker-title' }, current ? 'Cambia etichetta' : 'Etichetta'),
+      availableLabels.map(lbl => {
+        const isSelected = current === lbl.id;
+        return React.createElement('div', {
+          key: lbl.id,
+          className: 'ss-label-picker-row',
+          onClick: () => { toggleSysLabel(sysId, lbl.id); closePicker(); },
+          style: isSelected ? { background: lbl.color + '12' } : {},
+        },
+          React.createElement('span', {
+            style: {
+              width: 14, height: 14, borderRadius: '50%', flexShrink: 0,
+              background: isSelected ? lbl.color : 'transparent',
+              border: `2px solid ${lbl.color}`,
+              display: 'inline-block',
+            },
+          }),
+          React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.75)' } }, lbl.name),
+        );
+      }),
+      React.createElement('div', { style: { borderTop: '1px solid #F0F0F0', margin: '8px 0 4px' } }),
+      !showNewForm
+        ? React.createElement('div', {
+            style: { display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', cursor: 'pointer', color: '#3E00FB', fontSize: 13 },
+            onClick: () => setShowNewForm(true),
+          },
+            React.createElement(PlusOutlined, { style: { fontSize: 11 } }),
+            'Nuova etichetta',
+          )
+        : React.createElement('div', null,
+            React.createElement(Input, {
+              size: 'small', autoFocus: true,
+              placeholder: 'Nome etichetta',
+              value: newLabelName,
+              onChange: e => setNewLabelName(e.target.value),
+              onPressEnter: createLabel,
+              style: { marginBottom: 8 },
+            }),
+            React.createElement('div', { className: 'ss-color-palette' },
+              ...LABEL_COLORS.map(c =>
+                React.createElement('span', {
+                  key: c,
+                  className: 'ss-color-swatch',
+                  style: {
+                    background: c,
+                    outline: newLabelColor === c ? `2px solid ${c}` : 'none',
+                    outlineOffset: 2,
+                  },
+                  onClick: () => setNewLabelColor(c),
+                })
+              )
+            ),
+            React.createElement('div', { style: { display: 'flex', gap: 6, justifyContent: 'flex-end' } },
+              React.createElement(Button, { size: 'small', onClick: () => { setShowNewForm(false); setNewLabelName(''); } }, 'Annulla'),
+              React.createElement(Button, { size: 'small', type: 'primary', onClick: createLabel, disabled: !newLabelName.trim() }, 'Crea'),
+            )
+          )
+    );
+  };
+
+  // ── Face/system selection helpers ───────────────────────
+  const getAvailFaces  = (sys) => (sys.faceObjs||[]).filter(f => f.state !== 'Reserved');
+  const getSelFaces    = (sys) => (sys.faceObjs||[]).filter(f => selectedFaceIds.has(f.id));
+  const sysCheckState  = (sys) => {
+    const avail = getAvailFaces(sys);
+    const sel   = getSelFaces(sys);
+    if (sel.length === 0)  return 'none';
+    if (avail.length > 0 && sel.length >= avail.length) return 'all';
+    return 'partial';
+  };
+  const toggleSys = (sys) => {
+    if (readOnly) return;
+    setSelectedFaceIds(prev => {
+      const next = new Set(prev);
+      const cs   = sysCheckState(sys);
+      if (cs === 'none' || cs === 'partial') {
+        getAvailFaces(sys).forEach(f => next.add(f.id));
+      } else {
+        (sys.faceObjs||[]).forEach(f => next.delete(f.id));
+      }
+      return next;
+    });
+  };
+  const toggleFace = (face) => {
+    if (readOnly || face.state === 'Reserved') return;
+    setSelectedFaceIds(prev => {
+      const next = new Set(prev);
+      if (next.has(face.id)) next.delete(face.id); else next.add(face.id);
+      return next;
+    });
+  };
+  const toggleExpand = (sysId, e) => {
+    e.stopPropagation();
+    setExpandedSysIds(prev => {
+      const next = new Set(prev);
+      if (next.has(sysId)) next.delete(sysId); else next.add(sysId);
+      return next;
+    });
+  };
+
+  // Derived: which systems have ≥1 face selected (for map markers)
+  const selectedSystemIds = React.useMemo(() => {
+    const ids = new Set();
+    SEARCH_RESULTS.forEach(s => {
+      if ((s.faceObjs||[]).some(f => selectedFaceIds.has(f.id))) ids.add(s.id);
+    });
+    return ids;
+  }, [selectedFaceIds]);
+
+  const mapContainerRef = React.useRef(null);
+  const leafletMapRef   = React.useRef(null);
+  const clusterGroupRef = React.useRef(null);
+
+
+  const suggestions = searchQuery.length >= 2
+    ? GEO_SUGGESTIONS.filter(s => s.label.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 6)
+    : [];
+
+  const flyTo = (lat, lng, zoom) => {
+    if (leafletMapRef.current) leafletMapRef.current.flyTo([lat, lng], zoom || 15, { duration: 0.8 });
+    setShowSuggestions(false);
+  };
+
+  const makeIcon = (sys, isSelected, isHovered) => {
+    const color   = AVAIL_COLOR[sys.state] || '#D9D9D9';
+    const w       = isSelected ? 28 : isHovered ? 26 : 22;
+    const h       = Math.round(w * 1.45);
+    const stroke  = isSelected ? '#fff' : 'rgba(255,255,255,0.9)';
+    const sw      = isSelected ? 2.5 : 1.5;
+    const opacity = isSelected ? 1 : isHovered ? 0.95 : 0.88;
+    const filter  = isSelected
+      ? 'drop-shadow(0 2px 6px rgba(62,0,251,0.4)) drop-shadow(0 1px 3px rgba(0,0,0,0.3))'
+      : isHovered
+        ? 'drop-shadow(0 2px 5px rgba(0,0,0,0.35))'
+        : 'drop-shadow(0 1px 3px rgba(0,0,0,0.25))';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 28 40" style="filter:${filter};opacity:${opacity}">
+      <path d="M14 1C7.373 1 2 6.373 2 13c0 9.5 12 26 12 26S26 22.5 26 13C26 6.373 20.627 1 14 1z"
+        fill="${color}" stroke="${stroke}" stroke-width="${sw}"/>
+      <circle cx="14" cy="13" r="5" fill="rgba(255,255,255,0.55)"/>
+    </svg>`;
+    return L.divIcon({
+      html: svg,
+      className: '',
+      iconSize:   [w, h],
+      iconAnchor: [w / 2, h],
+      tooltipAnchor: [0, -h],
+    });
+  };
+
+  // Init Leaflet
+  // Pre-popola selezione mock per pianificazioni completate
+  React.useEffect(() => {
+    if (!readOnly) return;
+    const count = planning.faces || 6;
+    const mockFaces = new Set();
+    for (const sys of SEARCH_RESULTS) {
+      if (mockFaces.size >= count) break;
+      const avail = (sys.faceObjs || []).filter(f => f.state !== 'Reserved');
+      avail.slice(0, 1).forEach(f => mockFaces.add(f.id));
+    }
+    setSelectedFaceIds(mockFaces);
+  }, []);
+
+  React.useEffect(() => {
+    if (!mapContainerRef.current || leafletMapRef.current) return;
+
+    // Inizializza senza centro/zoom: verrà impostato via fitBounds dopo il setup
+    const map = L.map(mapContainerRef.current);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20,
+    }).addTo(map);
+
+    const clusterColor = (n) => {
+      if (n <= 2)  return { bg: '#D9F7BE', fg: '#135200' };
+      if (n <= 5)  return { bg: '#B7EB8F', fg: '#135200' };
+      if (n <= 10) return { bg: '#73D13D', fg: '#135200' };
+      if (n <= 20) return { bg: '#52C41A', fg: '#fff' };
+      if (n <= 50) return { bg: '#389E0D', fg: '#fff' };
+      return               { bg: '#237804', fg: '#fff' };
+    };
+
+    const cluster = typeof L.markerClusterGroup === 'function'
+      ? L.markerClusterGroup({
+          maxClusterRadius: 40,
+          showCoverageOnHover: false,
+          spiderfyOnMaxZoom: true,
+          iconCreateFunction: (c) => {
+            const n = c.getChildCount();
+            const { bg, fg } = clusterColor(n);
+            const s = n <= 5 ? 32 : n <= 20 ? 36 : 40;
+            return L.divIcon({
+              html: `<div style="width:${s}px;height:${s}px;background:${bg};color:${fg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.18);border:2px solid rgba(255,255,255,0.85);">${n}</div>`,
+              className: '',
+              iconSize: [s, s],
+              iconAnchor: [s/2, s/2],
+            });
+          },
+        })
+      : L.layerGroup();
+
+    map.addLayer(cluster);
+
+    // Inquadratura iniziale basata sul brief.
+    // La sidebar (420px) copre la destra: dopo fitBounds spostiamo il contenuto
+    // a sinistra di metà sidebar con panBy([+210, 0]) così risulta centrato
+    // nella porzione visibile.
+    const zones = planning.briefZones || [];
+    const PAD = 40;
+    const pan = () => map.panBy([210, 0], { animate: false });
+    if (zones.length === 0) {
+      map.fitBounds(L.latLngBounds(PLANNER.areaBounds), { padding: [PAD, PAD] });
+      pan();
+    } else if (zones.length === 1) {
+      map.setView([zones[0].lat, zones[0].lng], zones[0].zoom || 14);
+      pan();
+    } else {
+      const bounds = L.latLngBounds(zones.map(z => [z.lat, z.lng]));
+      map.fitBounds(bounds, { padding: [PAD, PAD], maxZoom: 15 });
+      pan();
+    }
+
+    leafletMapRef.current = map;
+    clusterGroupRef.current = cluster;
+
+    return () => { map.remove(); leafletMapRef.current = null; clusterGroupRef.current = null; };
+  }, []);
+
+  // Update markers on state change
+  React.useEffect(() => {
+    const cluster = clusterGroupRef.current;
+    if (!cluster) return;
+    cluster.clearLayers();
+
+    const visible = SEARCH_RESULTS.filter(r => {
+      if (showOnlySelected && !selectedSystemIds.has(r.id)) return false;
+      if (!visibleStates.includes(r.state)) return false;
+      if (!sysMatchesZones(r, selectedZones)) return false;
+      if (selectedTypes.length !== ALL_TYPE_FLAT.length && !selectedTypes.includes(r.type)) return false;
+      return true;
+    });
+    visible.forEach(sys => {
+      if (!sys.lat || !sys.lng) return;
+      const isSel = selectedSystemIds.has(sys.id);
+      const isHov = hoveredId === sys.id;
+      const marker = L.marker([sys.lat, sys.lng], {
+        icon: makeIcon(sys, isSel, isHov),
+        zIndexOffset: isSel ? 1000 : isHov ? 500 : 0,
+      });
+      const faceCount = (sys.faceObjs||[]).length;
+      const label     = sys.label ? `★ ${sys.label}` : `${sys.cimasa} · ${sys.type}`;
+      marker.bindTooltip(
+        `<b>${label}</b><br><span style="opacity:0.75">${sys.address} — ${faceCount} ${faceCount===1?'faccia':'facce'}</span>`,
+        { direction: 'top', className: 'ss-leaflet-tooltip', offset: [0, -2] }
+      );
+      marker.on('click',     () => toggleSys(sys));
+      marker.on('mouseover', () => setHoveredId(sys.id));
+      marker.on('mouseout',  () => setHoveredId(null));
+      cluster.addLayer(marker);
+    });
+  }, [selectedFaceIds, hoveredId, visibleStates, selectedZones, selectedTypes, showOnlySelected, selectedSystemIds]);
+
+  const filteredSystems = SEARCH_RESULTS.filter(r => {
+    if (!visibleStates.includes(r.state)) return false;
+    if (!sysMatchesZones(r, selectedZones)) return false;
+    if (selectedTypes.length !== ALL_TYPE_FLAT.length && !selectedTypes.includes(r.type)) return false;
+    return true;
+  });
+
+  const displayedItems = panelTab === 'selected'
+    ? filteredSystems.filter(r => selectedSystemIds.has(r.id))
+    : filteredSystems;
+
+  // ── Select all / deselect all visible ──────────────────
+  const allDisplayedAvailFaces = displayedItems.flatMap(s => getAvailFaces(s));
+  const allDisplayedSelected   = allDisplayedAvailFaces.length > 0 &&
+                                  allDisplayedAvailFaces.every(f => selectedFaceIds.has(f.id));
+  const selectAllVisible = () => {
+    setSelectedFaceIds(prev => {
+      const next = new Set(prev);
+      allDisplayedAvailFaces.forEach(f => next.add(f.id));
+      return next;
+    });
+  };
+  const deselectAllVisible = () => {
+    setSelectedFaceIds(prev => {
+      const next = new Set(prev);
+      displayedItems.forEach(s => (s.faceObjs||[]).forEach(f => next.delete(f.id)));
+      return next;
+    });
+  };
+
+  const totalSelFaces = selectedFaceIds.size;
+
+  // ── Render single accordion system row ─────────────────
+  const renderSysRow = (sys) => {
+    const cs        = sysCheckState(sys);
+    const isExp     = expandedSysIds.has(sys.id);
+    const isHov     = hoveredId === sys.id;
+    const isPremium = !!sys.label;
+    const totalF    = (sys.faceObjs||[]).length;
+    const availF    = getAvailFaces(sys).length;
+
+    // Formato del sistema (tutte le facce hanno lo stesso formato)
+    const sysFmt = (sys.faceObjs||[])[0]?.format || '';
+
+    // "2/4 disp." if some reserved, else "3 facce"
+    const faceBadgeText = availF < totalF ? `${availF}/${totalF} disp.` : `${totalF} ${totalF===1?'faccia':'facce'}`;
+    const faceBadgeCls  = cs === 'none' ? 'ss-face-badge ss-face-badge-none'
+                        : cs === 'all'  ? 'ss-face-badge ss-face-badge-all'
+                                        : 'ss-face-badge ss-face-badge-part';
+    const headCls = ['ss-sys-head', cs!=='none'?'ss-sys-selected':'', isHov?'ss-sys-hovered':''].filter(Boolean).join(' ');
+    const TypeIconFn = TYPE_ICON[sys.type];
+
+    return React.createElement('div', {
+      key: sys.id,
+      className: 'ss-sys-row',
+    },
+      // ── head ──────────────────────────────────────────
+      React.createElement('div', {
+        className: headCls,
+        onMouseEnter: () => setHoveredId(sys.id),
+        onMouseLeave: () => setHoveredId(null),
+      },
+        // Checkbox a sinistra
+        React.createElement(Checkbox, {
+          checked: cs === 'all',
+          indeterminate: cs === 'partial',
+          onChange: () => toggleSys(sys),
+          onClick: e => e.stopPropagation(),
+          style: { flexShrink: 0 },
+        }),
+        React.createElement('div', { className: 'ss-sys-info' },
+          // Nome + etichetta (se presente) o icona picker
+          React.createElement('div', { className: `ss-sys-label${isPremium?' ss-sys-premium':''}`, style: { display: 'flex', alignItems: 'center', gap: 5 } },
+            sys.label || sys.cimasa,
+            (() => {
+              const firstLbl = (systemLabels[sys.id] || [])
+                .map(id => availableLabels.find(l => l.id === id)).filter(Boolean)[0];
+              return React.createElement(Popover, {
+                open: pickerOpenId === sys.id,
+                onOpenChange: v => { if (v) setPickerOpenId(sys.id); else closePicker(); },
+                content: renderLabelPicker(sys.id),
+                trigger: 'click',
+                placement: 'bottomRight',
+                arrow: false,
+              },
+                firstLbl
+                  ? React.createElement('span', {
+                      className: 'ss-label-chip',
+                      style: { background: firstLbl.color + '18', borderColor: firstLbl.color + '55', color: firstLbl.color, cursor: 'pointer' },
+                      onClick: e => e.stopPropagation(),
+                    },
+                      React.createElement(TagOutlined, { style: { fontSize: 10 } }),
+                      firstLbl.name,
+                    )
+                  : React.createElement('span', {
+                      className: 'ss-label-btn',
+                      onClick: e => e.stopPropagation(),
+                      title: 'Aggiungi etichetta',
+                    }, React.createElement(TagOutlined)),
+              );
+            })(),
+          ),
+          // Indirizzo
+          React.createElement('div', { className: 'ss-sys-addr' }, `${sys.address} — ${sys.city}`),
+          // Tipo + formato
+          React.createElement('div', { className: 'ss-sys-meta' },
+            TypeIconFn && React.createElement('span', { className: 'ss-sys-meta-icon' }, TypeIconFn()),
+            React.createElement('span', { className: 'ss-sys-meta-type' }, sys.type),
+            sysFmt && React.createElement('span', { className: 'ss-sys-meta-sep' }, '·'),
+            sysFmt && React.createElement('span', { className: 'ss-sys-meta-fmt' }, sysFmt),
+          ),
+        ),
+        React.createElement('span', { className: faceBadgeCls }, faceBadgeText),
+        // Chevron a destra
+        React.createElement('span', {
+          className: 'ss-expand-btn',
+          onClick: (e) => toggleExpand(sys.id, e),
+        }, isExp ? React.createElement(DownOutlined) : React.createElement(RightOutlined)),
+      ),
+      // ── faces (expanded) ──────────────────────────────
+      isExp && React.createElement('div', { className: 'ss-faces-body' },
+        ...(sys.faceObjs||[]).map(face => {
+          const isSel      = selectedFaceIds.has(face.id);
+          const isDisabled = face.state === 'Reserved';
+          const rowCls     = ['ss-face-row', isSel?'ss-face-selected':'', isDisabled?'ss-face-disabled':''].filter(Boolean).join(' ');
+          return React.createElement('div', {
+            key: face.id,
+            className: rowCls,
+            onClick: () => !isDisabled && toggleFace(face),
+          },
+            React.createElement(Checkbox, {
+              checked: isSel, disabled: isDisabled,
+              onChange: () => toggleFace(face),
+              onClick: e => e.stopPropagation(),
+              style: { flexShrink: 0 },
+            }),
+            React.createElement('span', { className: 'ss-face-type', style: { display: 'flex', alignItems: 'center', gap: 4 } },
+              face.label,
+              face.illuminated && React.createElement(BulbOutlined, { style: { color: '#FA8C16', fontSize: 11 }, title: 'Illuminata' })
+            ),
+            React.createElement('span', { className: 'ss-face-format' }, face.format),
+            React.createElement('div', { className: 'ss-face-state' },
+              React.createElement('span', { className: 'ss-face-dot', style: { background: AVAIL_COLOR[face.state]||'#D9D9D9' } }),
+              STATE_LABELS[face.state] || face.state,
+            ),
+            face.price && React.createElement('span', { className: 'ss-face-price' },
+              '€\u00a0' + face.price.toLocaleString('it-IT')
+            ),
+          );
+        })
+      ),
+    );
+  };
+
+  const saveBtn = React.createElement(antd.Button, {
+    type: 'primary',
+    icon: React.createElement(icons.CheckOutlined),
+    block: true,
+    disabled: totalSelFaces === 0,
+    onClick: () => onApply(selectedFaceIds),
+  }, totalSelFaces > 0 ? `Salva (${selectedSystemIds.size} imp. · ${totalSelFaces} facce)` : 'Salva e chiudi');
+
+  return React.createElement('div', { className: 'ss-root-nr' },
+    React.createElement('div', { className: 'ss-content-nr' },
+
+    // ── Header card ──────────────────────────────────────────
+    React.createElement(PlanningHeaderNR, { planning, onBack }),
+
+    // ── Workspace: sidebar + contenuto ───────────────────────
+    React.createElement('div', { className: 'ss-workspace-nr' },
+      showBrief
+        ? React.createElement(BriefPanelNR, { planning, onToggle: () => setShowBrief(false), selectedFaceIds })
+        : React.createElement('div', { className: 'bpn-collapsed', onClick: () => setShowBrief(true), title: 'Mostra brief' },
+            React.createElement('span', { className: 'bpn-collapsed-label' }, 'Brief')
+          ),
+      React.createElement('div', { className: 'ss-main-nr' },
+
+    // ── Banner readOnly ──────────────────────────────────────
+    readOnly && React.createElement(antd.Alert, {
+      type: 'info',
+      showIcon: true,
+      message: 'Pianificazione completata · Visualizzazione storica',
+      description: 'Questa pianificazione è in espletamento. Puoi consultare gli impianti e usare ricerca e filtri, ma non puoi modificare la selezione.',
+      style: { marginBottom: 0, borderRadius: 8 },
+    }),
+
+    // ── Card 2: Search ───────────────────────────────────────
+    React.createElement('div', { className: 'ss-card ss-card-search' },
+      React.createElement('div', { className: 'ss-search-bar' },
+        React.createElement('div', { className: 'ss-search-input-wrap' },
+          React.createElement(Input, {
+            size: 'large',
+            placeholder: 'Cerca via, quartiere, città, provincia…',
+            value: searchQuery,
+            prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.35)' } }),
+            allowClear: true,
+            onChange: e => {
+              setSearchQuery(e.target.value);
+              setShowSuggestions(e.target.value.length >= 2);
+            },
+            onFocus: () => searchQuery.length >= 2 && setShowSuggestions(true),
+            onBlur: () => setTimeout(() => setShowSuggestions(false), 200),
+          }),
+          showSuggestions && suggestions.length > 0 && React.createElement('div', { className: 'ss-suggestions-wrap' },
+            ...suggestions.map(s =>
+              React.createElement('div', {
+                key: s.label,
+                className: 'ss-suggestion-item',
+                onMouseDown: () => { setSearchQuery(s.label); flyTo(s.lat, s.lng, 15); },
+              },
+                React.createElement(EnvironmentOutlined, { style: { color: '#3E00FB', fontSize: 13, flexShrink: 0 } }),
+                s.label
+              )
+            )
+          )
+        ),
+        React.createElement(Button, {
+          size: 'large',
+          icon: React.createElement(FilterOutlined),
+          type: 'default',
+          onClick: () => setFilterDrawerOpen(true),
+        },
+          'Filtri',
+          activeFilterCount > 0 && React.createElement('span', {
+            style: {
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 16, height: 16, borderRadius: 4,
+              background: '#3E00FB', color: '#fff',
+              fontSize: 10, fontWeight: 700, lineHeight: 1,
+              marginLeft: 6, flexShrink: 0,
+            }
+          }, activeFilterCount)
+        ),
+        React.createElement(Button, {
+          size: 'large',
+          icon: React.createElement(EnvironmentOutlined),
+          onClick: () => setPoiDrawerOpen(true),
+        }, 'POI'),
+        React.createElement(Button, {
+          size: 'large',
+          type: 'primary',
+          icon: React.createElement(SearchOutlined),
+        }, 'Cerca')
+      ),
+      // Chip filtro: Zone e Tipologie richieste dal brief
+      React.createElement('div', { className: 'ss-brief-chips' },
+
+        // Label unica "Dal brief"
+        React.createElement('span', { className: 'ss-brief-label' }, 'Suggeriti dal brief'),
+
+        // Gruppo Zone
+        planning.briefZones && planning.briefZones.length > 0
+          ? React.createElement(React.Fragment, null,
+              ...planning.briefZones.map(chip => {
+                const isActive = selectedZones.includes(chip.label);
+                return React.createElement('span', {
+                  key: chip.label,
+                  className: 'ss-brief-chip' + (isActive ? ' ss-brief-chip-active' : ''),
+                  onClick: () => {
+                    setSelectedZones(prev => isActive ? prev.filter(z => z !== chip.label) : [...prev, chip.label]);
+                    if (!isActive) flyTo(chip.lat, chip.lng, chip.zoom);
+                  },
+                },
+                  React.createElement(EnvironmentOutlined, { style: { fontSize: 11, opacity: isActive ? 0.75 : 0.4 } }),
+                  chip.label
+                );
+              })
+            )
+          : React.createElement(React.Fragment, null,
+              ...PLANNER.defaultChips.map(chip =>
+                React.createElement('span', {
+                  key: chip.label,
+                  className: 'ss-brief-chip',
+                  onClick: () => flyTo(chip.lat, chip.lng, chip.zoom),
+                },
+                  React.createElement(EnvironmentOutlined, { style: { fontSize: 11, opacity: 0.4 } }),
+                  chip.label
+                )
+              )
+            ),
+
+        // Separatore tra gruppi
+        planning.briefZones && planning.briefZones.length > 0 &&
+        planning.requestedTypes && planning.requestedTypes.length > 0 &&
+          React.createElement('span', {
+            style: { width: 1, height: 14, background: 'rgba(0,0,0,0.15)', alignSelf: 'center', flexShrink: 0, margin: '0 4px' }
+          }),
+
+        // Gruppo Tipo impianto (chip dal brief → pilotano selectedTypes)
+        planning.requestedTypes && planning.requestedTypes.length > 0 &&
+          React.createElement(React.Fragment, null,
+            ...planning.requestedTypes.map(type => {
+              const isFiltering = selectedTypes.length !== ALL_TYPE_FLAT.length;
+              const isActive = isFiltering && selectedTypes.includes(type);
+              return React.createElement('span', {
+                key: type,
+                className: 'ss-brief-chip' + (isActive ? ' ss-brief-chip-active' : ''),
+                onClick: () => {
+                  if (!isFiltering) {
+                    // Prima selezione: passa da "tutti" a solo questo tipo
+                    setSelectedTypes([type]);
+                  } else if (isActive) {
+                    // Deseleziona: se rimane vuoto, torna a tutti
+                    const next = selectedTypes.filter(t => t !== type);
+                    setSelectedTypes(next.length > 0 ? next : ALL_TYPE_FLAT);
+                  } else {
+                    // Aggiunge al set attivo
+                    setSelectedTypes([...selectedTypes, type]);
+                  }
+                },
+              }, type);
+            })
+          )
+      )
+    ),
+
+    // ── Card 3: Mappa con right panel ────────────────────────
+    React.createElement('div', { className: 'ss-card ss-card-map' },
+
+      // Leaflet container
+      React.createElement('div', { ref: mapContainerRef, className: 'ss-leaflet-map' }),
+
+      // Info box sulla mappa
+      React.createElement('div', { className: 'ss-map-infobox' },
+        // Header — count impianti disponibili per le date
+        React.createElement('div', { className: 'ss-infobox-header' },
+          React.createElement('div', { className: 'ss-infobox-count' },
+            showOnlySelected
+              ? selectedSystemIds.size
+              : filteredSystems.filter(s => s.state === 'Available' || s.state === 'In Option').length
+          ),
+          React.createElement('div', { className: 'ss-infobox-count-label' },
+            showOnlySelected
+              ? 'selezionati'
+              : visibleStates.includes('In Option') && !visibleStates.includes('Reserved')
+              ? 'selezionabili (incl. in opzione)'
+              : visibleStates.length === 1 && visibleStates[0] === 'Available'
+              ? 'disponibili per le date'
+              : 'selezionabili'
+          )
+        ),
+        // Body — contesto
+        React.createElement('div', { className: 'ss-infobox-body' },
+          React.createElement('div', { className: 'ss-infobox-row' },
+            React.createElement('span', { className: 'ss-infobox-label' }, 'Canale'),
+            React.createElement(CategoryTag, { category: planning.category })
+          ),
+          React.createElement('div', { className: 'ss-infobox-row' },
+            React.createElement('span', { className: 'ss-infobox-label' }, 'Periodo'),
+            React.createElement('span', { className: 'ss-infobox-value' }, `${planning.start} – ${planning.end}`)
+          ),
+          React.createElement('div', { className: 'ss-infobox-row' },
+            React.createElement('span', { className: 'ss-infobox-label' }, 'Stato'),
+            React.createElement('span', { className: 'ss-infobox-value', style: { display: 'inline-flex', alignItems: 'center', gap: 5 } },
+              React.createElement('span', {
+                style: {
+                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0, display: 'inline-block',
+                  background: visibleStates.length === 1 && visibleStates[0] === 'Available'
+                    ? '#52C41A'
+                    : visibleStates.includes('Available') && visibleStates.includes('In Option') && !visibleStates.includes('Reserved')
+                    ? '#FA8C16'
+                    : visibleStates.length === 1 && visibleStates[0] === 'In Option'
+                    ? '#FA8C16'
+                    : visibleStates.length === 1 && visibleStates[0] === 'Reserved'
+                    ? '#FF4A1C'
+                    : '#8C8C8C',
+                }
+              }),
+              visibleStates.length === 1 && visibleStates[0] === 'Available'
+                ? 'Solo disponibili'
+              : visibleStates.length === 1 && visibleStates[0] === 'In Option'
+                ? 'In opzione'
+              : visibleStates.length === 1 && visibleStates[0] === 'Reserved'
+                ? 'Solo riservati'
+              : visibleStates.includes('Available') && visibleStates.includes('In Option') && !visibleStates.includes('Reserved')
+                ? 'Disp. + In opzione'
+              : visibleStates.length >= 3
+                ? 'Tutti gli stati'
+              : visibleStates.map(s => s === 'Available' ? 'Disp.' : s === 'In Option' ? 'In opz.' : 'Ris.').join(' + ')
+            )
+          )
+        ),
+        // Toggle: solo selezionati su mappa
+        React.createElement('div', {
+          className: 'ss-infobox-toggle',
+          onClick: () => setShowOnlySelected(v => !v),
+          style: { background: showOnlySelected ? '#F0EAFF' : undefined }
+        },
+          React.createElement('span', { style: { fontSize: 11, color: showOnlySelected ? '#3E00FB' : 'rgba(0,0,0,0.55)', fontWeight: showOnlySelected ? 600 : 400 } },
+            '● Solo selezionati su mappa'
+          ),
+          React.createElement('span', {
+            style: {
+              width: 28, height: 16, borderRadius: 8, border: '1px solid',
+              borderColor: showOnlySelected ? '#3E00FB' : '#D9D9D9',
+              background: showOnlySelected ? '#3E00FB' : '#fff',
+              position: 'relative', display: 'inline-block', flexShrink: 0,
+              transition: 'all 0.2s',
+            }
+          },
+            React.createElement('span', {
+              style: {
+                position: 'absolute', top: 1,
+                left: showOnlySelected ? 13 : 1,
+                width: 12, height: 12, borderRadius: '50%',
+                background: showOnlySelected ? '#fff' : '#BFBFBF',
+                transition: 'left 0.2s',
+              }
+            })
+          )
+        ),
+        // Footer — filtri attivi
+        React.createElement('div', { className: 'ss-infobox-footer', style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+          React.createElement('span', {
+            style: {
+              fontSize: 11,
+              color: activeFilterCount > 0 ? '#3E00FB' : 'rgba(0,0,0,0.3)',
+              fontWeight: activeFilterCount > 0 ? 600 : 400,
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }
+          },
+            activeFilterCount > 0 && React.createElement('span', {
+              style: {
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 16, height: 16, borderRadius: 4,
+                background: '#3E00FB', color: '#fff',
+                fontSize: 10, fontWeight: 700, lineHeight: 1, flexShrink: 0,
+              }
+            }, activeFilterCount),
+            activeFilterCount > 0
+              ? `${activeFilterCount === 1 ? 'filtro attivo' : 'filtri attivi'}`
+              : 'Nessun filtro attivo'
+          ),
+          React.createElement('a', {
+            className: 'ss-infobox-link',
+            onClick: () => setFilterDrawerOpen(true),
+          }, 'Modifica →')
+        )
+      ),
+
+      // Right panel overlay
+      React.createElement('div', { className: `ss-panel${panelOpen ? '' : ' ss-panel-hidden'}` },
+        // Toggle button
+        React.createElement('div', {
+          className: 'ss-panel-toggle',
+          onClick: () => setPanelOpen(v => !v),
+        },
+          panelOpen
+            ? React.createElement(RightOutlined, { style: { fontSize: 11 } })
+            : React.createElement(LeftOutlined,  { style: { fontSize: 11 } })
+        ),
+        // Tab header
+        React.createElement('div', { className: 'ss-panel-header' },
+          React.createElement('div', {
+            className: `ss-panel-tab${panelTab === 'results' ? ' active' : ''}`,
+            onClick: () => setPanelTab('results'),
+          }, `Risultati (${filteredSystems.length})`),
+          React.createElement('div', {
+            className: `ss-panel-tab${panelTab === 'selected' ? ' active' : ''}`,
+            onClick: () => setPanelTab('selected'),
+          }, totalSelFaces > 0
+            ? `Sel. (${selectedSystemIds.size} · ${totalSelFaces} fc.)`
+            : 'Selezionati'),
+        ),
+        // Toolbar — select all
+        displayedItems.length > 0 && React.createElement('div', { className: 'ss-panel-toolbar' },
+          React.createElement('span', { className: 'ss-panel-toolbar-info' },
+            `${displayedItems.length} impianti`
+          ),
+          React.createElement('span', {
+            className: 'ss-panel-toolbar-action',
+            onClick: allDisplayedSelected ? deselectAllVisible : selectAllVisible,
+          }, allDisplayedSelected ? 'Deseleziona tutti' : 'Seleziona tutti'),
+        ),
+        // Body — accordion
+        React.createElement('div', { className: 'ss-panel-body' },
+          displayedItems.length === 0
+            ? React.createElement('div', { className: 'ss-panel-empty' },
+                React.createElement(Empty, {
+                  description: panelTab === 'selected' ? 'Nessun impianto selezionato' : 'Nessun risultato',
+                  image: Empty.PRESENTED_IMAGE_SIMPLE,
+                })
+              )
+            : displayedItems.map(sys => renderSysRow(sys))
+        ),
+      )
+    ),
+
+    // ── Drawer: Filtri ───────────────────────────────────────
+    React.createElement(Drawer, {
+      title: 'Filtri',
+      placement: 'right',
+      width: 380,
+      open: filterDrawerOpen,
+      onClose: () => setFilterDrawerOpen(false),
+      footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between' } },
+        React.createElement(Button, { danger: true, type: 'text', onClick: resetFilters }, 'Azzera tutto'),
+        React.createElement(Button, { type: 'primary', onClick: () => setFilterDrawerOpen(false) }, 'Applica')
+      ),
+    },
+      React.createElement(FilterPanel, {
+        visibleStates, onVisibleStatesChange: setVisibleStates,
+        selectedTypes, onSelectedTypesChange: setSelectedTypes,
+        selectedModels, onSelectedModelsChange: setSelectedModels,
+        selectedIllumination, onSelectedIlluminationChange: setSelectedIllumination,
+        minFacesEnabled, onMinFacesEnabledChange: setMinFacesEnabled,
+        minFacesValue, onMinFacesValueChange: setMinFacesValue,
+        selectedZones, onSelectedZonesChange: setSelectedZones,
+      })
+    ),
+
+    // ── Drawer: POI ──────────────────────────────────────────
+    React.createElement(Drawer, {
+      title: 'Ricerca per POI',
+      placement: 'right',
+      width: 380,
+      open: poiDrawerOpen,
+      onClose: () => setPoiDrawerOpen(false),
+      footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8 } },
+        React.createElement(Button, { onClick: () => setPoiDrawerOpen(false) }, 'Annulla'),
+        React.createElement(Button, { type: 'primary', disabled: true, icon: React.createElement(EnvironmentOutlined) }, 'Applica POI')
+      ),
+    },
+      React.createElement(POIPanel)
+    )  // close POI Drawer
+      )    // close ss-main-nr
+    )    // close ss-workspace-nr
+    )    // close ss-content-nr
+  );   // close ss-root-nr
+}
+
+// ══════════════════════════════════════════════════════
+// APP ROOT
+// ══════════════════════════════════════════════════════
+
+function AppRoot() {
+  const [view, setView] = useState('list');  // 'list' | 'detail' | 'select-systems'
+  const [selectedPlanning, setSelectedPlanning] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  // Overrides di stato per plannings: riflette cambiamenti runtime nella lista
+  const [stateOverrides, setStateOverrides] = useState({});
+
+  // Compute which nav key is active based on current view
+  const activeNavKey = (view === 'list' || view === 'detail' || view === 'select-systems')
+    ? 'plannings'
+    : 'overview';
+
+  function handleNavSelect(key) {
+    if (key === 'plannings') {
+      setView('list');
+      setSelectedPlanning(null);
+    }
+    // other keys: Overview, Inventory, Campaigns — navigazione futura
+  }
+
+  function handleSelectPlanning(planning) {
+    setSelectedPlanning(planning);
+    setView('select-systems');
+  }
+
+  function handleBackToList() {
+    setView('list');
+    setSelectedPlanning(null);
+  }
+
+  function handleStartPlanning() {
+    setView('select-systems');
+  }
+
+  function handleApplySelection(selectedFaceIds) {
+    setSelectedPlanning(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, hasSystems: true, state: 'In trattativa', faces: selectedFaceIds ? selectedFaceIds.size : prev.faces };
+      setStateOverrides(o => ({ ...o, [prev.id]: 'In trattativa' }));
+      return updated;
+    });
+    setView('list');
+  }
+
+  return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
+    React.createElement(App, null,
+      React.createElement('div', { className: 'app-shell' },
+        React.createElement(TopNav, { activeNavKey, onNavSelect: handleNavSelect }),
+        React.createElement('main', { className: 'app-main' },
+          view === 'list' && React.createElement(PlanningsList, {
+            onSelect: handleSelectPlanning,
+            onNew: () => setDrawerOpen(true),
+            stateOverrides,
+          }),
+          view === 'detail' && selectedPlanning && React.createElement(PlanningDetail, {
+            planning: selectedPlanning,
+            onBack: handleBackToList,
+            onStartPlanning: handleStartPlanning,
+          }),
+          view === 'select-systems' && selectedPlanning && React.createElement(SelectSystems, {
+            planning: selectedPlanning,
+            onBack: () => setView('list'),
+            onApply: handleApplySelection,
+          })
+        ),
+        React.createElement(NewPlanningDrawer, {
+          open: drawerOpen,
+          onClose: () => setDrawerOpen(false),
+          onCreate: () => setDrawerOpen(false),
+        })
+      )
+    )
+  );
+}
+
+// ── Mount ──────────────────────────────────────────────
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(AppRoot));
+</script>
+</body>
+</html>
