@@ -66,7 +66,6 @@
     .ooh-search-card {
       background: #fff;
       border-radius: 8px;
-      border: 1px solid #F0F0F0;
       flex-shrink: 0;
       align-self: stretch;
       display: flex;
@@ -300,7 +299,7 @@
 <div id="root"></div>
 <script>
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
-const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select } = antd;
+const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown } = antd;
 const { Text } = Typography;
 const {
   SearchOutlined, BellOutlined, PlusOutlined, AppstoreOutlined, SendOutlined,
@@ -1587,7 +1586,6 @@ function ListView({ impianti, viewMode, setViewMode }) {
   return React.createElement('div', {
     style: {
       display: 'flex', flexDirection: 'column',
-      background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0',
       flex: 1, minHeight: 0, overflow: 'hidden',
     }
   },
@@ -1595,7 +1593,6 @@ function ListView({ impianti, viewMode, setViewMode }) {
     React.createElement('div', {
       style: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        borderBottom: '1px solid #F0F0F0',
         padding: '10px 16px', flexShrink: 0, gap: 16,
       }
     },
@@ -1627,15 +1624,6 @@ function ListView({ impianti, viewMode, setViewMode }) {
           }),
         ),
 
-        // Toggle mappa/lista
-        React.createElement(Segmented, {
-          value: viewMode,
-          onChange: setViewMode,
-          options: [
-            { value: 'map',  icon: React.createElement(EnvironmentOutlined), label: 'Mappa' },
-            { value: 'list', icon: React.createElement(BarsOutlined),        label: 'Lista' },
-          ],
-        }),
       ),
     ),
 
@@ -1958,167 +1946,196 @@ function App() {
 
 
 
-  return React.createElement('div', { className: 'app-shell' },
-    React.createElement(Navbar),
-
-    React.createElement('div', { className: 'ooh-workspace' },
-
-      // ── SEARCH CARD (top) ──────────────────────────────
-      React.createElement('div', { className: 'ooh-search-card' },
-        React.createElement('div', { className: 'ooh-search-area' },
-
-          // Titolo
-          React.createElement('div', { style: { display: 'flex', justifyContent: 'center' } },
-            React.createElement('span', { style: { fontSize: 22, fontWeight: 700, color: 'rgba(0,0,0,0.88)', letterSpacing: '-0.3px' } }, 'Parco Impianti'),
-          ),
-
-          // Search bar — compact + CTA
-          React.createElement('div', { className: 'ss-search-bar' },
-
-            // Compact group: input + filtri + cerca
-            React.createElement('div', { style: { flex: 1, maxWidth: 900, position: 'relative' } },
-              React.createElement(Space.Compact, { style: { width: '100%' } },
-                React.createElement(Input, {
-                  placeholder: 'Cerca via, quartiere, città, provincia…',
-                  prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.3)', fontSize: 14 } }),
-                  allowClear: true,
-                  value: searchQuery,
-                  onChange: e => {
-                    setSearchQuery(e.target.value);
-                    setShowSugg(e.target.value.length >= 2);
-                    if (!e.target.value) clearZoneSearch();
-                  },
-                  onFocus: () => { if (searchQuery.length >= 2) setShowSugg(true); },
-                  onBlur: () => setTimeout(() => setShowSugg(false), 180),
-                  onPressEnter: () => applyZoneSearch(),
-                }),
-                React.createElement(Button, {
-                  icon: React.createElement(SlidersOutlined),
-                  onClick: openFilterDrawer,
-                }, activeFilterCount > 0 ? `Filtri (${activeFilterCount})` : 'Filtri'),
-                React.createElement(Button, {
-                  icon: React.createElement(SearchOutlined),
-                  onClick: () => applyZoneSearch(),
-                }, 'Cerca'),
-              ),
-
-              // Dropdown zona
-              showSugg && suggestions.length > 0 && React.createElement('div', { className: 'ss-suggestions-wrap' },
-                suggestions.map(group =>
-                  React.createElement(React.Fragment, { key: group.key },
-                    React.createElement('div', { className: 'ss-sugg-group-title' }, group.label),
-                    group.items.map(s => {
-                      const cfg = SUGG_CONFIG[s.type] || SUGG_CONFIG.area;
-                      return React.createElement('div', {
-                        key: s.text,
-                        className: 'ss-suggestion-item',
-                        onMouseDown: () => { setSearchQuery(s.text); applyZoneSearch(s.text, s); },
-                      },
-                        React.createElement('div', {
-                          style: { width: 28, height: 28, borderRadius: 6, background: cfg.bg,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
-                        },
-                          React.createElement(EnvironmentOutlined, { style: { fontSize: 12, color: cfg.color } })
-                        ),
-                        React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                          React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.85)', lineHeight: '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
-                            highlightMatch(s.text, searchQuery)
-                          ),
-                          React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.38)', lineHeight: '16px', marginTop: 1 } }, s.detail)
-                        ),
-                        React.createElement('span', {
-                          style: { fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
-                            background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}33`,
-                            flexShrink: 0, textTransform: 'uppercase', letterSpacing: '.04em' }
-                        }, cfg.label)
-                      );
-                    })
-                  )
-                )
-              ),
-            ),
-
-            React.createElement(Button, {
-              type: 'primary',
-              icon: React.createElement(PlusOutlined),
-            }, 'Nuovo Impianto'),
-
-          ),
-
-          // ── Brief chips: zona attiva ────
-          appliedZone &&
-          React.createElement('div', { className: 'ss-brief-chips', style: { marginTop: 6 } },
-            React.createElement('span', { className: 'ss-brief-label' }, 'Filtri attivi:'),
-
-            React.createElement('div', { className: 'ss-zone-active-tag' },
-              React.createElement(EnvironmentOutlined, { style: { fontSize: 11 } }),
-              ' ', appliedZone,
-              React.createElement('span', { className: 'clear-btn', onClick: clearZoneSearch }, '×')
-            ),
-          ),
+  // ── Header versione attuale: titolo sx + CTA dx (senza searchbar) ──
+  const renderHeaderAttuale = () => React.createElement('div', { className: 'ooh-search-card' },
+    React.createElement('div', { className: 'ooh-search-area', style: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px' } },
+      React.createElement('span', { style: { fontSize: 22, fontWeight: 700, color: 'rgba(0,0,0,0.88)', letterSpacing: '-0.3px' } }, 'Parco Impianti'),
+      React.createElement(Space, null,
+        React.createElement(Button, {
+          type: 'primary',
+          icon: React.createElement(PlusOutlined),
+        }, 'Nuovo Impianto'),
+        React.createElement(Dropdown, {
+          menu: {
+            items: [
+              { key: 'nuova-tipologia', label: 'Nuova tipologia' },
+              { key: 'nuovo-formato',   label: 'Nuovo formato' },
+            ],
+          },
+          trigger: ['click'],
+          placement: 'bottomRight',
+        },
+          React.createElement(Button, {
+            icon: React.createElement(PlusOutlined),
+          })
         ),
       ),
+    ),
+  );
 
-      // ── MAP / LIST AREA ────────────────────────────────
-      viewMode === 'map'
-        ? React.createElement('div', { className: 'ooh-map-area' },
+  // ── Header nuova versione: searchbar + filtri (senza titolo, senza bordo proprio) ──
+  const renderSearchCard = () => React.createElement('div', { style: { flexShrink: 0 } },
+    React.createElement('div', { className: 'ooh-search-area' },
 
-            React.createElement(GoogleMap, {
-              impianti:         geocodedImpianti,
-              highlightedId,
-              selectedIds,
-              filteredIds,
-              onSelect:         handleHighlight,
-              flyToTarget,
+      // Search bar — compact + CTA
+      React.createElement('div', { className: 'ss-search-bar', style: { position: 'relative' } },
+
+        // Compact group: input + filtri + cerca — centrato
+        React.createElement('div', { style: { position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 700, zIndex: 1 } },
+          React.createElement(Space.Compact, { style: { width: '100%' } },
+            React.createElement(Input, {
+              placeholder: 'Cerca via, quartiere, città, provincia…',
+              prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.3)', fontSize: 14 } }),
+              allowClear: true,
+              value: searchQuery,
+              onChange: e => {
+                setSearchQuery(e.target.value);
+                setShowSugg(e.target.value.length >= 2);
+                if (!e.target.value) clearZoneSearch();
+              },
+              onFocus: () => { if (searchQuery.length >= 2) setShowSugg(true); },
+              onBlur: () => setTimeout(() => setShowSugg(false), 180),
+              onPressEnter: () => applyZoneSearch(),
             }),
+            React.createElement(Button, {
+              icon: React.createElement(SlidersOutlined),
+              onClick: openFilterDrawer,
+            }, activeFilterCount > 0 ? `Filtri (${activeFilterCount})` : 'Filtri'),
+            React.createElement(Button, {
+              icon: React.createElement(SearchOutlined),
+              onClick: () => applyZoneSearch(),
+            }, 'Cerca'),
+          ),
 
-            geocodingProgress && React.createElement('div', { className: 'geocoding-banner' },
-              React.createElement('span', null,
-                `Geocoding indirizzi ${geocodingProgress.done}/${geocodingProgress.total}`
-              ),
-              React.createElement('div', { className: 'geocoding-progress-bar' },
-                React.createElement('div', {
-                  className: 'geocoding-progress-fill',
-                  style: { width: `${Math.round(geocodingProgress.done / geocodingProgress.total * 100)}%` }
+          // Dropdown zona
+          showSugg && suggestions.length > 0 && React.createElement('div', { className: 'ss-suggestions-wrap' },
+            suggestions.map(group =>
+              React.createElement(React.Fragment, { key: group.key },
+                React.createElement('div', { className: 'ss-sugg-group-title' }, group.label),
+                group.items.map(s => {
+                  const cfg = SUGG_CONFIG[s.type] || SUGG_CONFIG.area;
+                  return React.createElement('div', {
+                    key: s.text,
+                    className: 'ss-suggestion-item',
+                    onMouseDown: () => { setSearchQuery(s.text); applyZoneSearch(s.text, s); },
+                  },
+                    React.createElement('div', {
+                      style: { width: 28, height: 28, borderRadius: 6, background: cfg.bg,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
+                    },
+                      React.createElement(EnvironmentOutlined, { style: { fontSize: 12, color: cfg.color } })
+                    ),
+                    React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                      React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.85)', lineHeight: '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
+                        highlightMatch(s.text, searchQuery)
+                      ),
+                      React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.38)', lineHeight: '16px', marginTop: 1 } }, s.detail)
+                    ),
+                    React.createElement('span', {
+                      style: { fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
+                        background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}33`,
+                        flexShrink: 0, textTransform: 'uppercase', letterSpacing: '.04em' }
+                    }, cfg.label)
+                  );
                 })
               )
-            ),
+            )
+          ),
+        ),
 
-            React.createElement(MapInfobox, {
-              total:             filteredImpianti.length,
-              filteredImpianti,
-            }),
+        // Toggle mappa/lista — angolo destro
+        React.createElement(Segmented, {
+          value: viewMode,
+          onChange: setViewMode,
+          style: { marginLeft: 'auto' },
+          options: [
+            { value: 'map',  icon: React.createElement(EnvironmentOutlined), label: 'Mappa' },
+            { value: 'list', icon: React.createElement(BarsOutlined),        label: 'Lista' },
+          ],
+        }),
 
-            highlightedId && React.createElement(MapFloatingCard, {
-              imp:               geocodedImpianti.find(i => i.id === highlightedId),
-              added:             selectedIds.has(highlightedId),
-              expanded:          expandedIds.has(highlightedId),
-              onToggleAdd:       handleToggleAdd,
-              onToggleExpand:    handleToggleExpand,
-              onClose:           () => setHighlightedId(null),
-              impLabel:          implantiLabels[highlightedId]?.[0] || null,
-              availableLabels,
-              pickerOpenId,
-              onPickerOpenChange: setPickerOpenId,
-              renderLabelPicker,
-            }),
+      ),
 
-            // View toggle — floating top-right
-            React.createElement('div', {
-              style: { position: 'absolute', top: 16, right: 16, zIndex: 450 },
-            },
-              React.createElement(Segmented, {
-                value: viewMode,
-                onChange: setViewMode,
-                style: { boxShadow: '0 2px 8px rgba(0,0,0,0.14)' },
-                options: [
-                  { value: 'map',  icon: React.createElement(EnvironmentOutlined), label: 'Mappa' },
-                  { value: 'list', icon: React.createElement(BarsOutlined),        label: 'Lista' },
-                ],
-              })
-            ),
-          )
-        : React.createElement(ListView, { impianti: filteredImpianti, viewMode, setViewMode })
+      // ── Brief chips: zona attiva ────
+      appliedZone &&
+      React.createElement('div', { className: 'ss-brief-chips', style: { marginTop: 6 } },
+        React.createElement('span', { className: 'ss-brief-label' }, 'Filtri attivi:'),
+        React.createElement('div', { className: 'ss-zone-active-tag' },
+          React.createElement(EnvironmentOutlined, { style: { fontSize: 11 } }),
+          ' ', appliedZone,
+          React.createElement('span', { className: 'clear-btn', onClick: clearZoneSearch }, '×')
+        ),
+      ),
+    ),
+  );
+
+  return React.createElement('div', { className: 'app-shell' },
+
+    // ── VERSIONE ATTUALE ──────────────────────────────────
+    React.createElement(Navbar),
+    React.createElement('div', { className: 'ooh-workspace', style: { flex: 'none', overflow: 'visible', paddingBottom: 0 } },
+      renderHeaderAttuale(),
+    ),
+
+
+    // ── NUOVA VERSIONE: searchcard + mappa/lista in un'unica card ──
+    React.createElement('div', { className: 'ooh-workspace' },
+      React.createElement('div', {
+        style: {
+          display: 'flex', flexDirection: 'column',
+          background: '#fff', borderRadius: 8,
+          flex: 1, minHeight: 0, overflow: 'hidden',
+        }
+      },
+        // Searchbar
+        renderSearchCard(),
+
+        // Mappa o lista
+        viewMode === 'map'
+          ? React.createElement('div', { className: 'ooh-map-area', style: { flex: 1, minHeight: 0, borderRadius: 0 } },
+
+              React.createElement(GoogleMap, {
+                impianti:         geocodedImpianti,
+                highlightedId,
+                selectedIds,
+                filteredIds,
+                onSelect:         handleHighlight,
+                flyToTarget,
+              }),
+
+              geocodingProgress && React.createElement('div', { className: 'geocoding-banner' },
+                React.createElement('span', null,
+                  `Geocoding indirizzi ${geocodingProgress.done}/${geocodingProgress.total}`
+                ),
+                React.createElement('div', { className: 'geocoding-progress-bar' },
+                  React.createElement('div', {
+                    className: 'geocoding-progress-fill',
+                    style: { width: `${Math.round(geocodingProgress.done / geocodingProgress.total * 100)}%` }
+                  })
+                )
+              ),
+
+              React.createElement(MapInfobox, {
+                total:             filteredImpianti.length,
+                filteredImpianti,
+              }),
+
+              highlightedId && React.createElement(MapFloatingCard, {
+                imp:               geocodedImpianti.find(i => i.id === highlightedId),
+                added:             selectedIds.has(highlightedId),
+                expanded:          expandedIds.has(highlightedId),
+                onToggleAdd:       handleToggleAdd,
+                onToggleExpand:    handleToggleExpand,
+                onClose:           () => setHighlightedId(null),
+                impLabel:          implantiLabels[highlightedId]?.[0] || null,
+                availableLabels,
+                pickerOpenId,
+                onPickerOpenChange: setPickerOpenId,
+                renderLabelPicker,
+              }),
+            )
+          : React.createElement(ListView, { impianti: filteredImpianti, viewMode, setViewMode }),
+      ),
     ),
 
     React.createElement(Drawer, {
