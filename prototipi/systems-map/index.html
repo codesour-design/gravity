@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gravity — Mappa Impianti OOH</title>
 
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
   <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
   <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
@@ -159,19 +159,6 @@
     .ss-infobox-header { padding: 14px 16px 12px; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
     .ss-infobox-count { font-size: 40px; font-weight: 700; color: rgba(0,0,0,0.88); line-height: 1; letter-spacing: -1px; }
     .ss-infobox-count-label { font-size: 12px; font-weight: 400; color: rgba(0,0,0,0.4); }
-    .ss-infobox-body { padding: 10px 12px 12px; display: flex; gap: 6px; }
-    .ss-stato-block {
-      flex: 1; border-radius: 8px; padding: 8px 6px 7px;
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
-    }
-    .ss-stato-block-count { font-size: 22px; font-weight: 700; line-height: 1; letter-spacing: -0.5px; }
-    .ss-stato-block-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.75; text-align: center; }
-    .ss-infobox-toggle {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 7px 12px; border-top: 1px solid #F5F5F5;
-      cursor: pointer; transition: background 0.15s; gap: 8px;
-    }
-    .ss-infobox-toggle:hover { background: #F9F7FF !important; }
 
     /* ── List view ── */
     .ooh-list-area {
@@ -182,14 +169,6 @@
     .ooh-list-area .ant-table-thead > tr > th { background: #FAFAFA; font-size: 12px; font-weight: 600; }
     .ooh-stato-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 6px; flex-shrink: 0; }
 
-    /* Leaflet tooltip */
-    .ooh-leaflet-tooltip.leaflet-tooltip {
-      background: rgba(20,20,20,0.88) !important; color: #fff !important;
-      border: none !important; border-radius: 6px !important;
-      font-size: 12px !important; padding: 6px 10px !important;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
-    }
-    .ooh-leaflet-tooltip.leaflet-tooltip::before { display: none !important; }
 
     /* ── SysRow (planning-def-POI style) ── */
     .ss-sys-row { border-bottom: 1px solid #F0F0F0; }
@@ -325,12 +304,9 @@ const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputN
 const { Text } = Typography;
 const {
   SearchOutlined, BellOutlined, PlusOutlined, AppstoreOutlined, SendOutlined,
-  CheckOutlined, RightOutlined, LeftOutlined,
-  EnvironmentOutlined, FilterOutlined, CloseOutlined, BarsOutlined,
-  DeleteOutlined, DownOutlined,
-  ColumnHeightOutlined, PictureOutlined, SyncOutlined, StarOutlined, PushpinOutlined,
-  BranchesOutlined, ShopOutlined, HomeOutlined, CarOutlined, BulbOutlined,
-  InboxOutlined, HeartOutlined, SlidersOutlined, TagOutlined, EllipsisOutlined,
+  RightOutlined, DownOutlined,
+  EnvironmentOutlined, CloseOutlined, BarsOutlined,
+  BulbOutlined, InboxOutlined, SlidersOutlined, TagOutlined, EllipsisOutlined,
 } = icons;
 
 // ─────────────────────────────────────────────────────────
@@ -822,7 +798,7 @@ const makeClusterSvg = (count) => {
   return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), size: s };
 };
 
-function GoogleMap({ impianti, highlightedId, selectedIds, showOnlySelected, filteredIds, onSelect, flyToTarget }) {
+function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect, flyToTarget }) {
   const containerRef  = useRef(null);
   const mapRef        = useRef(null);
   const clustererRef  = useRef(null);
@@ -928,7 +904,7 @@ function GoogleMap({ impianti, highlightedId, selectedIds, showOnlySelected, fil
       const isHighlighted = id === highlightedId;
       const isSelected    = selectedIds.has(id);
       const inFilter      = !filteredIds || filteredIds.has(id);
-      const visible       = inFilter && !(showOnlySelected && !isSelected && !isHighlighted);
+      const visible       = inFilter;
 
       marker.setIcon(makeMarkerIcon(isHighlighted, isSelected));
       marker.setZIndex(isHighlighted ? 9999 : isSelected ? 500 : 1);
@@ -944,7 +920,7 @@ function GoogleMap({ impianti, highlightedId, selectedIds, showOnlySelected, fil
       mapRef.current.panTo({ lat: imp.lat, lng: imp.lng });
       if (mapRef.current.getZoom() < 15) mapRef.current.setZoom(16);
     }
-  }, [highlightedId, selectedIds, showOnlySelected, filteredIds]);
+  }, [highlightedId, selectedIds, filteredIds]);
 
   // ── Fly to zona cercata ───────────────────────────────
   useEffect(() => {
@@ -960,7 +936,7 @@ function GoogleMap({ impianti, highlightedId, selectedIds, showOnlySelected, fil
 // ─────────────────────────────────────────────────────────
 // MAP INFOBOX (overlay bottom-left)
 // ─────────────────────────────────────────────────────────
-function MapInfobox({ total, filteredImpianti, filterStati, selectedCount, selectedFaces, showOnlySelected, onToggleShowOnly }) {
+function MapInfobox({ total, filteredImpianti }) {
   const statiCount = React.useMemo(() => {
     if (!filteredImpianti) return {};
     return filteredImpianti.reduce((acc, i) => {
@@ -991,10 +967,10 @@ function MapInfobox({ total, filteredImpianti, filterStati, selectedCount, selec
     // ── Header: count ──────────────────────────────────────
     React.createElement('div', { className: 'ss-infobox-header' },
       React.createElement('div', { className: 'ss-infobox-count' },
-        showOnlySelected ? selectedCount : total
+        total
       ),
       React.createElement('div', { className: 'ss-infobox-count-label' },
-        showOnlySelected ? 'selezionati' : 'spazi'
+        'spazi'
       )
     ),
 
@@ -1438,40 +1414,20 @@ const COLUMN_GROUPS = [
 const ALL_COLUMNS_DEF = COLUMN_GROUPS.flatMap(g => g.items);
 const DEFAULT_COLS = ['canale', 'tipologia', 'formato', 'faces', 'illuminato', 'fornitore', 'vendita', 'prezzo_totale', 'stato'];
 
-function ListView({ impianti, viewMode, setViewMode }) {
-  const [visibleCols, setVisibleCols] = useState(DEFAULT_COLS);
+// ── Helpers e costanti per mock data — definiti una volta sola fuori dal componente ──
+const idNum = r => parseInt(r.id.slice(1)); // 1–100
+const FORNITORI_LIST = ['IGPDecaux', 'Clear Channel', 'Verticals'];
+const STATO_ADMIN = [
+  { label: 'Attivo',          color: '#1677FF' },
+  { label: 'In manutenzione', color: '#FA8C16' },
+  { label: 'Inizializzato',   color: '#FAAD14' },
+  { label: 'Rimosso',         color: 'rgba(0,0,0,0.45)' },
+];
+const PREZZI = [1200, 1800, 2400, 3200, 4800, 5600, 6500, 7800, 8200, 9600];
+const FIXED_LEFT  = new Set(['canale', 'tipologia']);
+const FIXED_RIGHT = new Set(['prezzo_totale', 'stato']);
 
-  const cascaderOptions = COLUMN_GROUPS.map(g => ({
-    label: g.group,
-    value: g.group,
-    children: g.items.map(item => ({ label: item.title, value: item.key })),
-  }));
-
-  const handleCascaderChange = (paths) => {
-    setVisibleCols((paths || []).map(p => p[1]));
-  };
-
-  const cascaderValue = visibleCols.map(k => {
-    const g = COLUMN_GROUPS.find(g => g.items.some(i => i.key === k));
-    return g ? [g.group, k] : null;
-  }).filter(Boolean);
-
-  // ── Helpers per mock data deterministici ─────────────────
-  const idNum = r => parseInt(r.id.slice(1)); // 1–100
-
-
-  const FORNITORI_LIST = ['IGPDecaux', 'Clear Channel', 'Verticals'];
-
-  const STATO_ADMIN = [
-    { label: 'Attivo',          color: '#1677FF' },
-    { label: 'In manutenzione', color: '#FA8C16' },
-    { label: 'Inizializzato',   color: '#FAAD14' },
-    { label: 'Rimosso',         color: 'rgba(0,0,0,0.45)' },
-  ];
-
-  const PREZZI = [1200, 1800, 2400, 3200, 4800, 5600, 6500, 7800, 8200, 9600];
-
-  const allColumns = {
+const ALL_COLUMNS = {
     canale: {
       title: 'Canale', dataIndex: 'canale', width: 90,
       render: (_, r) => {
@@ -1583,16 +1539,31 @@ function ListView({ impianti, viewMode, setViewMode }) {
     },
   };
 
-  const FIXED_LEFT  = new Set(['canale', 'tipologia']);
-  const FIXED_RIGHT = new Set(['prezzo_totale', 'stato']);
+function ListView({ impianti, viewMode, setViewMode }) {
+  const [visibleCols, setVisibleCols] = useState(DEFAULT_COLS);
+
+  const cascaderOptions = COLUMN_GROUPS.map(g => ({
+    label: g.group,
+    value: g.group,
+    children: g.items.map(item => ({ label: item.title, value: item.key })),
+  }));
+
+  const handleCascaderChange = (paths) => {
+    setVisibleCols((paths || []).map(p => p[1]));
+  };
+
+  const cascaderValue = visibleCols.map(k => {
+    const g = COLUMN_GROUPS.find(g => g.items.some(i => i.key === k));
+    return g ? [g.group, k] : null;
+  }).filter(Boolean);
 
   const columns = [
     ...visibleCols
       .filter(k => !FIXED_RIGHT.has(k) && k !== 'stato' && k !== 'prezzo_totale')
-      .map(k => ({ key: k, ...allColumns[k], ...(FIXED_LEFT.has(k) ? { fixed: 'left' } : {}) }))
+      .map(k => ({ key: k, ...ALL_COLUMNS[k], ...(FIXED_LEFT.has(k) ? { fixed: 'left' } : {}) }))
       .filter(Boolean),
-    ...(visibleCols.includes('prezzo_totale') ? [{ key: 'prezzo_totale', fixed: 'right', ...allColumns['prezzo_totale'] }] : []),
-    { key: 'stato', fixed: 'right', ...allColumns['stato'] },
+    ...(visibleCols.includes('prezzo_totale') ? [{ key: 'prezzo_totale', fixed: 'right', ...ALL_COLUMNS['prezzo_totale'] }] : []),
+    { key: 'stato', fixed: 'right', ...ALL_COLUMNS['stato'] },
     {
       key: '_actions', dataIndex: '_actions', title: '', width: 48, fixed: 'right',
       render: () => React.createElement(Button, {
@@ -1681,7 +1652,7 @@ function App() {
   const [selectedIds,   setSelectedIds]   = useState(new Set());
   const [expandedIds,   setExpandedIds]   = useState(new Set());
   const [viewMode,           setViewMode]           = useState('map');
-  const [showOnlySelected,   setShowOnlySelected]   = useState(false);
+
 
   // ── Ricerca zona ──────────────────────────────────────
   const [searchQuery,    setSearchQuery]    = useState('');
@@ -1834,76 +1805,43 @@ function App() {
     return () => { cancelled = true; };
   }, []);
 
-  const [filterDrawerOpen,    setFilterDrawerOpen]    = useState(false);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+
+  const FILTERS_EMPTY = {
+    statiAmm: [], canale: [], suolo: [], mediaOwner: [],
+    tipi: [], formati: [], illuminazione: [],
+    minFacesEnabled: false, minFacesValue: 1,
+  };
 
   // Draft — modificati nel drawer, non ancora applicati
-  const [draftStatiAmm,      setDraftStatiAmm]      = useState([]);
-  const [draftCanale,        setDraftCanale]        = useState([]);
-  const [draftSuolo,         setDraftSuolo]         = useState([]);
-  const [draftMediaOwner,    setDraftMediaOwner]    = useState([]);
-  const [draftTipi,          setDraftTipi]          = useState([]);
-  const [draftFormati,       setDraftFormati]       = useState([]);
-  const [draftIlluminazione, setDraftIlluminazione] = useState([]);
-  const [draftMinFacesEnabled, setDraftMinFacesEnabled] = useState(false);
-  const [draftMinFacesValue,   setDraftMinFacesValue]   = useState(1);
-
+  const [draftFilters, setDraftFilters] = useState({ ...FILTERS_EMPTY });
   // Applied — effettivamente usati per filtrare
-  const [filterStatiAmm,      setFilterStatiAmm]      = useState([]);
-  const [filterCanale,        setFilterCanale]        = useState([]);
-  const [filterSuolo,         setFilterSuolo]         = useState([]);
-  const [filterMediaOwner,    setFilterMediaOwner]    = useState([]);
-  const [filterTipi,          setFilterTipi]          = useState([]);
-  const [filterFormati,       setFilterFormati]       = useState([]);
-  const [filterIlluminazione, setFilterIlluminazione] = useState([]);
-  const [minFacesEnabled,     setMinFacesEnabled]     = useState(false);
-  const [minFacesValue,       setMinFacesValue]       = useState(1);
+  const [appliedFilters, setAppliedFilters] = useState({ ...FILTERS_EMPTY });
 
-  // Formati disponibili in base ai tipi attivi (se nessun tipo selezionato → tutti i formati)
+  const setDraft = (key, value) => setDraftFilters(prev => ({ ...prev, [key]: value }));
+
+  // Formati disponibili in base ai tipi attivi nel draft (se nessun tipo → tutti)
   const availableFormats = useMemo(() => {
-    if (draftTipi.length === 0) return ALL_TIPO_FORMATI;
+    if (draftFilters.tipi.length === 0) return ALL_TIPO_FORMATI;
     const s = new Set();
-    draftTipi.forEach(t => (TIPO_FORMATI[t] || []).forEach(f => s.add(f)));
+    draftFilters.tipi.forEach(t => (TIPO_FORMATI[t] || []).forEach(f => s.add(f)));
     return [...s].sort();
-  }, [draftTipi]);
+  }, [draftFilters.tipi]);
 
   const resetFilters = useCallback(() => {
-    setDraftStatiAmm([]); setFilterStatiAmm([]);
-    setDraftCanale([]);   setFilterCanale([]);
-    setDraftSuolo([]);    setFilterSuolo([]);
-    setDraftMediaOwner([]);setFilterMediaOwner([]);
-    setDraftTipi([]);     setFilterTipi([]);
-    setDraftFormati([]);  setFilterFormati([]);
-    setDraftIlluminazione([]); setFilterIlluminazione([]);
-    setDraftMinFacesEnabled(false); setMinFacesEnabled(false);
-    setDraftMinFacesValue(1);       setMinFacesValue(1);
+    setDraftFilters({ ...FILTERS_EMPTY });
+    setAppliedFilters({ ...FILTERS_EMPTY });
   }, []);
 
   const applyFilters = useCallback(() => {
-    setFilterStatiAmm(draftStatiAmm);
-    setFilterCanale(draftCanale);
-    setFilterSuolo(draftSuolo);
-    setFilterMediaOwner(draftMediaOwner);
-    setFilterTipi(draftTipi);
-    setFilterFormati(draftFormati);
-    setFilterIlluminazione(draftIlluminazione);
-    setMinFacesEnabled(draftMinFacesEnabled);
-    setMinFacesValue(draftMinFacesValue);
+    setAppliedFilters({ ...draftFilters });
     setFilterDrawerOpen(false);
-  }, [draftStatiAmm, draftCanale, draftSuolo, draftMediaOwner, draftTipi, draftFormati, draftIlluminazione, draftMinFacesEnabled, draftMinFacesValue]);
+  }, [draftFilters]);
 
   const openFilterDrawer = useCallback(() => {
-    // Sincronizza il draft con gli applied al momento dell'apertura
-    setDraftStatiAmm(filterStatiAmm);
-    setDraftCanale(filterCanale);
-    setDraftSuolo(filterSuolo);
-    setDraftMediaOwner(filterMediaOwner);
-    setDraftTipi(filterTipi);
-    setDraftFormati(filterFormati);
-    setDraftIlluminazione(filterIlluminazione);
-    setDraftMinFacesEnabled(minFacesEnabled);
-    setDraftMinFacesValue(minFacesValue);
+    setDraftFilters({ ...appliedFilters });
     setFilterDrawerOpen(true);
-  }, [filterStatiAmm, filterCanale, filterSuolo, filterMediaOwner, filterTipi, filterFormati, filterIlluminazione, minFacesEnabled, minFacesValue]);
+  }, [appliedFilters]);
 
   // Suggerimenti raggruppati per tipo
   const suggestions = useMemo(() => getSuggestions(searchQuery), [searchQuery]);
@@ -1942,14 +1880,15 @@ function App() {
   }, []);
 
   const filteredImpianti = useMemo(() => {
+    const f = appliedFilters;
     return geocodedImpianti.filter(imp => {
-      if (filterTipi.length > 0 && !filterTipi.includes(imp.tipo)) return false;
-      if (filterFormati.length > 0 && !filterFormati.includes(imp.formato)) return false;
-      if (filterIlluminazione.length > 0) {
+      if (f.tipi.length > 0 && !f.tipi.includes(imp.tipo)) return false;
+      if (f.formati.length > 0 && !f.formati.includes(imp.formato)) return false;
+      if (f.illuminazione.length > 0) {
         const k = imp.illuminato ? 'Illuminate' : 'Non illuminate';
-        if (!filterIlluminazione.includes(k)) return false;
+        if (!f.illuminazione.includes(k)) return false;
       }
-      if (minFacesEnabled && imp.faces < minFacesValue) return false;
+      if (f.minFacesEnabled && imp.faces < f.minFacesValue) return false;
       // ── Filtro zona search ──
       if (appliedZone) {
         const q = appliedZone;
@@ -1967,22 +1906,18 @@ function App() {
       }
       return true;
     });
-  }, [geocodedImpianti, filterTipi, filterFormati, filterIlluminazione, minFacesEnabled, minFacesValue, appliedZone]);
+  }, [geocodedImpianti, appliedFilters, appliedZone]);
 
   const filteredIds = useMemo(() => new Set(filteredImpianti.map(i => i.id)), [filteredImpianti]);
 
   const activeFilterCount = useMemo(() => {
-    let n = 0;
-    if (filterStatiAmm.length > 0) n++;
-    if (filterCanale.length > 0) n++;
-    if (filterSuolo.length > 0) n++;
-    if (filterMediaOwner.length > 0) n++;
-    if (filterTipi.length > 0) n++;
-    if (filterFormati.length > 0) n++;
-    if (filterIlluminazione.length > 0) n++;
-    if (minFacesEnabled) n++;
-    return n;
-  }, [filterStatiAmm, filterCanale, filterSuolo, filterMediaOwner, filterTipi, filterFormati, filterIlluminazione, minFacesEnabled]);
+    const f = appliedFilters;
+    return [
+      f.statiAmm.length > 0, f.canale.length > 0, f.suolo.length > 0,
+      f.mediaOwner.length > 0, f.tipi.length > 0, f.formati.length > 0,
+      f.illuminazione.length > 0, f.minFacesEnabled,
+    ].filter(Boolean).length;
+  }, [appliedFilters]);
 
   const itemRefs = useRef({});
 
@@ -2012,10 +1947,6 @@ function App() {
     });
   }, []);
 
-  const totalSelectedFaces = useMemo(
-    () => geocodedImpianti.filter(i => selectedIds.has(i.id)).reduce((s, i) => s + i.faces, 0),
-    [geocodedImpianti, selectedIds]
-  );
 
 
   return React.createElement('div', { className: 'app-shell' },
@@ -2127,7 +2058,6 @@ function App() {
               impianti:         geocodedImpianti,
               highlightedId,
               selectedIds,
-              showOnlySelected,
               filteredIds,
               onSelect:         handleHighlight,
               flyToTarget,
@@ -2148,11 +2078,6 @@ function App() {
             React.createElement(MapInfobox, {
               total:             filteredImpianti.length,
               filteredImpianti,
-              filterStati:       [],
-              selectedCount:     selectedIds.size,
-              selectedFaces:     totalSelectedFaces,
-              showOnlySelected,
-              onToggleShowOnly:  () => setShowOnlySelected(v => !v),
             }),
 
             highlightedId && React.createElement(MapFloatingCard, {
@@ -2199,16 +2124,16 @@ function App() {
       ),
     },
       React.createElement(FilterPanel, {
-        filterStatiAmm: draftStatiAmm, onFilterStatiAmmChange: setDraftStatiAmm,
-        filterCanale: draftCanale, onFilterCanaleChange: setDraftCanale,
-        filterSuolo: draftSuolo, onFilterSuoloChange: setDraftSuolo,
-        filterMediaOwner: draftMediaOwner, onFilterMediaOwnerChange: setDraftMediaOwner,
-        filterTipi: draftTipi, onFilterTipiChange: setDraftTipi,
-        filterFormati: draftFormati, onFilterFormatiChange: setDraftFormati,
+        filterStatiAmm: draftFilters.statiAmm,       onFilterStatiAmmChange:    v => setDraft('statiAmm', v),
+        filterCanale: draftFilters.canale,            onFilterCanaleChange:      v => setDraft('canale', v),
+        filterSuolo: draftFilters.suolo,              onFilterSuoloChange:       v => setDraft('suolo', v),
+        filterMediaOwner: draftFilters.mediaOwner,    onFilterMediaOwnerChange:  v => setDraft('mediaOwner', v),
+        filterTipi: draftFilters.tipi,                onFilterTipiChange:        v => setDraft('tipi', v),
+        filterFormati: draftFilters.formati,          onFilterFormatiChange:     v => setDraft('formati', v),
         availableFormats,
-        filterIlluminazione: draftIlluminazione, onFilterIlluminazioneChange: setDraftIlluminazione,
-        minFacesEnabled: draftMinFacesEnabled, onMinFacesEnabledChange: setDraftMinFacesEnabled,
-        minFacesValue: draftMinFacesValue, onMinFacesValueChange: setDraftMinFacesValue,
+        filterIlluminazione: draftFilters.illuminazione, onFilterIlluminazioneChange: v => setDraft('illuminazione', v),
+        minFacesEnabled: draftFilters.minFacesEnabled, onMinFacesEnabledChange:  v => setDraft('minFacesEnabled', v),
+        minFacesValue: draftFilters.minFacesValue,    onMinFacesValueChange:     v => setDraft('minFacesValue', v),
       })
     ),
   );
