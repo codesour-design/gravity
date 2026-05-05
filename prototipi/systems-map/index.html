@@ -720,7 +720,7 @@ function Navbar() {
     React.createElement('div', { className: 'top-nav-menu-wrap' },
       React.createElement(Menu, {
         mode: 'horizontal',
-        selectedKeys: ['plannings'],
+        selectedKeys: ['overview'],
         items: navItems,
         style: { flex: 1, border: 'none', height: 73, lineHeight: '73px' },
         theme: 'light',
@@ -1424,7 +1424,7 @@ const STATO_ADMIN = [
   { label: 'Rimosso',         color: 'rgba(0,0,0,0.45)' },
 ];
 const PREZZI = [1200, 1800, 2400, 3200, 4800, 5600, 6500, 7800, 8200, 9600];
-const FIXED_LEFT  = new Set(['canale', 'tipologia']);
+const FIXED_LEFT  = new Set(['canale', 'tipologia', 'formato']);
 const FIXED_RIGHT = new Set(['prezzo_totale', 'stato']);
 
 const ALL_COLUMNS = {
@@ -1518,11 +1518,24 @@ const ALL_COLUMNS = {
     autorizzazione: { title: 'Autorizzazione', dataIndex: 'autorizzazione', width: 200,
       render: (_, r) => {
         const n = idNum(r);
-        const code = `AUT-PA-${2018 + (n % 6)}/${String(n * 13 % 900 + 100).padStart(4,'0')}`;
+        const code1 = `AUT-PA-${2018 + (n % 6)}/${String(n * 13 % 900 + 100).padStart(4,'0')}`;
+        const code2 = `AUT-PA-${2018 + ((n + 2) % 6)}/${String((n + 41) * 13 % 900 + 100).padStart(4,'0')}`;
         const extra = n % 3 === 0 ? 1 : 0;
+        const monoStyle = { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, lineHeight: '20px', color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap' };
+        const popoverContent = React.createElement('ul', { style: { margin: 0, paddingLeft: 16, listStyle: 'disc' } },
+          React.createElement('li', { style: monoStyle }, code1),
+          React.createElement('li', { style: monoStyle }, code2),
+        );
         return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
-          React.createElement(Tag, { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 11, marginInlineEnd: 0 } }, code),
-          extra > 0 && React.createElement(Tag, { style: { marginInlineEnd: 0, color: 'rgba(0,0,0,0.45)', borderColor: '#D9D9D9', background: '#FAFAFA', fontSize: 11 } }, `+${extra}`),
+          React.createElement(Tag, { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 11, marginInlineEnd: 0 } }, code1),
+          extra > 0 && React.createElement(Popover, {
+            title: React.createElement('span', { style: { fontWeight: 600, fontSize: 14 } }, 'Autorizzazione'),
+            content: popoverContent,
+            trigger: 'hover',
+            placement: 'top',
+          },
+            React.createElement(Tag, { style: { marginInlineEnd: 0, color: 'rgba(0,0,0,0.45)', borderColor: '#D9D9D9', background: '#FAFAFA', fontSize: 11, cursor: 'default' } }, `+${extra}`)
+          ),
         );
       },
     },
