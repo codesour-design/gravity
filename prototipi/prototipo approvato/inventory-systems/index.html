@@ -866,7 +866,7 @@ const makeMarkerIcon = (tipo, stato_amm, isHighlighted, isSelected) => {
   if (isHighlighted && _svgCache.has(key)) {
     return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(_addOutline(_svgCache.get(key), w, h)), scaledSize: new google.maps.Size(w, h), anchor: new google.maps.Point(w / 2, h) };
   }
-  return { url: `../assets/${folder}/${file}.svg`, scaledSize: new google.maps.Size(w, h), anchor: new google.maps.Point(w / 2, h) };
+  return { url: `../../assets/${folder}/${file}.svg`, scaledSize: new google.maps.Size(w, h), anchor: new google.maps.Point(w / 2, h) };
 };
 
 const makeClusterSvg = (count) => {
@@ -919,7 +919,7 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
       const key = `${folder}/${file}`;
       if (!seen.has(key) && !_svgCache.has(key)) {
         seen.add(key);
-        fetch(`../assets/${key}.svg`).then(r => r.text()).then(text => _svgCache.set(key, text)).catch(() => {});
+        fetch(`../../assets/${key}.svg`).then(r => r.text()).then(text => _svgCache.set(key, text)).catch(() => {});
       }
     });
   }, []);
@@ -1063,7 +1063,7 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
     // Crea subito l'overlay con l'icona normale — così il marker è sempre visibile
     highlightMarkerRef.current = new google.maps.Marker({
       position: { lat: imp.lat, lng: imp.lng },
-      icon: { url: `../assets/${folder}/${file}.svg`, scaledSize: new google.maps.Size(w, h), anchor: new google.maps.Point(w / 2, h) },
+      icon: { url: `../../assets/${folder}/${file}.svg`, scaledSize: new google.maps.Size(w, h), anchor: new google.maps.Point(w / 2, h) },
       map: mapRef.current,
       zIndex: 10000,
       clickable: false,
@@ -1081,7 +1081,7 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
     };
 
     if (_svgCache.has(key)) applyOutline(_svgCache.get(key));
-    else fetch(`../assets/${folder}/${file}.svg`).then(r => r.text()).then(applyOutline).catch(() => {});
+    else fetch(`../../assets/${folder}/${file}.svg`).then(r => r.text()).then(applyOutline).catch(() => {});
 
     return () => { alive = false; };
   }, [highlightedId]);
@@ -2298,12 +2298,12 @@ const COVER_STRIPS = [
   { flex: 0.9, bg: 'linear-gradient(160deg,#0a1020 0%,#1a2030 100%)' },
 ];
 const FOTO_IMPIANTO = [
-  '../assets/Foto%20impianto/6x3-poster-asti-1024x731.jpg',
-  '../assets/Foto%20impianto/Affissioni-poster-Milano.jpg',
-  '../assets/Foto%20impianto/Pescara_Piccola.jpg',
-  '../assets/Foto%20impianto/Realizzazione-Grandi-Impianti-pubblicitari-e-Cartellonistica-Lecce-scaled.jpg',
-  '../assets/Foto%20impianto/europemedia_affissioni_pubblicitarie_arredo_urbano_neovision.avif',
-  '../assets/Foto%20impianto/quali-sono-le-regole-del-codice-della-strada-per-la-pubblicita-lungo-le-strade-e-sui-veicoli.jpg',
+  '../../assets/Foto%20impianto/6x3-poster-asti-1024x731.jpg',
+  '../../assets/Foto%20impianto/Affissioni-poster-Milano.jpg',
+  '../../assets/Foto%20impianto/Pescara_Piccola.jpg',
+  '../../assets/Foto%20impianto/Realizzazione-Grandi-Impianti-pubblicitari-e-Cartellonistica-Lecce-scaled.jpg',
+  '../../assets/Foto%20impianto/europemedia_affissioni_pubblicitarie_arredo_urbano_neovision.avif',
+  '../../assets/Foto%20impianto/quali-sono-le-regole-del-codice-della-strada-per-la-pubblicita-lungo-le-strade-e-sui-veicoli.jpg',
 ];
 
 
