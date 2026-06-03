@@ -3006,26 +3006,27 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
 // MODALE NUOVO IMPIANTO
 // ─────────────────────────────────────────────────────────
 function NewImpiantoModal({ open, onClose, onCrea, onContinua }) {
-  const [canale,    setCanale]    = useState(null);
-  const [tipologia, setTipologia] = useState(null);
-  const [formato,   setFormato]   = useState(null);
-  const [nome,      setNome]      = useState('');
-  const [stato,     setStato]     = useState(null);
-  const [addrSuggs, setAddrSuggs] = useState([]);
-  const [via,       setVia]       = useState('');
-  const [civico,    setCivico]    = useState('');
-  const [cap,       setCap]       = useState('');
-  const [citta,     setCitta]     = useState('');
-  const [provincia, setProvincia] = useState('');
-  const [regione,   setRegione]   = useState('');
-  const [nazione,   setNazione]   = useState('');
-  const [lat,       setLat]       = useState('');
-  const [lng,       setLng]       = useState('');
+  const [canale,     setCanale]     = useState(null);
+  const [tipologia,  setTipologia]  = useState(null);
+  const [formato,    setFormato]    = useState(null);
+  const [nome,       setNome]       = useState('');
+  const [stato,      setStato]      = useState(null);
+  const [addrSuggs,  setAddrSuggs]  = useState([]);
+  const [via,        setVia]        = useState('');
+  const [civico,     setCivico]     = useState('');
+  const [cap,        setCap]        = useState('');
+  const [citta,      setCitta]      = useState('');
+  const [provincia,  setProvincia]  = useState('');
+  const [regione,    setRegione]    = useState('');
+  const [nazione,    setNazione]    = useState('');
+  const [lat,        setLat]        = useState('');
+  const [lng,        setLng]        = useState('');
+  const [showErrors, setShowErrors] = useState(false);
   const debRef = useRef(null);
 
   const reset = () => {
     setCanale(null); setTipologia(null); setFormato(null);
-    setNome(''); setStato(null);
+    setNome(''); setStato(null); setShowErrors(false);
     setVia(''); setCivico(''); setCap(''); setCitta('');
     setProvincia(''); setRegione(''); setNazione(''); setLat(''); setLng('');
     setAddrSuggs([]);
@@ -3069,8 +3070,10 @@ function NewImpiantoModal({ open, onClose, onCrea, onContinua }) {
       children,
     );
 
+  const viaErr = showErrors && !via.trim();
   const viaAC = React.createElement(AutoComplete, {
     style: { width: '100%' }, value: via,
+    status: viaErr ? 'error' : undefined,
     options: addrSuggs.map(s => ({
       value: s.via, key: s.id, _sdata: s,
       label: React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'flex-start', padding: '2px 0' } },
@@ -3093,6 +3096,7 @@ function NewImpiantoModal({ open, onClose, onCrea, onContinua }) {
     React.createElement(Input, {
       prefix: React.createElement(EnvironmentOutlined, { style: { color: 'rgba(0,0,0,0.3)' } }),
       placeholder: 'Es. Via Maqueda, Palermo…',
+      status: viaErr ? 'error' : undefined,
     })
   );
 
@@ -3104,20 +3108,26 @@ function NewImpiantoModal({ open, onClose, onCrea, onContinua }) {
     autorizzazioni: [], concessioni: [],
   });
 
+  const handleCrea = () => {
+    if (!canSave) { setShowErrors(true); return; }
+    onCrea(collectData());
+    antdMsg.success('Impianto creato con successo');
+    handleClose();
+  };
+  const handleContinua = () => {
+    if (!canSave) { setShowErrors(true); return; }
+    onContinua(collectData());
+    handleClose();
+  };
+
   return React.createElement(Modal, {
     open,
     title: 'Nuovo Impianto',
     onCancel: handleClose,
     width: 560,
     footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8 } },
-      React.createElement(Button, {
-        disabled: !canSave,
-        onClick: () => { onContinua(collectData()); handleClose(); },
-      }, 'Completa'),
-      React.createElement(Button, {
-        type: 'primary', disabled: !canSave,
-        onClick: () => { onCrea(collectData()); handleClose(); },
-      }, 'Crea'),
+      React.createElement(Button, { onClick: handleContinua }, 'Completa'),
+      React.createElement(Button, { type: 'primary', onClick: handleCrea }, 'Crea'),
     ),
   },
 
@@ -3128,6 +3138,7 @@ function NewImpiantoModal({ open, onClose, onCrea, onContinua }) {
         React.createElement(Select, {
           value: canale, onChange: v => { setCanale(v); setTipologia(null); setFormato(null); },
           options: CANALI_OPTS, style: { width: '100%' }, placeholder: 'OOH o DOOH?',
+          status: showErrors && !canale ? 'error' : undefined,
         })
       ),
       nf('Nome impianto', false,
@@ -3143,6 +3154,7 @@ function NewImpiantoModal({ open, onClose, onCrea, onContinua }) {
           disabled: !canale, showSearch: true,
           style: { width: '100%' },
           placeholder: canale ? 'Es. Pensilina, Palina…' : 'Prima seleziona il canale',
+          status: showErrors && !tipologia ? 'error' : undefined,
         })
       ),
       nf('Formato', true,
@@ -3151,6 +3163,7 @@ function NewImpiantoModal({ open, onClose, onCrea, onContinua }) {
           options: formatiOpts, disabled: !tipologia,
           style: { width: '100%' },
           placeholder: tipologia ? 'Seleziona formato' : 'Prima seleziona la tipologia',
+          status: showErrors && !formato ? 'error' : undefined,
         })
       ),
     ),
@@ -3165,7 +3178,10 @@ function NewImpiantoModal({ open, onClose, onCrea, onContinua }) {
     ),
     React.createElement('div', { className: 'nim-grid-2' },
       nf('Città', true,
-        React.createElement(Input, { value: citta, onChange: e => setCitta(e.target.value), placeholder: '—' })
+        React.createElement(Input, {
+          value: citta, onChange: e => setCitta(e.target.value), placeholder: '—',
+          status: showErrors && !citta.trim() ? 'error' : undefined,
+        })
       ),
       nf('Provincia', false,
         React.createElement(Input, { value: provincia, onChange: e => setProvincia(e.target.value), placeholder: '—' })
@@ -3178,6 +3194,7 @@ function NewImpiantoModal({ open, onClose, onCrea, onContinua }) {
       React.createElement(Select, {
         value: stato, onChange: setStato,
         options: STATI_AMM_OPTS, style: { width: '100%' }, placeholder: 'Seleziona',
+        status: showErrors && !stato ? 'error' : undefined,
       })
     ),
   );
@@ -3392,6 +3409,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     tipologia ? (FORMATI_PER_TIPO[tipologia] || []).map(f => ({ value: f, label: f })) : [],
     [tipologia]);
 
+  const [showErrors, setShowErrors] = useState(false);
+
   const canSave = canale && tipologia && formato && via.trim() && citta.trim() && stato;
 
   const collectFormData = () => ({
@@ -3491,10 +3510,12 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     onClear: () => { setVia(''); setAddrSuggs([]); },
     allowClear: true, notFoundContent: null,
     popupMatchSelectWidth: true, getPopupContainer: () => document.body,
+    status: showErrors && !via.trim() ? 'error' : undefined,
   },
     React.createElement(Input, {
       prefix: React.createElement(EnvironmentOutlined, { style: { color: 'rgba(0,0,0,0.3)' } }),
       placeholder: 'Es. Via Maqueda, Palermo…',
+      status: showErrors && !via.trim() ? 'error' : undefined,
     })
   );
 
@@ -3507,7 +3528,12 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     title: 'Nuovo Impianto',
     footer: React.createElement(Space, { style: { justifyContent: 'flex-end', display: 'flex' } },
       React.createElement(Button, { onClick: onClose }, 'Annulla'),
-      React.createElement(Button, { type: 'primary', disabled: !canSave, icon: React.createElement(PlusOutlined), onClick: () => { if (onSave) { onSave(collectFormData()); onClose(); } } }, 'Crea Impianto'),
+      React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: () => {
+        if (!canSave) { setShowErrors(true); return; }
+        if (onSave) { onSave(collectFormData()); }
+        antdMsg.success('Impianto creato con successo');
+        onClose();
+      } }, 'Crea Impianto'),
     ),
     styles: { body: { padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' } },
   },
@@ -3532,17 +3558,18 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
         sec('identita', 'Identità',
           g3(
             cs('Canale', true,
-              sel(canale, v => { setCanale(v); setTipologia(null); setFormato(null); }, CANALI_OPTS, 'OOH o DOOH?')
+              sel(canale, v => { setCanale(v); setTipologia(null); setFormato(null); }, CANALI_OPTS, 'OOH o DOOH?',
+                { status: showErrors && !canale ? 'error' : undefined })
             ),
             cs('Tipologia', true,
               sel(tipologia, v => { setTipologia(v); setFormato(null); }, tipologieOpts,
                 canale ? 'Es. Pensilina, Palina…' : 'Prima seleziona il canale',
-                { disabled: !canale, showSearch: true })
+                { disabled: !canale, showSearch: true, status: showErrors && !tipologia ? 'error' : undefined })
             ),
             cs('Formato', true,
               sel(formato, setFormato, formatiOpts,
                 tipologia ? 'Es. 120×180 cm' : 'Prima seleziona la tipologia',
-                { disabled: !tipologia })
+                { disabled: !tipologia, status: showErrors && !formato ? 'error' : undefined })
             ),
           ),
           g3(
@@ -3551,7 +3578,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
             cs('Dim. moduli', false,   inp(dimModuli, setDimModuli, 'Es. 120×180 cm')),
           ),
           g3(
-            cs('Stato', true, sel(stato, setStato, STATI_AMM_OPTS)),
+            cs('Stato', true, sel(stato, setStato, STATI_AMM_OPTS, 'Seleziona',
+              { status: showErrors && !stato ? 'error' : undefined })),
           ),
         ),
 
@@ -3563,7 +3591,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
           ),
           g4(
             cs('CAP', false,       inp(cap,      setCap,      '—')),
-            cs('Città', true,      inp(citta,    setCitta,    '—')),
+            cs('Città', true,      inp(citta,    setCitta,    '—', { status: showErrors && !citta.trim() ? 'error' : undefined })),
             cs('Provincia', false, inp(provincia, setProvincia, '—')),
             cs('Regione', false,   inp(regione,  setRegione,  '—')),
           ),
@@ -4234,17 +4262,6 @@ function App() {
               flyToTarget,
             }),
 
-            geocodingProgress && React.createElement('div', { className: 'geocoding-banner' },
-              React.createElement('span', null,
-                `Geocoding indirizzi ${geocodingProgress.done}/${geocodingProgress.total}`
-              ),
-              React.createElement('div', { className: 'geocoding-progress-bar' },
-                React.createElement('div', {
-                  className: 'geocoding-progress-fill',
-                  style: { width: `${Math.round(geocodingProgress.done / geocodingProgress.total * 100)}%` }
-                })
-              )
-            ),
 
             !cardImp && React.createElement(MapInfobox, {
               total:             filteredImpianti.length,
