@@ -37,7 +37,7 @@
   var ROLE_NAV = {
     'Tenant Admin':      ['Overview', 'Inventory', 'Commercial', 'Delivery', 'Settings'],
     'Inventory Manager': ['Overview', 'Inventory'],
-    'Operation Manager': ['Overview', 'Inventory', 'Delivery'],
+    'Operation Manager': ['Overview', 'Inventory', 'Commercial', 'Delivery'],
     'Planner':           ['Overview', 'Inventory', 'Delivery'],
     'Sales':             ['Commercial', 'Delivery'],
   };
@@ -46,10 +46,11 @@
   var NAV = {
     Overview:   { items: ['Dashboard finance', 'Dashboard analytics'], links: {} },
     Inventory:  { items: ['Systems', 'Licenses', 'Supplier'],
-                  links: { Systems: '../systems-map/index.html' } },
-    Commercial: { items: ['Wallet', 'Activities', 'Negotiations', 'Orders'], links: {} },
+                  links: { Systems: '../prototipo%20approvato/inventory-systems/index.html' } },
+    Commercial: { items: ['Wallet', 'Activities', 'Negotiations', 'Orders'],
+                  links: { Negotiations: '../test/trattative/index.html' } },
     Delivery:   { items: ['Campaigns', 'Plannings', 'Collections'],
-                  links: { Plannings: '../planning-redesign/index.html', Collections: '../collections/index.html' } },
+                  links: { Plannings: '../prototipo%20approvato/planning/index.html', Collections: '../prototipo%20approvato/poi-collections/index.html' } },
     Settings:   { items: ['Users', 'Tenants'], links: {} },
   };
 
@@ -79,21 +80,28 @@
     'Tenants':             'Tenant',
   };
 
-  var ROLE_COLOR = {
-    'Tenant Admin':      '#3e00fb',
-    'Inventory Manager': '#13c2c2',
-    'Operation Manager': '#eb2f96',
-    'Planner':           '#722ed1',
-    'Sales':             '#fa8c16',
+  var ROLE_USER = {
+    'Tenant Admin':      { nome: 'Sofia',   cognome: 'Marchetti' },
+    'Inventory Manager': { nome: 'Tommaso', cognome: 'Ferrara'   },
+    'Operation Manager': { nome: 'Davide',  cognome: 'Serra'     },
+    'Planner':           { nome: 'Giulia',  cognome: 'Romano'    },
+    'Sales':             { nome: 'Lorenzo', cognome: 'Bianchi'   },
   };
 
-  var ROLE_ABBR = {
-    'Tenant Admin':      'TA',
-    'Inventory Manager': 'IM',
-    'Operation Manager': 'OM',
-    'Planner':           'PL',
-    'Sales':             'SA',
-  };
+  var AVATAR_PALETTE = [
+    { bg: '#F0EAFF', fg: '#3E00FB' },
+    { bg: '#E6F7FF', fg: '#0958D9' },
+    { bg: '#FFF7E6', fg: '#D46B08' },
+    { bg: '#F6FFED', fg: '#389E0D' },
+    { bg: '#FFF1F0', fg: '#CF1322' },
+    { bg: '#E8F5E9', fg: '#2E7D32' },
+  ];
+
+  function nameColor(name) {
+    var h = 0;
+    for (var i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+    return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
+  }
 
   // ── CSS injection (override altezza antd Menu horizontal) ─────────────────
 
@@ -115,7 +123,7 @@
     var activeSection = cfg.section  || null;
     var activeItem    = cfg.item     || null;
     var logoSrc       = cfg.logoSrc  || '../../brand/Gravity_type.svg';
-    var appHref       = cfg.appHref  || '../app/';
+    var appHref       = cfg.appHref  || '../test/user%20profile/index.html';
     var cfgLinks      = cfg.links    || {};
 
     var _r1     = useState(function () { return localStorage.getItem('gravity_proto_role') || null; });
@@ -123,9 +131,10 @@
 
     useEffect(function () { if (role) localStorage.setItem('gravity_proto_role', role); }, [role]);
 
-    var cur     = role || 'Tenant Admin';
-    var color   = ROLE_COLOR[cur];
-    var abbr    = ROLE_ABBR[cur];
+    var cur      = role || 'Tenant Admin';
+    var user     = ROLE_USER[cur] || { nome: 'U', cognome: '' };
+    var abbr     = (user.nome[0] + (user.cognome[0] || '')).toUpperCase();
+    var palette  = nameColor(user.nome + ' ' + user.cognome);
     var sections = ROLE_NAV[cur];
 
     // Voci Menu antd
@@ -152,10 +161,20 @@
     if (activeSection && activeItem) selectedKeys = [activeSection + '/' + activeItem];
     else if (activeSection)          selectedKeys = [activeSection];
 
+    // La sezione corrente è accessibile per il ruolo attivo?
+    var accessible = !activeSection || sections.indexOf(activeSection) !== -1;
+
     // Dropdown avatar — cambio ruolo
     var avatarMenuItems = [
-      { key: '_hd', label: h('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Vista ruolo'), disabled: true },
+      { key: '_user', disabled: true, label: h('div', { style: { padding: '4px 0 8px', minWidth: 220 } },
+          h('div', { style: { fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.88)', lineHeight: '22px' } },
+            user.nome + ' ' + user.cognome
+          ),
+          h('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, cur)
+        )
+      },
       { type: 'divider' },
+      { key: '_hd', label: h('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Vista ruolo'), disabled: true },
     ].concat(ROLES.map(function (r) {
       return {
         key: r,
@@ -171,6 +190,7 @@
 
       // ── Navbar ────────────────────────────────────────────────────────────
       h('nav', {
+
         style: {
           background: '#fff',
           borderBottom: '1px solid rgba(0,0,0,0.06)',
@@ -223,15 +243,39 @@
           },
             h('div', {
               style: {
-                width: 32, height: 32, borderRadius: '50%', background: color,
+                width: 32, height: 32, borderRadius: '50%',
+                background: palette.bg,
+                border: '1.5px solid ' + palette.fg + '22',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', flexShrink: 0, userSelect: 'none',
               },
             },
-              h('span', { style: { color: '#fff', fontSize: 11, fontWeight: 700 } }, abbr)
+              h('span', { style: { color: palette.fg, fontSize: 11, fontWeight: 700 } }, abbr)
             )
           )
         )
+      ),
+
+      // ── Empty state overlay (sezione non accessibile per il ruolo corrente) ──
+      accessible ? null : h('div', {
+        style: {
+          position: 'fixed',
+          top: 64,
+          left: 0, right: 0, bottom: 0,
+          zIndex: 99,
+          background: '#f5f5f5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+      },
+        h(antd.Empty, {
+          description: h('span', { style: { color: 'rgba(0,0,0,0.45)' } },
+            'Il ruolo ',
+            h('strong', { style: { color: 'rgba(0,0,0,0.65)', fontWeight: 600 } }, cur),
+            ' non ha accesso a questa sezione'
+          ),
+        })
       )
     );
   }
