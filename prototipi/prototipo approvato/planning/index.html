@@ -15,7 +15,7 @@
   <script>window.GRAVITY_NAV = {
     section: 'Delivery', item: 'Plannings',
     logoSrc: '../../../brand/Gravity_type.svg',
-    appHref: '../../test/app/',
+    appHref: '../../test/user%20profile/index.html',
     links: {
       Systems:     '../inventory-systems/index.html',
       Collections: '../poi-collections/index.html',
@@ -1517,7 +1517,7 @@ window.applyGravityTokens();
 // ══════════════════════════════════════════════════════
 // Globals
 // ══════════════════════════════════════════════════════
-const { useState, useCallback } = React;
+const { useState, useCallback, useEffect } = React;
 const {
   ConfigProvider, App,
   Menu, Space, Divider,
@@ -1659,8 +1659,8 @@ const STATE_DOT = {
 
 // Profilo pianificatore
 const PLANNER = {
-  name:         'Gloria Bonanno',
-  initials:     'GB',
+  name:         'Giulia Romano',
+  initials:     'GR',
   role:         'Pianificatrice',
   area:         'Sicilia Occidentale',
   provinces:    ['Palermo', 'Trapani', 'Agrigento', 'Caltanissetta'],
@@ -1686,9 +1686,39 @@ const AVAIL_COLOR = {
 const STATE_LABELS = { Available: 'Disponibile', 'In Option': 'In Opzione', Reserved: 'Riservato' };
 
 const AGENTS = {
-  gloria: { id:'gloria', name:'Gloria Bonanno', initials:'GB', color:'#3E00FB' },
-  marco:  { id:'marco',  name:'Marco Ferrara',  initials:'MF', color:'#13C2C2' },
+  giulia: { id:'giulia', name:'Giulia Romano', initials:'GR' },
+  marco:  { id:'marco',  name:'Marco Ferrara', initials:'MF' },
 };
+
+const AVATAR_PALETTE = [
+  { bg: '#F0EAFF', fg: '#3E00FB' },
+  { bg: '#E6F7FF', fg: '#0958D9' },
+  { bg: '#FFF7E6', fg: '#D46B08' },
+  { bg: '#F6FFED', fg: '#389E0D' },
+  { bg: '#FFF1F0', fg: '#CF1322' },
+  { bg: '#E8F5E9', fg: '#2E7D32' },
+];
+function nameColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
+}
+function AgentAvatar({ name, initials, size = 24 }) {
+  const { bg, fg } = nameColor(name);
+  return React.createElement(antd.Avatar, {
+    size,
+    shape: 'circle',
+    style: { background: bg, color: fg, fontWeight: 700, fontSize: size * 0.38, flexShrink: 0 },
+  }, initials);
+}
+
+// Mappa ruolo navbar → chiave agente locale
+const NAV_AGENT_MAP = {
+  'Planner': 'giulia',
+};
+function readMyAgentKey() {
+  return NAV_AGENT_MAP[localStorage.getItem('gravity_proto_role')] ?? null;
+}
 
 const _FAV = d => `https://www.google.com/s2/favicons?sz=64&domain=${d}`;
 const ADVERTISER_LOGO = {
@@ -1752,28 +1782,28 @@ function AdvertiserAvatar({ name, size = 32 }) {
 
 const PLANNINGS = [
   // ── Prima pagina: mix di stati ─────────────────────────────────────────────────
-  { id:'0101', name:'Gohan Sushi — Primavera 2026',     category:'DOOH', state:'In trattativa', start:'01/04/2026', end:'15/05/2026', advertiser:'Gohan Sushi',  goal:'traffico', budget:'€ 22.000', faces:12, hasSystems:true,  createdAt:'01/04/2025', assignee:'gloria',
+  { id:'0101', name:'Gohan Sushi — Primavera 2026',     category:'DOOH', state:'In trattativa', start:'01/04/2026', end:'15/05/2026', advertiser:'Gohan Sushi',  goal:'traffico', budget:'€ 22.000', faces:12, hasSystems:true,  createdAt:'01/04/2025', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 },{ label:'Viale della Libertà', city:'Palermo', lat:38.1230, lng:13.3521, zoom:15 }],
     briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-1' }],
     requestedTypes:['Billboard', 'Totem'], trattativaName:'TRT-Gohan-2026-P', deliveredAt:'20/03/2026', updatedAt:'28/03/2026' },
-  { id:'0108', name:'Visit Sicily — Estate Trapani',    category:'OOH',  state:'Bozza', start:'01/07/2026', end:'14/07/2026', advertiser:'Visit Sicily',      goal:'traffico', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'10/03/2025', assignee:'gloria',
+  { id:'0108', name:'Visit Sicily — Estate Trapani',    category:'OOH',  state:'Bozza', start:'01/07/2026', end:'14/07/2026', advertiser:'Visit Sicily',      goal:'traffico', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'10/03/2025', assignee:'giulia',
     briefZones:[{ label:'Trapani', city:'Trapani', lat:37.9800, lng:12.6150, zoom:13 },{ label:'Marsala', city:'Marsala', lat:37.7998, lng:12.4289, zoom:13 },{ label:'Mazara del Vallo', city:'Mazara del Vallo', lat:37.6555, lng:12.5908, zoom:13 }],
     briefPois:[{ type:'single', id:'brief-s-3' },{ type:'collection', id:'cc-palermo' }],
     requestedTypes:['Pensilina', 'Stendardo'] },
-  { id:'0102', name:'Alessi Estate — Outdoor',          category:'OOH',  state:'Confermata', start:'13/03/2024', end:'30/03/2024', advertiser:'Fondazione Alessi', goal:'consapevolezza del brand', budget:'€ 28.000', faces:13, hasSystems:true,  createdAt:'01/01/2024', assignee:'gloria', briefZones:[], briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'single', id:'brief-s-4' }], requestedTypes:[], trattativaName:'TRT-Alessi-2024-Q1', deliveredAt:'10/03/2024', updatedAt:'10/03/2024' },
-  { id:'0115', name:'Consorzio Agrituristico — Estate',  category:'OOH',  state:'In trattativa', start:'01/06/2026', end:'28/06/2026', advertiser:'Consorzio Agrituristico Sicilia', goal:'traffico', budget:'€ 31.000', faces:10, hasSystems:true,  createdAt:'10/04/2026', assignee:'gloria',
+  { id:'0102', name:'Alessi Estate — Outdoor',          category:'OOH',  state:'Confermata', start:'13/03/2024', end:'30/03/2024', advertiser:'Fondazione Alessi', goal:'consapevolezza del brand', budget:'€ 28.000', faces:13, hasSystems:true,  createdAt:'01/01/2024', assignee:'giulia', briefZones:[], briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'single', id:'brief-s-4' }], requestedTypes:[], trattativaName:'TRT-Alessi-2024-Q1', deliveredAt:'10/03/2024', updatedAt:'10/03/2024' },
+  { id:'0115', name:'Consorzio Agrituristico — Estate',  category:'OOH',  state:'In trattativa', start:'01/06/2026', end:'28/06/2026', advertiser:'Consorzio Agrituristico Sicilia', goal:'traffico', budget:'€ 31.000', faces:10, hasSystems:true,  createdAt:'10/04/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Nord', city:'Palermo', lat:38.1500, lng:13.3400, zoom:13 },{ label:'Mondello', city:'Palermo', lat:38.2200, lng:13.3300, zoom:14 }],
     briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'single', id:'brief-s-4' }],
     requestedTypes:['Pensilina', 'Palina'], trattativaName:'TRT-ConsorzioAgri-2026', deliveredAt:'05/05/2026', updatedAt:'05/05/2026' },
-  { id:'0111', name:'Comune di Palermo — Autunno DOOH', category:'DOOH', state:'Bozza', start:'01/10/2026', end:'07/10/2026', advertiser:'Comune di Palermo', goal:'consapevolezza del brand', budget:'€ 40.000', faces:0,  hasSystems:false, createdAt:'15/03/2025', assignee:'gloria',
+  { id:'0111', name:'Comune di Palermo — Autunno DOOH', category:'DOOH', state:'Bozza', start:'01/10/2026', end:'07/10/2026', advertiser:'Comune di Palermo', goal:'consapevolezza del brand', budget:'€ 40.000', faces:0,  hasSystems:false, createdAt:'15/03/2025', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 },{ label:'Palermo Est', city:'Palermo', lat:38.1100, lng:13.4200, zoom:13 },{ label:'Palermo Foro Italico', city:'Palermo', lat:38.1080, lng:13.3700, zoom:14 }],
     briefPois:[{ type:'collection', id:'scuole-palermo' },{ type:'collection', id:'universita-palermo' }],
     requestedTypes:['Billboard', 'Totem'] },
-  { id:'0107', name:'TechConf Milano 2025',             category:'DOOH', state:'Confermata', start:'15/11/2024', end:'21/11/2024', advertiser:'TechConf Italia',   goal:'generazione di lead', budget:'€ 24.000', faces:9,  hasSystems:true,  createdAt:'01/09/2024', assignee:'gloria',
+  { id:'0107', name:'TechConf Milano 2025',             category:'DOOH', state:'Confermata', start:'15/11/2024', end:'21/11/2024', advertiser:'TechConf Italia',   goal:'generazione di lead', budget:'€ 24.000', faces:9,  hasSystems:true,  createdAt:'01/09/2024', assignee:'giulia',
     briefZones:[],
     briefPois:[{ type:'collection', id:'universita-palermo' },{ type:'single', id:'brief-s-2' }],
     requestedTypes:['Billboard', 'Alux'], trattativaName:'TRT-TechConf-2024', deliveredAt:'12/11/2024', updatedAt:'12/11/2024' },
-  { id:'0113', name:'Credito Siciliano — Autunno 2026', category:'DOOH', state:'In trattativa', start:'15/09/2026', end:'15/11/2026', advertiser:'Credito Siciliano', goal:'fidelizzazione dei clienti', budget:'€ 52.000', faces:8, hasSystems:true, createdAt:'05/03/2026', assignee:'gloria',
+  { id:'0113', name:'Credito Siciliano — Autunno 2026', category:'DOOH', state:'In trattativa', start:'15/09/2026', end:'15/11/2026', advertiser:'Credito Siciliano', goal:'fidelizzazione dei clienti', budget:'€ 52.000', faces:8, hasSystems:true, createdAt:'05/03/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 },{ label:'Agrigento', city:'Agrigento', lat:37.3104, lng:13.5765, zoom:13 },{ label:'Trapani', city:'Trapani', lat:37.9800, lng:12.6150, zoom:13 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-2' }],
     requestedTypes:['Billboard', 'Alux', 'Totem'], trattativaName:null, deliveredAt:null },
@@ -1782,7 +1812,7 @@ const PLANNINGS = [
     briefPois:[{ type:'single', id:'brief-s-3' },{ type:'collection', id:'trasporti-palermo' }],
     requestedTypes:['Poster', 'Cassonetto'], trattativaName:'TRT-Firriato-2026-Estate', deliveredAt:null },
   { id:'0104', name:'SushiLab Primavera 2025',          category:'OOH',  state:'Confermata', start:'10/04/2025', end:'25/04/2025', advertiser:'SushiLab Palermo',  goal:'fidelizzazione dei clienti', budget:'€ 15.000', faces:6,  hasSystems:true,  createdAt:'15/02/2025', assignee:'marco',  briefZones:[], briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:[], trattativaName:'TRT-SushiLab-2025-P', deliveredAt:'07/04/2025', updatedAt:'07/04/2025' },
-  { id:'0112', name:'WindTre — Brand Summer 2026',      category:'DOOH', state:'Bozza', start:'01/06/2026', end:'31/08/2026', advertiser:'WindTre',           goal:'consapevolezza del brand', budget:'€ 85.000', faces:0,  hasSystems:false, createdAt:'10/02/2026', assignee:'gloria',
+  { id:'0112', name:'WindTre — Brand Summer 2026',      category:'DOOH', state:'Bozza', start:'01/06/2026', end:'31/08/2026', advertiser:'WindTre',           goal:'consapevolezza del brand', budget:'€ 85.000', faces:0,  hasSystems:false, createdAt:'10/02/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'collection', id:'supermercati-palermo' }],
     requestedTypes:['Billboard', 'Alux'], trattativaName:'TRT-WindTre-2026-S' },
@@ -1810,13 +1840,13 @@ const PLANNINGS = [
 // Trattative aperte (mock) — usate nella select "Collega a una trattativa"
 const TRATTATIVE = [
   { name: 'TRT-Gohan-2026-P',         advertiser: 'Gohan Sushi',                    agent: 'Marco Vitale' },
-  { name: 'TRT-ConsorzioAgri-2026',   advertiser: 'Consorzio Agrituristico Sicilia', agent: 'Gloria Bonanno' },
-  { name: 'TRT-CreditoSic-2026',      advertiser: 'Credito Siciliano',              agent: 'Gloria Bonanno' },
+  { name: 'TRT-ConsorzioAgri-2026',   advertiser: 'Consorzio Agrituristico Sicilia', agent: 'Giulia Romano' },
+  { name: 'TRT-CreditoSic-2026',      advertiser: 'Credito Siciliano',              agent: 'Giulia Romano' },
   { name: 'TRT-Firriato-2026-Estate', advertiser: 'Cantine Firriato',              agent: 'Luca Randazzo' },
   { name: 'TRT-MediaWorld-2026-Q3',   advertiser: 'MediaWorld',                    agent: 'Luca Randazzo' },
   { name: 'TRT-ComunePa-2026-Q4',     advertiser: 'Comune di Palermo',             agent: 'Marco Vitale' },
-  { name: 'TRT-Rinascente-2026-PA',   advertiser: 'La Rinascente',                 agent: 'Gloria Bonanno' },
-  { name: 'TRT-WindTre-2026-S',       advertiser: 'WindTre',                       agent: 'Gloria Bonanno' },
+  { name: 'TRT-Rinascente-2026-PA',   advertiser: 'La Rinascente',                 agent: 'Giulia Romano' },
+  { name: 'TRT-WindTre-2026-S',       advertiser: 'WindTre',                       agent: 'Giulia Romano' },
   { name: 'TRT-Mondadori-BtS-2026',   advertiser: 'Mondadori',                     agent: 'Marco Vitale' },
 ];
 
@@ -2991,17 +3021,23 @@ function ChannelChip({ channel }) {
 
 function PlanningsList({ onSelect, stateOverrides }) {
   const [takenIds, setTakenIds] = useState(new Set());
+  const [myAgentKey, setMyAgentKey] = useState(readMyAgentKey);
+  useEffect(() => {
+    const id = setInterval(() => setMyAgentKey(k => { const n = readMyAgentKey(); return n !== k ? n : k; }), 300);
+    return () => clearInterval(id);
+  }, []);
+
   const effectiveState = row => (stateOverrides && stateOverrides[row.id]) || row.state;
 
-  const getAssignee = row => takenIds.has(row.id) ? 'gloria' : row.assignee;
+  const getAssignee = row => takenIds.has(row.id) ? myAgentKey : row.assignee;
 
   const bozze           = PLANNINGS.filter(p => p.state === 'Bozza');
   const completati      = PLANNINGS.filter(p => p.state === 'Confermata');
-  const mie             = bozze.filter(p => getAssignee(p) === 'gloria');
+  const mie             = bozze.filter(p => getAssignee(p) === myAgentKey);
   const libere          = bozze.filter(p => !getAssignee(p));
   const upcoming        = [...mie].filter(p => p.start).sort((a,b) => parseDate(a.start)-parseDate(b.start))[0];
 
-  const mieInTrattativa = PLANNINGS.filter(p => p.state === 'In trattativa' && getAssignee(p) === 'gloria');
+  const mieInTrattativa = PLANNINGS.filter(p => p.state === 'In trattativa' && getAssignee(p) === myAgentKey);
 
   const kpiCards = [
     { label: 'Da prendere in carico', value: libere.length,              icon: InboxOutlined, color: '#FF4A1C' },
@@ -3081,11 +3117,10 @@ function PlanningsList({ onSelect, stateOverrides }) {
       title: 'Pianificatore',
       key: 'agente',
       width: 168,
-      filters: [
-        { text: 'Gloria Bonanno (tu)', value: 'gloria' },
-        { text: 'Marco Ferrara',       value: 'marco'  },
-        { text: 'Non assegnate',       value: 'none'   },
-      ],
+      filters: Object.entries(AGENTS).map(([k, a]) => ({
+        text: k === myAgentKey ? `${a.name} (tu)` : a.name,
+        value: k,
+      })).concat([{ text: 'Non assegnate', value: 'none' }]),
       onFilter: (value, record) => {
         const a = getAssignee(record);
         return value === 'none' ? !a : a === value;
@@ -3094,20 +3129,18 @@ function PlanningsList({ onSelect, stateOverrides }) {
         const agentKey = getAssignee(row);
         const agent = agentKey ? AGENTS[agentKey] : null;
         if (agent) {
-          const isMe = agentKey === 'gloria';
+          const isMe = agentKey === myAgentKey;
           return React.createElement('div', { style:{ display:'flex', alignItems:'center', gap: 8 } },
-            React.createElement('div', {
-              style:{
-                width: 24, height: 24, borderRadius:'50%', background: agent.color,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize: 10, fontWeight: 700, color:'#fff', flexShrink: 0,
-              },
-            }, agent.initials),
+            React.createElement(AgentAvatar, { name: agent.name, initials: agent.initials, size: 24 }),
             React.createElement('span', {
-              style:{ fontSize: 13, color:'rgba(0,0,0,0.88)', fontWeight: isMe ? 500 : 400 },
-            }, isMe ? `${agent.name} (tu)` : agent.name),
+              style:{ fontSize: 13, color:'rgba(0,0,0,0.88)', fontWeight: isMe ? 600 : 400 },
+            }, agent.name),
+            isMe && React.createElement('span', {
+              style:{ fontSize: 12, color:'rgba(0,0,0,0.88)', fontWeight: 600 },
+            }, '(tu)'),
           );
         }
+        if (!myAgentKey) return React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.25)' } }, '—');
         return React.createElement(antd.Popconfirm, {
           title: React.createElement('span', { style: { fontWeight: 600 } }, 'Prendere in carico la pianificazione?'),
           description: React.createElement('div', { style: { maxWidth: 260, fontSize: 12, color: 'rgba(0,0,0,0.65)', marginTop: 4, lineHeight: 1.6 } },
@@ -3749,7 +3782,7 @@ function FilterPanel({
 // ══════════════════════════════════════════════════════
 
 // ── Brief Sidebar (Variant B) ────────────────────────────
-function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, readOnly, onTakeInCharge, selectedFaceIds }) {
+function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, readOnly, onTakeInCharge, selectedFaceIds }) {
   const { Popover } = antd;
   const { Title } = Typography;
 
@@ -4092,7 +4125,7 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, readOnly, on
       // Pianificatore
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
         React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, 'Pianificatore:'),
-        isUnassigned
+        isUnassigned && isPlanner
           ? React.createElement(antd.Popconfirm, {
               title: React.createElement('span', { style: { fontWeight: 600 } }, 'Prendere in carico la pianificazione?'),
               description: React.createElement('div', { style: { maxWidth: 260, fontSize: 12, color: 'rgba(0,0,0,0.65)', marginTop: 4, lineHeight: 1.6 } },
@@ -4114,14 +4147,11 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, readOnly, on
               }, 'Prendi in carico')
             )
           : (() => {
-              const agentKey = isMine ? 'gloria' : planning.assignee;
+              const agentKey = isMine ? 'giulia' : planning.assignee;
               const agent = AGENTS[agentKey];
               return agent
                 ? React.createElement(React.Fragment, null,
-                    React.createElement(antd.Avatar, {
-                      size: 18,
-                      style: { background: agent.color, fontSize: 9, flexShrink: 0 },
-                    }, agent.initials),
+                    React.createElement(AgentAvatar, { name: agent.name, initials: agent.initials, size: 18 }),
                     React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)' } }, agent.name)
                   )
                 : React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, '—');
@@ -4473,11 +4503,18 @@ function BriefPanelNR({ planning, selectedFaceIds }) {
 }
 
 function SelectSystems({ planning, onBack, onApply }) {
+  const [myAgentKey, setMyAgentKey] = useState(readMyAgentKey);
+  useEffect(() => {
+    const id = setInterval(() => setMyAgentKey(k => { const n = readMyAgentKey(); return n !== k ? n : k; }), 300);
+    return () => clearInterval(id);
+  }, []);
+
+  const isPlanner    = myAgentKey !== null;
   const [localAssignee, setLocalAssignee] = useState(planning.assignee);
-  const isMine       = localAssignee === 'gloria';
+  const isMine       = isPlanner && localAssignee === myAgentKey;
   const isUnassigned = !localAssignee;
   const readOnly     = planning.state === 'Confermata' || !isMine;
-  const takeInCharge = () => setLocalAssignee('gloria');
+  const takeInCharge = () => { if (isPlanner) setLocalAssignee(myAgentKey); };
   const [searchQuery, setSearchQuery]           = useState('');
   const [showSugg, setShowSugg]                 = useState(false);
   const inputRef                                = React.useRef(null);
@@ -5941,7 +5978,7 @@ out geom;`;
     React.createElement('div', {
       className: 'ss-fs-header ss-fs-header--' + (fullscreen ? 'hidden' : 'visible'),
     },
-      React.createElement(PlanningHeaderNR, { planning, onBack, isMine, isUnassigned, readOnly, onTakeInCharge: takeInCharge, selectedFaceIds })
+      React.createElement(PlanningHeaderNR, { planning, onBack, isMine, isUnassigned, isPlanner, readOnly, onTakeInCharge: takeInCharge, selectedFaceIds })
     ),
 
     // ── Workspace: sidebar + contenuto ───────────────────────
@@ -5960,11 +5997,18 @@ out geom;`;
       },
 
     // ── Banner readOnly ──────────────────────────────────────
-    isUnassigned && React.createElement(antd.Alert, {
+    isUnassigned && isPlanner && React.createElement(antd.Alert, {
       type: 'info',
       showIcon: true,
       message: 'Pianificazione non ancora presa in carico',
       description: 'Prendi in carico questa pianificazione per selezionare e modificare gli spazi.',
+      style: { marginBottom: 0, borderRadius: 8 },
+    }),
+    isUnassigned && !isPlanner && React.createElement(antd.Alert, {
+      type: 'info',
+      showIcon: true,
+      message: 'Pianificazione non ancora assegnata',
+      description: 'Nessun pianificatore ha preso in carico questa pianificazione.',
       style: { marginBottom: 0, borderRadius: 8 },
     }),
     !isMine && !isUnassigned && React.createElement(antd.Alert, {

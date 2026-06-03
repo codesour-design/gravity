@@ -112,7 +112,7 @@
       border-radius: var(--gravity-radius-lg);
       box-shadow: var(--gravity-shadow-md);
       padding: 48px;
-      width: 580px;
+      width: 820px;
       max-width: calc(100vw - 32px);
       display: flex;
       flex-direction: column;
@@ -126,7 +126,7 @@
     .tenant-grid-a {
       width: 100%;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 12px;
     }
 
@@ -433,6 +433,19 @@ const TODAY = new Intl.DateTimeFormat('it-IT', {
 // Tenant disponibili per l'utente — include ruolo e colore identificativo
 const TENANTS = [
   {
+    id: 'gravity-white-label',
+    name: 'Gravity (White Label)',
+    plan: 'Enterprise',
+    role: 'Admin Tenant',
+    types: ['OOH', 'DOOH', 'WEB', 'ADVERTORIAL'],
+    color: '#0A0A0A',
+    initials: 'GW',
+    logo: 'loghi tenant/favicon.png',
+    screenshot: null,
+    spaces: 0,
+    users: 0,
+  },
+  {
     id: 'alessi-pubblicita',
     name: 'Alessi Pubblicità Spa',
     plan: 'Enterprise',
@@ -478,7 +491,7 @@ const TEAM_ACTIVITY = [
   { initials:'AB', user:'Anna Bianchi',   action:'ha chiuso la trattativa', target:'ADV Gucci Estate 25',  time:'1 ora fa'  },
 ];
 
-const CHANNEL_COLOR = { OOH: 'green', DOOH: 'magenta', WEB: 'geekblue' };
+const CHANNEL_COLOR = { OOH: 'green', DOOH: 'magenta', WEB: 'geekblue', ADVERTORIAL: 'purple' };
 
 const LIVE_CAMPAIGNS = [
   { name:'ADV Gucci Estate 2025',    channel:'OOH',  client:'Gucci',   start:'15 mar', end:'15 apr', spaces:12, progress:65 },
@@ -495,7 +508,7 @@ function Logo({ markH = 26, typeH = 13, gap = 10, variant = 'full' }) {
 
   if (variant === 'type') {
     return React.createElement('img', {
-      src: '../../brand/Gravity_type.svg',
+      src: '../../../brand/Gravity_type.svg',
       style: { height: typeH, width: 'auto', display: 'block' },
       alt: 'Gravity',
     });
@@ -504,7 +517,7 @@ function Logo({ markH = 26, typeH = 13, gap = 10, variant = 'full' }) {
   return React.createElement('div', { style: { display:'flex', alignItems:'center', gap } },
     !showFallback
       ? React.createElement('img', {
-          src: '../../brand/Gravity_mark.svg',
+          src: '../../../brand/Gravity_mark.svg',
           style: { height: markH, width: 'auto' },
           alt: 'Gravity',
           onError: () => setShowFallback(true),
@@ -513,7 +526,7 @@ function Logo({ markH = 26, typeH = 13, gap = 10, variant = 'full' }) {
           style: { fontFamily: 'var(--gravity-font-brand)', fontSize: markH * 0.75, fontWeight: 600, color: 'var(--gravity-primary)' }
         }, 'G'),
     variant === 'full' && React.createElement('img', {
-      src: '../../brand/Gravity_type.svg',
+      src: '../../../brand/Gravity_type.svg',
       style: { height: typeH, width: 'auto' },
       alt: '',
       onError: e => { e.target.style.display = 'none'; }
@@ -934,9 +947,12 @@ function MiniCalendar() {
 // Stato schermate: 'login' → 'tenant-select' → 'welcome'
 
 function App() {
-  const [screen, setScreen]           = useState('login');
-  const [loggedEmail, setLoggedEmail] = useState(null);
-  const [activeTenant, setActiveTenant] = useState(null);
+  const paramTenant = new URLSearchParams(window.location.search).get('tenant');
+  const initialTenant = paramTenant ? TENANTS.find(t => t.id === paramTenant) : null;
+
+  const [screen, setScreen]           = useState(initialTenant ? 'welcome' : 'login');
+  const [loggedEmail, setLoggedEmail] = useState(initialTenant ? 'gloria@gravity.com' : null);
+  const [activeTenant, setActiveTenant] = useState(initialTenant || null);
   const [msgApi, ctxHolder] = antMessage.useMessage();
 
   const loggedUser = { name: 'Gloria', surname: 'Bonanno', initials: 'GB' };
@@ -947,6 +963,10 @@ function App() {
   }
 
   function handleTenantSelect(tenantId) {
+    if (tenantId === 'gravity-white-label') {
+      window.location.href = '../../test/user%20profile/index.html';
+      return;
+    }
     const tenant = TENANTS.find(t => t.id === tenantId);
     setActiveTenant(tenant);
     setScreen('welcome');
