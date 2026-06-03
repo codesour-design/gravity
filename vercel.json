@@ -2,6 +2,6 @@
   "name": "gravity-prototipi",
   "framework": null,
   "redirects": [
-    { "source": "/", "destination": "/prototipi/sso/index.html", "permanent": false }
+    { "source": "/", "destination": "/prototipi/prototipo%20approvato/single-signon/index.html", "permanent": false }
   ]
 }
