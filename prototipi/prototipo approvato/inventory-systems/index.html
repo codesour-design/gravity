@@ -420,11 +420,6 @@ const TIPO_FORMATI = {
 };
 const ALL_TIPO_FORMATI = [...new Set(Object.values(TIPO_FORMATI).flat())].sort();
 
-const STATO_CONFIG = {
-  'Disponibile': { color: 'success',  dot: '#52C41A' },
-  'In Opzione':  { color: 'magenta',  dot: '#EB2F96' },
-  'Riservato':   { color: 'purple',   dot: '#722ED1' },
-};
 
 // ─────────────────────────────────────────────────────────
 // DATABASE — 100 impianti Palermo con coordinate precise
@@ -1112,14 +1107,6 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
 // MAP INFOBOX (overlay bottom-left)
 // ─────────────────────────────────────────────────────────
 function MapInfobox({ total, filteredImpianti }) {
-  const statiCount = React.useMemo(() => {
-    if (!filteredImpianti) return {};
-    return filteredImpianti.reduce((acc, i) => {
-      acc[i.stato] = (acc[i.stato] || 0) + 1;
-      return acc;
-    }, {});
-  }, [filteredImpianti]);
-
   const STATI_AMM = [
     { label: 'Attivo',          color: '#1677FF', bg: '#E6F4FF' },
     { label: 'In Manutenzione', color: '#FA8C16', bg: '#FFF7E6' },
@@ -1279,10 +1266,6 @@ function SysRow({ imp, highlighted, added, expanded, onHighlight, onToggleAdd, o
           }),
           React.createElement('span', { className: 'ss-face-type' }, face.label),
           React.createElement('span', { className: 'ss-face-format' }, imp.formato),
-          React.createElement('div', { className: 'ss-face-state' },
-            React.createElement('span', { className: 'ss-face-dot', style: { background: STATO_CONFIG[imp.stato]?.dot || '#52C41A' } }),
-            imp.stato,
-          )
         )
       )
     )
@@ -1651,7 +1634,7 @@ const ALL_COLUMNS = {
       },
     },
     vendita: {
-      title: 'Modello vendita', dataIndex: 'vendita', width: 130,
+      title: 'Modello di vendita', dataIndex: 'vendita', width: 130,
       render: (_, r) => {
         const isLongterm = idNum(r) % 3 === 0;
         return isLongterm
@@ -1782,7 +1765,7 @@ function ListView({ impianti, viewMode, setViewMode, onDetail }) {
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
         // Mostra dati: — label + cascader
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-          React.createElement('span', { style: { fontWeight: 700, fontSize: 13, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap' } }, 'Mostra dati::'),
+          React.createElement('span', { style: { fontWeight: 700, fontSize: 13, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap' } }, 'Mostra dati:'),
           React.createElement(Cascader, {
             options: cascaderOptions,
             value: cascaderValue,
@@ -2109,7 +2092,7 @@ function NewImpiantoDrawer({ open, onClose }) {
             options: TITOLARE_OPTS, value: titolare, onChange: setTitolare,
           })
         ),
-        nif('Modalità di vendita', false,
+        nif('Modello di vendita', false,
           React.createElement(Select, {
             placeholder: 'Seleziona', style: { width: '100%' },
             options: VENDITA_OPTS, value: vendita, onChange: setVendita,
@@ -2925,7 +2908,7 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
             React.createElement(Tag, { color: imp.canale === 'DOOH' ? 'magenta' : 'green' }, imp.canale || 'OOH'),
           ),
           React.createElement('div', { style: { flex: 1, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-end' } },
-            React.createElement(Button, { type: 'primary', icon: React.createElement(EditOutlined), onClick: onEdit }, 'Edit'),
+            React.createElement(Button, { type: 'primary', icon: React.createElement(EditOutlined), onClick: onEdit }, 'Modifica'),
           ),
         ),
 
@@ -3631,7 +3614,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
             ),
           ),
           g2(
-            cs('Modalità vendita', false, sel(vendita, setVendita, VENDITA_OPTS)),
+            cs('Modello di vendita', false, sel(vendita, setVendita, VENDITA_OPTS)),
           ),
           g3(
             cs('Prezzo netto (€)', false, num(prezzoNetto, setPrezzoNetto, { min: 0, precision: 2 })),
