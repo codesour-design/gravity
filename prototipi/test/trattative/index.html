@@ -15,11 +15,8 @@
 
   <script>
     window.GRAVITY_NAV = {
-      section:  'Commercial',
-      item:     'Negotiations',
-      logoSrc:  '../../../brand/Gravity_type.svg',
-      appHref:  '../user%20profile/index.html',
-      links:    { Negotiations: '#' },
+      logoSrc: '../../../brand/Gravity_type.svg',
+      appHref: '../user%20profile/index.html',
     };
   </script>
   <script src="../../navbar.js"></script>
@@ -59,37 +56,44 @@
       flex-shrink: 0;
     }
 
-    /* ── KPI cards ─── */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
+    /* ── DataCard — identico al planning ─── */
+    .data-card {
+      background: var(--gravity-bg-container);
+      border-radius: var(--gravity-radius-lg);
+      border: 1px solid var(--gravity-border-secondary);
+      overflow: visible;
     }
-    .kpi-card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 20px 24px;
-      border: 1px solid #f0f0f0;
-    }
-    .kpi-label {
-      font-size: 13px;
-      color: rgba(0,0,0,0.65);
+    .data-card-head {
       display: flex;
       align-items: center;
-      gap: 6px;
-      margin-bottom: 8px;
+      gap: var(--gravity-space-xs);
+      padding: var(--gravity-space-xs) var(--gravity-space-sm);
+      border-bottom: none;
     }
-    .kpi-value {
-      font-size: 32px;
-      font-weight: 600;
-      color: rgba(0,0,0,0.88);
-      line-height: 1.2;
-      margin-bottom: 8px;
+    .data-card-head-icon {
+      color: var(--gravity-text-secondary);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
     }
-    .kpi-sub {
-      font-size: 13px;
-      color: rgba(0,0,0,0.45);
+    .data-card-head-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--gravity-text);
+    }
+    .data-card-body {
+      padding: 20px 12px 12px;
+    }
+    .data-card-value {
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--gravity-text);
+      line-height: 1.3;
+      display: block;
+    }
+    .data-card-action {
+      padding: var(--gravity-space-xs) var(--gravity-space-sm);
+      border-top: 1px solid var(--gravity-border-secondary);
     }
 
     /* ── Channel option (wizard step 1) ─── */
@@ -223,13 +227,54 @@
       margin-top: 16px;
     }
 
-    /* ── Table override ─── */
-    .ant-table-thead > tr > th {
-      background: #fafafa !important;
-      font-size: 13px !important;
+    /* ── advertiser-link — identico al planning ─── */
+    .advertiser-link {
+      color: var(--gravity-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: var(--gravity-space-xxs);
+      font-size: var(--gravity-fs-body-sm);
     }
-    .ant-table-tbody > tr > td {
-      font-size: 13px !important;
+    .advertiser-link:hover { text-decoration: underline; }
+
+    /* ── Table override — allineato al planning ─── */
+    .ant-table-thead > tr > th {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* Hover riga — Ant Design 5 usa .ant-table-row-hover (classe JS) */
+    .ant-table-tbody > tr.ant-table-row-hover > td {
+      background: rgba(62,0,251,0.04) !important;
+    }
+    /* Colonne fixed: sempre sopra le scrollabili */
+    .ant-table-cell-fix-left,
+    .ant-table-cell-fix-right {
+      background: #fff !important;
+      z-index: 3 !important;
+    }
+    .ant-table-tbody > tr.ant-table-row-hover > td.ant-table-cell-fix-left,
+    .ant-table-tbody > tr.ant-table-row-hover > td.ant-table-cell-fix-right {
+      background: rgba(62,0,251,0.04) !important;
+      z-index: 3 !important;
+    }
+
+    /* ── Drawer form sections (pattern planning) ── */
+    .drawer-section {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--gravity-border-secondary, rgba(0,0,0,0.06));
+    }
+    .drawer-section:last-child { border-bottom: none; }
+    .drawer-section-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.88);
+      margin-bottom: 10px;
+    }
+    .drawer-section-label.required::before {
+      content: '* ';
+      color: #ff4d4f;
     }
   </style>
 </head>
@@ -239,27 +284,26 @@
 <script>
 window.applyGravityTokens();
 
-const { useState, useEffect, useMemo } = React;
+const { useState, useEffect } = React;
 const {
   ConfigProvider, App,
-  Space, Divider, Typography,
+  Space, Typography,
   Button, Input, Select, Form, Checkbox, Radio,
   Switch, DatePicker, InputNumber, Slider,
-  Table, Card, Tag, Badge, Avatar, Tabs,
-  Tooltip, Dropdown,
-  Modal, Alert, Spin,
+  Table, Tag, Avatar, Tabs,
+  Dropdown,
+  Modal, Drawer, Alert,
   Steps,
-  message,
 } = antd;
 
 const {
   UserOutlined, PlusOutlined, EditOutlined, DeleteOutlined,
-  SearchOutlined, EyeOutlined, InfoCircleOutlined,
+  EyeOutlined,
   CheckCircleOutlined, CloseCircleOutlined,
   CalendarOutlined, MoreOutlined, EllipsisOutlined,
-  LeftOutlined, DownOutlined, AppstoreOutlined,
+  LeftOutlined, AppstoreOutlined,
   MailOutlined, LinkOutlined,
-  BarChartOutlined, SendOutlined, FileTextOutlined,
+  FileTextOutlined,
   DollarOutlined, StarOutlined, AimOutlined,
   PictureOutlined, PrinterOutlined, BarsOutlined,
   DashboardOutlined, RiseOutlined,
@@ -369,7 +413,9 @@ function WizardModal({ open, trattativaNome, budgetTot, onClose, onComplete }) {
   const allChannels = [
     { key: 'OOH',        label: 'OOH (Out Of Home)',           enabled: true },
     { key: 'DOOH',       label: 'DOOH (Digital Out Of Home)',  enabled: true },
-    { key: 'Web',        label: 'Web',                         enabled: false },
+    { key: 'Web',        label: 'Web',                         enabled: true },
+    { key: 'Dinamica',   label: 'Dinamica',                    enabled: true },
+    { key: 'Aeroporto',  label: 'Aeroporto',                   enabled: true },
     { key: 'Advertorial',label: 'Advertorial',                 enabled: false },
   ];
 
@@ -532,7 +578,6 @@ function WizardModal({ open, trattativaNome, budgetTot, onClose, onComplete }) {
         `| ${trattativaNome}`
       )
     ),
-    destroyOnClose: false,
   },
     React.createElement('div', { style: { padding: '8px 0 0' } },
       React.createElement(Steps, {
@@ -553,6 +598,7 @@ function WizardModal({ open, trattativaNome, budgetTot, onClose, onComplete }) {
           : React.createElement(Button, { onClick: () => setStep(s => s - 1) }, 'Indietro'),
         step < 2
           ? React.createElement(Button, {
+              type: 'primary',
               disabled: !canNext,
               onClick: () => setStep(s => s + 1),
             }, 'Avanti')
@@ -570,8 +616,7 @@ function AddCampagnaModal({ open, canale, budgetTot, onClose, onAdd }) {
   const [nome, setNome] = useState('');
   const [pct, setPct] = useState(100);
   const [durata, setDurata] = useState('standard');
-  const [dateStart, setDateStart] = useState(null);
-  const [dateEnd, setDateEnd] = useState(null);
+  const [datePeriod, setDatePeriod] = useState(null);
   const [soggetti, setSoggetti] = useState(1);
   const [costiGrafica, setCostiGrafica] = useState(false);
   const [costiStampa, setCostiStampa] = useState(false);
@@ -579,9 +624,9 @@ function AddCampagnaModal({ open, canale, budgetTot, onClose, onAdd }) {
   const budgetVal = budgetTot * pct / 100;
 
   const handleAdd = () => {
-    onAdd({ nome, budgetVal, durata, dateStart, dateEnd, soggetti, costiGrafica, costiStampa });
+    onAdd({ nome, budgetVal, durata, dateStart: datePeriod?.[0] ?? null, dateEnd: datePeriod?.[1] ?? null, soggetti, costiGrafica, costiStampa });
     setNome(''); setPct(100); setDurata('standard');
-    setDateStart(null); setDateEnd(null);
+    setDatePeriod(null);
     setSoggetti(1); setCostiGrafica(false); setCostiStampa(false);
   };
 
@@ -594,7 +639,6 @@ function AddCampagnaModal({ open, canale, budgetTot, onClose, onAdd }) {
       React.createElement(Button, { onClick: onClose }, 'Annulla'),
       React.createElement(Button, { type: 'primary', disabled: !nome, onClick: handleAdd }, 'Crea Campagna')
     ),
-    destroyOnClose: false,
   },
     React.createElement(Form, {
       layout: 'horizontal',
@@ -634,20 +678,14 @@ function AddCampagnaModal({ open, canale, budgetTot, onClose, onAdd }) {
           React.createElement(Radio, { value: 'long' }, 'Long Term (minimo 30 giorni)')
         )
       ),
-      React.createElement(Form.Item, { label: 'Date', required: true },
-        React.createElement(Space, null,
-          React.createElement(DatePicker, {
-            placeholder: 'Selezionare la data',
-            onChange: d => setDateStart(d),
-            style: { width: 190 },
-          }),
-          React.createElement(DatePicker, {
-            placeholder: 'Selezionare la data',
-            disabled: !dateStart,
-            onChange: d => setDateEnd(d),
-            style: { width: 190 },
-          })
-        )
+      React.createElement(Form.Item, { label: 'Periodo', required: true },
+        React.createElement(DatePicker.RangePicker, {
+          placeholder: ['Data inizio', 'Data fine'],
+          value: datePeriod,
+          onChange: dates => setDatePeriod(dates),
+          style: { width: '100%' },
+          format: 'DD/MM/YYYY',
+        })
       ),
       React.createElement('div', { style: { fontSize: 16, fontWeight: 600, margin: '20px 0 16px' } }, 'Costi Aggiuntivi'),
       React.createElement(Form.Item, { label: 'Numero soggetti previsti' },
@@ -801,45 +839,58 @@ function ConfiguratoreView({ trattativa, strategia, onBack }) {
   });
 
   return React.createElement('div', { className: 'page-content' },
-    // Breadcrumb
-    React.createElement(Button, {
-      type: 'link',
-      icon: React.createElement(LeftOutlined),
-      onClick: onBack,
-      style: { padding: 0, marginBottom: 12, fontSize: 13, color: '#3E00FB' },
-    }, 'Lista Trattative'),
-
-    // Page header
+    // Header card
     React.createElement('div', {
-      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+      style: {
+        background: 'var(--gravity-bg-container)',
+        borderRadius: 'var(--gravity-radius-lg)',
+        padding: '16px 20px',
+        border: '1px solid var(--gravity-split)',
+        marginBottom: 20,
+      },
     },
-      React.createElement('div', null,
-        React.createElement('h1', { style: { fontSize: 22, fontWeight: 700, marginBottom: 6 } },
-          'Configuratore Strategie Campagne'
-        ),
-        React.createElement('div', {
-          style: { display: 'flex', alignItems: 'center', gap: 20, fontSize: 13, color: 'rgba(0,0,0,0.65)' },
-        },
-          React.createElement('span', null,
-            'Trattativa: ', React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, trattativa.nome)
+      // Breadcrumb
+      React.createElement(Button, {
+        type: 'link',
+        icon: React.createElement(LeftOutlined),
+        onClick: onBack,
+        style: { padding: 0, marginBottom: 8, fontSize: 13, color: 'var(--gravity-primary)', height: 'auto', display: 'block' },
+      }, 'Lista Trattative'),
+
+      // Title + actions row
+      React.createElement('div', {
+        style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
+      },
+        React.createElement('div', { style: { minWidth: 0 } },
+          React.createElement(Title, { level: 3, style: { margin: 0, lineHeight: '32px' } },
+            'Configuratore Strategie Campagne'
           ),
-          React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
-            'Stato Trattativa: ',
-            React.createElement('span', {
-              style: { display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 4, color: 'rgba(0,0,0,0.88)' },
-            },
-              React.createElement('span', { className: 'status-dot', style: { background: '#52C41A' } }),
-              'Attiva'
+          React.createElement('div', {
+            style: { display: 'flex', alignItems: 'center', gap: 16, marginTop: 4 },
+          },
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+              React.createElement('span', { style: { fontSize: 13, color: 'var(--gravity-text-tertiary)' } }, 'Trattativa:'),
+              React.createElement('span', { style: { fontSize: 13, color: 'var(--gravity-text)' } }, trattativa.nome)
+            ),
+            React.createElement('span', { style: { color: 'var(--gravity-text-disabled)' } }, '·'),
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+              React.createElement('span', { style: { fontSize: 13, color: 'var(--gravity-text-tertiary)' } }, 'Stato:'),
+              React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, color: 'var(--gravity-text)' } },
+                React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: '#52C41A', display: 'inline-block', flexShrink: 0 } }),
+                'Attiva'
+              )
+            ),
+            React.createElement('span', { style: { color: 'var(--gravity-text-disabled)' } }, '·'),
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+              React.createElement('span', { style: { fontSize: 13, color: 'var(--gravity-text-tertiary)' } }, 'Budget:'),
+              React.createElement('span', { style: { fontSize: 13, color: 'var(--gravity-text)' } }, EUR(trattativa.budget))
             )
-          ),
-          React.createElement('span', null,
-            'Budget: ', React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, EUR(trattativa.budget))
           )
+        ),
+        React.createElement('div', { style: { display: 'flex', gap: 8, flexShrink: 0 } },
+          React.createElement(Button, { icon: React.createElement(EditOutlined) }, 'Modifica'),
+          React.createElement(Button, { icon: React.createElement(FileTextOutlined), disabled: true }, 'Genera documenti')
         )
-      ),
-      React.createElement(Space, null,
-        React.createElement(Button, { icon: React.createElement(EditOutlined) }, 'Modifica'),
-        React.createElement(Button, { icon: React.createElement(FileTextOutlined), disabled: true }, 'Genera documenti')
       )
     ),
 
@@ -923,92 +974,435 @@ function ConfiguratoreView({ trattativa, strategia, onBack }) {
   );
 }
 
+// ── AdvertiserAvatar ──────────────────────────────────────────────────────────
+const ADVERTISER_LOGOS = {
+  'Enel SpA':                                  'https://logo.clearbit.com/enel.com',
+  'Stellantis Italia':                         'https://logo.clearbit.com/stellantis.com',
+  'ENIT – Agenzia Nazionale del Turismo':      'https://logo.clearbit.com/enit.it',
+  'Mediaset Premium':                          'https://logo.clearbit.com/mediaset.it',
+  'Esselunga SpA':                             'https://logo.clearbit.com/esselunga.it',
+  'Rinascente Group':                          'https://logo.clearbit.com/rinascente.it',
+  'Zara Italia Srl':                           'https://logo.clearbit.com/zara.com',
+  'Eni SpA':                                   'https://logo.clearbit.com/eni.com',
+  'TIM S.p.A.':                                'https://logo.clearbit.com/tim.it',
+  'Satispay SpA':                              'https://logo.clearbit.com/satispay.com',
+  'Fondazione Telethon':                       'https://logo.clearbit.com/telethon.it',
+  'Teatro alla Scala':                         'https://logo.clearbit.com/teatroallascala.org',
+};
+
+const AVATAR_PALETTE = [
+  { bg: '#F0EAFF', fg: '#3E00FB' },
+  { bg: '#E6F7FF', fg: '#0958D9' },
+  { bg: '#FFF7E6', fg: '#D46B08' },
+  { bg: '#F6FFED', fg: '#389E0D' },
+  { bg: '#FFF1F0', fg: '#CF1322' },
+  { bg: '#E8F5E9', fg: '#2E7D32' },
+];
+function nameColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
+}
+function AdvertiserAvatar({ name, size = 24 }) {
+  const [logoFailed, setLogoFailed] = React.useState(false);
+  const logoUrl = ADVERTISER_LOGOS[name];
+  const initials = name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  const { bg, fg } = nameColor(name);
+
+  if (logoUrl && !logoFailed) {
+    return React.createElement(Avatar, {
+      size,
+      shape: 'circle',
+      src: logoUrl,
+      style: { flexShrink: 0, background: '#fff', border: '1px solid rgba(0,0,0,0.08)', padding: 2 },
+      onError: () => { setLogoFailed(true); return false; },
+    });
+  }
+  return React.createElement(Avatar, {
+    size,
+    shape: 'circle',
+    style: { background: bg, color: fg, fontWeight: 700, fontSize: size * 0.38, flexShrink: 0 },
+  }, initials);
+}
+
+// ── DataCard — identico al planning ───────────────────────────────────────────
+function DataCard({ icon: Icon, label, value, valueExtra }) {
+  return React.createElement('div', { className: 'data-card' },
+    React.createElement('div', { className: 'data-card-head' },
+      React.createElement('span', { className: 'data-card-head-icon' },
+        React.createElement(Icon, { style: { fontSize: 16 } })
+      ),
+      React.createElement('span', { className: 'data-card-head-label' }, label)
+    ),
+    React.createElement('div', { className: 'data-card-body' },
+      React.createElement('span', { className: 'data-card-value' }, value),
+      valueExtra && React.createElement(Text, {
+        type: 'secondary',
+        style: { fontSize: 12, marginTop: 4, display: 'block' },
+      }, valueExtra)
+    )
+  );
+}
+
+// ── ContactCard ───────────────────────────────────────────────────────────────
+function ContactCard({ contatto, onRemove }) {
+  return React.createElement('div', {
+    style: {
+      display: 'flex', alignItems: 'flex-start', gap: 12,
+      border: '1px solid rgba(0,0,0,0.15)', borderRadius: 8,
+      padding: '12px 12px 12px 14px',
+      background: '#fff', position: 'relative',
+    },
+  },
+    // Avatar
+    React.createElement(Avatar, {
+      size: 48, shape: 'square',
+      style: {
+        flexShrink: 0, borderRadius: 6,
+        background: nameColor(contatto.nome).bg,
+        color: nameColor(contatto.nome).fg,
+        fontWeight: 700, fontSize: 18,
+      },
+    }, contatto.nome.split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase()),
+
+    // Info
+    React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+      React.createElement('div', { style: { fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.88)', lineHeight: '22px' } }, contatto.nome),
+      React.createElement('div', { style: { fontWeight: 500, fontSize: 13, color: 'rgba(0,0,0,0.88)', lineHeight: '20px' } }, contatto.inserzionista),
+      React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, contatto.ruolo),
+      React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, contatto.telefono),
+      React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, contatto.email),
+    ),
+
+    // Remove button
+    React.createElement(Button, {
+      size: 'small', danger: true,
+      icon: React.createElement(icons.DeleteOutlined),
+      style: { flexShrink: 0, borderColor: '#ff4d4f', color: '#ff4d4f' },
+      onClick: onRemove,
+    })
+  );
+}
+
+// ── NuovaTrattativaDrawer ─────────────────────────────────────────────────────
+function NuovaTrattativaDrawer({ open, onClose, contattiData }) {
+  const [tipoContatto, setTipoContatto] = useState('esistente');
+  const [contattoSel, setContattoSel]   = useState(null);
+  const [nome, setNome]                 = useState('');
+  const [budget, setBudget]             = useState('');
+  const [note, setNote]                 = useState('');
+
+  const MAX_NOTE = 200;
+  const contattoObj = contattiData.find(c => c.nome === contattoSel) ?? null;
+  const canSave     = tipoContatto === 'esistente' ? (contattoSel && nome.trim()) : nome.trim();
+
+  const handleClose = () => {
+    setTipoContatto('esistente'); setContattoSel(null);
+    setNome(''); setBudget(''); setNote('');
+    onClose();
+  };
+
+  return React.createElement(Drawer, {
+    open,
+    onClose: handleClose,
+    placement: 'right',
+    width: 520,
+    title: 'Nuova Trattativa',
+    destroyOnClose: true,
+    styles: {
+      header: { padding: '12px 16px' },
+      body:   { padding: 0 },
+      footer: { padding: '12px 16px' },
+    },
+    footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8 } },
+      React.createElement(Button, { onClick: handleClose }, 'Annulla'),
+      React.createElement(Button, {
+        type: 'primary',
+        icon: React.createElement(icons.SaveOutlined),
+        disabled: !canSave,
+        onClick: handleClose,
+      }, 'Salva')
+    ),
+  },
+
+    // ── Sezione Contatto ──────────────────────────────────────
+    React.createElement('div', { className: 'drawer-section' },
+      React.createElement('div', { className: 'drawer-section-label required' }, 'Contatto'),
+      React.createElement(Radio.Group, {
+        value: tipoContatto,
+        onChange: e => { setTipoContatto(e.target.value); setContattoSel(null); },
+        style: { marginBottom: tipoContatto === 'esistente' ? 10 : 0 },
+      },
+        React.createElement(Radio, { value: 'esistente' }, 'Esistente'),
+        React.createElement(Radio, { value: 'nuovo' }, 'Nuovo')
+      ),
+      tipoContatto === 'esistente' && (
+        contattoObj
+          ? React.createElement(ContactCard, { contatto: contattoObj, onRemove: () => setContattoSel(null) })
+          : React.createElement(Select, {
+              placeholder: 'Seleziona un contatto dell\'inserzionista',
+              value: contattoSel,
+              onChange: v => setContattoSel(v),
+              style: { width: '100%' },
+              options: contattiData.map(c => ({
+                label: React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                  c.nome,
+                  React.createElement(Tag, { style: { margin: 0, fontSize: 11, color: 'rgba(0,0,0,0.45)', background: 'rgba(0,0,0,0.04)', border: 'none', borderRadius: 4, padding: '0 6px' } }, c.inserzionista)
+                ),
+                value: c.nome,
+              })),
+              showSearch: true,
+              filterOption: (input, opt) => opt.value.toLowerCase().includes(input.toLowerCase()),
+            })
+      )
+    ),
+
+    // ── Sezione Nome Trattativa ───────────────────────────────
+    React.createElement('div', { className: 'drawer-section' },
+      React.createElement('div', { className: 'drawer-section-label required' }, 'Nome Trattativa'),
+      React.createElement(Input, {
+        placeholder: 'Es. Lancio prodotto estate 2026 — OOH Milano',
+        value: nome,
+        onChange: e => setNome(e.target.value),
+      })
+    ),
+
+    // ── Sezione Budget Stimato ────────────────────────────────
+    React.createElement('div', { className: 'drawer-section' },
+      React.createElement('div', { className: 'drawer-section-label' }, 'Budget Stimato'),
+      React.createElement(Input, {
+        placeholder: 'Inserisci il budget',
+        value: budget,
+        onChange: e => setBudget(e.target.value),
+        suffix: React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, '€'),
+      })
+    ),
+
+    // ── Sezione Note ──────────────────────────────────────────
+    React.createElement('div', { className: 'drawer-section' },
+      React.createElement('div', { className: 'drawer-section-label' }, 'Note'),
+      React.createElement(Input.TextArea, {
+        placeholder: 'Aggiungi dettagli sulle esigenze dell\'inserzionista o sulla configurazione della campagna.',
+        value: note,
+        onChange: e => { if (e.target.value.length <= MAX_NOTE) setNote(e.target.value); },
+        rows: 4,
+        showCount: true,
+        maxLength: MAX_NOTE,
+      })
+    ),
+  );
+}
+
 // ── ListaView ─────────────────────────────────────────────────────────────────
+const MOCK_USERS = {
+  operations_manager: { nome: 'Davide Serra',    ruolo: 'Operations Manager' },
+  commerciale:        { nome: 'Lorenzo Bianchi', ruolo: 'Commerciale' },
+  planner:            { nome: 'Giulia Romano',   ruolo: 'Planner' },
+};
+
 function ListaView({ onCreaStrategia, onVediStrategia }) {
-  const [wizardOpen, setWizardOpen] = useState(false);
-  const [wizardRow, setWizardRow] = useState(null);
+  const [wizardOpen, setWizardOpen]   = useState(false);
+  const [wizardRow, setWizardRow]     = useState(null);
+  const [nuovaOpen, setNuovaOpen]     = useState(false);
+  const NAV_ROLE_MAP = {
+    'Operation Manager': 'operations_manager',
+    'Tenant Admin':      'operations_manager',
+    'Inventory Manager': 'operations_manager',
+    'Sales':             'commerciale',
+    'Planner':           'planner',
+  };
+  const readRuolo = () => NAV_ROLE_MAP[localStorage.getItem('gravity_proto_role')] || 'operations_manager';
+  const [ruolo, setRuolo] = useState(readRuolo);
+
+  React.useEffect(() => {
+    const id = setInterval(() => setRuolo(r => { const n = readRuolo(); return n !== r ? n : r; }), 300);
+    return () => clearInterval(id);
+  }, []);
+
+  const utenteLoggato = MOCK_USERS[ruolo];
 
   const trattative = [
-    { key: '1', nome: 'Campagna Gravity',             budget: 6676867,  contatto: 'it Codesour',        inserzionista: 'CODESOUR TECH SRL', dataCreazione: '29/05/2026', ultimaModifica: '29/05/2026', stato: 'Attiva',  hasStrategia: false },
-    { key: '2', nome: 'Campagna festa 2 giugno',      budget: 7000,     contatto: 'Developer CodeSour',  inserzionista: 'Alessi',            dataCreazione: '14/05/2026', ultimaModifica: '14/05/2026', stato: 'Vinta',   hasStrategia: true  },
-    { key: '3', nome: 'Primo Maggio / Festa in piaz…',budget: 10000,    contatto: 'Developer CodeSour',  inserzionista: 'Alessi',            dataCreazione: '27/04/2026', ultimaModifica: '27/04/2026', stato: 'Vinta',   hasStrategia: true  },
-    { key: '4', nome: 'Campagna 1 maggio',            budget: 3000,     contatto: 'Developer CodeSour',  inserzionista: 'Alessi',            dataCreazione: '17/04/2026', ultimaModifica: '17/04/2026', stato: 'Vinta',   hasStrategia: true  },
-    { key: '5', nome: 'Carnevale 2026',               budget: 2000,     contatto: 'it Codesour',         inserzionista: 'CODESOUR TECH SRL', dataCreazione: '12/02/2026', ultimaModifica: '12/02/2026', stato: 'Attiva',  hasStrategia: true  },
-    { key: '6', nome: 'Campagna di carnevale 2026',   budget: 2000,     contatto: 'it Codesour',         inserzionista: 'CODESOUR TECH SRL', dataCreazione: '10/02/2026', ultimaModifica: '10/02/2026', stato: 'Attiva',  hasStrategia: true  },
+    { key: '1',  nome: 'Piano annuale brand awareness 2026 — OOH + DOOH + Web',          budget: 480000,  contatto: 'Marco Ferretti',      inserzionista: 'Enel SpA',                  agente: 'Lorenzo Bianchi',   proprietario: 'Davide Serra',     dataCreazione: '05/01/2026', ultimaModifica: '22/05/2026', stato: 'Attiva',  hasStrategia: true  },
+    { key: '2',  nome: 'Lancio nuova gamma veicoli elettrici — Q1/Q2 2026',               budget: 310000,  contatto: 'Lucia Bianchi',       inserzionista: 'Stellantis Italia',         agente: 'Giulia Romano',     proprietario: 'Martina Volpe',    dataCreazione: '12/01/2026', ultimaModifica: '18/05/2026', stato: 'Attiva',  hasStrategia: true  },
+    { key: '3',  nome: 'Estate 2026 — campagna istituzionale turismo',                    budget: 95000,   contatto: 'Andrea Russo',        inserzionista: 'ENIT – Agenzia Nazionale del Turismo', agente: 'Lorenzo Bianchi',   proprietario: 'Davide Serra',     dataCreazione: '03/03/2026', ultimaModifica: '28/05/2026', stato: 'Attiva',  hasStrategia: false },
+    { key: '4',  nome: 'Back to school — promozione offerta abbonamenti',                 budget: 42000,   contatto: 'Sara Colombo',        inserzionista: 'Mediaset Premium',          agente: 'Giulia Romano',     proprietario: 'Riccardo Esposito',dataCreazione: '20/03/2026', ultimaModifica: '15/05/2026', stato: 'Attiva',  hasStrategia: false },
+    { key: '5',  nome: 'Piano stagionale GDO: Primavera + Estate + Autunno',              budget: 220000,  contatto: 'Filippo Martini',     inserzionista: 'Esselunga SpA',             agente: 'Alessandro Costa',  proprietario: 'Martina Volpe',    dataCreazione: '10/02/2026', ultimaModifica: '20/05/2026', stato: 'Attiva',  hasStrategia: true  },
+    { key: '6',  nome: 'Festività natalizie 2026 — piano multicanale dicembre',           budget: 175000,  contatto: 'Valentina Greco',     inserzionista: 'Rinascente Group',          agente: 'Federica Mancini',  proprietario: 'Davide Serra',     dataCreazione: '15/04/2026', ultimaModifica: '27/05/2026', stato: 'Attiva',  hasStrategia: false },
+    { key: '7',  nome: 'Apertura flagship store Milano — campagna pre-launch + launch',   budget: 88000,   contatto: 'Gianni Esposito',     inserzionista: 'Zara Italia Srl',           agente: 'Giulia Romano',     proprietario: 'Riccardo Esposito',dataCreazione: '08/04/2026', ultimaModifica: '14/05/2026', stato: 'Vinta',   hasStrategia: true  },
+    { key: '8',  nome: 'Campagna corporate sostenibilità — annuale 4 flight',             budget: 260000,  contatto: 'Chiara Moretti',      inserzionista: 'Eni SpA',                   agente: 'Alessandro Costa',  proprietario: 'Davide Serra',     dataCreazione: '22/01/2026', ultimaModifica: '11/05/2026', stato: 'Vinta',   hasStrategia: true  },
+    { key: '9',  nome: 'Promozione offerta fibra — campagna nazionale Q2',                budget: 130000,  contatto: 'Roberto Fontana',     inserzionista: 'TIM S.p.A.',                agente: 'Federica Mancini',  proprietario: 'Martina Volpe',    dataCreazione: '17/03/2026', ultimaModifica: '06/05/2026', stato: 'Vinta',   hasStrategia: true  },
+    { key: '10', nome: 'Lancio app mobile — digital OOH aeroporti + metropolitane',       budget: 55000,   contatto: 'Elena Caruso',        inserzionista: 'Satispay SpA',              agente: 'Federica Mancini',  proprietario: 'Riccardo Esposito',dataCreazione: '01/04/2026', ultimaModifica: '29/04/2026', stato: 'Vinta',   hasStrategia: true  },
+    { key: '11', nome: 'Awareness istituzionale — campagna nazionale 3 soggetti',         budget: 72000,   contatto: 'Luca Ricci',          inserzionista: 'Fondazione Telethon',       agente: 'Giulia Romano',     proprietario: 'Davide Serra',     dataCreazione: '25/02/2026', ultimaModifica: '18/03/2026', stato: 'Persa',   hasStrategia: false },
+    { key: '12', nome: 'Stagione teatrale 2026/2027 — piano abbonamenti ottobre–maggio',  budget: 18000,   contatto: 'Marta Conti',         inserzionista: 'Teatro alla Scala',         agente: 'Lorenzo Bianchi',   proprietario: 'Martina Volpe',    dataCreazione: '14/04/2026', ultimaModifica: '02/05/2026', stato: 'Persa',   hasStrategia: false },
   ];
 
-  const attive = trattative.filter(t => t.stato === 'Attiva');
-  const vinte  = trattative.filter(t => t.stato === 'Vinta');
-  const perse  = trattative.filter(t => t.stato === 'Persa');
+  const isOM          = ruolo === 'operations_manager';
+  const trattativeVis = isOM ? trattative : trattative.filter(t => t.agente === utenteLoggato.nome);
 
-  const statoColors = { Attiva: '#3E00FB', Vinta: '#52C41A', Persa: '#FF4A1C' };
+  const attive   = trattativeVis.filter(t => t.stato === 'Attiva');
+  const vinte    = trattativeVis.filter(t => t.stato === 'Vinta');
+  const perse    = trattativeVis.filter(t => t.stato === 'Persa');
+  const CONTATTI_EXTRA = {
+    'Andrea Russo':    { ruolo: 'Brand Manager',           telefono: '+39 02 4955 8801', email: 'andrea.russo@enit.it' },
+    'Chiara Moretti':  { ruolo: 'Head of Communications',  telefono: '+39 06 5982 1140', email: 'c.moretti@eni.com' },
+    'Elena Caruso':    { ruolo: 'Marketing Lead',          telefono: '+39 02 8724 6633', email: 'elena.caruso@satispay.com' },
+    'Filippo Martini': { ruolo: 'Media Planner',           telefono: '+39 02 7539 0022', email: 'filippo.martini@esselunga.it' },
+    'Gianni Esposito': { ruolo: 'Marketing Director',      telefono: '+39 02 6671 4487', email: 'g.esposito@zara.it' },
+    'Lucia Bianchi':   { ruolo: 'Campaign Manager',        telefono: '+39 02 6824 7700', email: 'lucia.bianchi@stellantis.com' },
+    'Luca Ricci':      { ruolo: 'Responsabile Comunicazione', telefono: '+39 06 4401 2293', email: 'l.ricci@telethon.it' },
+    'Marco Ferretti':  { ruolo: 'Media & Brand Director',  telefono: '+39 06 8305 5512', email: 'marco.ferretti@enel.com' },
+    'Marta Conti':     { ruolo: 'Responsabile Marketing',  telefono: '+39 02 8879 1100', email: 'marta.conti@teatroallascala.org' },
+    'Roberto Fontana': { ruolo: 'Advertising Manager',     telefono: '+39 06 3688 0044', email: 'r.fontana@tim.it' },
+    'Sara Colombo':    { ruolo: 'Media Buyer',             telefono: '+39 02 2100 5533', email: 'sara.colombo@mediaset.it' },
+    'Valentina Greco': { ruolo: 'Senior Brand Manager',    telefono: '+39 02 8852 6619', email: 'v.greco@rinascente.it' },
+  };
+  const contattiData = [...new Map(trattative.map(t => [t.contatto, t])).values()]
+    .sort((a, b) => a.contatto.localeCompare(b.contatto))
+    .map(t => ({
+      nome: t.contatto,
+      inserzionista: t.inserzionista,
+      ...(CONTATTI_EXTRA[t.contatto] ?? { ruolo: 'Referente commerciale', telefono: '—', email: '—' }),
+    }));
+
+  const STATO_DOT = { Attiva: '#3E00FB', Vinta: '#52C41A', Persa: '#FF4A1C' };
 
   const columns = [
     {
       title: 'Trattativa',
       dataIndex: 'nome',
       key: 'nome',
+      width: 240,
+      fixed: 'left',
       sorter: (a, b) => a.nome.localeCompare(b.nome),
+      render: v => React.createElement('span', {
+        style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', lineHeight: 1.3 },
+      }, v),
     },
     {
-      title: 'Budget',
+      title: 'Budget Stimato',
       dataIndex: 'budget',
       key: 'budget',
+      width: 160,
+      fixed: 'left',
       sorter: (a, b) => a.budget - b.budget,
-      render: v => EUR(v),
+      render: v => React.createElement('span', { style: { fontSize: 13 } }, EUR(v)),
     },
     {
       title: 'Contatto',
       dataIndex: 'contatto',
       key: 'contatto',
-      render: v => React.createElement(Space, null,
-        v,
-        React.createElement(Button, { type: 'text', icon: React.createElement(MailOutlined), size: 'small', style: { color: 'rgba(0,0,0,0.35)' } })
+      width: 148,
+      render: v => React.createElement('div', {
+        style: { display: 'inline-flex', alignItems: 'center', gap: 6 },
+      },
+        React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)' } }, v),
+        React.createElement(Button, {
+          type: 'text', size: 'small',
+          icon: React.createElement(MailOutlined),
+          style: { color: 'rgba(0,0,0,0.3)', padding: 0 },
+        })
       ),
     },
     {
       title: 'Inserzionista',
       dataIndex: 'inserzionista',
       key: 'inserzionista',
-      render: v => React.createElement(Button, {
-        type: 'link', size: 'small',
-        icon: React.createElement(LinkOutlined),
-        style: { padding: 0 },
-      }, v),
+      width: 172,
+      filters: [...new Set(trattative.map(t => t.inserzionista))].sort().map(a => ({ text: a, value: a })),
+      onFilter: (value, record) => record.inserzionista === value,
+      render: v => React.createElement('span', {
+        style: { display: 'inline-flex', alignItems: 'center', gap: 7 },
+      },
+        React.createElement(AdvertiserAvatar, { name: v, size: 24 }),
+        React.createElement('span', { className: 'advertiser-link' }, v)
+      ),
+    },
+    {
+      title: 'Agente Commerciale',
+      dataIndex: 'agente',
+      key: 'agente',
+      width: 200,
+      filters: isOM
+        ? [...new Set(trattative.map(t => t.agente))].sort().map(a => ({ text: a, value: a }))
+        : undefined,
+      onFilter: isOM ? (value, record) => record.agente === value : undefined,
+      render: (_, row) => {
+        const name = isOM ? row.agente : utenteLoggato.nome;
+        const isMe = name === utenteLoggato.nome;
+        return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7 } },
+          React.createElement(AdvertiserAvatar, { name, size: 22 }),
+          React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', fontWeight: isMe ? 600 : 400 } }, name),
+          isMe && React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.88)', fontWeight: 600 } }, '(tu)')
+        );
+      },
+    },
+    {
+      title: 'Proprietario',
+      dataIndex: 'proprietario',
+      key: 'proprietario',
+      width: 148,
+      filters: [...new Set(trattativeVis.map(t => t.proprietario))].sort().map(p => ({ text: p, value: p })),
+      onFilter: (value, record) => record.proprietario === value,
+      render: (_, row) => {
+        const name = row.proprietario;
+        const isMe = name === utenteLoggato.nome;
+        return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7 } },
+          React.createElement(AdvertiserAvatar, { name, size: 22 }),
+          React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', fontWeight: isMe ? 600 : 400 } }, name),
+          isMe && React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.88)', fontWeight: 600 } }, '(tu)')
+        );
+      },
     },
     {
       title: 'Data di Creazione',
       dataIndex: 'dataCreazione',
       key: 'dataCreazione',
-      sorter: true,
+      width: 180,
+      sorter: (a, b) => a.dataCreazione.localeCompare(b.dataCreazione),
+      render: v => React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v),
     },
     {
       title: 'Ultima Modifica',
       dataIndex: 'ultimaModifica',
       key: 'ultimaModifica',
-      sorter: true,
+      width: 150,
+      sorter: (a, b) => a.ultimaModifica.localeCompare(b.ultimaModifica),
+      render: v => React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v),
     },
     {
       title: 'Stato',
       dataIndex: 'stato',
       key: 'stato',
+      width: 100,
+      fixed: 'right',
       filters: [
         { text: 'Attiva', value: 'Attiva' },
-        { text: 'Vinta', value: 'Vinta' },
-        { text: 'Persa', value: 'Persa' },
+        { text: 'Vinta',  value: 'Vinta'  },
+        { text: 'Persa',  value: 'Persa'  },
       ],
       onFilter: (value, record) => record.stato === value,
       render: v => React.createElement('span', {
         style: { display: 'inline-flex', alignItems: 'center', gap: 6 },
       },
-        React.createElement('span', { className: 'status-dot', style: { background: statoColors[v] || '#aaa' } }),
-        v
+        React.createElement('span', {
+          style: {
+            width: 7, height: 7, borderRadius: '50%',
+            background: STATO_DOT[v] || '#D9D9D9',
+            display: 'inline-block', flexShrink: 0,
+          },
+        }),
+        React.createElement(Text, { style: { fontSize: 13 } }, v)
       ),
     },
     {
-      title: 'Strategia',
+      title: '',
       key: 'strategia',
-      render: (_, row) => React.createElement(Space, null,
+      width: 164,
+      fixed: 'right',
+      render: (_, row) => React.createElement('div', {
+        style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
+        onClick: e => e.stopPropagation(),
+      },
         row.hasStrategia
           ? React.createElement(Button, {
               size: 'small',
@@ -1023,70 +1417,93 @@ function ListaView({ onCreaStrategia, onVediStrategia }) {
             }, 'Crea Strategia'),
         React.createElement(Button, {
           type: 'text', size: 'small',
-          icon: React.createElement(EllipsisOutlined),
+          icon: React.createElement(MoreOutlined),
+          style: { color: 'rgba(0,0,0,0.3)' },
         })
       ),
     },
   ];
 
   return React.createElement('div', { className: 'page-content' },
-    // Header row
+    // Header card
     React.createElement('div', {
-      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+      style: {
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'var(--gravity-bg-container)',
+        borderRadius: 8,
+        padding: '16px 20px',
+        border: '1px solid var(--gravity-split)',
+        marginBottom: 20,
+      },
     },
-      React.createElement('h1', { style: { fontSize: 22, fontWeight: 700 } }, 'Lista Trattative'),
+      React.createElement(Title, { level: 3, style: { margin: 0, lineHeight: '32px' } }, 'Lista Trattative'),
       React.createElement(Space, null,
-        React.createElement(DatePicker, { placeholder: '2026-01-01', style: { width: 135 } }),
-        React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, '—'),
-        React.createElement(DatePicker, { placeholder: '2026-05-29', style: { width: 135 } }),
+        React.createElement(DatePicker.RangePicker, { defaultValue: [dayjs().startOf('year'), dayjs()], format: 'DD/MM/YYYY', style: { width: 280 } }),
         React.createElement(Button, {
           type: 'primary',
           icon: React.createElement(PlusOutlined),
+          onClick: () => setNuovaOpen(true),
         }, 'Nuova Trattativa')
       )
     ),
 
     // KPI cards
-    React.createElement('div', { className: 'kpi-grid' },
-      React.createElement('div', { className: 'kpi-card' },
-        React.createElement('div', { className: 'kpi-label' },
-          React.createElement('span', { className: 'status-dot', style: { background: '#3E00FB' } }),
-          'Attive'
-        ),
-        React.createElement('div', { className: 'kpi-value' }, attive.length),
-        React.createElement('div', { className: 'kpi-sub' }, EUR(attive.reduce((s, t) => s + t.budget, 0)))
-      ),
-      React.createElement('div', { className: 'kpi-card' },
-        React.createElement('div', { className: 'kpi-label' },
-          React.createElement('span', { className: 'status-dot', style: { background: '#52C41A' } }),
-          'Vinte'
-        ),
-        React.createElement('div', { className: 'kpi-value' }, vinte.length),
-        React.createElement('div', { className: 'kpi-sub' }, EUR(vinte.reduce((s, t) => s + t.budget, 0)))
-      ),
-      React.createElement('div', { className: 'kpi-card' },
-        React.createElement('div', { className: 'kpi-label' },
-          React.createElement('span', { className: 'status-dot', style: { background: '#FF4A1C' } }),
-          'Perse'
-        ),
-        React.createElement('div', { className: 'kpi-value' }, perse.length),
-        React.createElement('div', { className: 'kpi-sub' }, EUR(0))
-      )
+    React.createElement('div', {
+      style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28 },
+    },
+      React.createElement(DataCard, {
+        icon: RiseOutlined,
+        label: 'Attive',
+        value: attive.length,
+        valueExtra: EUR(attive.reduce((s, t) => s + t.budget, 0)),
+      }),
+      React.createElement(DataCard, {
+        icon: CheckCircleOutlined,
+        label: 'Vinte',
+        value: vinte.length,
+        valueExtra: EUR(vinte.reduce((s, t) => s + t.budget, 0)),
+      }),
+      React.createElement(DataCard, {
+        icon: CloseCircleOutlined,
+        label: 'Perse',
+        value: perse.length,
+        valueExtra: EUR(0),
+      }),
     ),
 
     // Table card
-    React.createElement('div', { style: { background: '#fff', borderRadius: 8 } },
-      React.createElement('div', {
-        style: { padding: '14px 24px', fontSize: 13, color: 'rgba(0,0,0,0.65)', borderBottom: '1px solid #f0f0f0' },
-      }, `Totale: ${trattative.length} Trattative`),
-      React.createElement(Table, {
-        dataSource: trattative,
-        columns,
-        pagination: false,
-        size: 'middle',
-        style: { borderRadius: '0 0 8px 8px', overflow: 'hidden' },
-      })
+    React.createElement('div', {
+      style: {
+        background: 'var(--gravity-bg-container)',
+        borderRadius: 10,
+        border: '1px solid rgba(0,0,0,0.06)',
+        overflow: 'hidden',
+      },
+    },
+      React.createElement('div', { style: { padding: '16px 20px 4px' } },
+        React.createElement(Text, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } },
+          `${trattativeVis.length} trattative`
+        )
+      ),
+      React.createElement('div', { style: { padding: '0 20px 20px' } },
+        React.createElement(Table, {
+          dataSource: trattativeVis,
+          columns,
+          rowKey: 'key',
+          size: 'middle',
+          scroll: { x: 1700 },
+          pagination: { pageSize: 10, showSizeChanger: false, style: { margin: '12px 0 16px' } },
+          style: { borderRadius: 0 },
+        })
+      )
     ),
+
+    // Drawer nuova trattativa
+    React.createElement(NuovaTrattativaDrawer, {
+      open: nuovaOpen,
+      onClose: () => setNuovaOpen(false),
+      contattiData,
+    }),
 
     // Wizard
     wizardRow && React.createElement(WizardModal, {
