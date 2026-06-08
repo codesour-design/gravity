@@ -608,13 +608,7 @@ const COLL_ICON_MAP = {
 
 
 function CollectionsListView({ onNewCollection, onEditCollection, collections, onDeleteCollection, onDuplicateCollection, highlightedCollId, onShare, collectionShares }) {
-  const [shareMode,    setShareMode]    = useState(false);
-  const [selectedKeys, setSelectedKeys] = useState([]);
-
   const allCollections = collections;
-
-  const exitShareMode = () => { setShareMode(false); setSelectedKeys([]); };
-
 
   return React.createElement('div', { className: 'coll-shell' },
 
@@ -636,42 +630,10 @@ function CollectionsListView({ onNewCollection, onEditCollection, collections, o
 
         // ── Toolbar ────────────────────────────────────────
         React.createElement('div', { className: 'coll-toolbar' },
-          shareMode && selectedKeys.length > 0
-            ? React.createElement('div', {
-                style: {
-                  display: 'inline-flex', alignItems: 'center', gap: 12,
-                  background: '#F8F6FF', border: '1px solid #D3C8FF',
-                  borderRadius: 8, padding: '6px 10px 6px 8px',
-                }
-              },
-                // Close
-                React.createElement('div', {
-                  onClick: exitShareMode,
-                  style: { display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 22, height: 22, borderRadius: 4, cursor: 'pointer',
-                    color: 'rgba(0,0,0,0.45)', flexShrink: 0,
-                    transition: 'background 0.15s, color 0.15s' },
-                  onMouseEnter: e => { e.currentTarget.style.background = '#EDE9FF'; e.currentTarget.style.color = 'rgba(0,0,0,0.88)'; },
-                  onMouseLeave: e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(0,0,0,0.45)'; },
-                }, React.createElement(icons.CloseOutlined, { style: { fontSize: 11 } })),
-                // Counter
-                React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)', whiteSpace: 'nowrap' } },
-                  React.createElement('strong', { style: { color: '#3E00FB' } }, selectedKeys.length),
-                  ` ${selectedKeys.length === 1 ? 'collezione selezionata' : 'collezioni selezionate'}`,
-                ),
-                // Divider
-                React.createElement('div', { style: { width: 1, height: 16, background: '#D3C8FF', flexShrink: 0 } }),
-                // Actions
-                React.createElement(Button, {
-                  size: 'small', type: 'link',
-                  icon: React.createElement(ShareAltOutlined),
-                  onClick: () => onShare([...selectedKeys]),
-                }, 'Condividi'),
-              )
-            : React.createElement('span', { className: 'coll-toolbar-count' },
-                React.createElement('strong', null, 'Totale:'),
-                ` ${collections.length} collezioni`
-              ),
+          React.createElement('span', { className: 'coll-toolbar-count' },
+            React.createElement('strong', null, 'Totale:'),
+            ` ${collections.length} collezioni`
+          ),
         ),
 
         // ── Tabella ─────────────────────────────────────────
@@ -686,11 +648,10 @@ function CollectionsListView({ onNewCollection, onEditCollection, collections, o
           },
           scroll: { x: 1135 },
           dataSource: collections.map(c => ({ ...c, key: c.id })),
-          rowSelection: shareMode ? {
-            selectedRowKeys: selectedKeys,
-            onChange: keys => setSelectedKeys(keys),
-            columnWidth: 40,
-          } : undefined,
+          onRow: (record) => ({
+            onClick: () => onEditCollection(record),
+            style: { cursor: 'pointer' },
+          }),
           rowClassName: (record) => record.id === highlightedCollId ? 'coll-row-highlighted' : '',
           columns: [
             {

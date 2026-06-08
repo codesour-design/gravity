@@ -53,7 +53,7 @@
     /* ── Search card (top) ── */
     .ooh-search-card {
       background: #fff;
-      border-radius: 8px;
+      border-radius: 0 8px 8px 8px;
       border: 1px solid #F0F0F0;
       flex-shrink: 0;
       align-self: stretch;
@@ -66,6 +66,80 @@
       flex: 1;
     }
     .ss-search-bar { display: flex; gap: 12px; align-items: center; position: relative; }
+
+    /* ── Unified search bar (from planning) ── */
+    .ss-searchbar-wrap { position: relative; flex: 1; min-width: 0; }
+    .ss-unified-bar {
+      display: flex; align-items: stretch;
+      height: 52px;
+      border: 1.5px solid #E0E0E0; border-radius: 10px;
+      background: #fff; overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .ss-unified-bar:focus-within {
+      border-color: #3E00FB;
+      box-shadow: 0 0 0 3px rgba(62,0,251,0.08);
+    }
+    .ss-bar-input {
+      flex: 1; min-width: 0;
+      display: flex; align-items: center; cursor: text;
+    }
+    .ss-bar-sep {
+      width: 1px; background: #EBEBEB; flex-shrink: 0;
+      align-self: stretch; margin: 10px 0;
+    }
+    .ss-bar-trigger {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 16px;
+      font-size: 13px; font-weight: 500; color: rgba(0,0,0,0.55);
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      border: none; background: none;
+      transition: background 0.15s, color 0.15s;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    }
+    .ss-bar-trigger:hover { background: rgba(0,0,0,0.025); color: rgba(0,0,0,0.88); }
+    .ss-bar-trigger.active { color: #3E00FB; }
+    .ss-bar-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 18px; height: 18px; border-radius: 9px;
+      background: #3E00FB; color: #fff;
+      font-size: 10px; font-weight: 700; padding: 0 5px; line-height: 1;
+    }
+    .ss-bar-cerca {
+      display: flex; align-items: center; gap: 6px; padding: 0 20px;
+      background: none; color: rgba(0,0,0,0.88);
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; border: none; flex-shrink: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      transition: background 0.15s;
+    }
+    .ss-bar-cerca:hover { background: rgba(0,0,0,0.04); }
+    .ss-tag-input-area {
+      display: flex; align-items: center; flex-wrap: nowrap; gap: 6px;
+      padding: 0 14px; height: 100%;
+      flex: 1; min-width: 0;
+      overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+    }
+    .ss-tag-input-area::-webkit-scrollbar { display: none; }
+    .ss-input-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px 4px 12px; border-radius: 6px;
+      background: #fff; border: 1px solid #D9D9D9;
+      font-size: 13px; color: rgba(0,0,0,0.88); font-weight: 400;
+      white-space: nowrap; flex-shrink: 0; line-height: 1.5;
+    }
+    .ss-input-tag-x {
+      cursor: pointer; font-size: 14px; line-height: 1; color: rgba(0,0,0,0.35);
+      display: flex; align-items: center; padding: 0 2px; border-radius: 3px;
+    }
+    .ss-input-tag-x:hover { color: rgba(0,0,0,0.75); background: rgba(0,0,0,0.06); }
+    .ss-tag-real-input {
+      border: none; outline: none; background: transparent;
+      font-size: 14px; min-width: 160px; flex: 1;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      color: rgba(0,0,0,0.88); height: 100%; padding: 0 2px;
+    }
+    .ss-tag-real-input::placeholder { color: rgba(0,0,0,0.3); }
 
 
     /* Brief chips */
@@ -119,6 +193,39 @@
       color: #3E00FB; opacity: 0.6; line-height: 1;
     }
     .ss-zone-active-tag .clear-btn:hover { opacity: 1; }
+
+    /* ── Active filter chips strip ── */
+    .ss-active-filters {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      padding: 0 2px;
+    }
+    .ss-filter-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 8px 3px 10px; border-radius: 20px;
+      border: 1px solid #C5B4FF; background: #F0EAFF;
+      font-size: 12px; color: #3E00FB; font-weight: 500;
+      white-space: nowrap; user-select: none;
+    }
+    .ss-filter-chip-x {
+      cursor: pointer; font-size: 13px; line-height: 1; color: #3E00FB;
+      opacity: 0.5; display: flex; align-items: center;
+      padding: 0 2px; border-radius: 3px;
+    }
+    .ss-filter-chip-x:hover { opacity: 1; background: rgba(62,0,251,0.1); }
+
+    /* ── Tab bar above search card ── */
+    .ss-tab-bar { display: flex; align-items: flex-end; gap: 2px; }
+    .ss-tab-btn {
+      height: 40px; padding: 0 16px;
+      border: none; border-radius: 6px 6px 0 0;
+      font-size: 14px; line-height: 22px;
+      cursor: pointer; white-space: nowrap;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      background: transparent; color: rgba(0,0,0,0.88); font-weight: 400;
+      transition: background 0.15s, color 0.15s;
+    }
+    .ss-tab-btn.active { background: #fff; color: #3E00FB; font-weight: 600; }
+    .ss-tab-btn:not(.active):hover { background: rgba(0,0,0,0.04); }
 
     /* ── Map area ── */
     .ooh-map-area {
@@ -542,6 +649,16 @@ const IMPIANTI = [
   { id:'I099', tipo:'Parapedonale',     indirizzo:'Via Ughetti, 3',                 zona:'Brancaccio',     lat:38.09720, lng:13.37220, faces:2, formato:'120×80cm',  stato:'Disponibile',  illuminato:false, stato_amm:'Attivo' },
   { id:'I100', tipo:'Palina butterfly', indirizzo:'Via Messina Marine, 250',        zona:'Brancaccio',     lat:38.09120, lng:13.39740, faces:2, formato:'100×140cm', stato:'In Opzione',   illuminato:false, stato_amm:'In Manutenzione' },
 ];
+
+// Campi sintetici per prototipo: canale, suolo, media_owner
+(function enrichImpianti() {
+  const MEDIA_OWNERS = ['Proprietario', 'IGPDecaux', 'Clear Channel', 'Verticals', 'Geonext', 'Pubbliemme', 'Cemusa', 'Neopolis', 'Mediacom', 'Urbanspot'];
+  IMPIANTI.forEach((imp, i) => {
+    imp.canale      = imp.illuminato ? 'DOOH' : 'OOH';
+    imp.suolo       = i % 3 === 0 ? 'Privato' : 'Pubblico';
+    imp.media_owner = MEDIA_OWNERS[i % MEDIA_OWNERS.length];
+  });
+})();
 
 // ── Codici e nomi personalizzati ─────────────────────────
 // Codice automatico PA-NNN per tutti; nome custom per impianti notevoli
@@ -1020,13 +1137,17 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
       const isHighlighted = id === highlightedId;
       const isSelected    = selectedIds.has(id);
       const inFilter      = !filteredIds || filteredIds.has(id);
-      const visible       = inFilter;
+
+      if (!inFilter) {
+        // Nasconde esplicitamente dalla mappa i marker fuori dal filtro
+        marker.setMap(null);
+        return;
+      }
 
       marker.setIcon(makeMarkerIcon(imp.tipo, imp.stato_amm, false, isSelected));
       marker.setZIndex(isHighlighted ? 9999 : isSelected ? 500 : 1);
       marker.setOpacity(isHighlighted ? 0 : (cardImp ? 0.3 : 1));
-
-      if (visible) visibleMarkers.push(marker);
+      visibleMarkers.push(marker);
     });
 
     clustererRef.current.clearMarkers(true);
@@ -1338,9 +1459,10 @@ function FilterPanel({
   minFacesEnabled, onMinFacesEnabledChange,
   minFacesValue, onMinFacesValueChange,
 }) {
-  const toggle = (arr, set, v) => set(prev =>
-    prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]
-  );
+  const toggle = (arr, set, v) => {
+    const safe = Array.isArray(arr) ? arr : [];
+    set(safe.includes(v) ? safe.filter(x => x !== v) : [...safe, v]);
+  };
 
   return React.createElement(React.Fragment, null,
 
@@ -3781,13 +3903,14 @@ function App() {
   const [selectedIds,   setSelectedIds]   = useState(new Set());
   const [expandedIds,   setExpandedIds]   = useState(new Set());
   const [viewMode,           setViewMode]           = useState('map');
-
+  const [activeTab,          setActiveTab]          = useState('tutti');
 
   // ── Ricerca zona ──────────────────────────────────────
   const [searchQuery,    setSearchQuery]    = useState('');
   const [appliedZone,    setAppliedZone]    = useState(null);   // filtro attivo
   const [showSugg,       setShowSugg]       = useState(false);
   const [flyToTarget,    setFlyToTarget]    = useState(null);
+  const inputRef = useRef(null);
 
   // ── Label system ──────────────────────────────────────
   const [availableLabels, setAvailableLabels] = useState(INITIAL_LABELS);
@@ -3947,7 +4070,12 @@ function App() {
   // Applied — effettivamente usati per filtrare
   const [appliedFilters, setAppliedFilters] = useState({ ...FILTERS_EMPTY });
 
-  const setDraft = (key, value) => setDraftFilters(prev => ({ ...prev, [key]: value }));
+  const setDraft = useCallback((key, value) => {
+    setDraftFilters(prev => ({
+      ...prev,
+      [key]: typeof value === 'function' ? value(prev[key]) : value,
+    }));
+  }, []);
 
   // Formati disponibili in base ai tipi attivi nel draft (se nessun tipo → tutti)
   const availableFormats = useMemo(() => {
@@ -4011,6 +4139,10 @@ function App() {
   const filteredImpianti = useMemo(() => {
     const f = appliedFilters;
     return geocodedImpianti.filter(imp => {
+      if (f.statiAmm.length > 0 && !f.statiAmm.includes(imp.stato_amm)) return false;
+      if (f.canale.length > 0 && !f.canale.includes(imp.canale)) return false;
+      if (f.suolo.length > 0 && !f.suolo.includes(imp.suolo)) return false;
+      if (f.mediaOwner.length > 0 && !f.mediaOwner.includes(imp.media_owner)) return false;
       if (f.tipi.length > 0 && !f.tipi.includes(imp.tipo)) return false;
       if (f.formati.length > 0 && !f.formati.includes(imp.formato)) return false;
       if (f.illuminazione.length > 0) {
@@ -4037,7 +4169,19 @@ function App() {
     });
   }, [geocodedImpianti, appliedFilters, appliedZone]);
 
-  const filteredIds = useMemo(() => new Set(filteredImpianti.map(i => i.id)), [filteredImpianti]);
+  const tabCounts = useMemo(() => ({
+    tutti: filteredImpianti.length,
+    ooh:   filteredImpianti.filter(i => i.canale === 'OOH').length,
+    dooh:  filteredImpianti.filter(i => i.canale === 'DOOH').length,
+  }), [filteredImpianti]);
+
+  const tabFilteredImpianti = useMemo(() => {
+    if (activeTab === 'ooh')  return filteredImpianti.filter(i => i.canale === 'OOH');
+    if (activeTab === 'dooh') return filteredImpianti.filter(i => i.canale === 'DOOH');
+    return filteredImpianti;
+  }, [filteredImpianti, activeTab]);
+
+  const filteredIds = useMemo(() => new Set(tabFilteredImpianti.map(i => i.id)), [tabFilteredImpianti]);
 
   const activeFilterCount = useMemo(() => {
     const f = appliedFilters;
@@ -4047,6 +4191,48 @@ function App() {
       f.illuminazione.length > 0, f.minFacesEnabled,
     ].filter(Boolean).length;
   }, [appliedFilters]);
+
+  const removeApplied = useCallback((key, value) => {
+    setAppliedFilters(prev => {
+      const cur = prev[key];
+      if (Array.isArray(cur)) {
+        return { ...prev, [key]: cur.filter(v => v !== value) };
+      }
+      if (key === 'minFacesEnabled') return { ...prev, minFacesEnabled: false };
+      return prev;
+    });
+    setDraftFilters(prev => {
+      const cur = prev[key];
+      if (Array.isArray(cur)) {
+        return { ...prev, [key]: cur.filter(v => v !== value) };
+      }
+      if (key === 'minFacesEnabled') return { ...prev, minFacesEnabled: false };
+      return prev;
+    });
+  }, []);
+
+  const activeFilterChips = useMemo(() => {
+    const f = appliedFilters;
+    const chips = [];
+    const LABEL_MAP = {
+      statiAmm:  v => v,
+      canale:    v => v,
+      suolo:     v => `Suolo ${v}`,
+      mediaOwner:v => v,
+      tipi:      v => v,
+      formati:   v => v,
+      illuminazione: v => v,
+    };
+    ['statiAmm','canale','suolo','mediaOwner','tipi','formati','illuminazione'].forEach(key => {
+      (f[key] || []).forEach(v => {
+        chips.push({ key: `${key}:${v}`, label: LABEL_MAP[key](v), onRemove: () => removeApplied(key, v) });
+      });
+    });
+    if (f.minFacesEnabled) {
+      chips.push({ key: 'minFaces', label: `≥${f.minFacesValue} facce`, onRemove: () => removeApplied('minFacesEnabled', true) });
+    }
+    return chips;
+  }, [appliedFilters, removeApplied]);
 
   const itemRefs = useRef({});
 
@@ -4111,7 +4297,25 @@ function App() {
         } })
       : React.createElement('div', { className: 'ooh-workspace' },
 
-      // ── SEARCH CARD (top) ──────────────────────────────
+      // ── SEARCH BLOCK: tab bar + card ──────────────────
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 0, flexShrink: 0 } },
+
+        // Tab bar
+        React.createElement('div', { className: 'ss-tab-bar' },
+          [
+            { key: 'tutti', label: `Tutti (${tabCounts.tutti})` },
+            { key: 'ooh',   label: `OOH (${tabCounts.ooh})`   },
+            { key: 'dooh',  label: `DOOH (${tabCounts.dooh})`  },
+          ].map(tab =>
+            React.createElement('button', {
+              key: tab.key,
+              className: `ss-tab-btn${activeTab === tab.key ? ' active' : ''}`,
+              onClick: () => setActiveTab(tab.key),
+            }, tab.label)
+          )
+        ),
+
+      // ── SEARCH CARD ────────────────────────────────────
       React.createElement('div', { className: 'ooh-search-card' },
         React.createElement('div', { className: 'ooh-search-area' },
 
@@ -4123,73 +4327,107 @@ function App() {
             React.createElement('span', { style: { fontSize: 22, fontWeight: 700, color: 'rgba(0,0,0,0.88)', letterSpacing: '-0.3px' } }, 'Parco Impianti'),
           ),
 
-          // Search bar — centro (larghezza fissa)
-          React.createElement('div', { className: 'ss-search-bar', style: { width: 700 } },
+          // Search bar — centro (unified bar)
+          React.createElement('div', { className: 'ss-searchbar-wrap', style: { width: 700, flex: 'none' } },
 
-            // Compact group: input + filtri + cerca
-            React.createElement('div', { style: { flex: 1, position: 'relative' } },
-              React.createElement(Space.Compact, { style: { width: '100%' } },
-                React.createElement(Input, {
-                  placeholder: 'Cerca via, quartiere, città, provincia…',
-                  prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.3)', fontSize: 14 } }),
-                  allowClear: true,
-                  value: searchQuery,
-                  onChange: e => {
-                    setSearchQuery(e.target.value);
-                    setShowSugg(e.target.value.length >= 2);
-                    if (!e.target.value) clearZoneSearch();
-                  },
-                  onFocus: () => { if (searchQuery.length >= 2) setShowSugg(true); },
-                  onBlur: () => setTimeout(() => setShowSugg(false), 180),
-                  onPressEnter: () => applyZoneSearch(),
-                }),
-                React.createElement(Button, {
-                  icon: React.createElement(SlidersOutlined),
-                  onClick: openFilterDrawer,
-                }, activeFilterCount > 0 ? `Filtri (${activeFilterCount})` : 'Filtri'),
-                React.createElement(Button, {
-                  icon: React.createElement(SearchOutlined),
-                  onClick: () => applyZoneSearch(),
-                }, 'Cerca'),
-              ),
+            React.createElement('div', { className: 'ss-unified-bar' },
 
-              // Dropdown zona
-              showSugg && suggestions.length > 0 && React.createElement('div', { className: 'ss-suggestions-wrap' },
-                suggestions.map(group =>
-                  React.createElement(React.Fragment, { key: group.key },
-                    React.createElement('div', { className: 'ss-sugg-group-title' }, group.label),
-                    group.items.map(s => {
-                      const cfg = SUGG_CONFIG[s.type] || SUGG_CONFIG.area;
-                      return React.createElement('div', {
-                        key: s.text,
-                        className: 'ss-suggestion-item',
-                        onMouseDown: () => { setSearchQuery(s.text); applyZoneSearch(s.text, s); },
-                      },
-                        React.createElement('div', {
-                          style: { width: 28, height: 28, borderRadius: 6, background: cfg.bg,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
-                        },
-                          React.createElement(EnvironmentOutlined, { style: { fontSize: 12, color: cfg.color } })
-                        ),
-                        React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                          React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.85)', lineHeight: '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
-                            highlightMatch(s.text, searchQuery)
-                          ),
-                          React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.38)', lineHeight: '16px', marginTop: 1 } }, s.detail)
-                        ),
-                        React.createElement('span', {
-                          style: { fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
-                            background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}33`,
-                            flexShrink: 0, textTransform: 'uppercase', letterSpacing: '.04em' }
-                        }, cfg.label)
-                      );
-                    })
-                  )
+              // Input zona con tag
+              React.createElement('div', {
+                className: 'ss-bar-input',
+                onClick: () => inputRef.current && inputRef.current.focus(),
+              },
+                React.createElement('div', { className: 'ss-tag-input-area' },
+                  appliedZone && React.createElement('span', { className: 'ss-input-tag' },
+                    React.createElement(EnvironmentOutlined, { style: { fontSize: 11, opacity: 0.5 } }),
+                    ' ', appliedZone,
+                    React.createElement('span', {
+                      className: 'ss-input-tag-x',
+                      onMouseDown: e => { e.preventDefault(); clearZoneSearch(); },
+                    }, '×')
+                  ),
+                  React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.3)', fontSize: 14, flexShrink: 0 } }),
+                  React.createElement('input', {
+                    ref: inputRef,
+                    className: 'ss-tag-real-input',
+                    placeholder: appliedZone ? 'Aggiungi zona…' : 'Cerca via, quartiere, città, provincia…',
+                    value: searchQuery,
+                    onChange: e => {
+                      setSearchQuery(e.target.value);
+                      setShowSugg(e.target.value.length >= 2);
+                      if (!e.target.value) clearZoneSearch();
+                    },
+                    onFocus: () => { if (searchQuery.length >= 2) setShowSugg(true); },
+                    onBlur: () => setTimeout(() => setShowSugg(false), 180),
+                    onKeyDown: e => {
+                      if (e.key === 'Enter') applyZoneSearch();
+                      if (e.key === 'Backspace' && !searchQuery && appliedZone) clearZoneSearch();
+                    },
+                  })
                 )
               ),
+
+              React.createElement('div', { className: 'ss-bar-sep' }),
+
+              // Filtri
+              React.createElement('button', {
+                className: `ss-bar-trigger${activeFilterCount > 0 ? ' active' : ''}`,
+                onMouseDown: e => { e.preventDefault(); openFilterDrawer(); },
+              },
+                React.createElement(SlidersOutlined, { style: { fontSize: 14 } }),
+                'Filtri',
+                activeFilterCount > 0 && React.createElement('span', { className: 'ss-bar-count' }, activeFilterCount),
+              ),
+
+              React.createElement('div', { className: 'ss-bar-sep' }),
+
+              // Cerca (default)
+              React.createElement('button', {
+                className: 'ss-bar-cerca',
+                onClick: () => applyZoneSearch(),
+              },
+                React.createElement(SearchOutlined, { style: { fontSize: 14 } }),
+                'Cerca',
+              ),
+
+            ), // ss-unified-bar
+
+            // Dropdown suggerimenti
+            showSugg && suggestions.length > 0 && React.createElement('div', { className: 'ss-suggestions-wrap' },
+              suggestions.map(group =>
+                React.createElement(React.Fragment, { key: group.key },
+                  React.createElement('div', { className: 'ss-sugg-group-title' }, group.label),
+                  group.items.map(s => {
+                    const cfg = SUGG_CONFIG[s.type] || SUGG_CONFIG.area;
+                    return React.createElement('div', {
+                      key: s.text,
+                      className: 'ss-suggestion-item',
+                      onMouseDown: () => { setSearchQuery(s.text); applyZoneSearch(s.text, s); },
+                    },
+                      React.createElement('div', {
+                        style: { width: 28, height: 28, borderRadius: 6, background: cfg.bg,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
+                      },
+                        React.createElement(EnvironmentOutlined, { style: { fontSize: 12, color: cfg.color } })
+                      ),
+                      React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                        React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.85)', lineHeight: '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
+                          highlightMatch(s.text, searchQuery)
+                        ),
+                        React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.38)', lineHeight: '16px', marginTop: 1 } }, s.detail)
+                      ),
+                      React.createElement('span', {
+                        style: { fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
+                          background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}33`,
+                          flexShrink: 0, textTransform: 'uppercase', letterSpacing: '.04em' }
+                      }, cfg.label)
+                    );
+                  })
+                )
+              )
             ),
 
-          ), // ss-search-bar
+          ), // ss-searchbar-wrap
 
           // CTA — destra (flex:1 per bilanciare, allineato a destra)
           React.createElement('div', { style: { flex: 1, display: 'flex', justifyContent: 'flex-end' } },
@@ -4231,19 +4469,22 @@ function App() {
 
           ), // riga header
 
-          // ── Brief chips: zona attiva ────
-          appliedZone &&
-          React.createElement('div', { className: 'ss-brief-chips', style: { padding: '0 20px 12px' } },
-            React.createElement('span', { className: 'ss-brief-label' }, 'Filtri attivi:'),
-
-            React.createElement('div', { className: 'ss-zone-active-tag' },
-              React.createElement(EnvironmentOutlined, { style: { fontSize: 11 } }),
-              ' ', appliedZone,
-              React.createElement('span', { className: 'clear-btn', onClick: clearZoneSearch }, '×')
-            ),
+          // ── Chips filtri attivi ──
+          activeFilterChips.length > 0 && React.createElement('div', { className: 'ss-active-filters' },
+            activeFilterChips.map(chip =>
+              React.createElement('span', { key: chip.key, className: 'ss-filter-chip' },
+                chip.label,
+                React.createElement('span', {
+                  className: 'ss-filter-chip-x',
+                  onClick: chip.onRemove,
+                }, '×')
+              )
+            )
           ),
+
         ),
-      ),
+      ), // ooh-search-card
+      ), // search block wrapper
 
       // ── MAP / LIST AREA ────────────────────────────────
       viewMode === 'map'
@@ -4264,8 +4505,8 @@ function App() {
 
 
             !cardImp && React.createElement(MapInfobox, {
-              total:             filteredImpianti.length,
-              filteredImpianti,
+              total:             tabFilteredImpianti.length,
+              filteredImpianti:  tabFilteredImpianti,
             }),
 
             // View toggle — floating top-right
@@ -4283,7 +4524,7 @@ function App() {
               })
             ),
           )
-        : React.createElement(ListView, { impianti: filteredImpianti, viewMode, setViewMode, onDetail: (imp) => { setDetailImpianto(imp); setSavedFormData(null); setPage('detail'); } })
+        : React.createElement(ListView, { impianti: tabFilteredImpianti, viewMode, setViewMode, onDetail: (imp) => { setDetailImpianto(imp); setSavedFormData(null); setPage('detail'); } })
     ),
 
     React.createElement(Drawer, {
