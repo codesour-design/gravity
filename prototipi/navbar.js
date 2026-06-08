@@ -116,6 +116,86 @@
   ].join('');
   document.head.appendChild(_style);
 
+  // ── Notifiche mock per ruolo Sales ────────────────────────────────────────
+  var NOTIFICHE_SALES = [
+    { id: 1, da: 'Sofia Marchetti', trattativa: 'Digital OOH aeroporti estate 2026 — 3 schermi nazionali',          tempo: '2 ore fa',    letta: false },
+    { id: 2, da: 'Davide Serra',    trattativa: 'Campagna lancio prodotto primavera — OOH Milano e Roma',            tempo: 'Ieri',        letta: false },
+    { id: 3, da: 'Sofia Marchetti', trattativa: 'Rebranding istituzionale — piano awareness Q3/Q4 2026',             tempo: '3 giorni fa', letta: false },
+  ];
+
+  // ── NotifichePannel ────────────────────────────────────────────────────────
+  function NotifichePanel({ notifiche, onLeggiTutte }) {
+    var palette = nameColor;
+    return h('div', {
+      style: {
+        background: '#fff',
+        borderRadius: 8,
+        boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+        width: 340,
+        overflow: 'hidden',
+      },
+    },
+      // Header
+      h('div', {
+        style: {
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 16px',
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
+        },
+      },
+        h('span', { style: { fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.88)' } }, 'Notifiche'),
+        h('span', {
+          style: { fontSize: 12, color: '#3E00FB', cursor: 'pointer' },
+          onClick: onLeggiTutte,
+        }, 'Segna tutte come lette')
+      ),
+      // Lista
+      notifiche.map(function (n) {
+        var col = nameColor(n.da);
+        var initials = n.da.split(' ').slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase();
+        return h('div', {
+          key: n.id,
+          style: {
+            display: 'flex', gap: 10, padding: '12px 16px',
+            borderBottom: '1px solid rgba(0,0,0,0.04)',
+            background: n.letta ? 'transparent' : 'rgba(62,0,251,0.03)',
+          },
+        },
+          // Avatar assegnante
+          h('div', {
+            style: {
+              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+              background: col.bg,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 700, color: col.fg,
+            },
+          }, initials),
+          // Testo
+          h('div', { style: { flex: 1, minWidth: 0 } },
+            h('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', lineHeight: 1.5 } },
+              h('span', { style: { fontWeight: 600 } }, n.da),
+              ' ti ha assegnato una trattativa'
+            ),
+            h('div', {
+              style: {
+                fontSize: 12, color: 'rgba(0,0,0,0.55)', marginTop: 2,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              },
+            }, n.trattativa),
+            h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.35)', marginTop: 4 } }, n.tempo)
+          ),
+          // Pallino non letta
+          !n.letta && h('div', {
+            style: {
+              width: 7, height: 7, borderRadius: '50%',
+              background: '#3E00FB', flexShrink: 0, marginTop: 5,
+            },
+          })
+        );
+      })
+    );
+  }
+
   // ── Componente ────────────────────────────────────────────────────────────
 
   function GravityNavbar() {
@@ -128,6 +208,25 @@
 
     var _r1     = useState(function () { return localStorage.getItem('gravity_proto_role') || null; });
     var role    = _r1[0]; var setRole = _r1[1];
+
+    var isSales  = (role || 'Tenant Admin') === 'Sales';
+    var _r2      = useState(NOTIFICHE_SALES);
+    var notifiche = _r2[0]; var setNotifiche = _r2[1];
+    var _r3      = useState(false);
+    var bellOpen  = _r3[0]; var setBellOpen = _r3[1];
+
+    var nonLette = isSales ? notifiche.filter(function (n) { return !n.letta; }).length : 0;
+
+    function handleLeggiTutte() {
+      setNotifiche(notifiche.map(function (n) { return Object.assign({}, n, { letta: true }); }));
+    }
+    function handleBellOpen(open) {
+      setBellOpen(open);
+      if (open && isSales) {
+        // segna come lette all'apertura
+        setNotifiche(notifiche.map(function (n) { return Object.assign({}, n, { letta: true }); }));
+      }
+    }
 
     useEffect(function () { if (role) localStorage.setItem('gravity_proto_role', role); }, [role]);
 
@@ -233,7 +332,27 @@
         // Destra: campana + avatar
         h('div', { style: { display: 'flex', alignItems: 'center', gap: 16, padding: '0 20px', flexShrink: 0 } },
 
-          h(icons.BellOutlined, { style: { fontSize: 18, color: 'rgba(0,0,0,0.45)', cursor: 'pointer' } }),
+          h(antd.Dropdown, {
+            open: bellOpen,
+            onOpenChange: handleBellOpen,
+            trigger: ['click'],
+            placement: 'bottomRight',
+            dropdownRender: function () {
+              return isSales
+                ? h(NotifichePanel, { notifiche: notifiche, onLeggiTutte: handleLeggiTutte })
+                : h('div', {
+                    style: {
+                      background: '#fff', borderRadius: 8, padding: '24px 32px',
+                      boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+                      color: 'rgba(0,0,0,0.35)', fontSize: 13, textAlign: 'center',
+                    },
+                  }, 'Nessuna notifica');
+            },
+          },
+            h(antd.Badge, { count: nonLette, size: 'small', offset: [-2, 2] },
+              h(icons.BellOutlined, { style: { fontSize: 18, color: 'rgba(0,0,0,0.45)', cursor: 'pointer' } })
+            )
+          ),
 
           // Avatar con dropdown cambio ruolo
           h(antd.Dropdown, {
