@@ -289,7 +289,7 @@
 
       // ── Navbar ────────────────────────────────────────────────────────────
       h('nav', {
-
+        id: 'gravity-navbar',
         style: {
           background: '#fff',
           borderBottom: '1px solid rgba(0,0,0,0.06)',
@@ -332,6 +332,7 @@
         // Destra: campana + avatar
         h('div', { style: { display: 'flex', alignItems: 'center', gap: 16, padding: '0 20px', flexShrink: 0 } },
 
+          h('span', { id: 'gravity-bell-btn' },
           h(antd.Dropdown, {
             open: bellOpen,
             onOpenChange: handleBellOpen,
@@ -352,7 +353,7 @@
             h(antd.Badge, { count: nonLette, size: 'small', offset: [-2, 2] },
               h(icons.BellOutlined, { style: { fontSize: 18, color: 'rgba(0,0,0,0.45)', cursor: 'pointer' } })
             )
-          ),
+          )),
 
           // Avatar con dropdown cambio ruolo
           h(antd.Dropdown, {
@@ -361,6 +362,7 @@
             placement: 'bottomRight',
           },
             h('div', {
+              id: 'gravity-role-switcher',
               style: {
                 width: 32, height: 32, borderRadius: '50%',
                 background: palette.bg,
