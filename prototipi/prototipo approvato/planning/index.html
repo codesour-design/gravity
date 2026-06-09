@@ -249,6 +249,12 @@
     .ant-table-tbody > tr.ant-table-row:hover > td { background: rgba(62,0,251,0.04) !important; }
     /* Header celle: no wrap, overflow ellipsis */
     .ant-table-thead > tr > th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ant-table-cell-fix-left,
+    .ant-table-cell-fix-right { z-index: 2 !important; background: #fff !important; }
+    .ant-table-thead .ant-table-cell-fix-left,
+    .ant-table-thead .ant-table-cell-fix-right { z-index: 3 !important; background: #fafafa !important; }
+    .ant-table-tbody > tr.ant-table-row:hover .ant-table-cell-fix-left,
+    .ant-table-tbody > tr.ant-table-row:hover .ant-table-cell-fix-right { background: #f7f5ff !important; }
 
     .advertiser-link {
       color: var(--gravity-primary);
@@ -1785,7 +1791,7 @@ const PLANNINGS = [
   { id:'0101', name:'Gohan Sushi — Primavera 2026',     category:'DOOH', state:'In trattativa', start:'01/04/2026', end:'15/05/2026', advertiser:'Gohan Sushi',  goal:'traffico', budget:'€ 22.000', faces:12, hasSystems:true,  createdAt:'01/04/2025', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 },{ label:'Viale della Libertà', city:'Palermo', lat:38.1230, lng:13.3521, zoom:15 }],
     briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-1' }],
-    requestedTypes:['Billboard', 'Totem'], trattativaName:'TRT-Gohan-2026-P', deliveredAt:'20/03/2026', updatedAt:'28/03/2026' },
+    requestedTypes:['Billboard', 'Totem'], trattativaName:'TRT-Gohan-2026-P', campagnaName:'Brand Awareness Q2', deliveredAt:'20/03/2026', updatedAt:'28/03/2026' },
   { id:'0108', name:'Visit Sicily — Estate Trapani',    category:'OOH',  state:'Bozza', start:'01/07/2026', end:'14/07/2026', advertiser:'Visit Sicily',      goal:'traffico', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'10/03/2025', assignee:'giulia',
     briefZones:[{ label:'Trapani', city:'Trapani', lat:37.9800, lng:12.6150, zoom:13 },{ label:'Marsala', city:'Marsala', lat:37.7998, lng:12.4289, zoom:13 },{ label:'Mazara del Vallo', city:'Mazara del Vallo', lat:37.6555, lng:12.5908, zoom:13 }],
     briefPois:[{ type:'single', id:'brief-s-3' },{ type:'collection', id:'cc-palermo' }],
@@ -1794,7 +1800,7 @@ const PLANNINGS = [
   { id:'0115', name:'Consorzio Agrituristico — Estate',  category:'OOH',  state:'In trattativa', start:'01/06/2026', end:'28/06/2026', advertiser:'Consorzio Agrituristico Sicilia', goal:'traffico', budget:'€ 31.000', faces:10, hasSystems:true,  createdAt:'10/04/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Nord', city:'Palermo', lat:38.1500, lng:13.3400, zoom:13 },{ label:'Mondello', city:'Palermo', lat:38.2200, lng:13.3300, zoom:14 }],
     briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'single', id:'brief-s-4' }],
-    requestedTypes:['Pensilina', 'Palina'], trattativaName:'TRT-ConsorzioAgri-2026', deliveredAt:'05/05/2026', updatedAt:'05/05/2026' },
+    requestedTypes:['Pensilina', 'Palina'], trattativaName:'TRT-ConsorzioAgri-2026', campagnaName:'Estate Siciliana', deliveredAt:'05/05/2026', updatedAt:'05/05/2026' },
   { id:'0111', name:'Comune di Palermo — Autunno DOOH', category:'DOOH', state:'Bozza', start:'01/10/2026', end:'07/10/2026', advertiser:'Comune di Palermo', goal:'consapevolezza del brand', budget:'€ 40.000', faces:0,  hasSystems:false, createdAt:'15/03/2025', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 },{ label:'Palermo Est', city:'Palermo', lat:38.1100, lng:13.4200, zoom:13 },{ label:'Palermo Foro Italico', city:'Palermo', lat:38.1080, lng:13.3700, zoom:14 }],
     briefPois:[{ type:'collection', id:'scuole-palermo' },{ type:'collection', id:'universita-palermo' }],
@@ -1810,19 +1816,19 @@ const PLANNINGS = [
   { id:'0109', name:'Cantine Firriato — Agrigento',     category:'OOH',  state:'Bozza', start:'15/07/2026', end:'28/07/2026', advertiser:'Cantine Firriato',  goal:'consapevolezza del brand', budget:'€ 12.000', faces:0,  hasSystems:false, createdAt:'12/03/2025', assignee:null,
     briefZones:[{ label:'Agrigento', city:'Agrigento', lat:37.3104, lng:13.5765, zoom:13 },{ label:'Sciacca', city:'Sciacca', lat:37.5076, lng:13.0783, zoom:13 }],
     briefPois:[{ type:'single', id:'brief-s-3' },{ type:'collection', id:'trasporti-palermo' }],
-    requestedTypes:['Poster', 'Cassonetto'], trattativaName:'TRT-Firriato-2026-Estate', deliveredAt:null },
+    requestedTypes:['Poster', 'Cassonetto'], trattativaName:'TRT-Firriato-2026-Estate', campagnaName:'Lancio Estivo Agrigento', deliveredAt:null },
   { id:'0104', name:'SushiLab Primavera 2025',          category:'OOH',  state:'Confermata', start:'10/04/2025', end:'25/04/2025', advertiser:'SushiLab Palermo',  goal:'fidelizzazione dei clienti', budget:'€ 15.000', faces:6,  hasSystems:true,  createdAt:'15/02/2025', assignee:'marco',  briefZones:[], briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:[], trattativaName:'TRT-SushiLab-2025-P', deliveredAt:'07/04/2025', updatedAt:'07/04/2025' },
   { id:'0112', name:'WindTre — Brand Summer 2026',      category:'DOOH', state:'Bozza', start:'01/06/2026', end:'31/08/2026', advertiser:'WindTre',           goal:'consapevolezza del brand', budget:'€ 85.000', faces:0,  hasSystems:false, createdAt:'10/02/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'collection', id:'supermercati-palermo' }],
-    requestedTypes:['Billboard', 'Alux'], trattativaName:'TRT-WindTre-2026-S' },
+    requestedTypes:['Billboard', 'Alux'], trattativaName:'TRT-WindTre-2026-S', campagnaName:'Brand OOH Summer' },
   // ── Bozze restanti ─────────────────────────────────────────────────────────────
   { id:'0105', name:'Campus Digitale Settembre',        category:'OOH',  state:'Bozza', start:'01/09/2026', end:'29/09/2026', advertiser:'Campus Digitale',   goal:'consapevolezza del brand', budget:'€ 50.000', faces:20, hasSystems:true,  createdAt:'20/02/2025', assignee:'marco',
     briefZones:[{ label:'Palermo Nord', city:'Palermo', lat:38.1500, lng:13.3400, zoom:13 }],
     briefPois:[{ type:'collection', id:'scuole-palermo' },{ type:'collection', id:'universita-palermo' }],
     requestedTypes:['Pensilina', 'Palina'] },
   { id:'0110', name:'MediaWorld — Sicilia Occidentale', category:'OOH',  state:'Bozza', start:'01/09/2026', end:'28/09/2026', advertiser:'MediaWorld',        goal:'traffico', budget:'€ 70.000', faces:0,  hasSystems:false, createdAt:'18/03/2025', assignee:null,
-    briefZones:[], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-5' }], requestedTypes:['Poster', 'Palina', 'Pensilina'], trattativaName:'TRT-MediaWorld-2026-Q3', deliveredAt:null },
+    briefZones:[], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-5' }], requestedTypes:['Poster', 'Palina', 'Pensilina'], trattativaName:'TRT-MediaWorld-2026-Q3', campagnaName:'Sicilia Occidentale Q3', deliveredAt:null },
   { id:'0103', name:'Moving Retail — Digital Q3 2026',  category:'DOOH', state:'Bozza', start:'01/09/2026', end:'07/09/2026', advertiser:'Moving Retail',     goal:'conversione', budget:'€ 35.000', faces:0, hasSystems:false, createdAt:'05/03/2025', assignee:'marco',
     briefZones:[{ label:'Palermo Notarbartolo', city:'Palermo', lat:38.1310, lng:13.3478, zoom:14 },{ label:'Palermo Oreto', city:'Palermo', lat:38.0980, lng:13.3460, zoom:14 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-5' }],
@@ -1832,22 +1838,31 @@ const PLANNINGS = [
     briefPois:[{ type:'collection', id:'scuole-palermo' },{ type:'collection', id:'universita-palermo' }],
     requestedTypes:['Totem', 'Alux'] },
   { id:'0106', name:'Arredo Urbano Palermo Q4',         category:'OOH',  state:'Bozza', start:'01/10/2026', end:'31/12/2026', advertiser:'Comune di Palermo', goal:'coinvolgimento', budget:'€ 90.000', faces:0,  hasSystems:false, createdAt:'22/01/2025', assignee:null,
-    briefZones:[], briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'collection', id:'trasporti-palermo' }], requestedTypes:['Pensilina', 'Cassonetto', 'Palina'], trattativaName:'TRT-ComunePa-2026-Q4', deliveredAt:null },
+    briefZones:[], briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'collection', id:'trasporti-palermo' }], requestedTypes:['Pensilina', 'Cassonetto', 'Palina'], trattativaName:'TRT-ComunePa-2026-Q4', campagnaName:'Arredo Urbano Q4', deliveredAt:null },
   { id:'0116', name:'Rinascente — Apertura Palermo',    category:'OOH',  state:'Bozza', start:'15/05/2026', end:'28/05/2026', advertiser:'La Rinascente',     goal:'consapevolezza del brand', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'22/04/2026', assignee:null,
-    briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 }], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:['Billboard', 'Poster', 'Pensilina'], trattativaName:'TRT-Rinascente-2026-PA', deliveredAt:null },
+    briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 }], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:['Billboard', 'Poster', 'Pensilina'], trattativaName:'TRT-Rinascente-2026-PA', campagnaName:'Apertura Centro Storico', deliveredAt:null },
 ];
 
 // Trattative aperte (mock) — usate nella select "Collega a una trattativa"
 const TRATTATIVE = [
-  { name: 'TRT-Gohan-2026-P',         advertiser: 'Gohan Sushi',                    agent: 'Marco Vitale' },
-  { name: 'TRT-ConsorzioAgri-2026',   advertiser: 'Consorzio Agrituristico Sicilia', agent: 'Giulia Romano' },
-  { name: 'TRT-CreditoSic-2026',      advertiser: 'Credito Siciliano',              agent: 'Giulia Romano' },
-  { name: 'TRT-Firriato-2026-Estate', advertiser: 'Cantine Firriato',              agent: 'Luca Randazzo' },
-  { name: 'TRT-MediaWorld-2026-Q3',   advertiser: 'MediaWorld',                    agent: 'Luca Randazzo' },
-  { name: 'TRT-ComunePa-2026-Q4',     advertiser: 'Comune di Palermo',             agent: 'Marco Vitale' },
-  { name: 'TRT-Rinascente-2026-PA',   advertiser: 'La Rinascente',                 agent: 'Giulia Romano' },
-  { name: 'TRT-WindTre-2026-S',       advertiser: 'WindTre',                       agent: 'Giulia Romano' },
-  { name: 'TRT-Mondadori-BtS-2026',   advertiser: 'Mondadori',                     agent: 'Marco Vitale' },
+  { name: 'TRT-Gohan-2026-P',         advertiser: 'Gohan Sushi',                    agent: 'Marco Vitale',
+    campagne: [{ name: 'Brand Awareness Q2' }, { name: 'Promo Primavera' }] },
+  { name: 'TRT-ConsorzioAgri-2026',   advertiser: 'Consorzio Agrituristico Sicilia', agent: 'Giulia Romano',
+    campagne: [{ name: 'Estate Siciliana' }, { name: 'Degustazione Autunnale' }] },
+  { name: 'TRT-CreditoSic-2026',      advertiser: 'Credito Siciliano',              agent: 'Giulia Romano',
+    campagne: [{ name: 'Autunno Brand' }, { name: 'Fidelizzazione Clienti' }] },
+  { name: 'TRT-Firriato-2026-Estate', advertiser: 'Cantine Firriato',              agent: 'Luca Randazzo',
+    campagne: [{ name: 'Lancio Estivo Agrigento' }, { name: 'Sciacca Wine Festival' }] },
+  { name: 'TRT-MediaWorld-2026-Q3',   advertiser: 'MediaWorld',                    agent: 'Luca Randazzo',
+    campagne: [{ name: 'Sicilia Occidentale Q3' }, { name: 'Palermo Flagship' }] },
+  { name: 'TRT-ComunePa-2026-Q4',     advertiser: 'Comune di Palermo',             agent: 'Marco Vitale',
+    campagne: [{ name: 'Arredo Urbano Q4' }, { name: 'Mobilità Sostenibile' }] },
+  { name: 'TRT-Rinascente-2026-PA',   advertiser: 'La Rinascente',                 agent: 'Giulia Romano',
+    campagne: [{ name: 'Apertura Centro Storico' }, { name: 'Summer Collection 2026' }] },
+  { name: 'TRT-WindTre-2026-S',       advertiser: 'WindTre',                       agent: 'Giulia Romano',
+    campagne: [{ name: 'Brand OOH Summer' }, { name: 'Copertura 5G Palermo' }] },
+  { name: 'TRT-Mondadori-BtS-2026',   advertiser: 'Mondadori',                     agent: 'Marco Vitale',
+    campagne: [{ name: 'Back to School Palermo' }, { name: 'Librerie Estate' }] },
 ];
 
 const GOAL_KPIS = {
@@ -3022,6 +3037,10 @@ function ChannelChip({ channel }) {
 function PlanningsList({ onSelect, stateOverrides }) {
   const [takenIds, setTakenIds] = useState(new Set());
   const [myAgentKey, setMyAgentKey] = useState(readMyAgentKey);
+  const [trattativaOverrides, setTrattativaOverrides] = useState({});
+  const [collegaListPopoverRow, setCollegaListPopoverRow] = useState(null);
+  const [collegaListSelected, setCollegaListSelected] = useState(null);
+  const [collegaListSelectedCampagna, setCollegaListSelectedCampagna] = useState(null);
   useEffect(() => {
     const id = setInterval(() => setMyAgentKey(k => { const n = readMyAgentKey(); return n !== k ? n : k; }), 300);
     return () => clearInterval(id);
@@ -3030,6 +3049,8 @@ function PlanningsList({ onSelect, stateOverrides }) {
   const effectiveState = row => (stateOverrides && stateOverrides[row.id]) || row.state;
 
   const getAssignee = row => takenIds.has(row.id) ? myAgentKey : row.assignee;
+  const getTrattativaName = row => trattativaOverrides.hasOwnProperty(row.id) ? trattativaOverrides[row.id].trattativaName : row.trattativaName;
+  const getCampagnaName   = row => trattativaOverrides.hasOwnProperty(row.id) ? trattativaOverrides[row.id].campagnaName   : (row.campagnaName || null);
 
   const bozze           = PLANNINGS.filter(p => p.state === 'Bozza');
   const completati      = PLANNINGS.filter(p => p.state === 'Confermata');
@@ -3078,7 +3099,8 @@ function PlanningsList({ onSelect, stateOverrides }) {
     {
       title: 'Pianificazione',
       key: 'pianificazione',
-      width: 220,
+      width: 240,
+      fixed: 'left',
       ...textSearchProps('name', 'Cerca per nome…'),
       render: (_, row) => {
         return React.createElement('div', { className: 'planning-name-cell' },
@@ -3091,7 +3113,8 @@ function PlanningsList({ onSelect, stateOverrides }) {
     {
       title: 'Canale',
       dataIndex: 'category',
-      width: 64,
+      width: 80,
+      fixed: 'left',
       filters: [
         { text: 'OOH',  value: 'OOH'  },
         { text: 'DOOH', value: 'DOOH' },
@@ -3103,7 +3126,7 @@ function PlanningsList({ onSelect, stateOverrides }) {
     {
       title: 'Inserzionista',
       dataIndex: 'advertiser',
-      width: 148,
+      width: 210,
       filters: [...new Set(PLANNINGS.map(p => p.advertiser))].sort().map(a => ({ text: a, value: a })),
       filterSearch: true,
       onFilter: (value, record) => record.advertiser === value,
@@ -3116,7 +3139,7 @@ function PlanningsList({ onSelect, stateOverrides }) {
     {
       title: 'Pianificatore',
       key: 'agente',
-      width: 168,
+      width: 192,
       filters: Object.entries(AGENTS).map(([k, a]) => ({
         text: k === myAgentKey ? `${a.name} (tu)` : a.name,
         value: k,
@@ -3165,24 +3188,118 @@ function PlanningsList({ onSelect, stateOverrides }) {
         );
       },
     },
-    // 5. Stato — filtro per valore
+    // 5. Trattativa — badge se collegata, ghost button per collegare
     {
-      title: 'Stato',
-      key: 'state',
-      width: 104,
-      filters: [
-        { text: 'Bozza',          value: 'Bozza'          },
-        { text: 'In trattativa',  value: 'In trattativa'  },
-        { text: 'Confermata',     value: 'Confermata'     },
-      ],
-      onFilter: (value, record) => effectiveState(record) === value,
-      render: (_, record) => React.createElement(StateBadge, { state: effectiveState(record) }),
+      title: 'Trattativa',
+      key: 'trattativa',
+      width: 200,
+      render: (_, row) => {
+        const trat = getTrattativaName(row);
+        const camp = getCampagnaName(row);
+        if (trat) {
+          const link = React.createElement('a', {
+            href: '#', target: '_blank', rel: 'noopener noreferrer',
+            style: { display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3E00FB', textDecoration: 'none', fontSize: 13, fontWeight: 500 },
+            onClick: e => e.preventDefault(),
+          },
+            React.createElement(icons.ExportOutlined, { style: { fontSize: 11 } }),
+            trat,
+          );
+          return camp
+            ? React.createElement(Popover, {
+                trigger: 'hover',
+                placement: 'top',
+                content: React.createElement('div', { style: { fontSize: 12 } },
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', marginRight: 4 } }, 'Campagna:'),
+                  React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, camp),
+                ),
+              }, link)
+            : link;
+        }
+        const usedCampagneByTrat = {};
+        PLANNINGS.forEach(p => {
+          const tn = getTrattativaName(p);
+          const cn = getCampagnaName(p);
+          if (tn && cn) {
+            if (!usedCampagneByTrat[tn]) usedCampagneByTrat[tn] = new Set();
+            usedCampagneByTrat[tn].add(cn);
+          }
+        });
+        const tratOptions = TRATTATIVE.map(t => ({ value: t.name, label: t.name, advertiser: t.advertiser }));
+        const selectedTrat = TRATTATIVE.find(t => t.name === collegaListSelected);
+        const campOptions = selectedTrat
+          ? selectedTrat.campagne.map(c => ({
+              value: c.name, label: c.name,
+              disabled: !!(usedCampagneByTrat[collegaListSelected] && usedCampagneByTrat[collegaListSelected].has(c.name)),
+            }))
+          : [];
+        const isOpen = collegaListPopoverRow === row.id;
+        const popoverContent = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 280 } },
+          React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, 'Collega a una trattativa'),
+          React.createElement(antd.Select, {
+            size: 'small',
+            style: { width: '100%' },
+            placeholder: 'Seleziona trattativa…',
+            showSearch: true,
+            optionFilterProp: 'label',
+            value: collegaListSelected,
+            onChange: v => { setCollegaListSelected(v); setCollegaListSelectedCampagna(null); },
+            options: tratOptions,
+            optionRender: opt => React.createElement('div', null,
+              React.createElement('div', { style: { fontWeight: 500, fontSize: 12 } }, opt.data.label),
+              React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } }, opt.data.advertiser),
+            ),
+            autoFocus: true,
+            getPopupContainer: trigger => trigger.parentNode,
+          }),
+          React.createElement(antd.Select, {
+            size: 'small',
+            style: { width: '100%' },
+            placeholder: 'Seleziona campagna…',
+            disabled: !collegaListSelected,
+            value: collegaListSelectedCampagna,
+            onChange: v => setCollegaListSelectedCampagna(v),
+            options: campOptions,
+            getPopupContainer: trigger => trigger.parentNode,
+          }),
+          React.createElement(Button, {
+            type: 'primary', size: 'small', style: { width: '100%' },
+            disabled: !collegaListSelected || !collegaListSelectedCampagna,
+            onClick: () => {
+              setTrattativaOverrides(prev => ({ ...prev, [row.id]: { trattativaName: collegaListSelected, campagnaName: collegaListSelectedCampagna } }));
+              antd.message.success(`Campagna "${collegaListSelectedCampagna}" collegata.`);
+              setCollegaListPopoverRow(null);
+              setCollegaListSelected(null);
+              setCollegaListSelectedCampagna(null);
+            },
+          }, 'Collega'),
+        );
+        return React.createElement('div', { onClick: e => e.stopPropagation() },
+          React.createElement(Popover, {
+            content: popoverContent,
+            trigger: 'click',
+            placement: 'bottomLeft',
+            open: isOpen,
+            onOpenChange: open => {
+              if (open) { setCollegaListPopoverRow(row.id); setCollegaListSelected(null); setCollegaListSelectedCampagna(null); }
+              else { setCollegaListPopoverRow(null); setCollegaListSelected(null); setCollegaListSelectedCampagna(null); }
+            },
+          },
+            React.createElement(Button, {
+              size: 'small',
+              type: 'dashed',
+              icon: React.createElement(icons.LinkOutlined),
+              style: { fontSize: 12, color: '#3E00FB', borderColor: '#D3B8FF' },
+            }, 'Collega Trattativa')
+          )
+        );
+      },
     },
     // 6. Spazi selezionati — ordinabile numericamente
     {
       title: 'Spazi',
       key: 'faces',
-      width: 60,
+      width: 72,
       align: 'center',
       sorter: (a, b) => (a.selectedFaces||[]).length - (b.selectedFaces||[]).length,
       render: (_, r) => {
@@ -3198,7 +3315,7 @@ function PlanningsList({ onSelect, stateOverrides }) {
     {
       title: 'Creata il',
       dataIndex: 'createdAt',
-      width: 88,
+      width: 100,
       sorter: (a, b) => parseDate(a.createdAt) - parseDate(b.createdAt),
       render: v => React.createElement('span', { style:{ fontSize: 13, color:'rgba(0,0,0,0.65)' } }, v),
     },
@@ -3206,7 +3323,7 @@ function PlanningsList({ onSelect, stateOverrides }) {
     {
       title: 'Aggiornata il',
       key: 'updatedAt',
-      width: 96,
+      width: 112,
       sorter: (a, b) => parseDate(getPlanningUpdatedAt(a)) - parseDate(getPlanningUpdatedAt(b)),
       render: (_, row) => React.createElement('span', { style:{ fontSize: 13, color:'rgba(0,0,0,0.65)' } }, getPlanningUpdatedAt(row)),
     },
@@ -3214,7 +3331,7 @@ function PlanningsList({ onSelect, stateOverrides }) {
     {
       title: 'Tipo vendita',
       key: 'saleType',
-      width: 112,
+      width: 120,
       render: (_, record) => {
         const { days } = parsePlanningDates(record);
         let label, tip;
@@ -3236,7 +3353,7 @@ function PlanningsList({ onSelect, stateOverrides }) {
     {
       title: 'Data inizio',
       dataIndex: 'start',
-      width: 92,
+      width: 104,
       sorter: (a, b) => parseDate(a.start) - parseDate(b.start),
       render: v => React.createElement('span', { style:{ fontSize: 13 } }, v),
     },
@@ -3244,15 +3361,30 @@ function PlanningsList({ onSelect, stateOverrides }) {
     {
       title: 'Data fine',
       dataIndex: 'end',
-      width: 88,
+      width: 100,
       sorter: (a, b) => parseDate(a.end) - parseDate(b.end),
       render: v => React.createElement('span', { style:{ fontSize: 13 } }, v),
     },
-    // 11. Azioni
+    // 11. Stato — fixed right, filtro per valore
+    {
+      title: 'Stato',
+      key: 'state',
+      width: 128,
+      fixed: 'right',
+      filters: [
+        { text: 'Bozza',          value: 'Bozza'          },
+        { text: 'In trattativa',  value: 'In trattativa'  },
+        { text: 'Confermata',     value: 'Confermata'     },
+      ],
+      onFilter: (value, record) => effectiveState(record) === value,
+      render: (_, record) => React.createElement(StateBadge, { state: effectiveState(record) }),
+    },
+    // 12. Azioni
     {
       title: '',
       key: 'actions',
-      width: 56,
+      width: 64,
+      fixed: 'right',
       render: (_, row) => React.createElement('div', {
         style:{ display:'flex', alignItems:'center', justifyContent:'flex-end' },
         onClick: e => e.stopPropagation(),
@@ -3349,6 +3481,7 @@ function PlanningsList({ onSelect, stateOverrides }) {
           rowKey: 'id',
           size: 'middle',
           pagination: { pageSize: 10, showSizeChanger: false, style:{ margin: '12px 0 16px' } },
+          scroll: { x: 1722 },
           style: { borderRadius: 0 },
           onRow: row => ({
             onClick: () => onSelect(row),
@@ -3788,11 +3921,13 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
 
   // ── State ──────────────────────────────────────────────────
   const [trattativaName, setTrattativaName]         = useState(planning.trattativaName || null);
+  const [campagnaName, setCampagnaName]             = useState(planning.campagnaName || null);
   const [deliveredAt, setDeliveredAt]               = useState(planning.deliveredAt || null);
   const [localPlanningState, setLocalPlanningState] = useState(planning.state);
   const [consegnaPopover, setConsegnaPopover]       = useState(false);
   const [collegaPopover, setCollegaPopover]         = useState(false);
   const [collegaSelected, setCollegaSelected]       = useState(null);
+  const [collegaSelectedCampagna, setCollegaSelectedCampagna] = useState(null);
   const [changesModalOpen, setChangesModalOpen]     = useState(false);
 
   // Snapshot delle facce selezionate al momento dell'ultima consegna
@@ -3972,7 +4107,25 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
     }, 'Conferma consegna'),
   );
 
-  const collegaContent = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 260 } },
+  const collegaUsedCampagneByTrat = (() => {
+    const map = {};
+    PLANNINGS.forEach(p => {
+      if (p.id === planning.id) return;
+      if (p.trattativaName && p.campagnaName) {
+        if (!map[p.trattativaName]) map[p.trattativaName] = new Set();
+        map[p.trattativaName].add(p.campagnaName);
+      }
+    });
+    return map;
+  })();
+  const collegaSelectedTrat = TRATTATIVE.find(t => t.name === collegaSelected);
+  const collegaCampOptions = collegaSelectedTrat
+    ? collegaSelectedTrat.campagne.map(c => ({
+        value: c.name, label: c.name,
+        disabled: !!(collegaUsedCampagneByTrat[collegaSelected] && collegaUsedCampagneByTrat[collegaSelected].has(c.name)),
+      }))
+    : [];
+  const collegaContent = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 280 } },
     React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, 'Collega a una trattativa'),
     React.createElement(antd.Select, {
       size: 'small',
@@ -3981,15 +4134,8 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
       showSearch: true,
       optionFilterProp: 'label',
       value: collegaSelected,
-      onChange: v => setCollegaSelected(v),
-      options: (() => {
-        const used = new Set(PLANNINGS.map(p => p.trattativaName).filter(Boolean));
-        return TRATTATIVE.filter(t => !used.has(t.name)).map(t => ({
-          value: t.name,
-          label: t.name,
-          advertiser: t.advertiser,
-        }));
-      })(),
+      onChange: v => { setCollegaSelected(v); setCollegaSelectedCampagna(null); },
+      options: TRATTATIVE.map(t => ({ value: t.name, label: t.name, advertiser: t.advertiser })),
       optionRender: opt => React.createElement('div', null,
         React.createElement('div', { style: { fontWeight: 500, fontSize: 12 } }, opt.data.label),
         React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } }, opt.data.advertiser),
@@ -3997,14 +4143,26 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
       autoFocus: true,
       getPopupContainer: trigger => trigger.parentNode,
     }),
+    React.createElement(antd.Select, {
+      size: 'small',
+      style: { width: '100%' },
+      placeholder: 'Seleziona campagna…',
+      disabled: !collegaSelected,
+      value: collegaSelectedCampagna,
+      onChange: v => setCollegaSelectedCampagna(v),
+      options: collegaCampOptions,
+      getPopupContainer: trigger => trigger.parentNode,
+    }),
     React.createElement(Button, {
       type: 'primary', size: 'small', style: { width: '100%' },
-      disabled: !collegaSelected,
+      disabled: !collegaSelected || !collegaSelectedCampagna,
       onClick: () => {
         setTrattativaName(collegaSelected);
+        setCampagnaName(collegaSelectedCampagna);
         setCollegaSelected(null);
+        setCollegaSelectedCampagna(null);
         setCollegaPopover(false);
-        antd.message.success(`Trattativa "${collegaSelected}" collegata.`);
+        antd.message.success(`Campagna "${collegaSelectedCampagna}" collegata.`);
       },
     }, 'Collega'),
   );
@@ -4097,14 +4255,26 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
         React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, 'Trattativa:'),
         trattativaName
-          ? React.createElement('a', {
-              href: '#', target: '_blank', rel: 'noopener noreferrer',
-              style: { display: 'flex', alignItems: 'center', gap: 4, color: '#3E00FB', textDecoration: 'none' },
-              onClick: e => e.preventDefault(),
-            },
-              React.createElement(icons.ExportOutlined, { style: { fontSize: 11 } }),
-              React.createElement('span', { style: { fontSize: 13, fontWeight: 500 } }, trattativaName),
-            )
+          ? (() => {
+              const link = React.createElement('a', {
+                href: '#', target: '_blank', rel: 'noopener noreferrer',
+                style: { display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3E00FB', textDecoration: 'none' },
+                onClick: e => e.preventDefault(),
+              },
+                React.createElement(icons.ExportOutlined, { style: { fontSize: 11 } }),
+                React.createElement('span', { style: { fontSize: 13, fontWeight: 500 } }, trattativaName),
+              );
+              return campagnaName
+                ? React.createElement(Popover, {
+                    trigger: 'hover',
+                    placement: 'top',
+                    content: React.createElement('div', { style: { fontSize: 12 } },
+                      React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', marginRight: 4 } }, 'Campagna:'),
+                      React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, campagnaName),
+                    ),
+                  }, link)
+                : link;
+            })()
           : isMine && planning.state !== 'Confermata'
             ? React.createElement(Popover, {
                 content: collegaContent,
