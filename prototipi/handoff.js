@@ -534,7 +534,9 @@
       tooltip: panelOpen && !minimized ? 'Chiudi guida' : 'Handoff Guide',
       badge: novitaCount > 0 ? { count: novitaCount, color: '#FF4A1C' } : undefined,
       icon: h(icons.InfoCircleOutlined),
-      style: { bottom: 24, right: 24, insetInlineEnd: 24 },
+      description: 'Handoff',
+      shape: 'square',
+      style: { bottom: 24, right: 24, insetInlineEnd: 24, width: 64, height: 64 },
       onClick: function () {
         if (minimized) { setMinimized(false); setPanelOpen(true); return; }
         if (panelOpen) setPanelOpen(false); else setPanelOpen(true);
@@ -547,6 +549,19 @@
   }
 
   // ── Mount ─────────────────────────────────────────────────────────────────
+  var style = document.createElement('style');
+  style.textContent = [
+    '@keyframes ghf-pulse {',
+    '  0%   { box-shadow: 0 0 0 0 rgba(62,0,251,0.45); }',
+    '  70%  { box-shadow: 0 0 0 14px rgba(62,0,251,0); }',
+    '  100% { box-shadow: 0 0 0 0 rgba(62,0,251,0); }',
+    '}',
+    '#gravity-handoff-root .ant-float-btn-body {',
+    '  animation: ghf-pulse 2s ease-out infinite;',
+    '}',
+  ].join('\n');
+  document.head.appendChild(style);
+
   var container = document.createElement('div');
   container.id = 'gravity-handoff-root';
   document.body.appendChild(container);
