@@ -533,10 +533,12 @@
       type: 'primary',
       tooltip: panelOpen && !minimized ? 'Chiudi guida' : 'Handoff Guide',
       badge: novitaCount > 0 ? { count: novitaCount, color: '#FF4A1C' } : undefined,
-      icon: h(icons.InfoCircleOutlined),
-      description: 'Handoff',
+      icon: h('span', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 } },
+        h(icons.InfoCircleOutlined),
+        'Handoff'
+      ),
       shape: 'square',
-      style: { bottom: 24, right: 24, insetInlineEnd: 24, width: 64, height: 64 },
+      style: { bottom: 24, right: 24, insetInlineEnd: 24, width: 'auto', minWidth: 96, height: 40, borderRadius: 8, padding: '0 14px' },
       onClick: function () {
         if (minimized) { setMinimized(false); setPanelOpen(true); return; }
         if (panelOpen) setPanelOpen(false); else setPanelOpen(true);
