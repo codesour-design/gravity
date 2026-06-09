@@ -529,21 +529,21 @@
       h('div', { style: { flex: 1, overflowY: 'auto' } }, tourListItems)
     ) : null;
 
-    var fab = h(antd.FloatButton, {
-      type: 'primary',
-      tooltip: panelOpen && !minimized ? 'Chiudi guida' : 'Handoff Guide',
-      badge: novitaCount > 0 ? { count: novitaCount, color: '#FF4A1C' } : undefined,
-      icon: h('span', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 } },
-        h(icons.InfoCircleOutlined),
-        'Handoff'
-      ),
-      shape: 'square',
-      style: { bottom: 24, right: 24, insetInlineEnd: 24, width: 'auto', minWidth: 96, height: 40, borderRadius: 8, padding: '0 14px' },
-      onClick: function () {
-        if (minimized) { setMinimized(false); setPanelOpen(true); return; }
-        if (panelOpen) setPanelOpen(false); else setPanelOpen(true);
+    var fab = h('div', { style: { position: 'fixed', bottom: 24, right: 24, zIndex: 9999 } },
+      !panelOpen ? h('span', { className: 'ghf-pulse-ring' }) : null,
+      novitaCount > 0 ? h('span', { className: 'ghf-badge' }, novitaCount) : null,
+      h('button', {
+        className: 'ghf-fab',
+        title: panelOpen && !minimized ? 'Chiudi guida' : 'Handoff Guide',
+        onClick: function () {
+          if (minimized) { setMinimized(false); setPanelOpen(true); return; }
+          if (panelOpen) setPanelOpen(false); else setPanelOpen(true);
+        },
       },
-    });
+        h(icons.InfoCircleOutlined, { style: { fontSize: 15 } }),
+        h('span', null, 'Handoff')
+      )
+    );
 
     return h(antd.ConfigProvider, { theme: window.GRAVITY_THEME || {} },
       h(antd.App, null, panel, fab)
@@ -553,13 +553,35 @@
   // ── Mount ─────────────────────────────────────────────────────────────────
   var style = document.createElement('style');
   style.textContent = [
-    '@keyframes ghf-pulse {',
-    '  0%   { box-shadow: 0 0 0 0 rgba(62,0,251,0.45); }',
-    '  70%  { box-shadow: 0 0 0 14px rgba(62,0,251,0); }',
-    '  100% { box-shadow: 0 0 0 0 rgba(62,0,251,0); }',
+    '@keyframes ghf-pulse-ring {',
+    '  0%   { transform: scale(1);   opacity: 0.55; }',
+    '  100% { transform: scale(2.2); opacity: 0; }',
     '}',
-    '#gravity-handoff-root .ant-float-btn-body {',
-    '  animation: ghf-pulse 2s ease-out infinite;',
+    '.ghf-fab {',
+    '  display: flex; align-items: center; gap: 7px;',
+    '  background: #3E00FB; color: #fff;',
+    '  border: none; border-radius: 20px;',
+    '  padding: 0 18px; height: 40px;',
+    '  font-size: 13px; font-weight: 600;',
+    '  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;',
+    '  cursor: pointer; white-space: nowrap;',
+    '  box-shadow: 0 4px 14px rgba(62,0,251,0.35);',
+    '  transition: background .15s, box-shadow .15s;',
+    '  position: relative; z-index: 1;',
+    '}',
+    '.ghf-fab:hover { background: #2d00c4; box-shadow: 0 6px 18px rgba(62,0,251,0.45); }',
+    '.ghf-pulse-ring {',
+    '  position: absolute; inset: 0; border-radius: 20px;',
+    '  background: #3E00FB;',
+    '  animation: ghf-pulse-ring 1.8s ease-out infinite;',
+    '}',
+    '.ghf-badge {',
+    '  position: absolute; top: -6px; right: -6px;',
+    '  background: #FF4A1C; color: #fff;',
+    '  font-size: 10px; font-weight: 700;',
+    '  min-width: 16px; height: 16px; border-radius: 8px;',
+    '  display: flex; align-items: center; justify-content: center;',
+    '  padding: 0 4px; z-index: 2;',
     '}',
   ].join('\n');
   document.head.appendChild(style);
