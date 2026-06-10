@@ -406,13 +406,13 @@
     .create-page { flex: 1; min-height: 0; display: flex; flex-direction: column; background: #F5F5F5; overflow: hidden; }
     .create-topbar { display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 24px; background: #fff; border-bottom: 1px solid #F0F0F0; flex-shrink: 0; }
     .create-body { flex: 1; min-height: 0; display: flex; overflow: hidden; }
-    .create-nav { width: 188px; flex-shrink: 0; padding: 20px 12px; background: #fff; border-right: 1px solid #F0F0F0; overflow-y: auto; }
-    .create-nav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: rgba(0,0,0,0.3); padding: 0 10px; margin-bottom: 6px; }
-    .create-nav-item { display: block; padding: 6px 10px; border-radius: 6px; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; margin-bottom: 1px; transition: background 0.12s, color 0.12s; user-select: none; }
+    .create-nav { width: 220px; flex-shrink: 0; padding: 24px 16px; background: #fff; border-right: 1px solid #F0F0F0; overflow-y: auto; }
+    .create-nav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: rgba(0,0,0,0.3); padding: 0 10px; margin-bottom: 8px; }
+    .create-nav-item { display: block; padding: 7px 12px; border-radius: 6px; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; margin-bottom: 2px; transition: background 0.12s, color 0.12s; user-select: none; }
     .create-nav-item:hover { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.88); }
     .create-nav-item.active { background: rgba(62,0,251,0.07); color: #3E00FB; font-weight: 500; }
-    .create-scroll { flex: 1; overflow-y: auto; padding: 32px 40px 80px; }
-    .create-content { max-width: 720px; }
+    .create-scroll { flex: 1; overflow-y: auto; padding: 40px 0 80px; background: #F5F5F5; display: flex; justify-content: center; }
+    .create-content { width: 80%; max-width: 100%; }
     .create-section { margin-bottom: 32px; }
     .create-section-title { font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.35); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 14px; }
     .ni-field { margin-bottom: 14px; }
@@ -3514,14 +3514,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     return grant ? grant.grantType : null;
   }, [selConcessioni]);
 
-  const debRef      = useRef(null);
-  const scrollRef   = useRef(null);
-  const sectionRefs = useRef({});
+  const debRef = useRef(null);
   const [activeSection, setActiveSection] = useState('identita');
 
   const SECTIONS = [
-    { id: 'identita',        label: 'Identità' },
-    { id: 'localizzazione',  label: 'Localizzazione' },
+    { id: 'identita',        label: 'Generali' },
+    { id: 'localizzazione',        label: 'Localizzazione' },
+    { id: 'dati-amministrativi',   label: 'Dati amministrativi' },
     { id: 'caratteristiche', label: 'Caratteristiche' },
     { id: 'commerciale',     label: 'Commerciale' },
     { id: 'permessi',        label: 'Permessi' },
@@ -3532,29 +3531,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     { id: 'note',            label: 'Note' },
   ];
 
-  const scrollingRef = useRef(false);
-
-  const onScrollContent = (e) => {
-    if (scrollingRef.current) return;
-    const cTop = e.currentTarget.getBoundingClientRect().top;
-    let current = SECTIONS[0].id;
-    SECTIONS.forEach(({ id }) => {
-      const el = sectionRefs.current[id];
-      if (el && el.getBoundingClientRect().top - cTop <= 80) current = id;
-    });
-    setActiveSection(current);
-  };
-
-  const scrollToSection = (id) => {
-    setActiveSection(id);
-    scrollingRef.current = true;
-    const el = sectionRefs.current[id];
-    const c = scrollRef.current;
-    if (el && c) {
-      c.scrollTo({ top: el.getBoundingClientRect().top - c.getBoundingClientRect().top + c.scrollTop - 32, behavior: 'smooth' });
-    }
-    setTimeout(() => { scrollingRef.current = false; }, 800);
-  };
 
   const tipologieOpts = React.useMemo(() =>
     Object.entries(MACRO_TIPI).map(([group, tipi]) => ({
@@ -3618,16 +3594,28 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
       children,
     );
 
-  // Section wrapper
-  const sec = (id, title, ...children) =>
-    React.createElement('div', { className: 'create-section', ref: el => sectionRefs.current[id] = el },
-      React.createElement('div', { className: 'create-section-title' }, title),
+  // Section wrapper — mostra solo la sezione attiva
+  const sec = (id, title, description, ...children) =>
+    activeSection !== id ? null :
+    React.createElement('div', null,
+      React.createElement('div', { style: { marginBottom: 28 } },
+        React.createElement('div', { style: { fontSize: 20, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 6, letterSpacing: '-0.01em' } }, title),
+        React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, description),
+      ),
       ...children,
     );
 
-  // Sub-section label
-  const sub = (title) =>
-    React.createElement('div', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '0.6px', marginTop: 20, marginBottom: 2 } }, title);
+  // Box sottosezione con titolo e descrizione — stile settings card
+  const box = (title, description, ...children) =>
+    React.createElement('div', { style: { background: '#fff', border: '1px solid #E8E8E8', borderRadius: 8, overflow: 'hidden', marginBottom: 16 } },
+      React.createElement('div', { style: { padding: '20px 24px 18px', borderBottom: '1px solid #F0F0F0' } },
+        React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 4 } }, title),
+        React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, description),
+      ),
+      React.createElement('div', { style: { padding: '20px 24px 24px' } },
+        ...children,
+      ),
+    );
 
   // Grid helpers
   const g2 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-2' }, ...f);
@@ -3677,21 +3665,32 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     })
   );
 
+  // Campi required per sezione — usati per il nav indicator
+  const sectionRequired = {
+    identita:       [canale, tipologia, formato, stato].every(Boolean),
+    localizzazione: [via.trim(), citta.trim()].every(Boolean),
+  };
+  const hasRequired = { identita: true, localizzazione: true };
+
   return React.createElement(Drawer, {
     open: open,
     onClose: onClose,
     placement: 'right',
-    width: 1000,
+    width: '100%',
     destroyOnClose: true,
     title: 'Nuovo Impianto',
-    footer: React.createElement(Space, { style: { justifyContent: 'flex-end', display: 'flex' } },
+    footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
       React.createElement(Button, { onClick: onClose }, 'Annulla'),
-      React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: () => {
-        if (!canSave) { setShowErrors(true); return; }
-        if (onSave) { onSave(collectFormData()); }
-        antdMsg.success('Impianto creato con successo');
-        onClose();
-      } }, 'Crea Impianto'),
+      React.createElement(Button, {
+        type: 'primary',
+        icon: React.createElement(PlusOutlined),
+        disabled: !canSave,
+        onClick: () => {
+          if (onSave) { onSave(collectFormData()); }
+          antdMsg.success('Impianto creato con successo');
+          onClose();
+        },
+      }, 'Crea Impianto'),
     ),
     styles: { body: { padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' } },
   },
@@ -3700,301 +3699,343 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 
       React.createElement('nav', { className: 'create-nav' },
         React.createElement('div', { className: 'create-nav-label' }, 'Sezioni'),
-        SECTIONS.map(({ id, label }) =>
-          React.createElement('div', {
+        SECTIONS.map(({ id, label }) => {
+          const isActive = activeSection === id;
+          return React.createElement('div', {
             key: id,
-            className: 'create-nav-item' + (activeSection === id ? ' active' : ''),
-            onClick: () => scrollToSection(id),
-          }, label)
-        ),
+            className: 'create-nav-item' + (isActive ? ' active' : ''),
+            onClick: () => setActiveSection(id),
+            style: { display: 'flex', alignItems: 'center', gap: 2 },
+          },
+            label,
+            hasRequired[id] && React.createElement('span', {
+              style: { color: '#FF4D4F', fontSize: 13, lineHeight: 1 },
+            }, ' *'),
+          );
+        }),
       ),
 
-      React.createElement('div', { className: 'create-scroll', ref: scrollRef, onScroll: onScrollContent },
+      React.createElement('div', { className: 'create-scroll' },
         React.createElement('div', { className: 'create-content' },
 
         // ── 1. Identità
-        sec('identita', 'Identità',
-          g2(
-            cs('Canale', true,
-              sel(canale, v => { setCanale(v); setTipologia(null); setFormato(null); }, CANALI_OPTS, 'OOH o DOOH?',
-                { status: showErrors && !canale ? 'error' : undefined })
+        sec('identita', 'Generali', 'Canale, tipologia, stato e attributi fondamentali che classificano l\'impianto nel sistema.',
+          box('Informazioni generali', 'Canale, tipologia, formato, stato amministrativo e soggetto proprietario.',
+            g2(
+              cs('Canale', true,
+                sel(canale, v => { setCanale(v); setTipologia(null); setFormato(null); }, CANALI_OPTS, 'OOH o DOOH?',
+                  { status: showErrors && !canale ? 'error' : undefined })
+              ),
+              cs('Tipologia', true,
+                sel(tipologia, v => { setTipologia(v); setFormato(null); }, tipologieOpts,
+                  canale ? 'Es. Pensilina, Palina…' : 'Prima seleziona il canale',
+                  { disabled: !canale, showSearch: true, status: showErrors && !tipologia ? 'error' : undefined })
+              ),
             ),
-            cs('Tipologia', true,
-              sel(tipologia, v => { setTipologia(v); setFormato(null); }, tipologieOpts,
-                canale ? 'Es. Pensilina, Palina…' : 'Prima seleziona il canale',
-                { disabled: !canale, showSearch: true, status: showErrors && !tipologia ? 'error' : undefined })
+            g2(
+              cs('Formato', true,
+                sel(formato, setFormato, formatiOpts,
+                  tipologia ? 'Es. 120×180 cm' : 'Prima seleziona la tipologia',
+                  { disabled: !tipologia, status: showErrors && !formato ? 'error' : undefined })
+              ),
+              cs('Nome impianto', false, inp(nome, setNome, 'Es. Pensilina Piazza Verdi A')),
             ),
-            cs('Formato', true,
-              sel(formato, setFormato, formatiOpts,
-                tipologia ? 'Es. 120×180 cm' : 'Prima seleziona la tipologia',
-                { disabled: !tipologia, status: showErrors && !formato ? 'error' : undefined })
-            ),
-            cs('Nome impianto', false, inp(nome, setNome, 'Es. Pensilina Piazza Verdi A')),
-          ),
-          g2(
-            cs('Stato', true, sel(stato, setStato, STATI_AMM_OPTS, 'Seleziona',
-              { status: showErrors && !stato ? 'error' : undefined })),
-            cs('Proprietà', false,
-              React.createElement(Select, {
-                value: proprieta, onChange: setProprieta,
-                style: { width: '100%' }, showSearch: true,
-                placeholder: 'Ente o soggetto proprietario',
-                optionFilterProp: 'label',
-                options: [
-                  {
-                    label: React.createElement('span', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Gestione diretta'),
-                    options: [{ label: 'Proprietario', value: 'Proprietario' }],
-                  },
-                  {
-                    label: React.createElement('span', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Concessionarie'),
-                    options: ['IGPDecaux', 'Clear Channel', 'Verticals', 'Geonext', 'Pubbliemme', 'Cemusa', 'Neopolis', 'Mediacom', 'Urbanspot'].map(v => ({ label: v, value: v })),
-                  },
-                ],
-              })
+            g2(
+              cs('Stato', true, sel(stato, setStato, STATI_AMM_OPTS, 'Seleziona',
+                { status: showErrors && !stato ? 'error' : undefined })),
+              cs('Proprietà', false,
+                React.createElement(Select, {
+                  value: proprieta, onChange: setProprieta,
+                  style: { width: '100%' }, showSearch: true,
+                  placeholder: 'Ente o soggetto proprietario',
+                  optionFilterProp: 'label',
+                  options: [
+                    {
+                      label: React.createElement('span', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Gestione diretta'),
+                      options: [{ label: 'Proprietario', value: 'Proprietario' }],
+                    },
+                    {
+                      label: React.createElement('span', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Concessionarie'),
+                      options: ['IGPDecaux', 'Clear Channel', 'Verticals', 'Geonext', 'Pubbliemme', 'Cemusa', 'Neopolis', 'Mediacom', 'Urbanspot'].map(v => ({ label: v, value: v })),
+                    },
+                  ],
+                })
+              ),
             ),
           ),
         ),
 
         // ── 2. Localizzazione
-        sec('localizzazione', 'Localizzazione',
-          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 12 } },
-            cs('Via', true, viaAutocomplete),
-            cs('N. civico', false, inp(civico, setCivico, 'Es. 148')),
-          ),
-          g4(
-            cs('CAP',      false, inp(cap,      setCap,      '—')),
-            cs('Città',    true,  inp(citta,    setCitta,    '—', { status: showErrors && !citta.trim() ? 'error' : undefined })),
-            cs('Provincia',false, inp(provincia, setProvincia, '—')),
-            cs('Regione',  false, inp(regione,  setRegione,  '—')),
-          ),
-          g4(
-            cs('Nazione',    false, inp(nazione, setNazione, '—')),
-            cs('Latitudine', false, inp(lat,     setLat,     '—')),
-            cs('Longitudine',false, inp(lng,     setLng,     '—')),
-            cs('Zona',       false, inp(zn,      setZn,      'Es. Centro Storico')),
-          ),
-          g2(
-            cs('Tipo suolo', false,
-              React.createElement(Select, {
-                value: tipoSuolo,
-                disabled: true,
-                placeholder: 'Collega una concessione',
-                options: [{ value: 'Pubblico', label: 'Pubblico' }, { value: 'Privato', label: 'Privato' }],
-                style: { width: '100%' },
-              })
+        sec('localizzazione', 'Localizzazione', 'Posizione geografica, coordinate GPS e dati catastali dell\'impianto.',
+          box('Indirizzo e coordinate', 'Posizione fisica nel territorio e coordinate GPS per la georeferenziazione.',
+            React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 12 } },
+              cs('Via', true, viaAutocomplete),
+              cs('N. civico', false, inp(civico, setCivico, 'Es. 148')),
             ),
-            cs('Categoria suolo', false, sel(catSuolo, setCatSuolo, CAT_SUOLO_OPTS)),
+            g4(
+              cs('CAP',      false, inp(cap,      setCap,      '—')),
+              cs('Città',    true,  inp(citta,    setCitta,    '—', { status: showErrors && !citta.trim() ? 'error' : undefined })),
+              cs('Provincia',false, inp(provincia, setProvincia, '—')),
+              cs('Regione',  false, inp(regione,  setRegione,  '—')),
+            ),
+            g4(
+              cs('Nazione',     false, inp(nazione, setNazione, '—')),
+              cs('Zona',        false, inp(zn,      setZn,      'Es. Centro Storico')),
+              cs('Latitudine',  false, inp(lat,     setLat,     '—')),
+              cs('Longitudine', false, inp(lng,     setLng,     '—')),
+            ),
           ),
-          g2(
-            cs('Utenza', false, inp(utenza, setUtenza, '—')),
-            cs('Cimasa', false, inp(cimasa, setCimasa, 'Es. CIM-2024-001')),
+        ),
+
+        // ── Dati amministrativi
+        sec('dati-amministrativi', 'Dati amministrativi', 'Classificazione del suolo e riferimenti catastali dell\'impianto.',
+          box('Dati amministrativi', 'Tipo e categoria del suolo, utenza e riferimento cimasa.',
+            g2(
+              cs('Tipo suolo', false,
+                React.createElement(Select, {
+                  value: tipoSuolo,
+                  disabled: true,
+                  placeholder: 'Collega una concessione',
+                  options: [{ value: 'Pubblico', label: 'Pubblico' }, { value: 'Privato', label: 'Privato' }],
+                  style: { width: '100%' },
+                })
+              ),
+              cs('Categoria suolo', false, sel(catSuolo, setCatSuolo, CAT_SUOLO_OPTS)),
+            ),
+            g2(
+              cs('Utenza', false, inp(utenza, setUtenza, '—')),
+              cs('Cimasa', false, inp(cimasa, setCimasa, 'Es. CIM-2024-001')),
+            ),
           ),
         ),
 
         // ── 3. Caratteristiche
-        sec('caratteristiche', 'Caratteristiche',
-          g4(
-            cs('Larghezza (cm)', false, num(largImp,    setLargImp,    { min: 0 })),
-            cs('Altezza (cm)',   false, num(altImp,     setAltImp,     { min: 0 })),
-            cs('Moduli',         false, num(moduli,     setModuli,     { min: 1 })),
-            cs('Dim. moduli',    false, inp(dimModuli,  setDimModuli,  'Es. 120×180 cm')),
+        sec('caratteristiche', 'Caratteristiche', 'Specifiche fisiche e strutturali del pannello espositivo.',
+          box('Dimensioni pannello', 'Misure fisiche del pannello: larghezza, altezza, moduli e dimensioni.',
+            g4(
+              cs('Larghezza (cm)', false, num(largImp,   setLargImp,   { min: 0 })),
+              cs('Altezza (cm)',   false, num(altImp,    setAltImp,    { min: 0 })),
+              cs('Moduli',         false, num(moduli,    setModuli,    { min: 1 })),
+              cs('Dim. moduli',    false, inp(dimModuli, setDimModuli, 'Es. 120×180 cm')),
+            ),
           ),
-          g4(
-            cs('Tipo faccia',    false, sel(tipoFaccia, setTipoFaccia, TIPO_FACCIA_OPTS)),
-            cs('Slot',           false, num(slot,       setSlot,       { min: 1 })),
-            cs('Orientamento',   false, sel(orientamento, setOrientamento, ORIENTAMENTO_OPTS)),
-            cs('Cono visibilità',false, inp(conoVis,  setConoVis,  'Es. 180°')),
-          ),
-          g4(
-            cs('Alt. da terra (cm)', false, num(altTerra, setAltTerra, { min: 0 })),
-            cs('Alt. totale (cm)',   false, num(altTotale,setAltTotale,{ min: 0 })),
-            cs('Esposizione',        false, sel(riparato, setRiparato, RIPARATO_OPTS)),
-            cs('Illuminato',         false, sw(illuminato, setIlluminato)),
+          box('Esposizione e visibilità', 'Orientamento, cono di visibilità e condizioni ambientali del sito.',
+            g4(
+              cs('Tipo faccia',    false, sel(tipoFaccia,   setTipoFaccia,   TIPO_FACCIA_OPTS)),
+              cs('Slot',           false, num(slot,          setSlot,          { min: 1 })),
+              cs('Orientamento',   false, sel(orientamento,  setOrientamento,  ORIENTAMENTO_OPTS)),
+              cs('Cono visibilità',false, inp(conoVis,       setConoVis,       'Es. 180°')),
+            ),
+            g4(
+              cs('Alt. da terra (cm)', false, num(altTerra,  setAltTerra,  { min: 0 })),
+              cs('Alt. totale (cm)',   false, num(altTotale, setAltTotale, { min: 0 })),
+              cs('Esposizione',        false, sel(riparato,  setRiparato,  RIPARATO_OPTS)),
+              cs('Illuminato',         false, sw(illuminato, setIlluminato)),
+            ),
           ),
         ),
 
         // ── 4. Commerciale
-        sec('commerciale', 'Commerciale',
-          g2(
-            cs('Modello di vendita', false,
-              sel(vendita, setVendita, [
-                { value: 'Standard',   label: 'Standard' },
-                { value: 'Long term',  label: 'Long term' },
-              ])
+        sec('commerciale', 'Commerciale', 'Modello di vendita, prezzi e squadra di affissione.',
+          box('Modello commerciale', 'Struttura di vendita e listino prezzi associati all\'impianto.',
+            g2(
+              cs('Modello di vendita', false,
+                sel(vendita, setVendita, [
+                  { value: 'Standard',  label: 'Standard' },
+                  { value: 'Long term', label: 'Long term' },
+                ])
+              ),
+              React.createElement('div'),
             ),
-          ),
-          g4(
-            cs('Prezzo netto (€)',  false, num(prezzoNetto,   setPrezzoNetto,   { min: 0, precision: 2 })),
-            cs('Prezzo lordo (€)',  false, num(prezzoLordo,   setPrezzoLordo,   { min: 0, precision: 2 })),
-            cs('Squadra Affissione',false, inp(squadraAff,    setSquadraAff,    '—')),
-            cs('Codice Squadra',    false, inp(codiceSquadra, setCodiceSquadra, '—')),
+            g4(
+              cs('Prezzo netto (€)',  false, num(prezzoNetto,   setPrezzoNetto,   { min: 0, precision: 2 })),
+              cs('Prezzo lordo (€)',  false, num(prezzoLordo,   setPrezzoLordo,   { min: 0, precision: 2 })),
+              cs('Squadra Affissione',false, inp(squadraAff,    setSquadraAff,    '—')),
+              cs('Codice Squadra',    false, inp(codiceSquadra, setCodiceSquadra, '—')),
+            ),
           ),
         ),
 
         // ── 5. Permessi
-        sec('permessi', 'Permessi',
-          cs('Concessioni', false,
-            React.createElement(Select, {
-              mode: 'multiple',
-              value: selConcessioni,
-              onChange: setSelConcessioni,
-              options: GRANTS_DATA.map(g => ({
-                value: g.key,
-                label: g.documentType + ' — ' + g.documentId + ' (' + g.issuingAuthority + ')',
-              })),
-              placeholder: 'Seleziona concessioni…',
-              style: { width: '100%' },
-              showSearch: true,
-              filterOption: (input, opt) => (opt && opt.label ? opt.label.toLowerCase().includes(input.toLowerCase()) : false),
-            })
+        sec('permessi', 'Permessi', 'Concessioni e autorizzazioni amministrative associate all\'impianto.',
+          box('Concessioni', 'Titoli concessori che regolano l\'occupazione del suolo pubblico o privato.',
+            cs('Concessioni', false,
+              React.createElement(Select, {
+                mode: 'multiple',
+                value: selConcessioni,
+                onChange: setSelConcessioni,
+                options: GRANTS_DATA.map(g => ({
+                  value: g.key,
+                  label: g.documentType + ' — ' + g.documentId + ' (' + g.issuingAuthority + ')',
+                })),
+                placeholder: 'Seleziona concessioni…',
+                style: { width: '100%' },
+                showSearch: true,
+                filterOption: (input, opt) => (opt && opt.label ? opt.label.toLowerCase().includes(input.toLowerCase()) : false),
+              })
+            ),
           ),
-          cs('Autorizzazioni', false,
-            React.createElement(Select, {
-              mode: 'multiple',
-              value: selAutorizzazioni,
-              onChange: setSelAutorizzazioni,
-              options: AUTHORIZATIONS_DATA.map(a => ({
-                value: a.key,
-                label: a.authorizationCategory + ' — ' + a.protocolNumber + ' (' + a.issuingAuthority + ')',
-              })),
-              placeholder: 'Seleziona autorizzazioni…',
-              style: { width: '100%' },
-              showSearch: true,
-              filterOption: (input, opt) => (opt && opt.label ? opt.label.toLowerCase().includes(input.toLowerCase()) : false),
-            })
+          box('Autorizzazioni', 'Permessi edilizi, paesaggistici e altri provvedimenti autorizzativi.',
+            cs('Autorizzazioni', false,
+              React.createElement(Select, {
+                mode: 'multiple',
+                value: selAutorizzazioni,
+                onChange: setSelAutorizzazioni,
+                options: AUTHORIZATIONS_DATA.map(a => ({
+                  value: a.key,
+                  label: a.authorizationCategory + ' — ' + a.protocolNumber + ' (' + a.issuingAuthority + ')',
+                })),
+                placeholder: 'Seleziona autorizzazioni…',
+                style: { width: '100%' },
+                showSearch: true,
+                filterOption: (input, opt) => (opt && opt.label ? opt.label.toLowerCase().includes(input.toLowerCase()) : false),
+              })
+            ),
           ),
         ),
 
         // ── 6. Progetto
-        sec('progetto', 'Progetto',
-          cs('Progetto', false, inp(progetto, setProgetto, 'Es. 1305')),
-          sub('Pratica'),
-          g3(
-            cs('Stato',            false, sel(statoGc,      setStatoGc,      STATO_GC_OPTS)),
-            cs('N. protocollo',    false, inp(protocolloNo, setProtocolloNo, 'Es. Prog. 96177 del 21/03/2022')),
-            cs('Data collaudo',    false, dp(dataCollaudo,  setDataCollaudo)),
+        sec('progetto', 'Progetto', 'Documentazione tecnica, materiali e figure professionali coinvolte.',
+          box('Progetto tecnico', 'Numero di progetto e riferimento al fascicolo tecnico.',
+            cs('Progetto', false, inp(progetto, setProgetto, 'Es. 1305')),
           ),
-          g2(
-            cs('Data ultima verifica', false, dp(dataVerifica,  setDataVerifica)),
-            cs('Resp. ultima verifica',false, inp(respVerifica, setRespVerifica, '—')),
+          box('Pratica', 'Stato della pratica edilizia, protocollo e date di collaudo.',
+            g3(
+              cs('Stato',            false, sel(statoGc,      setStatoGc,      STATO_GC_OPTS)),
+              cs('N. protocollo',    false, inp(protocolloNo, setProtocolloNo, 'Es. Prog. 96177 del 21/03/2022')),
+              cs('Data collaudo',    false, dp(dataCollaudo,  setDataCollaudo)),
+            ),
+            g2(
+              cs('Data ultima verifica',  false, dp(dataVerifica,  setDataVerifica)),
+              cs('Resp. ultima verifica', false, inp(respVerifica, setRespVerifica, '—')),
+            ),
           ),
-          sub('Materiali'),
-          g3(
-            cs('Calcestruzzo',       false, inp(calcestruzzo, setCalcestruzzo, 'Es. RCK > 25 MPA')),
-            cs('Acciaio carpenteria',false, inp(acciaioCarp,  setAcciaioCarp,  'Es. FE 360 B')),
-            cs('Acciaio armature',   false, inp(acciaioArm,   setAcciaioArm,   'Es. FEB 44 K')),
+          box('Materiali', 'Specifiche tecniche dei materiali utilizzati nella costruzione.',
+            g3(
+              cs('Calcestruzzo',       false, inp(calcestruzzo, setCalcestruzzo, 'Es. RCK > 25 MPA')),
+              cs('Acciaio carpenteria',false, inp(acciaioCarp,  setAcciaioCarp,  'Es. FE 360 B')),
+              cs('Acciaio armature',   false, inp(acciaioArm,   setAcciaioArm,   'Es. FEB 44 K')),
+            ),
+            cs('Tecniche utilizzate', false,
+              React.createElement(Input.TextArea, {
+                value: tecnicheGc, onChange: e => setTecnicheGc(e.target.value),
+                placeholder: 'Es. Saldature con elettrodi basici E 44 L 4 B e con cordoni d\'angolo 8×8 mm',
+                autoSize: { minRows: 2, maxRows: 4 },
+              })
+            ),
           ),
-          cs('Tecniche utilizzate', false,
-            React.createElement(Input.TextArea, {
-              value: tecnicheGc, onChange: e => setTecnicheGc(e.target.value),
-              placeholder: 'Es. Saldature con elettrodi basici E 44 L 4 B e con cordoni d\'angolo 8×8 mm',
-              autoSize: { minRows: 2, maxRows: 4 },
-            })
-          ),
-          sub('Figure professionali'),
-          g3(
-            cs('Progettista',  false, inp(progettista,  setProgettista,  '—')),
-            cs('D.D.L.',       false, inp(ddl,          setDdl,          '—')),
-            cs('R.S.C.',       false, inp(rsc,          setRsc,          '—')),
-          ),
-          g3(
-            cs('Collaudatore', false, inp(collaudatore, setCollaudatore, '—')),
-            cs('Laboratorio',  false, inp(laboratorio,  setLaboratorio,  '—')),
-            cs('Geologo',      false, inp(geologo,      setGeologo,      '—')),
+          box('Figure professionali', 'Professionisti coinvolti nel progetto, nella direzione lavori e nel collaudo.',
+            g3(
+              cs('Progettista', false, inp(progettista,  setProgettista,  '—')),
+              cs('D.D.L.',      false, inp(ddl,          setDdl,          '—')),
+              cs('R.S.C.',      false, inp(rsc,          setRsc,          '—')),
+            ),
+            g3(
+              cs('Collaudatore', false, inp(collaudatore, setCollaudatore, '—')),
+              cs('Laboratorio',  false, inp(laboratorio,  setLaboratorio,  '—')),
+              cs('Geologo',      false, inp(geologo,      setGeologo,      '—')),
+            ),
           ),
         ),
 
         // ── 7. Struttura
-        sec('struttura', 'Struttura',
-          sub('Fondazioni'),
-          g3(
-            cs('Tipo fondazione',      false, sel(tipoFond,      setTipoFond,      TIPO_FONDAZIONE_OPTS)),
-            cs('Dimensione fondazione',false, inp(dimFond,        setDimFond,       'Es. 5,50 × 3,20 × 0,80 m')),
-            cs('Ditta cemento',        false, inp(dittaCemento,   setDittaCemento,  '—')),
+        sec('struttura', 'Struttura', 'Fondazioni, pali, cornice, pannelli e componenti strutturali dell\'impianto.',
+          box('Fondazioni', 'Tipo di fondazione, dimensioni e dati relativi alla posa in opera.',
+            g3(
+              cs('Tipo fondazione',      false, sel(tipoFond,    setTipoFond,    TIPO_FONDAZIONE_OPTS)),
+              cs('Dimensione fondazione',false, inp(dimFond,      setDimFond,     'Es. 5,50 × 3,20 × 0,80 m')),
+              cs('Ditta cemento',        false, inp(dittaCemento, setDittaCemento,'—')),
+            ),
+            g2(
+              cs('Data inizio lavori', false, dp(dataLavoriFond, setDataLavoriFond)),
+              cs('Data fine lavori',   false, dp(dataFineLav,    setDataFineLav)),
+            ),
+            cs('Note', false, inp(noteFond, setNoteFond, '—')),
           ),
-          g2(
-            cs('Data inizio lavori', false, dp(dataLavoriFond, setDataLavoriFond)),
-            cs('Data fine lavori',   false, dp(dataFineLav,    setDataFineLav)),
+          box('Pali', 'Caratteristiche strutturali dei pali di sostegno e dati di montaggio.',
+            g4(
+              cs('Tipo pali',     false, sel(tipoPali,     setTipoPali,     TIPO_PALI_OPTS)),
+              cs('Numero pali',   false, num(numPali,      setNumPali,      { min: 0 })),
+              cs('Diametro (mm)', false, inp(diametroPali, setDiametroPali, '—')),
+              cs('Altezza (cm)',  false, inp(altezzaPali,  setAltezzaPali,  '—')),
+            ),
+            g3(
+              cs('Ditta pali',          false, inp(dittaPali,   setDittaPali,   '—')),
+              cs('Data montaggio',      false, dp(dataMontPali, setDataMontPali)),
+              cs('N. punzonatura pali', false, inp(numPunzPali, setNumPunzPali, 'Es. 013201 - 014001')),
+            ),
+            cs('Note pali', false, inp(notePali, setNotePali, '—')),
           ),
-          cs('Note', false, inp(noteFond, setNoteFond, '—')),
-          sub('Pali'),
-          g4(
-            cs('Tipo pali',     false, sel(tipoPali,     setTipoPali,     TIPO_PALI_OPTS)),
-            cs('Numero pali',   false, num(numPali,      setNumPali,      { min: 0 })),
-            cs('Diametro (mm)', false, inp(diametroPali, setDiametroPali, '—')),
-            cs('Altezza (cm)',  false, inp(altezzaPali,  setAltezzaPali,  '—')),
+          box('Cornice', 'Telaio perimetrale del pannello espositivo e dati di montaggio.',
+            g3(
+              cs('Tipo cornice',   false, sel(tipoCornice,    setTipoCornice,    TIPO_CORNICE_OPTS)),
+              cs('Ditta cornice',  false, inp(dittaCornice,   setDittaCornice,   '—')),
+              cs('Data montaggio', false, dp(dataMontCornice, setDataMontCornice)),
+            ),
+            cs('Note cornice', false, inp(noteCornice, setNoteCornice, '—')),
           ),
-          g3(
-            cs('Ditta pali',           false, inp(dittaPali,    setDittaPali,    '—')),
-            cs('Data montaggio',       false, dp(dataMontPali,  setDataMontPali)),
-            cs('N. punzonatura pali',  false, inp(numPunzPali,  setNumPunzPali,  'Es. 013201 - 014001')),
+          box('Pannelli', 'Pannelli espositivi: tipo, numero, dimensioni e peso complessivo.',
+            g4(
+              cs('Tipo pannelli', false, sel(tipoPannelli, setTipoPannelli, TIPO_PANNELLI_OPTS)),
+              cs('Numero',        false, num(numPannelli,  setNumPannelli,  { min: 0 })),
+              cs('Dimensioni',    false, inp(dimPannelli,  setDimPannelli,  'Es. 120×180 cm')),
+              cs('Peso (kg)',      false, inp(pesoPannelli, setPesoPannelli, '—')),
+            ),
+            g4(
+              cs('Barre antivento', false, num(barreAntivento, setBarreAntivento, { min: 0 })),
+              cs('Ditta pannelli',  false, inp(dittaPannelli,  setDittaPannelli,  '—')),
+              cs('Data montaggio',  false, dp(dataMontPann,    setDataMontPann)),
+              cs('Peso totale (kg)',false, inp(pesoTotale,     setPesoTotale,     '—')),
+            ),
+            cs('Note pannelli', false, inp(notePannelli, setNotePannelli, '—')),
           ),
-          cs('Note pali', false, inp(notePali, setNotePali, '—')),
-          sub('Cornice'),
-          g3(
-            cs('Tipo cornice',   false, sel(tipoCornice,    setTipoCornice,    TIPO_CORNICE_OPTS)),
-            cs('Ditta cornice',  false, inp(dittaCornice,   setDittaCornice,   '—')),
-            cs('Data montaggio', false, dp(dataMontCornice, setDataMontCornice)),
-          ),
-          cs('Note cornice', false, inp(noteCornice, setNoteCornice, '—')),
-          sub('Pannelli'),
-          g4(
-            cs('Tipo pannelli',   false, sel(tipoPannelli,   setTipoPannelli,   TIPO_PANNELLI_OPTS)),
-            cs('Numero',          false, num(numPannelli,    setNumPannelli,    { min: 0 })),
-            cs('Dimensioni',      false, inp(dimPannelli,    setDimPannelli,    'Es. 120×180 cm')),
-            cs('Peso (kg)',        false, inp(pesoPannelli,   setPesoPannelli,   '—')),
-          ),
-          g4(
-            cs('Barre antivento', false, num(barreAntivento, setBarreAntivento, { min: 0 })),
-            cs('Ditta pannelli',  false, inp(dittaPannelli,  setDittaPannelli,  '—')),
-            cs('Data montaggio',  false, dp(dataMontPann,    setDataMontPann)),
-            cs('Peso totale (kg)',false, inp(pesoTotale,     setPesoTotale,     '—')),
-          ),
-          cs('Note pannelli', false, inp(notePannelli, setNotePannelli, '—')),
-          sub('Extra struttura'),
-          g4(
-            cs('N. staffe muro',     false, inp(numStaffeMuro, setNumStaffeMuro, 'Es. 12 tassellate + 4')),
-            cs('Strutture terrazze', false, num(strutTerrazze, setStrutTerrazze, { min: 0 })),
-            cs('N. pesi struttura',  false, num(numPesiStrutt, setNumPesiStrutt, { min: 0 })),
-            cs('Kg pesi cadauno',    false, num(kgPesiCadauno, setKgPesiCadauno, { min: 0 })),
+          box('Extra struttura', 'Elementi aggiuntivi: staffe, terrazze e pesi strutturali.',
+            g4(
+              cs('N. staffe muro',     false, inp(numStaffeMuro, setNumStaffeMuro, 'Es. 12 tassellate + 4')),
+              cs('Strutture terrazze', false, num(strutTerrazze, setStrutTerrazze, { min: 0 })),
+              cs('N. pesi struttura',  false, num(numPesiStrutt, setNumPesiStrutt, { min: 0 })),
+              cs('Kg pesi cadauno',    false, num(kgPesiCadauno, setKgPesiCadauno, { min: 0 })),
+            ),
           ),
         ),
 
         // ── 8. Manutenzione
-        sec('manutenzione', 'Manutenzione',
-          g4(
-            cs('Data ultima man.', false, dp(dataMan,    setDataMan)),
-            cs('Squadra',          false, inp(squadraMan, setSquadraMan, '—')),
-            cs('Tipo intervento',  false, sel(tipoMan,   setTipoMan,   TIPO_MAN_OPTS)),
-            cs('Oggetto',          false, inp(oggettoMan, setOggettoMan, '—')),
+        sec('manutenzione', 'Manutenzione', 'Registrazione degli interventi di manutenzione effettuati sull\'impianto.',
+          box('Ultimo intervento', 'Data, squadra e tipo dell\'ultimo intervento di manutenzione registrato.',
+            g4(
+              cs('Data ultima man.', false, dp(dataMan,     setDataMan)),
+              cs('Squadra',          false, inp(squadraMan, setSquadraMan, '—')),
+              cs('Tipo intervento',  false, sel(tipoMan,    setTipoMan,   TIPO_MAN_OPTS)),
+              cs('Oggetto',          false, inp(oggettoMan, setOggettoMan,'—')),
+            ),
           ),
         ),
 
         // ── 9. Galleria
-        sec('galleria', 'Galleria',
-          React.createElement('div', { style: { marginBottom: 8, fontSize: 13, color: 'rgba(0,0,0,0.45)' } },
-            'Carica foto dell\'impianto: facciata, dettagli strutturali, contesto urbano.'
-          ),
-          React.createElement(Upload, {
-            listType: 'picture-card',
-            fileList: fileList,
-            onChange: ({ fileList: newList }) => setFileList(newList),
-            beforeUpload: () => false,
-            accept: 'image/*',
-            multiple: true,
-          },
-            fileList.length < 20 && React.createElement('div', null,
-              React.createElement(PlusOutlined),
-              React.createElement('div', { style: { marginTop: 8, fontSize: 13 } }, 'Aggiungi foto'),
-            )
+        sec('galleria', 'Galleria', 'Documentazione fotografica dell\'impianto per archivio e consultazione.',
+          box('Foto dell\'impianto', 'Carica immagini della facciata, dei dettagli strutturali e del contesto urbano.',
+            React.createElement(Upload, {
+              listType: 'picture-card',
+              fileList: fileList,
+              onChange: ({ fileList: newList }) => setFileList(newList),
+              beforeUpload: () => false,
+              accept: 'image/*',
+              multiple: true,
+            },
+              fileList.length < 20 && React.createElement('div', null,
+                React.createElement(PlusOutlined),
+                React.createElement('div', { style: { marginTop: 8, fontSize: 13 } }, 'Aggiungi foto'),
+              )
+            ),
           ),
         ),
 
-
         // ── 10. Note
-        sec('note', 'Note',
-          cs('Note aggiuntive', false,
-            React.createElement(Input.TextArea, { value: noteRif, onChange: e => setNoteRif(e.target.value), placeholder: 'Es. angolo con Via Bandiera, fronte semaforo…', autoSize: { minRows: 3, maxRows: 6 } })
+        sec('note', 'Note', 'Annotazioni aggiuntive, osservazioni libere e riferimenti topografici.',
+          box('Note aggiuntive', 'Informazioni non strutturate: riferimenti di posizione, contesto urbano, osservazioni.',
+            cs('Note', false,
+              React.createElement(Input.TextArea, { value: noteRif, onChange: e => setNoteRif(e.target.value), placeholder: 'Es. angolo con Via Bandiera, fronte semaforo…', autoSize: { minRows: 4, maxRows: 8 } })
+            ),
           ),
         ),
 
