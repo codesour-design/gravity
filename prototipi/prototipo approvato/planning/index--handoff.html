@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gravity — Planning (nuova rotta)</title>
+  <title>Gravity — Planning</title>
 
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -274,53 +274,6 @@
       gap: var(--gravity-space-xxs);
     }
 
-    /* ── SVG Map thumbnail ─────────────────────────────── */
-    .map-svg { width: 100%; height: 100%; display: block; }
-
-    /* ── Systems list view ─────────────────────────────── */
-    .system-card {
-      border-bottom: 1px solid var(--gravity-border-secondary);
-    }
-    .system-card:last-child { border-bottom: none; }
-    .system-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: var(--gravity-space-sm) var(--gravity-space-md);
-      cursor: pointer;
-    }
-    .system-card-header:hover { background: rgba(0,0,0,0.02); }
-    .system-card-left { display: flex; align-items: center; gap: var(--gravity-space-xs); }
-    .system-avail-bar {
-      width: 4px;
-      align-self: stretch;
-      border-radius: 2px;
-      flex-shrink: 0;
-    }
-    .system-card-expanded {
-      padding: 0 16px 16px 20px;
-      border-top: 1px solid var(--gravity-bg);
-      background: var(--gravity-bg-subtle);
-    }
-    .system-face-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-    .system-face-table th {
-      text-align: left;
-      padding: 6px 8px;
-      color: var(--gravity-text-tertiary);
-      font-weight: 500;
-      border-bottom: 1px solid var(--gravity-border-secondary);
-      background: var(--gravity-bg-container);
-    }
-    .system-face-table td {
-      padding: var(--gravity-space-xs);
-      border-bottom: 1px solid var(--gravity-bg);
-      color: var(--gravity-text-secondary);
-    }
-
     /* ── Select Systems ─────────────────────────────────── */
     .ss-root {
       display: flex;
@@ -541,6 +494,9 @@
       user-select: none;
     }
     .ss-panel-tab.active { background: var(--gravity-primary-bg); color: var(--gravity-primary); }
+    .ss-panel--completata .ss-panel-header { background: #FAFAFA; }
+    .ss-panel--completata .ss-panel-tab.active { background: transparent; color: rgba(0,0,0,0.88); }
+    .ss-panel--completata .ss-face-row.ss-face-selected { background: #fff; }
     .ss-sel-badge {
       display: inline-flex; align-items: center; justify-content: center;
       min-width: 18px; height: 18px; border-radius: 9px;
@@ -562,7 +518,7 @@
     }
     .ss-system-item:last-child { border-bottom: none; }
     .ss-system-item:hover { background: var(--gravity-bg-subtle); }
-    .ss-system-item.ss-item-selected { background: var(--gravity-primary-bg); }
+    .ss-system-item.ss-item-selected { background: #fff; }
     .ss-system-item.ss-item-hovered { background: var(--gravity-bg-subtle); }
     .ss-system-info { flex: 1; min-width: 0; }
     .ss-system-code {
@@ -621,7 +577,7 @@
       transition: background 0.1s;
     }
     .ss-sys-head:hover { background: var(--gravity-bg-subtle); }
-    .ss-sys-head.ss-sys-selected { background: var(--gravity-primary-bg); }
+    .ss-sys-head.ss-sys-selected { background: #fff; }
     .ss-sys-head.ss-sys-hovered  { background: var(--gravity-bg-subtle); }
 
     /* Left accent bar */
@@ -912,8 +868,8 @@
       border: 1.5px solid rgba(62,0,251,0.15);
       z-index: 500;
       padding: 12px 14px;
-      min-width: 220px;
-      max-width: 300px;
+      min-width: 260px;
+      max-width: 320px;
       display: flex;
       flex-direction: column;
       gap: 6px;
@@ -1064,7 +1020,31 @@
     .filter-active-chip.mono { font-family: var(--gravity-font-code); }
     .filter-active-chip .clear-btn { margin-left: 3px; cursor: pointer; font-size: var(--gravity-fs-caption); color: var(--gravity-text-tertiary); line-height: 1; }
     .filter-active-chip .clear-btn:hover { color: var(--gravity-text); }
-    /* ── Filtri attivi (strip sotto la search bar) ── */
+
+    /* ── Gestione colonne: voci del popover con checkbox ── */
+    .cols-toggle-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: rgba(0,0,0,0.88);
+    }
+    .cols-toggle-item:hover { background: rgba(0,0,0,0.04); }
+
+    /* ── Riga paginazione: counter a sx, pagine a dx ── */
+    .plannings-pagination {
+      display: flex;
+      align-items: center;
+    }
+    .plannings-pagination .ant-pagination-total-text {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      height: auto;
+    }
 
     /* ── Mini calendar ─────────────────────────────────── */
     .mini-cal { font-size: 12px; }
@@ -1139,8 +1119,6 @@
     .search-results-scroll { flex: 1; overflow-y: auto; }
 
 
-/* ── POI mode toggle ─────────────────────────────── */
-/* ── Pill search: switch integrato ───────────────────── */
 .ss-search-pill {
   display: flex;
   align-items: center;
@@ -1195,19 +1173,6 @@
   background: #E8E8E8; flex-shrink: 0;
   margin: 8px 0;
 }
-.ss-pill-input {
-  flex: 1; height: 100%;
-  min-width: 0; overflow: visible;
-}
-/* AntD Input borderless inside pill */
-.ss-pill-input .ant-input-affix-wrapper {
-  border: none !important; box-shadow: none !important;
-  background: transparent !important; border-radius: 0 !important;
-  height: 40px !important; padding: 0 14px !important; font-size: 14px;
-  display: flex !important; align-items: center !important;
-}
-.ss-pill-input .ant-input { background: transparent !important; }
-
 /* ── Radius control (map overlay) ─────────────────────── */
 .ss-radius-map-ctrl {
   position: absolute;
@@ -1255,48 +1220,6 @@
 .ss-poi-suggestion-label { color: rgba(0,0,0,0.85); font-weight: 500; }
 .ss-poi-suggestion-sub { font-size: var(--gravity-fs-caption); color: rgba(0,0,0,0.4); margin-top: 1px; }
 
-/* ── Pending POI — radius picker ─────────────────── */
-.ss-poi-pending {
-  display: flex; align-items: center; gap: var(--gravity-space-xs);
-  margin-top: 10px; padding: var(--gravity-space-xs) var(--gravity-space-sm);
-  background: var(--gravity-primary-bg); border: 1px solid var(--gravity-primary-border); border-radius: var(--gravity-radius-lg);
-  flex-wrap: wrap;
-}
-.ss-poi-pending-label {
-  font-size: 12px; color: var(--gravity-text-secondary); font-weight: 500;
-  flex: 1; min-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ss-radius-opts { display: flex; gap: var(--gravity-space-xxs); flex-wrap: wrap; }
-.ss-radius-opt {
-  padding: 3px 8px; border-radius: var(--gravity-radius); border: 1px solid var(--gravity-border);
-  background: var(--gravity-bg-container); font-size: var(--gravity-fs-caption); cursor: pointer;
-  color: var(--gravity-text-secondary); transition: all 0.12s; white-space: nowrap;
-}
-.ss-radius-opt.active { border-color: var(--gravity-primary); background: var(--gravity-primary-bg); color: var(--gravity-primary); font-weight: 600; }
-.ss-radius-opt:hover:not(.active) { border-color: var(--gravity-primary); color: var(--gravity-primary); }
-
-/* ── Active POI chip nel brief bar ───────────────── */
-.ss-poi-active-chip {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 10px; border-radius: 12px; border: 1px solid var(--gravity-primary);
-  font-size: 12px; color: var(--gravity-primary); cursor: pointer;
-  background: var(--gravity-primary-bg); font-weight: 600; transition: all 0.15s;
-}
-.ss-poi-active-chip:hover { background: #E8DFFF; }
-
-/* ── POI drawer list ─────────────────────────────── */
-.poi-drawer-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 0; border-bottom: 1px solid var(--gravity-bg);
-}
-.poi-drawer-item:last-child { border-bottom: none; }
-.poi-drawer-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; line-height: 1; }
-.poi-drawer-info { flex: 1; min-width: 0; }
-.poi-drawer-name { font-size: var(--gravity-fs-body-sm); font-weight: 500; color: rgba(0,0,0,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.poi-drawer-meta { font-size: var(--gravity-fs-caption); color: rgba(0,0,0,0.4); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
-.poi-drawer-empty { text-align: center; padding: var(--gravity-space-xl) 0; color: rgba(0,0,0,0.3); }
-.poi-drawer-empty-icon { font-size: 36px; display: block; margin-bottom: 10px; }
-
 /* ── Fullscreen layout transitions ─────────────────────────── */
 .ss-content-nr {
   transition:
@@ -1343,23 +1266,6 @@
 }
 .ss-root-nr--flashing { animation: fs-flash 0.5s ease forwards; }
 
-/* ── Search bar v2 (portata da inventory-map--v2) ── */
-.ooh-search-card {
-  background: var(--gravity-bg-container);
-  border-radius: var(--gravity-radius-lg);
-  border: 1px solid var(--gravity-border-secondary);
-  flex-shrink: 0;
-  width: 100%;
-  padding: 8px 10px;
-  display: flex; flex-direction: column; gap: 6px;
-}
-.ooh-workspace {
-  flex: 1; min-height: 0;
-  display: flex; flex-direction: column;
-  gap: 6px; padding: 10px;
-  background: var(--gravity-bg);
-  overflow: hidden;
-}
 .ss-search-row { display: flex; align-items: flex-start; gap: var(--gravity-space-xs); }
 .ss-searchbar-wrap { position: relative; flex: 1; min-width: 0; }
 .ss-fullscreen-btn {
@@ -1497,8 +1403,6 @@
 .poi-single-chip.active { background: var(--gravity-primary-bg); border-color: var(--gravity-primary); color: var(--gravity-primary); font-weight: 500; }
 /* Radius map control (fullscreen override — layout identico al principale) */
 .ss-radius-map-ctrl { width: 310px; }
-/* Filter drawer body */
-.filter-drawer-body { padding: 0; }
 
   </style>
 </head>
@@ -1546,7 +1450,7 @@ const {
   ShopOutlined, HomeOutlined, BulbOutlined, InboxOutlined,
   CarOutlined, PlayCircleOutlined, PictureOutlined,
   ColumnHeightOutlined, PushpinOutlined, BranchesOutlined, HeartOutlined,
-  CopyOutlined,
+  CopyOutlined, EyeOutlined, DeleteOutlined,
 } = icons;
 
 // Mappa tipo impianto → icona Ant Design (placeholder per le SVG Gravity)
@@ -1621,7 +1525,7 @@ const MARKER_STATE_FILE = {
 function markerSrc(type, state) {
   const folder = MARKER_FOLDER[type] || 'OOH/palina';
   const file   = MARKER_STATE_FILE[state] || 'available';
-  return `../assets/${folder}/${file}.svg`;
+  return `../../assets/marker/${folder}/${file}.svg`;
 }
 // Cache SVG content preloaded at runtime (keyed by URL)
 const _assetSvgCache = {};
@@ -1660,7 +1564,7 @@ const CAT_STYLE = {
 const STATE_DOT = {
   'Bozza':         '#FAAD14',
   'In trattativa': '#1677FF',
-  'Confermata':    '#52C41A',
+  'Completata':    '#52C41A',
 };
 
 // Profilo pianificatore
@@ -1788,81 +1692,101 @@ function AdvertiserAvatar({ name, size = 32 }) {
 
 const PLANNINGS = [
   // ── Prima pagina: mix di stati ─────────────────────────────────────────────────
-  { id:'0101', name:'Gohan Sushi — Primavera 2026',     category:'DOOH', state:'In trattativa', start:'01/04/2026', end:'15/05/2026', advertiser:'Gohan Sushi',  goal:'traffico', budget:'€ 22.000', faces:12, hasSystems:true,  createdAt:'01/04/2025', assignee:'giulia',
+  { id:'0101', name:'PLN — Brand Awareness Q2', fromTrattativa:true,     category:'DOOH', state:'In trattativa', start:'01/04/2026', end:'15/05/2026', advertiser:'Gohan Sushi',  goal:'traffico', budget:'€ 22.000', faces:12, hasSystems:true,  createdAt:'01/04/2025', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 },{ label:'Viale della Libertà', city:'Palermo', lat:38.1230, lng:13.3521, zoom:15 }],
     briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-1' }],
     requestedTypes:['Billboard', 'Totem'], trattativaName:'TRT-Gohan-2026-P', campagnaName:'Brand Awareness Q2', deliveredAt:'20/03/2026', updatedAt:'28/03/2026' },
-  { id:'0108', name:'Visit Sicily — Estate Trapani',    category:'OOH',  state:'Bozza', start:'01/07/2026', end:'14/07/2026', advertiser:'Visit Sicily',      goal:'traffico', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'10/03/2025', assignee:'giulia',
+  { id:'0108', name:'Visit Sicily — Estate Trapani',    category:'OOH',  state:'Bozza', start:'01/07/2026', end:'14/07/2026', advertiser:null,                goal:'traffico', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'10/03/2025', assignee:'giulia',
     briefZones:[{ label:'Trapani', city:'Trapani', lat:37.9800, lng:12.6150, zoom:13 },{ label:'Marsala', city:'Marsala', lat:37.7998, lng:12.4289, zoom:13 },{ label:'Mazara del Vallo', city:'Mazara del Vallo', lat:37.6555, lng:12.5908, zoom:13 }],
     briefPois:[{ type:'single', id:'brief-s-3' },{ type:'collection', id:'cc-palermo' }],
     requestedTypes:['Pensilina', 'Stendardo'] },
-  { id:'0102', name:'Alessi Estate — Outdoor',          category:'OOH',  state:'Confermata', start:'13/03/2024', end:'30/03/2024', advertiser:'Fondazione Alessi', goal:'consapevolezza del brand', budget:'€ 28.000', faces:13, hasSystems:true,  createdAt:'01/01/2024', assignee:'giulia', briefZones:[], briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'single', id:'brief-s-4' }], requestedTypes:[], trattativaName:'TRT-Alessi-2024-Q1', deliveredAt:'10/03/2024', updatedAt:'10/03/2024' },
-  { id:'0115', name:'Consorzio Agrituristico — Estate',  category:'OOH',  state:'In trattativa', start:'01/06/2026', end:'28/06/2026', advertiser:'Consorzio Agrituristico Sicilia', goal:'traffico', budget:'€ 31.000', faces:10, hasSystems:true,  createdAt:'10/04/2026', assignee:'giulia',
+  { id:'0102', name:'PLN — Campagna Primavera', fromTrattativa:true,          category:'OOH',  state:'Completata', start:'13/03/2024', end:'30/03/2024', advertiser:'Fondazione Alessi', goal:'consapevolezza del brand', budget:'€ 28.000', faces:13, hasSystems:true,  createdAt:'01/01/2024', assignee:'giulia', briefZones:[], briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'single', id:'brief-s-4' }], requestedTypes:[], trattativaName:'TRT-Alessi-2024-Q1', campagnaName:'Campagna Primavera', selectedFaces: Array.from({length:13},(_,i)=>`f-0102-${i+1}`), deliveredAt:'10/03/2024', updatedAt:'10/03/2024' },
+  { id:'0115', name:'PLN — Estate Siciliana', fromTrattativa:true,  category:'OOH',  state:'In trattativa', start:'01/06/2026', end:'28/06/2026', advertiser:'Consorzio Agrituristico Sicilia', goal:'traffico', budget:'€ 31.000', faces:10, hasSystems:true,  createdAt:'10/04/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Nord', city:'Palermo', lat:38.1500, lng:13.3400, zoom:13 },{ label:'Mondello', city:'Palermo', lat:38.2200, lng:13.3300, zoom:14 }],
     briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'single', id:'brief-s-4' }],
     requestedTypes:['Pensilina', 'Palina'], trattativaName:'TRT-ConsorzioAgri-2026', campagnaName:'Estate Siciliana', deliveredAt:'05/05/2026', updatedAt:'05/05/2026' },
-  { id:'0111', name:'Comune di Palermo — Autunno DOOH', category:'DOOH', state:'Bozza', start:'01/10/2026', end:'07/10/2026', advertiser:'Comune di Palermo', goal:'consapevolezza del brand', budget:'€ 40.000', faces:0,  hasSystems:false, createdAt:'15/03/2025', assignee:'giulia',
+  { id:'0111', name:'Comune di Palermo — Autunno DOOH', category:'DOOH', state:'Bozza', start:'01/10/2026', end:'07/10/2026', advertiser:null,                goal:'consapevolezza del brand', budget:'€ 40.000', faces:0,  hasSystems:false, createdAt:'15/03/2025', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 },{ label:'Palermo Est', city:'Palermo', lat:38.1100, lng:13.4200, zoom:13 },{ label:'Palermo Foro Italico', city:'Palermo', lat:38.1080, lng:13.3700, zoom:14 }],
     briefPois:[{ type:'collection', id:'scuole-palermo' },{ type:'collection', id:'universita-palermo' }],
     requestedTypes:['Billboard', 'Totem'] },
-  { id:'0107', name:'TechConf Milano 2025',             category:'DOOH', state:'Confermata', start:'15/11/2024', end:'21/11/2024', advertiser:'TechConf Italia',   goal:'generazione di lead', budget:'€ 24.000', faces:9,  hasSystems:true,  createdAt:'01/09/2024', assignee:'giulia',
+  { id:'0107', name:'PLN — Brand Conference', fromTrattativa:true,             category:'DOOH', state:'Completata', start:'15/11/2024', end:'21/11/2024', advertiser:'TechConf Italia',   goal:'generazione di lead', budget:'€ 24.000', faces:9,  hasSystems:true,  createdAt:'01/09/2024', assignee:'giulia',
     briefZones:[],
     briefPois:[{ type:'collection', id:'universita-palermo' },{ type:'single', id:'brief-s-2' }],
-    requestedTypes:['Billboard', 'Alux'], trattativaName:'TRT-TechConf-2024', deliveredAt:'12/11/2024', updatedAt:'12/11/2024' },
-  { id:'0113', name:'Credito Siciliano — Autunno 2026', category:'DOOH', state:'In trattativa', start:'15/09/2026', end:'15/11/2026', advertiser:'Credito Siciliano', goal:'fidelizzazione dei clienti', budget:'€ 52.000', faces:8, hasSystems:true, createdAt:'05/03/2026', assignee:'giulia',
+    requestedTypes:['Billboard', 'Alux'], trattativaName:'TRT-TechConf-2024', campagnaName:'Brand Conference', selectedFaces: Array.from({length:9},(_,i)=>`f-0107-${i+1}`), deliveredAt:'12/11/2024', updatedAt:'12/11/2024' },
+  { id:'0113', name:'PLN — Fidelizzazione Clienti', fromTrattativa:true, category:'DOOH', state:'In trattativa', start:'15/09/2026', end:'15/11/2026', advertiser:'Credito Siciliano', goal:'fidelizzazione dei clienti', budget:'€ 52.000', faces:8, hasSystems:true, createdAt:'05/03/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 },{ label:'Agrigento', city:'Agrigento', lat:37.3104, lng:13.5765, zoom:13 },{ label:'Trapani', city:'Trapani', lat:37.9800, lng:12.6150, zoom:13 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-2' }],
-    requestedTypes:['Billboard', 'Alux', 'Totem'], trattativaName:null, deliveredAt:null },
-  { id:'0109', name:'Cantine Firriato — Agrigento',     category:'OOH',  state:'Bozza', start:'15/07/2026', end:'28/07/2026', advertiser:'Cantine Firriato',  goal:'consapevolezza del brand', budget:'€ 12.000', faces:0,  hasSystems:false, createdAt:'12/03/2025', assignee:null,
+    requestedTypes:['Billboard', 'Alux', 'Totem'], trattativaName:'TRT-CreditoSic-2026', campagnaName:'Fidelizzazione Clienti', deliveredAt:null },
+  { id:'0109', name:'PLN — Lancio Estivo Agrigento', fromTrattativa:true,     category:'OOH',  state:'Bozza', start:'15/07/2026', end:'28/07/2026', advertiser:'Cantine Firriato',  goal:'consapevolezza del brand', budget:'€ 12.000', faces:0,  hasSystems:false, createdAt:'12/03/2025', assignee:null,
     briefZones:[{ label:'Agrigento', city:'Agrigento', lat:37.3104, lng:13.5765, zoom:13 },{ label:'Sciacca', city:'Sciacca', lat:37.5076, lng:13.0783, zoom:13 }],
     briefPois:[{ type:'single', id:'brief-s-3' },{ type:'collection', id:'trasporti-palermo' }],
     requestedTypes:['Poster', 'Cassonetto'], trattativaName:'TRT-Firriato-2026-Estate', campagnaName:'Lancio Estivo Agrigento', deliveredAt:null },
-  { id:'0104', name:'SushiLab Primavera 2025',          category:'OOH',  state:'Confermata', start:'10/04/2025', end:'25/04/2025', advertiser:'SushiLab Palermo',  goal:'fidelizzazione dei clienti', budget:'€ 15.000', faces:6,  hasSystems:true,  createdAt:'15/02/2025', assignee:'marco',  briefZones:[], briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:[], trattativaName:'TRT-SushiLab-2025-P', deliveredAt:'07/04/2025', updatedAt:'07/04/2025' },
+  { id:'0104', name:'PLN — Palermo Primavera', fromTrattativa:true,          category:'OOH',  state:'Completata', start:'10/04/2025', end:'25/04/2025', advertiser:'SushiLab Palermo',  goal:'fidelizzazione dei clienti', budget:'€ 15.000', faces:6,  hasSystems:true,  createdAt:'15/02/2025', assignee:'marco',  briefZones:[], briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:[], trattativaName:'TRT-SushiLab-2025-P', campagnaName:'Palermo Primavera', selectedFaces: Array.from({length:6},(_,i)=>`f-0104-${i+1}`), deliveredAt:'07/04/2025', updatedAt:'07/04/2025' },
   { id:'0112', name:'WindTre — Brand Summer 2026',      category:'DOOH', state:'Bozza', start:'01/06/2026', end:'31/08/2026', advertiser:'WindTre',           goal:'consapevolezza del brand', budget:'€ 85.000', faces:0,  hasSystems:false, createdAt:'10/02/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'collection', id:'supermercati-palermo' }],
     requestedTypes:['Billboard', 'Alux'], trattativaName:'TRT-WindTre-2026-S', campagnaName:'Brand OOH Summer' },
   // ── Bozze restanti ─────────────────────────────────────────────────────────────
-  { id:'0105', name:'Campus Digitale Settembre',        category:'OOH',  state:'Bozza', start:'01/09/2026', end:'29/09/2026', advertiser:'Campus Digitale',   goal:'consapevolezza del brand', budget:'€ 50.000', faces:20, hasSystems:true,  createdAt:'20/02/2025', assignee:'marco',
+  { id:'0105', name:'Campus Digitale Settembre',        category:'OOH',  state:'Bozza', start:'01/09/2026', end:'29/09/2026', advertiser:null,                goal:'consapevolezza del brand', budget:'€ 50.000', faces:20, hasSystems:true,  createdAt:'20/02/2025', assignee:'marco',
     briefZones:[{ label:'Palermo Nord', city:'Palermo', lat:38.1500, lng:13.3400, zoom:13 }],
     briefPois:[{ type:'collection', id:'scuole-palermo' },{ type:'collection', id:'universita-palermo' }],
     requestedTypes:['Pensilina', 'Palina'] },
-  { id:'0110', name:'MediaWorld — Sicilia Occidentale', category:'OOH',  state:'Bozza', start:'01/09/2026', end:'28/09/2026', advertiser:'MediaWorld',        goal:'traffico', budget:'€ 70.000', faces:0,  hasSystems:false, createdAt:'18/03/2025', assignee:null,
+  { id:'0110', name:'PLN — Sicilia Occidentale Q3', fromTrattativa:true, category:'OOH',  state:'Bozza', start:'01/09/2026', end:'28/09/2026', advertiser:'MediaWorld',        goal:'traffico', budget:'€ 70.000', faces:0,  hasSystems:false, createdAt:'18/03/2025', assignee:null,
     briefZones:[], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-5' }], requestedTypes:['Poster', 'Palina', 'Pensilina'], trattativaName:'TRT-MediaWorld-2026-Q3', campagnaName:'Sicilia Occidentale Q3', deliveredAt:null },
-  { id:'0103', name:'Moving Retail — Digital Q3 2026',  category:'DOOH', state:'Bozza', start:'01/09/2026', end:'07/09/2026', advertiser:'Moving Retail',     goal:'conversione', budget:'€ 35.000', faces:0, hasSystems:false, createdAt:'05/03/2025', assignee:'marco',
+  { id:'0103', name:'Moving Retail — Digital Q3 2026',  category:'DOOH', state:'Bozza', start:'01/09/2026', end:'07/09/2026', advertiser:null,                goal:'conversione', budget:'€ 35.000', faces:0, hasSystems:false, createdAt:'05/03/2025', assignee:'marco',
     briefZones:[{ label:'Palermo Notarbartolo', city:'Palermo', lat:38.1310, lng:13.3478, zoom:14 },{ label:'Palermo Oreto', city:'Palermo', lat:38.0980, lng:13.3460, zoom:14 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-5' }],
     requestedTypes:['Billboard', 'Totem'] },
-  { id:'0114', name:'Mondadori — Back to School',       category:'DOOH', state:'Bozza', start:'20/08/2026', end:'26/08/2026', advertiser:'Mondadori',         goal:'traffico', budget:'€ 28.000', faces:0, hasSystems:false, createdAt:'15/04/2026', assignee:'marco',
+  { id:'0114', name:'Mondadori — Back to School',       category:'DOOH', state:'Bozza', start:'20/08/2026', end:'26/08/2026', advertiser:null,                goal:'traffico', budget:'€ 28.000', faces:0, hasSystems:false, createdAt:'15/04/2026', assignee:'marco',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 }],
     briefPois:[{ type:'collection', id:'scuole-palermo' },{ type:'collection', id:'universita-palermo' }],
     requestedTypes:['Totem', 'Alux'] },
-  { id:'0106', name:'Arredo Urbano Palermo Q4',         category:'OOH',  state:'Bozza', start:'01/10/2026', end:'31/12/2026', advertiser:'Comune di Palermo', goal:'coinvolgimento', budget:'€ 90.000', faces:0,  hasSystems:false, createdAt:'22/01/2025', assignee:null,
+  { id:'0106', name:'PLN — Arredo Urbano Q4', fromTrattativa:true,         category:'OOH',  state:'Bozza', start:'01/10/2026', end:'31/12/2026', advertiser:'Comune di Palermo', goal:'coinvolgimento', budget:'€ 90.000', faces:0,  hasSystems:false, createdAt:'22/01/2025', assignee:null,
     briefZones:[], briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'collection', id:'trasporti-palermo' }], requestedTypes:['Pensilina', 'Cassonetto', 'Palina'], trattativaName:'TRT-ComunePa-2026-Q4', campagnaName:'Arredo Urbano Q4', deliveredAt:null },
-  { id:'0116', name:'Rinascente — Apertura Palermo',    category:'OOH',  state:'Bozza', start:'15/05/2026', end:'28/05/2026', advertiser:'La Rinascente',     goal:'consapevolezza del brand', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'22/04/2026', assignee:null,
+  { id:'0116', name:'PLN — Apertura Centro Storico', fromTrattativa:true,    category:'OOH',  state:'Bozza', start:'15/05/2026', end:'28/05/2026', advertiser:'La Rinascente',     goal:'consapevolezza del brand', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'22/04/2026', assignee:null,
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 }], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:['Billboard', 'Poster', 'Pensilina'], trattativaName:'TRT-Rinascente-2026-PA', campagnaName:'Apertura Centro Storico', deliveredAt:null },
+  // ── Pianificazioni confermate recenti (visibili in prima pagina) ────────────
+  { id:'0117', name:'PLN — Q1 Brand Awareness', fromTrattativa:true,            category:'DOOH', state:'Completata', start:'01/03/2026', end:'07/03/2026', advertiser:'ENI',            goal:'consapevolezza del brand', budget:'€ 38.000', faces:16, hasSystems:true,  createdAt:'25/02/2026', assignee:'marco',
+    briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 }],
+    briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-2' }],
+    requestedTypes:['Billboard', 'Alux'], trattativaName:'TRT-ENI-2026-Q1', campagnaName:'Q1 Brand Awareness', selectedFaces: Array.from({length:16},(_,i)=>`f-0117-${i+1}`), deliveredAt:'20/02/2026', updatedAt:'20/02/2026' },
+  { id:'0118', name:'PLN — Promo Primavera', fromTrattativa:true,    category:'OOH',  state:'Completata', start:'01/03/2026', end:'28/03/2026', advertiser:'Conad',          goal:'traffico', budget:'€ 27.000', faces:11, hasSystems:true,  createdAt:'12/02/2026', assignee:'giulia',
+    briefZones:[{ label:'Palermo Nord', city:'Palermo', lat:38.1500, lng:13.3400, zoom:13 },{ label:'Mondello', city:'Palermo', lat:38.2200, lng:13.3300, zoom:14 }],
+    briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-4' }],
+    requestedTypes:['Pensilina', 'Palina', 'Poster'], trattativaName:'TRT-Conad-2026-P', campagnaName:'Promo Primavera', selectedFaces: Array.from({length:11},(_,i)=>`f-0118-${i+1}`), deliveredAt:'08/02/2026', updatedAt:'08/02/2026' },
 ];
 
-// Trattative aperte (mock) — usate nella select "Collega a una trattativa"
+// Trattative aperte (mock) — usate nella select "Collega a una trattativa".
+// Ogni campagna porta canale e periodo: quando viene collegata, la pianificazione
+// eredita canale, inserzionista (dalla trattativa) e date.
 const TRATTATIVE = [
   { name: 'TRT-Gohan-2026-P',         advertiser: 'Gohan Sushi',                    agent: 'Marco Vitale',
-    campagne: [{ name: 'Brand Awareness Q2' }, { name: 'Promo Primavera' }] },
+    campagne: [{ name: 'Brand Awareness Q2',      channel: 'DOOH', start: '01/04/2026', end: '15/05/2026' },
+               { name: 'Promo Primavera',         channel: 'OOH',  start: '02/03/2026', end: '29/03/2026' }] },
   { name: 'TRT-ConsorzioAgri-2026',   advertiser: 'Consorzio Agrituristico Sicilia', agent: 'Giulia Romano',
-    campagne: [{ name: 'Estate Siciliana' }, { name: 'Degustazione Autunnale' }] },
+    campagne: [{ name: 'Estate Siciliana',        channel: 'OOH',  start: '01/06/2026', end: '28/06/2026' },
+               { name: 'Degustazione Autunnale',  channel: 'OOH',  start: '01/10/2026', end: '28/10/2026' }] },
   { name: 'TRT-CreditoSic-2026',      advertiser: 'Credito Siciliano',              agent: 'Giulia Romano',
-    campagne: [{ name: 'Autunno Brand' }, { name: 'Fidelizzazione Clienti' }] },
+    campagne: [{ name: 'Autunno Brand',           channel: 'DOOH', start: '01/09/2026', end: '30/09/2026' },
+               { name: 'Fidelizzazione Clienti',  channel: 'DOOH', start: '15/09/2026', end: '15/11/2026' }] },
   { name: 'TRT-Firriato-2026-Estate', advertiser: 'Cantine Firriato',              agent: 'Luca Randazzo',
-    campagne: [{ name: 'Lancio Estivo Agrigento' }, { name: 'Sciacca Wine Festival' }] },
+    campagne: [{ name: 'Lancio Estivo Agrigento', channel: 'OOH',  start: '15/07/2026', end: '28/07/2026' },
+               { name: 'Sciacca Wine Festival',   channel: 'OOH',  start: '03/08/2026', end: '16/08/2026' }] },
   { name: 'TRT-MediaWorld-2026-Q3',   advertiser: 'MediaWorld',                    agent: 'Luca Randazzo',
-    campagne: [{ name: 'Sicilia Occidentale Q3' }, { name: 'Palermo Flagship' }] },
+    campagne: [{ name: 'Sicilia Occidentale Q3',  channel: 'OOH',  start: '01/09/2026', end: '28/09/2026' },
+               { name: 'Palermo Flagship',        channel: 'DOOH', start: '05/10/2026', end: '11/10/2026' }] },
   { name: 'TRT-ComunePa-2026-Q4',     advertiser: 'Comune di Palermo',             agent: 'Marco Vitale',
-    campagne: [{ name: 'Arredo Urbano Q4' }, { name: 'Mobilità Sostenibile' }] },
+    campagne: [{ name: 'Arredo Urbano Q4',        channel: 'OOH',  start: '01/10/2026', end: '31/12/2026' },
+               { name: 'Mobilità Sostenibile',    channel: 'DOOH', start: '09/11/2026', end: '15/11/2026' }] },
   { name: 'TRT-Rinascente-2026-PA',   advertiser: 'La Rinascente',                 agent: 'Giulia Romano',
-    campagne: [{ name: 'Apertura Centro Storico' }, { name: 'Summer Collection 2026' }] },
+    campagne: [{ name: 'Apertura Centro Storico', channel: 'OOH',  start: '15/05/2026', end: '28/05/2026' },
+               { name: 'Summer Collection 2026',  channel: 'OOH',  start: '15/06/2026', end: '12/07/2026' }] },
   { name: 'TRT-WindTre-2026-S',       advertiser: 'WindTre',                       agent: 'Giulia Romano',
-    campagne: [{ name: 'Brand OOH Summer' }, { name: 'Copertura 5G Palermo' }] },
+    campagne: [{ name: 'Brand OOH Summer',        channel: 'DOOH', start: '01/06/2026', end: '31/08/2026' },
+               { name: 'Copertura 5G Palermo',    channel: 'DOOH', start: '14/09/2026', end: '20/09/2026' }] },
   { name: 'TRT-Mondadori-BtS-2026',   advertiser: 'Mondadori',                     agent: 'Marco Vitale',
-    campagne: [{ name: 'Back to School Palermo' }, { name: 'Librerie Estate' }] },
+    campagne: [{ name: 'Back to School Palermo',  channel: 'DOOH', start: '20/08/2026', end: '26/08/2026' },
+               { name: 'Librerie Estate',         channel: 'OOH',  start: '29/06/2026', end: '26/07/2026' }] },
 ];
 
 const GOAL_KPIS = {
@@ -1928,17 +1852,6 @@ const GOAL_KPIS = {
   },
 };
 
-
-const SYSTEMS = [
-  { id:'S01', name:'Nome Impianto', type:'Pensilina',       address:'Via Libertà, 48',      city:'90141 Palermo (PA)', cimasa:'A234E', account:'234E45', faces:2, state:'Available'  },
-  { id:'S02', name:'Nome Impianto', type:'Telo',            address:'Via Roma, 12',          city:'90133 Palermo (PA)', cimasa:'B456F', account:'456F78', faces:1, state:'Available'  },
-  { id:'S03', name:'Nome Impianto', type:'Poster',          address:'Viale Regione Sic., 234',city:'90100 Palermo (PA)',cimasa:'C789G', account:'789G12', faces:1, state:'In Option'  },
-  { id:'S04', name:'Nome Impianto', type:'Poster',          address:'Via Maqueda, 78',       city:'90134 Palermo (PA)', cimasa:'D012H', account:'012H34', faces:2, state:'Available'  },
-  { id:'S05', name:'Nome Impianto', type:'Fioriera',        address:'Piazza Verdi, 3',       city:'90138 Palermo (PA)', cimasa:'E345I', account:'345I56', faces:1, state:'Reserved'   },
-  { id:'S06', name:'Nome Impianto', type:'Palina',          address:'Via Emerico Amari, 5',  city:'90139 Palermo (PA)', cimasa:'F678J', account:'678J90', faces:1, state:'Available'  },
-  { id:'S07', name:'Nome Impianto', type:'Palo Luce',       address:'Via Cavour, 91',        city:'90133 Palermo (PA)', cimasa:'G901K', account:'901K23', faces:2, state:'Available'  },
-  { id:'S08', name:'Nome Impianto', type:'Stendardo',       address:'Corso V. Emanuele, 3',  city:'90133 Palermo (PA)', cimasa:'H234L', account:'234L45', faces:1, state:'In Option'  },
-];
 
 const SEARCH_RESULTS = (() => {
   // Palina e Cartello sono i più numerosi — compaiono più volte nell'array per il campionamento
@@ -2252,11 +2165,11 @@ SEARCH_RESULTS.forEach(sys => (sys.faceObjs || []).forEach(f => {
 }));
 
 // Pre-seleziona facce per pianificazioni:
-// - "In trattativa" e "Confermata" → sempre selezionati (derivato da p.faces)
+// - "In trattativa" e "Completata" → sempre selezionati (derivato da p.faces)
 // - "Bozza" → solo se hasSystems:true
 // - Tipo vendita: long-term → include spazi long_term_only; standard → solo spazi standard
 PLANNINGS.forEach(p => {
-  const mustHave = p.state === 'In trattativa' || p.state === 'Confermata';
+  const mustHave = p.state === 'In trattativa' || p.state === 'Completata';
   if (!mustHave && !p.hasSystems) return;
   const target = p.faces || 0;
   if (target === 0) return;
@@ -2293,7 +2206,7 @@ const MODEL_FILTER_MAP    = { 'Standard': 'standard', 'Lungo termine': 'long_ter
 
 // Parsing date "dd/mm/yyyy" → Date (usata in tutto il file)
 const parseDate = s => { if (!s) return null; const [d,m,y] = s.split('/'); return new Date(+y, +m-1, +d); };
-const getPlanningUpdatedAt = p => p.updatedAt || (p.state === 'Confermata' ? p.end : p.state === 'In trattativa' ? p.start : p.createdAt) || '—';
+const getPlanningUpdatedAt = p => p.updatedAt || (p.state === 'Completata' ? p.end : p.state === 'In trattativa' ? p.start : p.createdAt) || '—';
 
 // Restituisce { days } dalla pianificazione (start/end in formato "dd/mm/yyyy")
 function parsePlanningDates(planning) {
@@ -2913,23 +2826,6 @@ function getSuggestions(query) {
 
 // Proietta un punto (lat,lng) sul segmento più vicino di un path OSM.
 // Restituisce le coordinate snappate alla strada reale.
-function nearestPointOnPath(path, lat, lng) {
-  let best = [lat, lng], bestDist = Infinity;
-  for (let i = 0; i < path.length - 1; i++) {
-    const [lat1, lng1] = path[i];
-    const [lat2, lng2] = path[i + 1];
-    const dLat = lat2 - lat1, dLng = lng2 - lng1;
-    const len2 = dLat * dLat + dLng * dLng;
-    if (len2 === 0) continue;
-    const t = Math.max(0, Math.min(1, ((lat - lat1) * dLat + (lng - lng1) * dLng) / len2));
-    const pLat = lat1 + t * dLat, pLng = lng1 + t * dLng;
-    const d = haversineMeters(lat, lng, pLat, pLng);
-    if (d < bestDist) { bestDist = d; best = [pLat, pLng]; }
-  }
-  return best;
-}
-
-
 // ── Geocoding utilities (Photon + Overpass) ──────────────────────────────────
 // Photon: OSM-based autocomplete, free, no API key, Italian support.
 // Bounded to Sicily + provinces: minLng,minLat,maxLng,maxLat
@@ -3031,16 +2927,435 @@ function ChannelChip({ channel }) {
 }
 
 // ══════════════════════════════════════════════════════
+// PLANNING FORM — crea / modifica / duplica
+// ══════════════════════════════════════════════════════
+
+// Conversioni 'DD/MM/YYYY' ⇄ dayjs (senza plugin customParseFormat)
+const strToDayjs = s => { if (!s) return null; const [d, m, y] = s.split('/').map(Number); return dayjs(new Date(y, m - 1, d)); };
+const dayjsToStr = d => d ? d.format('DD/MM/YYYY') : null;
+const todayStr   = () => dayjs(new Date()).format('DD/MM/YYYY');
+
+// Tipo di vendita selezionabile per canale (vincola le date)
+const SALE_TYPE_OPTIONS = {
+  OOH:  [{ value: 'quattordicine', label: 'Quattordicine' }, { value: 'longterm', label: 'Long term' }],
+  DOOH: [{ value: 'standard', label: 'Standard · 7 giorni' }, { value: 'custom', label: 'Custom' }],
+};
+
+function inferSaleType(category, start, end) {
+  if (!start || !end) return null;
+  const days = Math.round((parseDate(end) - parseDate(start)) / 86400000) + 1;
+  if (category === 'DOOH') return days === 7 ? 'standard' : 'custom';
+  return days >= LONG_TERM_THRESHOLD ? 'longterm' : 'quattordicine';
+}
+
+const findTrattativa = name => TRATTATIVE.find(t => t.name === name) || null;
+const findCampagna = (tratName, campName) => {
+  const t = findTrattativa(tratName);
+  return t ? (t.campagne.find(c => c.name === campName) || null) : null;
+};
+
+// Prossimo id progressivo della lista pianificazioni
+const nextPlanningIdFrom = list => String(Math.max(...list.map(p => parseInt(p.id, 10))) + 1).padStart(4, '0');
+
+// Costruisce la copia di una pianificazione: si duplicano solo gli spazi selezionati, non il brief.
+// La copia è una creazione manuale: il nome torna modificabile anche se l'originale veniva da trattativa.
+function buildDuplicateRow(src, vals, list) {
+  return {
+    ...src,
+    fromTrattativa: false,
+    id: nextPlanningIdFrom(list), state: 'Bozza',
+    createdAt: todayStr(), updatedAt: undefined, deliveredAt: null,
+    assignee: readMyAgentKey(),
+    briefZones: [], briefPois: [], requestedTypes: [],
+    selectedFaces: src.selectedFaces ? [...src.selectedFaces] : undefined,
+    ...vals,
+  };
+}
+
+// Validazione date rispetto al tipo di vendita scelto:
+// quattordicine → multipli di 14 giorni · long term → almeno un mese
+// standard → multipli di 7 giorni · custom → libero
+function saleTypeDateError(saleType, range) {
+  if (!saleType || !range || !range[0] || !range[1]) return null;
+  const days = range[1].diff(range[0], 'day') + 1;
+  if (saleType === 'longterm' && days < LONG_TERM_THRESHOLD)
+    return `Minimo ${LONG_TERM_THRESHOLD} giorni: selezionati ${days}.`;
+  if (saleType === 'quattordicine' && days % 14 !== 0)
+    return `Servono quattordicine complete: selezionati ${days} giorni.`;
+  if (saleType === 'standard' && days % 7 !== 0)
+    return `Servono settimane complete: selezionati ${days} giorni.`;
+  return null;
+}
+
+
+// Riga "campo dedotto" (read-only) nel box ereditato dalla campagna
+const deducedRow = (label, value) => React.createElement('div', {
+  style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+},
+  React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, label),
+  React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', display: 'inline-flex', alignItems: 'center', gap: 6 } }, value),
+);
+
+// Cascata trattativa → campagna riusata da drawer e modale duplica.
+// allowCombo: combinazione consentita anche se già usata (es. quella corrente in modifica)
+function TrattativaCascade({ trat, camp, onChangeTrat, onChangeCamp, usedCampagneByTrat, allowCombo }) {
+  const tratOptions = TRATTATIVE.map(t => ({ value: t.name, label: t.name, advertiser: t.advertiser }));
+  const selected = findTrattativa(trat);
+  const campOptions = selected
+    ? selected.campagne.map(c => {
+        const used = !!(usedCampagneByTrat[trat] && usedCampagneByTrat[trat].has(c.name));
+        const allowed = allowCombo && allowCombo.trat === trat && allowCombo.camp === c.name;
+        return { value: c.name, label: c.name, disabled: used && !allowed, channel: c.channel, start: c.start, end: c.end };
+      })
+    : [];
+  return React.createElement(React.Fragment, null,
+    React.createElement(antd.Select, {
+      style: { width: '100%' },
+      placeholder: 'Seleziona trattativa…',
+      showSearch: true, allowClear: true,
+      optionFilterProp: 'label',
+      value: trat,
+      onChange: v => onChangeTrat(v || null),
+      options: tratOptions,
+      optionRender: opt => React.createElement('div', null,
+        React.createElement('div', { style: { fontWeight: 500, fontSize: 12 } }, opt.data.label),
+        React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } }, opt.data.advertiser),
+      ),
+    }),
+    React.createElement(antd.Select, {
+      style: { width: '100%', marginTop: 8 },
+      placeholder: 'Seleziona campagna…',
+      disabled: !trat,
+      allowClear: true,
+      value: camp,
+      onChange: v => onChangeCamp(v || null),
+      options: campOptions,
+      optionRender: opt => React.createElement('div', null,
+        React.createElement('div', { style: { fontWeight: 500, fontSize: 12 } }, opt.data.label),
+        React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } },
+          `${opt.data.channel} · ${opt.data.start} → ${opt.data.end}`),
+      ),
+    }),
+  );
+}
+
+// Tipo di vendita + date, con vincoli reciproci: il picker blocca la data di fine
+// in base al tipo scelto (quattordicine → multipli di 14, standard → multipli di 7,
+// long term → almeno un mese, custom → libero). disabledDate limita alla finestra campagna (duplica).
+function SaleTypeDates({ channel, saleType, onSaleType, range, onRange, disabledDate }) {
+  const options = SALE_TYPE_OPTIONS[channel] || [];
+  const dateError = saleTypeDateError(saleType, range);
+  const days = range && range[0] && range[1] ? range[1].diff(range[0], 'day') + 1 : 0;
+
+  // Vincolo di durata mostrato finché non c'è una selezione valida
+  const constraintHint = {
+    quattordicine: 'Quattordicine complete: 14, 28, 42… giorni.',
+    longterm:      `Minimo ${LONG_TERM_THRESHOLD} giorni.`,
+    standard:      'Settimane complete: 7, 14, 21… giorni.',
+  }[saleType];
+
+  // Riepilogo coerente con il tipo scelto
+  let previewLabel = null;
+  if (days > 0 && !dateError) {
+    if (saleType === 'quattordicine')      { const q = days / 14; previewLabel = `${q} ${q === 1 ? 'quattordicina' : 'quattordicine'} · ${days} giorni`; }
+    else if (saleType === 'longterm')      previewLabel = `Long term · ${days} giorni`;
+    else if (saleType === 'standard')      { const w = days / 7; previewLabel = `Standard · ${w} ${w === 1 ? 'settimana' : 'settimane'} · ${days} giorni`; }
+    else if (saleType === 'custom')        previewLabel = `Custom · ${days} giorni`;
+  }
+
+  // Blocca il secondo estremo in base alla durata richiesta dal tipo
+  const typedDisabledDate = (current, info) => {
+    if (disabledDate && disabledDate(current)) return true;
+    const from = info && info.from;
+    if (!from || !saleType || saleType === 'custom') return false;
+    const d = Math.abs(current.diff(from, 'day')) + 1;
+    if (saleType === 'quattordicine') return d % 14 !== 0;
+    if (saleType === 'standard')      return d % 7 !== 0;
+    if (saleType === 'longterm')      return d < LONG_TERM_THRESHOLD;
+    return false;
+  };
+
+  return React.createElement(React.Fragment, null,
+    React.createElement(Form.Item, { label: 'Tipo di vendita' },
+      React.createElement(antd.Radio.Group, {
+        value: saleType,
+        onChange: e => {
+          const v = e.target.value;
+          onSaleType(v);
+          // se il periodo selezionato non rispetta il nuovo tipo, azzeralo
+          if (range && saleTypeDateError(v, range)) onRange(null);
+        },
+        options,
+      }),
+    ),
+    React.createElement(Form.Item, {
+      label: 'Periodo',
+      validateStatus: dateError ? 'error' : undefined,
+      help: dateError || undefined,
+      extra: !dateError ? (previewLabel || constraintHint || (!saleType ? 'Seleziona prima il tipo di vendita.' : undefined)) : undefined,
+      style: { marginBottom: 0 },
+    },
+      React.createElement(DatePicker.RangePicker, {
+        style: { width: '100%' },
+        format: 'DD/MM/YYYY',
+        placeholder: ['Data inizio', 'Data fine'],
+        value: range,
+        disabled: !saleType,
+        disabledDate: typedDisabledDate,
+        onChange: onRange,
+      }),
+    ),
+  );
+}
+
+// Drawer destro per creare o modificare una pianificazione (pattern List + Right Drawer).
+// Con campagna collegata canale, inserzionista e periodo sono ereditati e read-only.
+function PlanningFormDrawer({ open, mode, source, usedCampagneByTrat, onClose, onSave }) {
+  const isEdit = mode === 'edit';
+  const [name, setName]         = useState('');
+  const [trat, setTrat]         = useState(null);
+  const [camp, setCamp]         = useState(null);
+  const [channel, setChannel]   = useState('OOH');
+  const [saleType, setSaleType] = useState(null);
+  const [range, setRange]       = useState(null);
+
+  useEffect(() => {
+    if (!open) return;
+    if (isEdit && source) {
+      setName(source.name);
+      setTrat(source.trattativaName || null);
+      setCamp(source.campagnaName || null);
+      setChannel(source.category);
+      setSaleType(inferSaleType(source.category, source.start, source.end));
+      setRange(source.start && source.end ? [strToDayjs(source.start), strToDayjs(source.end)] : null);
+    } else {
+      setName(''); setTrat(null); setCamp(null); setChannel('OOH');
+      setSaleType(null); setRange(null);
+    }
+  }, [open]);
+
+  const linkedTrat = findTrattativa(trat);
+  const linkedCamp = camp ? findCampagna(trat, camp) : null;
+  const effChannel = linkedCamp ? linkedCamp.channel : channel;
+
+  const start = linkedCamp ? linkedCamp.start : dayjsToStr(range && range[0]);
+  const end   = linkedCamp ? linkedCamp.end   : dayjsToStr(range && range[1]);
+  const dateError = linkedCamp ? null : saleTypeDateError(saleType, range);
+
+  // Nome bloccato: pianificazione generata da trattativa (non creata manualmente dal planner)
+  const nameLocked = isEdit && !!(source && source.fromTrattativa);
+
+  const canSave = !!name.trim() && !!start && !!end && !dateError
+    && (linkedCamp || (channel && saleType))
+    && (!trat || !!camp); // trattativa scelta senza campagna → incompleto
+
+  const handleSave = () => onSave({
+    name: name.trim(),
+    category: effChannel,
+    start, end,
+    trattativaName: camp ? trat : null,
+    campagnaName: camp || null,
+    // senza trattativa collegata non esiste inserzionista
+    advertiser: camp && linkedTrat ? linkedTrat.advertiser : null,
+  });
+
+  const sectionDivider = React.createElement(Divider, { style: { margin: '24px 0' } });
+
+  return React.createElement(Drawer, {
+    open, onClose,
+    width: 560, placement: 'right', destroyOnClose: true,
+    title: isEdit ? 'Modifica pianificazione' : 'Nuova pianificazione',
+    styles: { body: { padding: '24px 28px' } },
+    // CTA nell'header, annulla affidato alla X
+    extra: React.createElement(Button, {
+      type: 'primary', disabled: !canSave, onClick: handleSave,
+      icon: React.createElement(icons.SaveOutlined),
+    }, 'Salva'),
+  },
+    React.createElement(Form, { layout: 'vertical', component: 'div', requiredMark: false },
+      // ── Nome — bloccato se la pianificazione è generata da una trattativa ──
+      React.createElement(Form.Item, {
+        label: 'Nome pianificazione',
+        style: { marginBottom: 0 },
+        extra: nameLocked ? 'Generato dalla campagna collegata: non modificabile.' : undefined,
+      },
+        React.createElement(Input, {
+          size: 'large',
+          placeholder: 'Inserisci un nome descrittivo',
+          value: name,
+          disabled: nameLocked,
+          onChange: e => setName(e.target.value),
+          autoFocus: !isEdit,
+        }),
+      ),
+      sectionDivider,
+      // ── Trattativa e campagna ─────────────────────────
+      React.createElement(Form.Item, {
+        label: 'Trattativa e campagna',
+        extra: 'Facoltativo: la campagna compila inserzionista, canale e periodo.',
+        style: { marginBottom: 0 },
+      },
+        React.createElement(TrattativaCascade, {
+          trat, camp,
+          onChangeTrat: v => { setTrat(v); setCamp(null); },
+          onChangeCamp: setCamp,
+          usedCampagneByTrat,
+          allowCombo: isEdit && source ? { trat: source.trattativaName, camp: source.campagnaName } : null,
+        }),
+      ),
+      linkedCamp && React.createElement('div', {
+        style: {
+          display: 'flex', flexDirection: 'column', gap: 12,
+          background: 'var(--gravity-bg-subtle, #FAFAFA)', border: '1px solid rgba(0,0,0,0.06)',
+          borderRadius: 8, padding: '14px 16px', marginTop: 12,
+        },
+      },
+        React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } },
+          'Dati ereditati dalla campagna'),
+        deducedRow('Inserzionista', React.createElement(React.Fragment, null,
+          React.createElement(AdvertiserAvatar, { name: linkedTrat.advertiser, size: 20 }),
+          linkedTrat.advertiser,
+        )),
+        deducedRow('Canale', React.createElement(ChannelChip, { channel: effChannel })),
+        deducedRow('Periodo', `${linkedCamp.start} → ${linkedCamp.end}`),
+        deducedRow('Tipo di vendita', saleTypeLabel({ category: effChannel, start: linkedCamp.start, end: linkedCamp.end })),
+      ),
+      // ── Canale e periodo (solo senza campagna collegata) ─
+      !linkedCamp && React.createElement(React.Fragment, null,
+        sectionDivider,
+        React.createElement(Form.Item, { label: 'Canale' },
+          React.createElement(antd.Radio.Group, {
+            value: channel,
+            onChange: e => { setChannel(e.target.value); setSaleType(null); setRange(null); },
+            options: [
+              { value: 'OOH',  label: React.createElement(ChannelChip, { channel: 'OOH' }) },
+              { value: 'DOOH', label: React.createElement(ChannelChip, { channel: 'DOOH' }) },
+            ],
+          }),
+        ),
+        React.createElement(SaleTypeDates, {
+          channel, saleType, onSaleType: setSaleType, range, onRange: setRange,
+        }),
+      ),
+    ),
+  );
+}
+
+// Modale di duplicazione: richiede una nuova combinazione trattativa → campagna,
+// eredita canale e inserzionista, propone le date della campagna (modificabili nella finestra).
+function DuplicateModal({ open, source, usedCampagneByTrat, onClose, onDuplicate }) {
+  const [name, setName]         = useState('');
+  const [trat, setTrat]         = useState(null);
+  const [camp, setCamp]         = useState(null);
+  const [saleType, setSaleType] = useState(null);
+  const [range, setRange]       = useState(null);
+
+  useEffect(() => {
+    if (open && source) {
+      // la copia è manuale: il prefisso PLN della pianificazione da trattativa non si eredita
+      setName(`${source.name.replace(/^PLN — /, '')} (copia)`);
+      setTrat(null); setCamp(null); setSaleType(null); setRange(null);
+    }
+  }, [open]);
+
+  if (!source) return null;
+
+  const linkedTrat = findTrattativa(trat);
+  const campObj = camp ? findCampagna(trat, camp) : null;
+  const channel = campObj ? campObj.channel : null;
+
+  const handleCamp = c => {
+    setCamp(c);
+    const obj = c ? findCampagna(trat, c) : null;
+    if (obj) {
+      setRange([strToDayjs(obj.start), strToDayjs(obj.end)]);
+      setSaleType(inferSaleType(obj.channel, obj.start, obj.end));
+    } else {
+      setRange(null); setSaleType(null);
+    }
+  };
+
+  // Le date devono restare nella finestra della campagna selezionata
+  const winStart = campObj ? strToDayjs(campObj.start) : null;
+  const winEnd   = campObj ? strToDayjs(campObj.end)   : null;
+  const disabledDate = d => !!winStart && (d.isBefore(winStart, 'day') || d.isAfter(winEnd, 'day'));
+
+  const dateError = saleTypeDateError(saleType, range);
+  const canDuplicate = !!name.trim() && !!campObj && !!saleType && !!range && !!range[0] && !!range[1] && !dateError;
+
+  return React.createElement(antd.Modal, {
+    open, onCancel: onClose, destroyOnClose: true,
+    title: 'Duplica pianificazione',
+    width: 480,
+    okText: 'Duplica', cancelText: 'Annulla',
+    okButtonProps: { disabled: !canDuplicate },
+    onOk: () => onDuplicate({
+      name: name.trim(),
+      trattativaName: trat,
+      campagnaName: camp,
+      category: channel,
+      advertiser: linkedTrat.advertiser,
+      start: dayjsToStr(range[0]),
+      end: dayjsToStr(range[1]),
+    }),
+  },
+    React.createElement(Form, { layout: 'vertical', component: 'div', requiredMark: false, style: { paddingTop: 8 } },
+      React.createElement(Typography.Paragraph, {
+        type: 'secondary',
+        style: { fontSize: 13, marginBottom: 20 },
+      }, `Verranno copiati gli spazi selezionati di "${source.name}", non il brief. Con date diverse la disponibilità andrà riverificata.`),
+      React.createElement(Form.Item, { label: 'Nome della copia' },
+        React.createElement(Input, { value: name, onChange: e => setName(e.target.value) }),
+      ),
+      React.createElement(Form.Item, { label: 'Nuova trattativa e campagna', style: { marginBottom: 0 } },
+        React.createElement(TrattativaCascade, {
+          trat, camp,
+          onChangeTrat: v => { setTrat(v); handleCamp(null); },
+          onChangeCamp: handleCamp,
+          usedCampagneByTrat,
+        }),
+      ),
+      campObj && React.createElement(React.Fragment, null,
+        React.createElement('div', {
+          style: {
+            display: 'flex', flexDirection: 'column', gap: 10,
+            background: 'var(--gravity-bg-subtle, #FAFAFA)', border: '1px solid rgba(0,0,0,0.06)',
+            borderRadius: 8, padding: '12px 14px', margin: '12px 0 20px',
+          },
+        },
+          deducedRow('Inserzionista', React.createElement(React.Fragment, null,
+            React.createElement(AdvertiserAvatar, { name: linkedTrat.advertiser, size: 20 }),
+            linkedTrat.advertiser,
+          )),
+          deducedRow('Canale', React.createElement(ChannelChip, { channel })),
+          deducedRow('Finestra campagna', `${campObj.start} → ${campObj.end}`),
+        ),
+        React.createElement(SaleTypeDates, {
+          channel, saleType, onSaleType: setSaleType, range, onRange: setRange, disabledDate,
+        }),
+      ),
+    ),
+  );
+}
+
+// ══════════════════════════════════════════════════════
 // PLANNINGS LIST
 // ══════════════════════════════════════════════════════
 
-function PlanningsList({ onSelect, stateOverrides }) {
+function PlanningsList({ onSelect, stateOverrides, planningsList, setPlanningsList }) {
   const [takenIds, setTakenIds] = useState(new Set());
   const [myAgentKey, setMyAgentKey] = useState(readMyAgentKey);
   const [trattativaOverrides, setTrattativaOverrides] = useState({});
   const [collegaListPopoverRow, setCollegaListPopoverRow] = useState(null);
   const [collegaListSelected, setCollegaListSelected] = useState(null);
   const [collegaListSelectedCampagna, setCollegaListSelectedCampagna] = useState(null);
+  // Form crea/modifica (drawer) e duplica (modale)
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState('create');
+  const [formSource, setFormSource] = useState(null);
+  const [dupSource, setDupSource] = useState(null);
+  // Colonne nascoste dall'utente (vuoto = tutte visibili)
+  const [hiddenColKeys, setHiddenColKeys] = useState([]);
   useEffect(() => {
     const id = setInterval(() => setMyAgentKey(k => { const n = readMyAgentKey(); return n !== k ? n : k; }), 300);
     return () => clearInterval(id);
@@ -3051,14 +3366,83 @@ function PlanningsList({ onSelect, stateOverrides }) {
   const getAssignee = row => takenIds.has(row.id) ? myAgentKey : row.assignee;
   const getTrattativaName = row => trattativaOverrides.hasOwnProperty(row.id) ? trattativaOverrides[row.id].trattativaName : row.trattativaName;
   const getCampagnaName   = row => trattativaOverrides.hasOwnProperty(row.id) ? trattativaOverrides[row.id].campagnaName   : (row.campagnaName || null);
+  // L'inserzionista esiste solo se la pianificazione è collegata a una trattativa
+  const getAdvertiser = row => {
+    const tn = getTrattativaName(row);
+    if (!tn) return null;
+    const t = findTrattativa(tn);
+    return t ? t.advertiser : row.advertiser;
+  };
 
-  const bozze           = PLANNINGS.filter(p => p.state === 'Bozza');
-  const completati      = PLANNINGS.filter(p => p.state === 'Confermata');
+  // Campagne già collegate ad altre pianificazioni → disabilitate nelle cascate
+  const usedCampagneByTrat = {};
+  planningsList.forEach(p => {
+    const tn = getTrattativaName(p);
+    const cn = getCampagnaName(p);
+    if (tn && cn) {
+      if (!usedCampagneByTrat[tn]) usedCampagneByTrat[tn] = new Set();
+      usedCampagneByTrat[tn].add(cn);
+    }
+  });
+
+  // Riga con trattativa/campagna/inserzionista risolti (override inclusi) da passare al workspace
+  const resolveRow = row => ({
+    ...row,
+    advertiser: getAdvertiser(row),
+    trattativaName: getTrattativaName(row),
+    campagnaName: getCampagnaName(row),
+  });
+
+  const handleFormSave = vals => {
+    if (formMode === 'edit' && formSource) {
+      setPlanningsList(prev => prev.map(p => p.id === formSource.id ? { ...p, ...vals, updatedAt: todayStr() } : p));
+      // la trattativa è ora scritta nella riga: l'override non serve più
+      setTrattativaOverrides(prev => {
+        if (!prev.hasOwnProperty(formSource.id)) return prev;
+        const n = { ...prev }; delete n[formSource.id]; return n;
+      });
+      antd.message.success(`Pianificazione "${vals.name}" aggiornata.`);
+    } else {
+      const row = {
+        id: nextPlanningIdFrom(planningsList), state: 'Bozza', faces: 0, hasSystems: false,
+        createdAt: todayStr(), assignee: myAgentKey,
+        briefZones: [], briefPois: [], requestedTypes: [],
+        ...vals,
+      };
+      setPlanningsList(prev => [row, ...prev]);
+      antd.message.success(`Pianificazione "${vals.name}" creata.`);
+    }
+    setFormOpen(false);
+  };
+
+  const handleDuplicate = vals => {
+    const row = buildDuplicateRow(dupSource, vals, planningsList);
+    setPlanningsList(prev => [row, ...prev]);
+    setDupSource(null);
+    antd.message.success(`Pianificazione duplicata come "${vals.name}".`);
+  };
+
+  const handleDelete = row => {
+    antd.Modal.confirm({
+      title: 'Eliminare la pianificazione?',
+      content: `"${row.name}" verrà eliminata definitivamente.`,
+      okText: 'Elimina',
+      okButtonProps: { danger: true },
+      cancelText: 'Annulla',
+      onOk: () => {
+        setPlanningsList(prev => prev.filter(p => p.id !== row.id));
+        antd.message.success('Pianificazione eliminata.');
+      },
+    });
+  };
+
+  const bozze           = planningsList.filter(p => p.state === 'Bozza');
+  const completati      = planningsList.filter(p => p.state === 'Completata');
   const mie             = bozze.filter(p => getAssignee(p) === myAgentKey);
   const libere          = bozze.filter(p => !getAssignee(p));
   const upcoming        = [...mie].filter(p => p.start).sort((a,b) => parseDate(a.start)-parseDate(b.start))[0];
 
-  const mieInTrattativa = PLANNINGS.filter(p => p.state === 'In trattativa' && getAssignee(p) === myAgentKey);
+  const mieInTrattativa = planningsList.filter(p => p.state === 'In trattativa' && getAssignee(p) === myAgentKey);
 
   const kpiCards = [
     { label: 'Da prendere in carico', value: libere.length,              icon: InboxOutlined, color: '#FF4A1C' },
@@ -3112,6 +3496,7 @@ function PlanningsList({ onSelect, stateOverrides }) {
     // 2. Tipo — OOH / DOOH con filtro
     {
       title: 'Canale',
+      key: 'category',
       dataIndex: 'category',
       width: 80,
       fixed: 'left',
@@ -3125,15 +3510,21 @@ function PlanningsList({ onSelect, stateOverrides }) {
     // 3. Inserzionista — filtro a selezione
     {
       title: 'Inserzionista',
+      key: 'advertiser',
       dataIndex: 'advertiser',
       width: 210,
-      filters: [...new Set(PLANNINGS.map(p => p.advertiser))].sort().map(a => ({ text: a, value: a })),
+      filters: [...new Set(planningsList.map(p => getAdvertiser(p)).filter(Boolean))].sort().map(a => ({ text: a, value: a })),
       filterSearch: true,
-      onFilter: (value, record) => record.advertiser === value,
-      render: v => React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7 } },
-        React.createElement(AdvertiserAvatar, { name: v, size: 24 }),
-        React.createElement('span', { className: 'advertiser-link' }, v),
-      ),
+      onFilter: (value, record) => getAdvertiser(record) === value,
+      render: (_, row) => {
+        const adv = getAdvertiser(row);
+        return adv
+          ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7 } },
+              React.createElement(AdvertiserAvatar, { name: adv, size: 24 }),
+              React.createElement('span', { className: 'advertiser-link' }, adv),
+            )
+          : React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.2)' } }, '—');
+      },
     },
     // 4. Pianificatore — chi ci lavora, con filtro per agente
     {
@@ -3216,15 +3607,6 @@ function PlanningsList({ onSelect, stateOverrides }) {
               }, link)
             : link;
         }
-        const usedCampagneByTrat = {};
-        PLANNINGS.forEach(p => {
-          const tn = getTrattativaName(p);
-          const cn = getCampagnaName(p);
-          if (tn && cn) {
-            if (!usedCampagneByTrat[tn]) usedCampagneByTrat[tn] = new Set();
-            usedCampagneByTrat[tn].add(cn);
-          }
-        });
         const tratOptions = TRATTATIVE.map(t => ({ value: t.name, label: t.name, advertiser: t.advertiser }));
         const selectedTrat = TRATTATIVE.find(t => t.name === collegaListSelected);
         const campOptions = selectedTrat
@@ -3295,25 +3677,70 @@ function PlanningsList({ onSelect, stateOverrides }) {
         );
       },
     },
-    // 6. Spazi selezionati — ordinabile numericamente
+    // 6. Campagna — display read-only, sempre allineato a Trattativa
     {
-      title: 'Spazi',
-      key: 'faces',
-      width: 72,
+      title: 'Campagna',
+      key: 'campagna',
+      width: 180,
+      render: (_, row) => {
+        const camp = getCampagnaName(row);
+        if (!camp) return React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.2)' } }, '—');
+        if (effectiveState(row) === 'Completata') {
+          return React.createElement('a', {
+            href: '#', target: '_blank', rel: 'noopener noreferrer',
+            style: { display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3E00FB', textDecoration: 'none', fontSize: 13, fontWeight: 500 },
+            onClick: e => e.preventDefault(),
+          },
+            React.createElement(icons.ExportOutlined, { style: { fontSize: 11 } }),
+            camp,
+          );
+        }
+        return React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)' } }, camp);
+      },
+    },
+    // 7. Impianti selezionati — conta i sistemi con ≥1 faccia scelta
+    {
+      title: 'Impianti',
+      key: 'impianti',
+      width: 100,
       align: 'center',
-      sorter: (a, b) => (a.selectedFaces||[]).length - (b.selectedFaces||[]).length,
+      sorter: (a, b) => {
+        const countSystems = r => {
+          const faceSet = new Set(r.selectedFaces || []);
+          return SEARCH_RESULTS.filter(s => (s.faceObjs || []).some(f => faceSet.has(f.id))).length;
+        };
+        return countSystems(a) - countSystems(b);
+      },
       render: (_, r) => {
-        const n = (r.selectedFaces||[]).length;
+        const faceSet = new Set(r.selectedFaces || []);
+        const n = SEARCH_RESULTS.filter(s => (s.faceObjs || []).some(f => faceSet.has(f.id))).length;
         return n > 0
-          ? React.createElement(Tooltip, { title: `${n} face${n === 1 ? '' : 's'} selezionat${n === 1 ? 'a' : 'e'}` },
+          ? React.createElement(Tooltip, { title: `${n} ${n === 1 ? 'impianto selezionato' : 'impianti selezionati'}` },
               React.createElement(Tag, { style:{ background:'var(--gravity-primary-bg)', color:'#3E00FB', border:'1px solid #D3B8FF', fontWeight: 600, fontSize: 12, margin: 0, cursor: 'default' } }, n)
             )
           : React.createElement('span', { style:{ color:'rgba(0,0,0,0.2)', fontSize: 13 } }, '—');
       },
     },
-    // 7. Creata il — ordinabile per data
+    // 7b. Facce selezionate — ordinabile numericamente
+    {
+      title: 'Facce',
+      key: 'facce',
+      width: 80,
+      align: 'center',
+      sorter: (a, b) => (a.selectedFaces||[]).length - (b.selectedFaces||[]).length,
+      render: (_, r) => {
+        const n = (r.selectedFaces||[]).length;
+        return n > 0
+          ? React.createElement(Tooltip, { title: `${n} ${n === 1 ? 'faccia selezionata' : 'facce selezionate'}` },
+              React.createElement(Tag, { style:{ background:'var(--gravity-primary-bg)', color:'#3E00FB', border:'1px solid #D3B8FF', fontWeight: 600, fontSize: 12, margin: 0, cursor: 'default' } }, n)
+            )
+          : React.createElement('span', { style:{ color:'rgba(0,0,0,0.2)', fontSize: 13 } }, '—');
+      },
+    },
+    // 7c. Creata il — ordinabile per data
     {
       title: 'Creata il',
+      key: 'createdAt',
       dataIndex: 'createdAt',
       width: 100,
       sorter: (a, b) => parseDate(a.createdAt) - parseDate(b.createdAt),
@@ -3352,6 +3779,7 @@ function PlanningsList({ onSelect, stateOverrides }) {
     // 9. Data inizio — ordinabile per data
     {
       title: 'Data inizio',
+      key: 'start',
       dataIndex: 'start',
       width: 104,
       sorter: (a, b) => parseDate(a.start) - parseDate(b.start),
@@ -3360,6 +3788,7 @@ function PlanningsList({ onSelect, stateOverrides }) {
     // 10. Data fine — ordinabile per data
     {
       title: 'Data fine',
+      key: 'end',
       dataIndex: 'end',
       width: 100,
       sorter: (a, b) => parseDate(a.end) - parseDate(b.end),
@@ -3374,26 +3803,79 @@ function PlanningsList({ onSelect, stateOverrides }) {
       filters: [
         { text: 'Bozza',          value: 'Bozza'          },
         { text: 'In trattativa',  value: 'In trattativa'  },
-        { text: 'Confermata',     value: 'Confermata'     },
+        { text: 'Completata',     value: 'Completata'     },
       ],
       onFilter: (value, record) => effectiveState(record) === value,
       render: (_, record) => React.createElement(StateBadge, { state: effectiveState(record) }),
     },
-    // 12. Azioni
+    // 12. Azioni — visualizza / modifica (solo bozza) / duplica / elimina (bozza non collegata)
     {
       title: '',
       key: 'actions',
       width: 64,
       fixed: 'right',
-      render: (_, row) => React.createElement('div', {
-        style:{ display:'flex', alignItems:'center', justifyContent:'flex-end' },
-        onClick: e => e.stopPropagation(),
+      render: (_, row) => {
+        const isBozza      = effectiveState(row) === 'Bozza';
+        const canDelete    = isBozza && !getTrattativaName(row);
+        const canDuplicate = (row.selectedFaces ? row.selectedFaces.length : row.faces || 0) > 0;
+        const menuItems = [
+          { key: 'view', icon: React.createElement(EyeOutlined), label: 'Visualizza' },
+          {
+            key: 'edit', icon: React.createElement(EditOutlined), disabled: !isBozza,
+            label: isBozza ? 'Modifica' : React.createElement(Tooltip, {
+              title: 'Modificabile solo in stato Bozza', placement: 'left',
+            }, React.createElement('span', null, 'Modifica')),
+          },
+          {
+            key: 'duplicate', icon: React.createElement(CopyOutlined), disabled: !canDuplicate,
+            label: canDuplicate ? 'Duplica' : React.createElement(Tooltip, {
+              title: 'Nessun impianto selezionato da copiare', placement: 'left',
+            }, React.createElement('span', null, 'Duplica')),
+          },
+          { type: 'divider' },
+          {
+            key: 'delete', icon: React.createElement(DeleteOutlined), danger: true, disabled: !canDelete,
+            label: canDelete ? 'Elimina' : React.createElement(Tooltip, {
+              title: 'Eliminabile solo se in Bozza e senza trattativa collegata', placement: 'left',
+            }, React.createElement('span', null, 'Elimina')),
+          },
+        ];
+        return React.createElement('div', {
+          style:{ display:'flex', alignItems:'center', justifyContent:'flex-end' },
+          onClick: e => e.stopPropagation(),
+        },
+          React.createElement(Tooltip, { title: 'Presto disponibile' },
+            React.createElement(Button, { type:'text', size:'small', icon: React.createElement(ShareAltOutlined), style:{ color:'rgba(0,0,0,0.3)' }, disabled: true })
+          ),
+          React.createElement(Dropdown, {
+            trigger: ['click'],
+            placement: 'bottomRight',
+            menu: {
+              items: menuItems,
+              onClick: ({ key, domEvent }) => {
+                domEvent.stopPropagation();
+                if (key === 'view') onSelect(resolveRow(row));
+                if (key === 'edit') {
+                  setFormMode('edit');
+                  setFormSource({ ...row, trattativaName: getTrattativaName(row), campagnaName: getCampagnaName(row) });
+                  setFormOpen(true);
+                }
+                if (key === 'duplicate') setDupSource(row);
+                if (key === 'delete') handleDelete(row);
+              },
+            },
+          },
+            React.createElement(Button, { type:'text', size:'small', icon: React.createElement(MoreOutlined), style:{ color:'rgba(0,0,0,0.3)' } }),
+          ),
+        );
       },
-        React.createElement(Button, { type:'text', size:'small', icon: React.createElement(ShareAltOutlined), style:{ color:'rgba(0,0,0,0.3)' } }),
-        React.createElement(Button, { type:'text', size:'small', icon: React.createElement(MoreOutlined),     style:{ color:'rgba(0,0,0,0.3)' } }),
-      ),
     },
   ];
+
+  // Colonne mostrabili/nascondibili: tutte tranne Pianificazione (identità) e Azioni
+  const togglableCols   = columns.filter(c => c.key !== 'pianificazione' && c.key !== 'actions');
+  const visibleColumns  = columns.filter(c => c.key === 'pianificazione' || c.key === 'actions' || !hiddenColKeys.includes(c.key));
+  const tableScrollX    = visibleColumns.reduce((sum, c) => sum + (c.width || 120), 0);
 
   return React.createElement('div', { className: 'page-content' },
 
@@ -3432,18 +3914,11 @@ function PlanningsList({ onSelect, stateOverrides }) {
         ),
       ),
       // Dx: CTA
-      React.createElement(Popover, {
-        content: 'User Story non affrontata nel redesign',
-        trigger: 'hover',
-      },
-        React.createElement('span', null,
-          React.createElement(Button, {
-            type: 'primary',
-            icon: React.createElement(PlusOutlined),
-            disabled: true,
-          }, 'Nuova Pianificazione')
-        )
-      ),
+      React.createElement(Button, {
+        type: 'primary',
+        icon: React.createElement(PlusOutlined),
+        onClick: () => { setFormMode('create'); setFormSource(null); setFormOpen(true); },
+      }, 'Nuova Pianificazione'),
     ),
 
     // ── KPI cards ─────────────────────────────────────────
@@ -3469,105 +3944,80 @@ function PlanningsList({ onSelect, stateOverrides }) {
         overflow: 'hidden',
       },
     },
-      // Counter
-      React.createElement('div', { style: { padding: '16px 20px 4px' } },
-        React.createElement(Text, { style:{ fontSize: 12, color:'rgba(0,0,0,0.35)' } },
-          `${PLANNINGS.length} pianificazioni`),
-      ),
-      React.createElement('div', { style: { padding: '0 20px 20px' } },
+      React.createElement('div', { style: { padding: '16px 20px 20px' } },
         React.createElement(Table, {
-          dataSource: [...PLANNINGS].sort((a, b) => parseDate(b.createdAt) - parseDate(a.createdAt)),
-          columns,
+          dataSource: [...planningsList].sort((a, b) => parseDate(b.createdAt) - parseDate(a.createdAt)),
+          columns: visibleColumns,
           rowKey: 'id',
           size: 'middle',
-          pagination: { pageSize: 10, showSizeChanger: false, style:{ margin: '12px 0 16px' } },
-          scroll: { x: 1722 },
+          pagination: {
+            pageSize: 10,
+            showSizeChanger: false,
+            className: 'plannings-pagination',
+            style: { margin: '16px 0 4px' },
+            // counter + gestione colonne nella riga della paginazione
+            showTotal: total => React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
+              React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } },
+                `${total} pianificazioni`),
+              React.createElement(Popover, {
+                trigger: 'click',
+                placement: 'topLeft',
+                arrow: false,
+                content: React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 170, maxHeight: 340, overflowY: 'auto', margin: '-4px -6px' } },
+                  togglableCols.map(c => React.createElement('label', {
+                    key: c.key,
+                    className: 'cols-toggle-item',
+                  },
+                    React.createElement(Checkbox, {
+                      checked: !hiddenColKeys.includes(c.key),
+                      onChange: () => setHiddenColKeys(prev => prev.includes(c.key)
+                        ? prev.filter(k => k !== c.key)
+                        : [...prev, c.key]),
+                    }),
+                    c.title,
+                  )),
+                ),
+              },
+                React.createElement(Tooltip, { title: 'Gestisci colonne' },
+                  React.createElement(Button, {
+                    type: 'text',
+                    size: 'small',
+                    icon: React.createElement(icons.SettingOutlined),
+                    style: { color: 'rgba(0,0,0,0.45)' },
+                  }),
+                ),
+              ),
+            ),
+          },
+          scroll: { x: tableScrollX },
           style: { borderRadius: 0 },
           onRow: row => ({
-            onClick: () => onSelect(row),
+            onClick: () => onSelect(resolveRow(row)),
             style: { cursor: 'pointer' },
           }),
         }),
       ),
-    )
+    ),
+
+    // ── Drawer crea/modifica + modale duplica ─────────────
+    React.createElement(PlanningFormDrawer, {
+      open: formOpen,
+      mode: formMode,
+      source: formSource,
+      usedCampagneByTrat,
+      onClose: () => setFormOpen(false),
+      onSave: handleFormSave,
+    }),
+    React.createElement(DuplicateModal, {
+      open: !!dupSource,
+      source: dupSource,
+      usedCampagneByTrat,
+      onClose: () => setDupSource(null),
+      onDuplicate: handleDuplicate,
+    })
   );
 }
 
-
-// ══════════════════════════════════════════════════════
-// SVG MAP
-// ══════════════════════════════════════════════════════
-
-function SvgMap() {
-  const pins = [
-    { cx:8,  cy:20, type:'available'  },
-    { cx:18, cy:35, type:'available'  },
-    { cx:22, cy:8,  type:'reserved'   },
-    { cx:33, cy:25, type:'available'  },
-    { cx:40, cy:48, type:'available'  },
-    { cx:52, cy:18, type:'in-option'  },
-    { cx:58, cy:38, type:'available'  },
-    { cx:65, cy:55, type:'available'  },
-    { cx:72, cy:22, type:'reserved'   },
-    { cx:80, cy:42, type:'available'  },
-    { cx:87, cy:14, type:'in-option'  },
-    { cx:93, cy:50, type:'available'  },
-  ];
-  const pinColor = { available:'#52C41A', reserved:'#3E00FB', 'in-option':'#FAAD14' };
-
-  return React.createElement('svg', {
-    className: 'map-svg',
-    viewBox: '0 0 100 62',
-    preserveAspectRatio: 'xMidYMid slice',
-    xmlns: 'http://www.w3.org/2000/svg',
-  },
-    // Background (asphalt/non-road)
-    React.createElement('rect', { fill:'#E3EBF3', x:0, y:0, width:100, height:62 }),
-
-    // Building blocks
-    ...[
-      [0,0,14,10], [16,0,15,10], [33,0,13,10], [48,0,11,10], [61,0,15,10], [78,0,20,10],
-      [0,13,14,14], [16,13,15,14], [33,13,13,14], [48,13,11,14], [61,13,15,14], [78,13,20,14],
-      [0,30,14,13], [16,30,15,13], [33,30,13,13], [48,30,11,13], [61,30,15,13], [78,30,20,13],
-      [0,46,14,14], [16,46,15,14], [33,46,13,14], [48,46,11,14], [61,46,15,14], [78,46,20,14],
-    ].map(([x,y,w,h],i) =>
-      React.createElement('rect', { key:`block-${i}`, fill:'#F0EFEB', x, y, width:w, height:h, rx:0.5 })
-    ),
-
-    // Major horizontal roads (white)
-    React.createElement('rect', { fill:'#FFFFFF', x:0, y:10, width:100, height:3, opacity:0.95 }),
-    React.createElement('rect', { fill:'#FFFFFF', x:0, y:27, width:100, height:2.5, opacity:0.95 }),
-    React.createElement('rect', { fill:'#FFFFFF', x:0, y:43, width:100, height:2, opacity:0.9 }),
-
-    // Major vertical roads
-    React.createElement('rect', { fill:'#FFFFFF', x:14, y:0, width:2.5, height:62, opacity:0.95 }),
-    React.createElement('rect', { fill:'#FFFFFF', x:31, y:0, width:2.5, height:62, opacity:0.9 }),
-    React.createElement('rect', { fill:'#FFFFFF', x:46, y:0, width:2, height:62, opacity:0.9 }),
-    React.createElement('rect', { fill:'#FFFFFF', x:59, y:0, width:2, height:62, opacity:0.9 }),
-    React.createElement('rect', { fill:'#FFFFFF', x:76, y:0, width:2.5, height:62, opacity:0.95 }),
-
-    // Road labels
-    React.createElement('text', { x:1, y:9, fontSize:1.8, fill:'rgba(0,0,0,0.35)', fontFamily:'sans-serif' }, 'Viale della Regione Siciliana'),
-    React.createElement('text', { x:1, y:26.5, fontSize:1.5, fill:'rgba(0,0,0,0.30)', fontFamily:'sans-serif' }, 'Via Pietro Nenni'),
-    React.createElement('text', { x:1, y:42.5, fontSize:1.5, fill:'rgba(0,0,0,0.30)', fontFamily:'sans-serif' }, 'Via Gen. A. Scavo'),
-
-    // Pins
-    ...pins.map((p, i) =>
-      React.createElement('g', { key:`pin-${i}` },
-        // Drop shadow
-        React.createElement('circle', { cx:p.cx, cy:p.cy+0.3, r:3.2, fill:'rgba(0,0,0,0.15)' }),
-        // Outer circle
-        React.createElement('circle', { cx:p.cx, cy:p.cy, r:3, fill:pinColor[p.type], stroke:'#fff', strokeWidth:0.7 }),
-        // Inner icon dot
-        React.createElement('circle', { cx:p.cx, cy:p.cy, r:1, fill:'rgba(255,255,255,0.7)' })
-      )
-    ),
-
-    // Total badge
-    React.createElement('rect', { x:1, y:1, width:14, height:4.5, rx:1, fill:'#3E00FB' }),
-    React.createElement('text', { x:8, y:4.2, fontSize:2, fill:'#fff', fontFamily:'sans-serif', textAnchor:'middle', fontWeight:'bold' }, '32 spazi')
-  );
-}
 
 // ══════════════════════════════════════════════════════
 // MINI CALENDAR
@@ -3915,13 +4365,15 @@ function FilterPanel({
 // ══════════════════════════════════════════════════════
 
 // ── Brief Sidebar (Variant B) ────────────────────────────
-function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, readOnly, onTakeInCharge, selectedFaceIds }) {
+function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, readOnly, onTakeInCharge, selectedFaceIds, onDeliver, planningsList, onDuplicate, onEdit, onDelete }) {
   const { Popover } = antd;
   const { Title } = Typography;
 
   // ── State ──────────────────────────────────────────────────
   const [trattativaName, setTrattativaName]         = useState(planning.trattativaName || null);
   const [campagnaName, setCampagnaName]             = useState(planning.campagnaName || null);
+  const [dupOpen, setDupOpen]                       = useState(false);
+  const [editOpen, setEditOpen]                     = useState(false);
   const [deliveredAt, setDeliveredAt]               = useState(planning.deliveredAt || null);
   const [localPlanningState, setLocalPlanningState] = useState(planning.state);
   const [consegnaPopover, setConsegnaPopover]       = useState(false);
@@ -3996,8 +4448,9 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
   };
 
   // Button label & style
+  const hasNoSystems = selectedFaceIds.size === 0;
   let deliveryLabel, deliveryIcon, deliveryStyle;
-  if (!trattativaName) {
+  if (!trattativaName || hasNoSystems) {
     deliveryLabel = 'Consegna in trattativa';
     deliveryIcon  = React.createElement(icons.SendOutlined);
     deliveryStyle = { color: 'rgba(0,0,0,0.25)', borderColor: 'rgba(0,0,0,0.15)', cursor: 'not-allowed' };
@@ -4032,6 +4485,7 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
     if (localPlanningState === 'Bozza') setLocalPlanningState('In trattativa');
     setConsegnaPopover(false);
     setChangesModalOpen(false);
+    if (onDeliver) onDeliver();
     antd.message.success(`Pianificazione consegnata per ${trattativaName}.`);
   };
 
@@ -4094,11 +4548,17 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
     renderChangeSection('Stato cambiato', '#FAAD14', changes.statusChanged, true),
   );
 
-  const consegnaContent = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 240 } },
-    React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
-      React.createElement('div', { style: { fontWeight: 600, marginBottom: 2 } }, 'Consegna in trattativa'),
-      `La selezione verrà consegnata al commerciale per la trattativa `,
-      React.createElement('strong', null, trattativaName), '.'
+  const consegnaContent = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 12, width: 240 } },
+    React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.65)', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: 4 } },
+      React.createElement('span', null,
+        'La selezione verrà consegnata al commerciale per la trattativa ',
+        React.createElement('strong', null, trattativaName), '.',
+      ),
+      React.createElement('strong', null,
+        'Gli impianti passeranno allo stato ',
+        React.createElement('span', { style: { display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#EB2F96', margin: '0 3px 1px', verticalAlign: 'middle' } }),
+        'In Opzione.'
+      ),
     ),
     React.createElement(Button, {
       type: 'primary', size: 'small', style: { width: '100%' },
@@ -4109,7 +4569,7 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
 
   const collegaUsedCampagneByTrat = (() => {
     const map = {};
-    PLANNINGS.forEach(p => {
+    (planningsList || PLANNINGS).forEach(p => {
       if (p.id === planning.id) return;
       if (p.trattativaName && p.campagnaName) {
         if (!map[p.trattativaName]) map[p.trattativaName] = new Set();
@@ -4171,7 +4631,7 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
   const deliveryButton = React.createElement(Button, {
     size: 'large',
     icon: deliveryIcon,
-    disabled: !trattativaName,
+    disabled: !trattativaName || hasNoSystems,
     style: deliveryStyle,
     onClick: (isDirty && localPlanningState === 'In trattativa') ? () => setChangesModalOpen(true) : undefined,
   }, deliveryLabel);
@@ -4181,18 +4641,102 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
         title: 'Collega prima una trattativa per poter consegnare la pianificazione.',
         placement: 'bottomRight',
       }, deliveryButton)
-    : (isDirty && localPlanningState === 'In trattativa')
-      ? deliveryButton
-      : React.createElement(Popover, {
-          content: consegnaContent,
-          trigger: 'click',
+    : hasNoSystems
+      ? React.createElement(antd.Tooltip, {
+          title: 'Seleziona almeno un impianto per consegnare la pianificazione.',
           placement: 'bottomRight',
-          open: consegnaPopover,
-          onOpenChange: setConsegnaPopover,
-        }, deliveryButton);
+        }, deliveryButton)
+      : (isDirty && localPlanningState === 'In trattativa')
+        ? deliveryButton
+        : React.createElement(Popover, {
+            content: consegnaContent,
+            trigger: 'click',
+            placement: 'bottomRight',
+            open: consegnaPopover,
+            onOpenChange: setConsegnaPopover,
+          }, deliveryButton);
 
-  const showDeliveryButton = localPlanningState !== 'Confermata';
+  const showDeliveryButton = localPlanningState !== 'Completata';
   const assignedToOther = !isMine && !isUnassigned;
+
+  // ── Menu Azioni: stesse azioni della lista, con gestione stato e sola lettura ──
+  // Campagne già collegate ad altre pianificazioni + la combinazione corrente (locale)
+  const actionsUsedCampagne = (() => {
+    const map = {};
+    const add = (tn, cn) => { if (!map[tn]) map[tn] = new Set(); map[tn].add(cn); };
+    (planningsList || PLANNINGS).forEach(p => {
+      if (p.id !== planning.id && p.trattativaName && p.campagnaName) add(p.trattativaName, p.campagnaName);
+    });
+    if (trattativaName && campagnaName) add(trattativaName, campagnaName);
+    return map;
+  })();
+
+  const canEdit      = !readOnly && localPlanningState === 'Bozza';
+  const canDelete    = !readOnly && localPlanningState === 'Bozza' && !trattativaName;
+  const canDuplicate = (selectedFaceIds || new Set()).size > 0;
+  const disabledReason = action => {
+    if (action === 'duplicate') return 'Nessun impianto selezionato da copiare';
+    if (readOnly) return localPlanningState === 'Completata' ? 'Pianificazione completata: sola lettura' : 'Pianificazione in sola lettura';
+    if (action === 'edit')   return 'Modificabile solo in stato Bozza';
+    if (action === 'delete') return 'Eliminabile solo se in Bozza e senza trattativa collegata';
+    return null;
+  };
+  const disabledLabel = (text, action) => React.createElement(Tooltip, {
+    title: disabledReason(action), placement: 'left',
+  }, React.createElement('span', null, text));
+
+  // Sorgente per duplica/modifica: pianificazione con lo stato locale corrente
+  const currentPlanningData = () => ({
+    ...planning,
+    state: localPlanningState,
+    trattativaName, campagnaName,
+    selectedFaces: [...(selectedFaceIds || [])],
+    faces: (selectedFaceIds || new Set()).size,
+    hasSystems: (selectedFaceIds || new Set()).size > 0,
+  });
+
+  const actionsMenuItems = [
+    {
+      key: 'share', icon: React.createElement(ShareAltOutlined), disabled: true,
+      label: React.createElement(Tooltip, { title: 'Presto disponibile', placement: 'left' },
+        React.createElement('span', null, 'Condividi')),
+    },
+    {
+      key: 'edit', icon: React.createElement(EditOutlined), disabled: !canEdit,
+      label: canEdit ? 'Modifica' : disabledLabel('Modifica', 'edit'),
+    },
+    {
+      key: 'duplicate', icon: React.createElement(CopyOutlined), disabled: !canDuplicate,
+      label: canDuplicate ? 'Duplica' : disabledLabel('Duplica', 'duplicate'),
+    },
+    { type: 'divider' },
+    {
+      key: 'delete', icon: React.createElement(DeleteOutlined), danger: true, disabled: !canDelete,
+      label: canDelete ? 'Elimina' : disabledLabel('Elimina', 'delete'),
+    },
+  ];
+
+  const actionsDropdown = React.createElement(Dropdown, {
+    trigger: ['click'],
+    placement: 'bottomRight',
+    menu: {
+      items: actionsMenuItems,
+      onClick: ({ key }) => {
+        if (key === 'edit') setEditOpen(true);
+        if (key === 'duplicate') setDupOpen(true);
+        if (key === 'delete') antd.Modal.confirm({
+          title: 'Eliminare la pianificazione?',
+          content: `"${planning.name}" verrà eliminata definitivamente.`,
+          okText: 'Elimina',
+          okButtonProps: { danger: true },
+          cancelText: 'Annulla',
+          onOk: onDelete,
+        });
+      },
+    },
+  },
+    React.createElement(Button, { size: 'large' }, 'Azioni', React.createElement(DownOutlined, { style: { fontSize: 11, marginLeft: 6 } })),
+  );
 
   return React.createElement('div', {
     style: {
@@ -4221,20 +4765,36 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
         ),
         React.createElement(CategoryTag, { category: planning.category }),
       ),
-      assignedToOther
-        ? React.createElement(Space, { size: 8 },
-            React.createElement(Tag, {
-              style: { margin: 0, fontSize: 11, color: 'rgba(0,0,0,0.45)', borderColor: '#D9D9D9', background: 'var(--gravity-bg-subtle)', cursor: 'default' }
-            }, 'Sola lettura'),
-            React.createElement(Button, { size: 'large', icon: React.createElement(CopyOutlined) }, 'Duplica'),
-          )
-        : isMine
-          ? React.createElement(Space, { size: 8 },
-              React.createElement(Button, { size: 'large', icon: React.createElement(ShareAltOutlined) }, 'Condividi'),
-              showDeliveryButton && deliveryButtonWrapped,
-            )
-          : null,
+      React.createElement(Space, { size: 8 },
+        actionsDropdown,
+        isMine && showDeliveryButton && deliveryButtonWrapped,
+      ),
     ),
+
+    // ── Modali azioni: duplica + modifica ─────────────────
+    React.createElement(DuplicateModal, {
+      open: dupOpen,
+      source: dupOpen ? currentPlanningData() : null,
+      usedCampagneByTrat: actionsUsedCampagne,
+      onClose: () => setDupOpen(false),
+      onDuplicate: vals => {
+        onDuplicate(buildDuplicateRow(currentPlanningData(), vals, planningsList || PLANNINGS));
+        setDupOpen(false);
+      },
+    }),
+    React.createElement(PlanningFormDrawer, {
+      open: editOpen,
+      mode: 'edit',
+      source: editOpen ? currentPlanningData() : null,
+      usedCampagneByTrat: actionsUsedCampagne,
+      onClose: () => setEditOpen(false),
+      onSave: vals => {
+        onEdit(vals);
+        setTrattativaName(vals.trattativaName);
+        setCampagnaName(vals.campagnaName);
+        setEditOpen(false);
+      },
+    }),
 
     // Meta row
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, marginTop: 10, flexWrap: 'wrap' } },
@@ -4249,47 +4809,6 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
         React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, 'Aggiornata il:'),
         React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)' } }, getPlanningUpdatedAt(planning))
-      ),
-
-      // Trattativa
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-        React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, 'Trattativa:'),
-        trattativaName
-          ? (() => {
-              const link = React.createElement('a', {
-                href: '#', target: '_blank', rel: 'noopener noreferrer',
-                style: { display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3E00FB', textDecoration: 'none' },
-                onClick: e => e.preventDefault(),
-              },
-                React.createElement(icons.ExportOutlined, { style: { fontSize: 11 } }),
-                React.createElement('span', { style: { fontSize: 13, fontWeight: 500 } }, trattativaName),
-              );
-              return campagnaName
-                ? React.createElement(Popover, {
-                    trigger: 'hover',
-                    placement: 'top',
-                    content: React.createElement('div', { style: { fontSize: 12 } },
-                      React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', marginRight: 4 } }, 'Campagna:'),
-                      React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, campagnaName),
-                    ),
-                  }, link)
-                : link;
-            })()
-          : isMine && planning.state !== 'Confermata'
-            ? React.createElement(Popover, {
-                content: collegaContent,
-                trigger: 'click',
-                placement: 'bottomLeft',
-                open: collegaPopover,
-                onOpenChange: setCollegaPopover,
-              },
-                React.createElement(Button, {
-                  size: 'small', type: 'dashed',
-                  icon: React.createElement(icons.PlusOutlined),
-                  style: { fontSize: 12, color: '#3E00FB', borderColor: '#D3B8FF' },
-                }, 'Collega')
-              )
-            : React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.25)' } }, '—')
       ),
 
       // Pianificatore
@@ -4328,11 +4847,69 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
             })()
       ),
 
+      // Trattativa
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+        React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, 'Trattativa:'),
+        trattativaName
+          ? (() => {
+              const link = React.createElement('a', {
+                href: '#', target: '_blank', rel: 'noopener noreferrer',
+                style: { display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3E00FB', textDecoration: 'none' },
+                onClick: e => e.preventDefault(),
+              },
+                React.createElement(icons.ExportOutlined, { style: { fontSize: 11 } }),
+                React.createElement('span', { style: { fontSize: 13, fontWeight: 500 } }, trattativaName),
+              );
+              return campagnaName
+                ? React.createElement(Popover, {
+                    trigger: 'hover',
+                    placement: 'top',
+                    content: React.createElement('div', { style: { fontSize: 12 } },
+                      React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', marginRight: 4 } }, 'Campagna:'),
+                      React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, campagnaName),
+                    ),
+                  }, link)
+                : link;
+            })()
+          : isMine && planning.state !== 'Completata'
+            ? React.createElement(Popover, {
+                content: collegaContent,
+                trigger: 'click',
+                placement: 'bottomLeft',
+                open: collegaPopover,
+                onOpenChange: setCollegaPopover,
+              },
+                React.createElement(Button, {
+                  size: 'small', type: 'dashed',
+                  icon: React.createElement(icons.PlusOutlined),
+                  style: { fontSize: 12, color: '#3E00FB', borderColor: '#D3B8FF' },
+                }, 'Collega')
+              )
+            : React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.25)' } }, '—')
+      ),
+
+      // Campagna
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+        React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, 'Campagna:'),
+        campagnaName
+          ? localPlanningState === 'Completata'
+            ? React.createElement('a', {
+                href: '#', target: '_blank', rel: 'noopener noreferrer',
+                style: { display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3E00FB', textDecoration: 'none' },
+                onClick: e => e.preventDefault(),
+              },
+                React.createElement(icons.ExportOutlined, { style: { fontSize: 11 } }),
+                React.createElement('span', { style: { fontSize: 13, fontWeight: 500 } }, campagnaName),
+              )
+            : React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)' } }, campagnaName)
+          : React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.25)' } }, '—')
+      ),
+
       // Stato
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
         React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, 'Stato:'),
         React.createElement(antd.Badge, {
-          status: localPlanningState === 'Confermata' ? 'success'
+          status: localPlanningState === 'Completata' ? 'success'
                 : localPlanningState === 'In trattativa' ? 'processing'
                 : 'warning',
           text: localPlanningState,
@@ -4621,17 +5198,20 @@ function BriefPanelNR({ planning, selectedFaceIds }) {
     React.createElement(KpiModal, { goal: planning.goal, category: planning.category, open: kpiOpen, onClose: () => setKpiOpen(false), faceCount: (selectedFaceIds || new Set()).size, budget: parseBudget(planning.budget) }),
     React.createElement(AudienceModal, { advertiser: planning.advertiser, open: audienceOpen, onClose: () => setAudienceOpen(false) }),
 
-    // Inserzionista
+    // Inserzionista — assente finché la pianificazione non è collegata a una trattativa
     React.createElement(DataCard, {
       icon: UserOutlined,
       label: 'Inserzionista',
-      body: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
-        React.createElement(AdvertiserAvatar, { name: planning.advertiser, size: 36 }),
-        React.createElement('div', null,
-          React.createElement('div', { className: 'data-card-value', style: { fontSize: 15 } }, planning.advertiser),
-          advertiserProfile && React.createElement(Typography.Text, { style: { fontSize: 11, color: 'rgba(0,0,0,0.4)', display: 'block', marginTop: 2 } }, advertiserProfile.sector)
-        )
-      ),
+      body: planning.advertiser
+        ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+            React.createElement(AdvertiserAvatar, { name: planning.advertiser, size: 36 }),
+            React.createElement('div', null,
+              React.createElement('div', { className: 'data-card-value', style: { fontSize: 15 } }, planning.advertiser),
+              advertiserProfile && React.createElement(Typography.Text, { style: { fontSize: 11, color: 'rgba(0,0,0,0.4)', display: 'block', marginTop: 2 } }, advertiserProfile.sector)
+            )
+          )
+        : React.createElement(Typography.Text, { style: { fontSize: 13, color: 'rgba(0,0,0,0.35)' } },
+            'Definito dal collegamento a una trattativa'),
       action: advertiserProfile && React.createElement(Button, {
         type: 'link', size: 'small',
         icon: React.createElement(TeamOutlined),
@@ -4672,7 +5252,7 @@ function BriefPanelNR({ planning, selectedFaceIds }) {
   );
 }
 
-function SelectSystems({ planning, onBack, onApply }) {
+function SelectSystems({ planning, onBack, onApply, planningsList, onDuplicate, onEdit, onDelete }) {
   const [myAgentKey, setMyAgentKey] = useState(readMyAgentKey);
   useEffect(() => {
     const id = setInterval(() => setMyAgentKey(k => { const n = readMyAgentKey(); return n !== k ? n : k; }), 300);
@@ -4680,10 +5260,11 @@ function SelectSystems({ planning, onBack, onApply }) {
   }, []);
 
   const isPlanner    = myAgentKey !== null;
+  const [isDelivered, setIsDelivered]     = useState(!!planning.deliveredAt);
   const [localAssignee, setLocalAssignee] = useState(planning.assignee);
   const isMine       = isPlanner && localAssignee === myAgentKey;
   const isUnassigned = !localAssignee;
-  const readOnly     = planning.state === 'Confermata' || !isMine;
+  const readOnly     = planning.state === 'Completata' || !isMine;
   const takeInCharge = () => { if (isPlanner) setLocalAssignee(myAgentKey); };
   const [searchQuery, setSearchQuery]           = useState('');
   const [showSugg, setShowSugg]                 = useState(false);
@@ -4694,12 +5275,23 @@ function SelectSystems({ planning, onBack, onApply }) {
   const [expandedSysIds, setExpandedSysIds]     = useState(new Set());
   const [hoveredId, setHoveredId]               = useState(null);
   const [focusedId, setFocusedId]               = useState(null);
+  const focusedIdRef                            = React.useRef(null);
   const [geocodeReady, setGeocodeReady]         = useState(false);
   const [panelOpen, setPanelOpen]               = useState(true);
   const [panelTab, setPanelTab]                 = useState(planning.state === 'Bozza' ? 'results' : 'selected');
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [poiDrawerOpen, setPoiDrawerOpen]       = useState(false);
-  const [visibleStates, setVisibleStates]       = useState(planning.state === 'Confermata' ? [] : ['Available']);
+  const [visibleStates, setVisibleStates]       = useState(
+    planning.state === 'Completata' ? [] :
+    planning.state === 'In trattativa' ? ['Available', 'In Option'] :
+    ['Available']
+  );
+
+  React.useEffect(() => {
+    if (isDelivered) {
+      setVisibleStates(prev => prev.includes('In Option') ? prev : [...prev, 'In Option']);
+    }
+  }, [isDelivered]);
   const channelAllTypes = planning.category === 'DOOH' ? DOOH_ALL_TYPES : OOH_ALL_TYPES;
   const channelTypesFlat = Object.values(channelAllTypes).flat();
   const [selectedTypes, setSelectedTypes]       = useState([]);
@@ -4713,8 +5305,8 @@ function SelectSystems({ planning, onBack, onApply }) {
   const [selectedFormats, setSelectedFormats]     = useState([]);
   const [maxPriceEnabled, setMaxPriceEnabled]     = useState(false);
   const [maxPriceValue, setMaxPriceValue]         = useState(300);
-  const [showOnlySelected, setShowOnlySelected]   = useState(false);
   const [fullscreen, setFullscreen]               = useState(false);
+  const [mapZoom, setMapZoom]                     = useState(10);
   const [fsFlashing, setFsFlashing]               = useState(false);
   const [searchMode, setSearchMode]               = useState('zona');
 
@@ -5485,8 +6077,8 @@ out geom;`;
 
   const mapContainerRef    = React.useRef(null);
   const mapRef             = React.useRef(null);   // google.maps.Map
-  const markersRef         = React.useRef([]);      // google.maps.Marker[]
-  const clustererRef       = React.useRef(null);    // MarkerClusterer
+  const markersRef         = React.useRef([]);      // Array of { marker, sysId }
+  const clusterMarkersRef  = React.useRef([]);      // cluster circle markers
   const poiOverlaysRef     = React.useRef([]);      // POI circles + markers
   const zoneCirclesRef     = React.useRef([]);      // zone highlight circles
   const palermoCirRef      = React.useRef(null);    // GeoJSON circoscrizioni Palermo
@@ -5608,7 +6200,7 @@ out geom;`;
     else if (isHovered) { w = Math.round(w * 1.12); h = Math.round(h * 1.12); }
 
     const dimOpacity = (hasFocus && !isFocused && !isSelected) ? 0.2 : 1;
-    const src = markerSrc(sys.type, sys.state);
+    const src = (isSelected && isDelivered) ? markerSrc(sys.type, 'In Option') : markerSrc(sys.type, sys.state);
     const svgContent = _assetSvgCache[src];
 
     if (svgContent) {
@@ -5685,30 +6277,23 @@ out geom;`;
 
     if (!allBounds.isEmpty()) map.fitBounds(allBounds);
 
-    map.addListener('click', () => setFocusedId(null));
+    map.addListener('zoom_changed', () => {
+      setMapZoom(map.getZoom());
+      // Applica subito il clustering (prima che React ri-renderizzi)
+      if (applyClusteringRef.current) applyClusteringRef.current();
+      if (applyFocusOpacityRef.current) applyFocusOpacityRef.current(focusedIdRef.current);
+    });
+
+    map.addListener('click', () => {
+      setShowSugg(false);
+      setFocusedId(null);
+    });
 
     mapRef.current = map;
 
-    const clusterer = new markerClusterer.MarkerClusterer({
-      map,
-      markers: [],
-      algorithm: new markerClusterer.SuperClusterAlgorithm({ maxZoom: 15 }),
-      renderer: {
-        render: ({ count, position }) => {
-          const icon = makeClusterSvg(count);
-          return new google.maps.Marker({
-            position,
-            icon,
-            label: { text: ' ', color: 'transparent' },
-            zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count,
-          });
-        },
-      },
-    });
-    clustererRef.current = clusterer;
+    mapRef.current = map;
 
     return () => {
-      if (clustererRef.current) { clustererRef.current.clearMarkers(); clustererRef.current = null; }
       mapRef.current = null;
     };
   }, []);
@@ -5895,51 +6480,127 @@ out geom;`;
     return () => { cancelled = true; };
   }, []); // eslint-disable-line
 
-  // Update markers on state change (Google Maps + MarkerClusterer)
+  // ── Funzione: applica clustering manuale basato su griglia ───────────────
+  const applyClusteringRef = React.useRef(null);
+  applyClusteringRef.current = () => {
+    const map = mapRef.current;
+    if (!map) return;
+    const zoom = map.getZoom() || 10;
+
+    // Rimuovi vecchi cluster circles
+    clusterMarkersRef.current.forEach(m => m.setMap(null));
+    clusterMarkersRef.current = [];
+
+    if (zoom > 15) {
+      // Zoom alto: mostra tutti i marker individuali
+      markersRef.current.forEach(({ marker }) => marker.setMap(map));
+      return;
+    }
+
+    // Zoom basso: clustering a griglia
+    const proj = map.getProjection();
+    if (!proj) {
+      markersRef.current.forEach(({ marker }) => marker.setMap(map));
+      return;
+    }
+
+    const GRID = 60;
+    const scale = Math.pow(2, zoom);
+    const groups = {};
+    markersRef.current.forEach(entry => {
+      const pos = entry.marker.getPosition();
+      const wp  = proj.fromLatLngToPoint(pos);
+      const key = `${Math.floor(wp.x * scale / GRID)}_${Math.floor(wp.y * scale / GRID)}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(entry);
+    });
+
+    Object.values(groups).forEach(group => {
+      if (group.length === 1) {
+        group[0].marker.setMap(map);
+      } else {
+        group.forEach(({ marker }) => marker.setMap(null));
+        const lats = group.map(e => e.marker.getPosition().lat());
+        const lngs = group.map(e => e.marker.getPosition().lng());
+        const center = {
+          lat: lats.reduce((a, b) => a + b, 0) / lats.length,
+          lng: lngs.reduce((a, b) => a + b, 0) / lngs.length,
+        };
+        const cm = new google.maps.Marker({
+          position: center,
+          icon: makeClusterSvg(group.length),
+          map,
+          zIndex: Number(google.maps.Marker.MAX_ZINDEX) + group.length,
+          label: { text: ' ', color: 'transparent' },
+        });
+        cm.addListener('click', () => {
+          map.setZoom(Math.min((map.getZoom() || 10) + 3, 20));
+          map.panTo(center);
+        });
+        clusterMarkersRef.current.push(cm);
+      }
+    });
+  };
+
+  // ── Funzione: aggiorna opacità in base a focusedId ────────────────────
+  const applyFocusOpacityRef = React.useRef(null);
+  applyFocusOpacityRef.current = (fId) => {
+    const hasFocus = !!fId;
+    markersRef.current.forEach(({ marker, sysId }) => {
+      if (!marker.getMap()) return;
+      marker.setOpacity(hasFocus && sysId !== fId ? 0.2 : 1);
+    });
+  };
+
+  // ── Effect: crea/aggiorna marker individuali ──────────────────────────
   React.useEffect(() => {
-    const map       = mapRef.current;
-    const clusterer = clustererRef.current;
-    if (!map || !clusterer) return;
+    const map = mapRef.current;
+    if (!map) return;
 
-    // Remove old markers
-    markersRef.current.forEach(m => m.setMap(null));
-    clusterer.clearMarkers();
+    // Rimuovi vecchi marker e cluster circles
+    markersRef.current.forEach(({ marker }) => marker.setMap(null));
+    clusterMarkersRef.current.forEach(m => m.setMap(null));
     markersRef.current = [];
+    clusterMarkersRef.current = [];
 
-    const hasFocus = !!focusedId;
-
-    const newMarkers = [];
+    const newEntries = [];
     filteredSystems.forEach(sys => {
       if (!sys.lat || !sys.lng) return;
       const isSel = selectedSystemIds.has(sys.id);
-      const isHov = hoveredId === sys.id;
-      const isFoc = focusedId === sys.id;
-
       const marker = new google.maps.Marker({
         position: { lat: sys.lat, lng: sys.lng },
-        icon: makeIcon(sys, isSel, isHov, isFoc, hasFocus),
-        zIndex: isFoc ? 2000 : isSel ? 1000 : isHov ? 500 : 0,
+        icon: makeIcon(sys, isSel, false, false, false),
+        zIndex: isSel ? 1000 : 0,
       });
-
-      const faceCount = (sys.faceObjs||[]).length;
-      const name      = sys.label ? `★ ${sys.label}` : sys.code;
-      const subline   = [sys.type, sys.faceObjs?.[0]?.format].filter(Boolean).join(' · ')
-                        + (sys.address ? ` — ${sys.address}` : '')
-                        + ` — ${faceCount} ${faceCount === 1 ? 'faccia' : 'facce'}`;
-
-      marker.addListener('click', () => {
-        // Click su marker: focus + card info (la selezione avviene solo via checkbox)
-        setFocusedId(prev => prev === sys.id ? null : sys.id);
-      });
+      marker.addListener('click',     () => setFocusedId(prev => prev === sys.id ? null : sys.id));
       marker.addListener('mouseover', () => setHoveredId(sys.id));
       marker.addListener('mouseout',  () => setHoveredId(null));
-
-      newMarkers.push(marker);
+      newEntries.push({ marker, sysId: sys.id, sys });
     });
 
-    markersRef.current = newMarkers;
-    clusterer.addMarkers(newMarkers);
-  }, [selectedFaceIds, hoveredId, focusedId, selectedSystemIds, filteredSystems, geocodeReady]);
+    markersRef.current = newEntries;
+    applyClusteringRef.current();
+    applyFocusOpacityRef.current(focusedId);
+  }, [filteredSystems, selectedSystemIds, geocodeReady, mapZoom]);
+
+  // ── Effect: aggiorna opacità al cambio di focusedId ──────────────────
+  React.useEffect(() => {
+    focusedIdRef.current = focusedId;
+    applyFocusOpacityRef.current(focusedId);
+  }, [focusedId]);
+
+  // ── Effect: aggiorna icona marker in hover ────────────────────────────
+  React.useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    markersRef.current.forEach(({ marker, sysId, sys }) => {
+      const isSel = selectedSystemIds.has(sysId);
+      const isHov = sysId === hoveredId;
+      const isFoc = sysId === focusedId;
+      marker.setIcon(makeIcon(sys, isSel, isHov, isFoc, !!focusedId));
+      marker.setZIndex(isFoc ? 2000 : isSel ? 1000 : isHov ? 500 : 0);
+    });
+  }, [hoveredId]);
 
 
   const displayedItems = panelTab === 'selected'
@@ -6098,8 +6759,15 @@ out geom;`;
             ),
             React.createElement('span', { className: 'ss-face-format' }, face.format),
             React.createElement('div', { className: 'ss-face-state' },
-              React.createElement('span', { className: 'ss-face-dot', style: { background: AVAIL_COLOR[face.state]||'#D9D9D9' } }),
-              STATE_LABELS[face.state] || face.state,
+              (isSel && isDelivered)
+                ? [
+                    React.createElement('span', { key: 'dot', className: 'ss-face-dot', style: { background: '#EB2F96' } }),
+                    React.createElement('span', { key: 'lbl' }, 'In Opzione'),
+                  ]
+                : [
+                    React.createElement('span', { key: 'dot', className: 'ss-face-dot', style: { background: AVAIL_COLOR[face.state]||'#D9D9D9' } }),
+                    React.createElement('span', { key: 'lbl' }, STATE_LABELS[face.state] || face.state),
+                  ],
             ),
             face.price && (() => {
               const { total, units, unitLabel, unitPrice, discount, isLongTerm } = computeFacePrice(face, planning);
@@ -6148,7 +6816,7 @@ out geom;`;
     React.createElement('div', {
       className: 'ss-fs-header ss-fs-header--' + (fullscreen ? 'hidden' : 'visible'),
     },
-      React.createElement(PlanningHeaderNR, { planning, onBack, isMine, isUnassigned, isPlanner, readOnly, onTakeInCharge: takeInCharge, selectedFaceIds })
+      React.createElement(PlanningHeaderNR, { planning, onBack, isMine, isUnassigned, isPlanner, readOnly, onTakeInCharge: takeInCharge, selectedFaceIds, onDeliver: () => setIsDelivered(true), planningsList, onDuplicate, onEdit, onDelete })
     ),
 
     // ── Workspace: sidebar + contenuto ───────────────────────
@@ -6188,7 +6856,7 @@ out geom;`;
       description: 'Puoi consultare gli spazi, ma non puoi modificare la selezione. Usa "Duplica" per lavorarne una copia.',
       style: { marginBottom: 0, borderRadius: 8 },
     }),
-    planning.state === 'Confermata' && isMine && React.createElement(antd.Alert, {
+    planning.state === 'Completata' && isMine && React.createElement(antd.Alert, {
       type: 'success',
       showIcon: true,
       closable: true,
@@ -6201,11 +6869,11 @@ out geom;`;
     // ── Card unica: mappa + ricerca ──────────────────────────
     React.createElement('div', {
       className: 'ss-card ss-card-map',
-      style: { borderRadius: fullscreen ? 0 : undefined, border: fullscreen ? 'none' : undefined },
+      style: { borderRadius: fullscreen ? 0 : undefined, border: fullscreen ? 'none' : undefined, background: planning.state === 'Completata' ? '#fff' : undefined },
     },
 
       // ── Area ricerca (search bar v2 da inventory-map--v2) ────
-      React.createElement('div', { className: 'ss-search-area' },
+      planning.state !== 'Completata' && React.createElement('div', { className: 'ss-search-area' },
 
         // Wrapper per posizionare il dropdown
         React.createElement('div', { className: 'ss-search-row' },
@@ -6301,15 +6969,17 @@ out geom;`;
             // sep
             React.createElement('div', { className: 'ss-bar-sep' }),
 
-            // Sezione 2: Collezioni POI
-            React.createElement('button', {
-              ref: poiTriggerRef,
-              className: `ss-bar-trigger${activePois.length > 0 ? ' active' : ''}`,
-              onMouseDown: e => { e.preventDefault(); setPoiDrawerOpen(true); },
-            },
-              React.createElement(icons.PushpinOutlined, { style: { fontSize: 14 } }),
-              "Punti d'interesse (POI)",
-              activePois.length > 0 && React.createElement('span', { className: 'ss-bar-count' }, activePois.length)
+            // Sezione 2: Collezioni POI — Presto disponibile
+            React.createElement(antd.Tooltip, { title: 'Presto disponibile', placement: 'bottom' },
+              React.createElement('button', {
+                ref: poiTriggerRef,
+                className: 'ss-bar-trigger',
+                style: { opacity: 0.4, cursor: 'not-allowed' },
+                onMouseDown: e => e.preventDefault(),
+              },
+                React.createElement(icons.PushpinOutlined, { style: { fontSize: 14 } }),
+                "Punti d'interesse (POI)",
+              )
             ),
 
             // sep
@@ -6500,7 +7170,7 @@ out geom;`;
       ), // close ss-search-area
 
       // ── Area mappa ───────────────────────────────────────────
-      React.createElement('div', { className: 'ss-map-area', onClick: () => setFocusedId(null) },
+      React.createElement('div', { className: 'ss-map-area' },
 
         // Google Maps container
         React.createElement('div', { ref: mapContainerRef, className: 'ss-gmap' }),
@@ -6513,11 +7183,8 @@ out geom;`;
           const isSel    = selectedSystemIds.has(sys.id);
           const faceObjs = sys.faceObjs || [];
           const fmt      = faceObjs[0]?.format || '';
-          const stateLabel = sys.state === 'Available' ? 'Disponibile'
-                           : sys.state === 'In Option' ? 'In opzione'
-                           : sys.state === 'Reserved'  ? 'Riservato' : sys.state;
-          const stateDot = sys.state === 'Available' ? '#52C41A'
-                         : sys.state === 'In Option' ? 'var(--gravity-domain-partial)' : '#BFBFBF';
+          const stateLabel = STATE_LABELS[sys.state] || sys.state;
+          const stateDot   = AVAIL_COLOR[sys.state] || '#BFBFBF';
           const price = computeFacePrice(faceObjs[0], planning);
           const cardStyle = focusCardPos
             ? { left: focusCardPos.x, top: focusCardPos.y, transform: 'translate(-50%, -100%)' }
@@ -6534,22 +7201,31 @@ out geom;`;
               [sys.type, fmt].filter(Boolean).join(' · ')
             ),
             sys.address && React.createElement('div', { className: 'ss-focus-card-row' },
-              React.createElement(icons.EnvironmentOutlined, { style: { fontSize: 11, color: '#3E00FB' } }),
+              React.createElement(icons.EnvironmentOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.4)' } }),
               sys.address + (sys.city ? `, ${sys.city.split(' ')[0]}` : '')
             ),
-            React.createElement('div', { className: 'ss-focus-card-row' },
-              React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
-              stateLabel,
-              React.createElement('span', { style: { marginLeft: 'auto', fontWeight: 600, color: '#3E00FB' } },
+            React.createElement('div', { className: 'ss-focus-card-row', style: { borderTop: '1px solid #f0f0f0', paddingTop: 6, marginTop: 2 } },
+              React.createElement(icons.AppstoreOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.4)' } }),
+              'Facce',
+              React.createElement('span', { style: { marginLeft: 'auto', fontWeight: 600 } },
                 `${faceObjs.length} ${faceObjs.length === 1 ? 'faccia' : 'facce'}`
               )
             ),
-            price?.total > 0 && React.createElement('div', { className: 'ss-focus-card-row', style: { borderTop: '1px solid #f0f0f0', paddingTop: 6, marginTop: 2 } },
-              React.createElement(icons.EuroOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.4)' } }),
-              React.createElement('span', { style: { color: 'rgba(0,0,0,0.55)' } }, 'Prezzo stimato'),
-              React.createElement('span', { style: { marginLeft: 'auto', fontWeight: 600 } },
-                `€ ${price.total.toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
-              )
+            React.createElement('div', { className: 'ss-focus-card-row' },
+              React.createElement(icons.AimOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.4)' } }),
+              'Stato',
+              isSel && !isDelivered
+                ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' } },
+                    React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
+                    'Disponibile',
+                    React.createElement('span', { style: { color: 'rgba(0,0,0,0.3)' } }, '–'),
+                    React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: '#EB2F96', flexShrink: 0 } }),
+                    'In Opzione',
+                  )
+                : React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' } },
+                    React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
+                    stateLabel,
+                  ),
             ),
             !readOnly && React.createElement('button', {
               onClick: e => { e.stopPropagation(); toggleSys(sys); },
@@ -6615,17 +7291,15 @@ out geom;`;
 
       // Info box sulla mappa
       React.createElement('div', { className: 'ss-map-infobox' },
-        // Header — count spazi idonei
+        // Header — count spazi
         React.createElement('div', { className: 'ss-infobox-header' },
           React.createElement('div', { className: 'ss-infobox-count' },
-            showOnlySelected
+            planning.state === 'Completata'
               ? selectedSystemIds.size
-              : filteredSystems.length
+              : filteredSystems.filter(s => (s.faceObjs || []).some(f => f.state === 'Available')).length
           ),
           React.createElement('div', { className: 'ss-infobox-count-label' },
-            showOnlySelected
-              ? 'spazi selezionati'
-              : 'spazi pertinenti al brief'
+            'impianti'
           )
         ),
         // Body — parametri del brief
@@ -6638,73 +7312,33 @@ out geom;`;
             React.createElement('span', { className: 'ss-infobox-label' }, 'Periodo'),
             React.createElement('span', { className: 'ss-infobox-value' }, `${planning.start} – ${planning.end}`)
           ),
-          React.createElement('div', { className: 'ss-infobox-row' },
-            React.createElement('span', { className: 'ss-infobox-label' }, 'Disponibilità'),
-            React.createElement('span', { className: 'ss-infobox-value', style: { display: 'inline-flex', alignItems: 'center', gap: 5 } },
-              React.createElement('span', {
-                style: {
-                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0, display: 'inline-block',
-                  background: visibleStates.length === 0
-                    ? '#8C8C8C'
-                    : visibleStates.length === 1 && visibleStates[0] === 'Available'
-                    ? '#52C41A'
-                    : visibleStates.length === 1 && visibleStates[0] === 'In Option'
-                    ? 'var(--gravity-domain-partial)'
-                    : visibleStates.length === 1 && visibleStates[0] === 'Reserved'
-                    ? '#FF4A1C'
-                    : visibleStates.includes('Available') && visibleStates.includes('In Option') && !visibleStates.includes('Reserved')
-                    ? 'var(--gravity-domain-partial)'
-                    : '#8C8C8C',
-                }
-              }),
+          (() => {
+            const stateItems = [
+              { key: 'Available',  color: '#52C41A',  label: 'Disponibile'  },
+              { key: 'In Option',  color: '#EB2F96',  label: 'In Opzione'   },
+              { key: 'Reserved',   color: '#FF4A1C',  label: 'Riservato'    },
+            ].filter(s => visibleStates.includes(s.key));
+            const multiRow = visibleStates.length > 0 && stateItems.length > 1;
+            return React.createElement('div', { className: 'ss-infobox-row', style: multiRow ? { alignItems: 'flex-start' } : {} },
+              React.createElement('span', { className: 'ss-infobox-label' }, 'Stato'),
               visibleStates.length === 0
-                ? 'Tutti gli stati'
-              : visibleStates.length === 1 && visibleStates[0] === 'Available'
-                ? 'Solo disponibili'
-              : visibleStates.length === 1 && visibleStates[0] === 'In Option'
-                ? 'In opzione'
-              : visibleStates.length === 1 && visibleStates[0] === 'Reserved'
-                ? 'Solo riservati'
-              : visibleStates.length >= 3
-                ? 'Tutti gli stati'
-              : visibleStates.map(s => s === 'Available' ? 'Disp.' : s === 'In Option' ? 'In opz.' : 'Ris.').join(' + ')
-            )
-          )
-        ),
-        // Toggle: solo selezionati su mappa
-        React.createElement('div', {
-          className: 'ss-infobox-toggle',
-          onClick: () => setShowOnlySelected(v => !v),
-          style: { background: showOnlySelected ? 'var(--gravity-primary-bg)' : undefined }
-        },
-          React.createElement('span', { style: { fontSize: 11, color: showOnlySelected ? '#3E00FB' : 'rgba(0,0,0,0.55)', fontWeight: showOnlySelected ? 600 : 400, display: 'inline-flex', alignItems: 'center', gap: 5 } },
-            React.createElement(icons.EyeOutlined, { style: { fontSize: 12 } }),
-            'Solo aggiunti a pianificazione'
-          ),
-          React.createElement('span', {
-            style: {
-              width: 28, height: 16, borderRadius: 8, border: '1px solid',
-              borderColor: showOnlySelected ? '#3E00FB' : '#D9D9D9',
-              background: showOnlySelected ? '#3E00FB' : 'var(--gravity-bg-container)',
-              position: 'relative', display: 'inline-block', flexShrink: 0,
-              transition: 'all 0.2s',
-            }
-          },
-            React.createElement('span', {
-              style: {
-                position: 'absolute', top: 1,
-                left: showOnlySelected ? 13 : 1,
-                width: 12, height: 12, borderRadius: '50%',
-                background: showOnlySelected ? '#fff' : '#BFBFBF',
-                transition: 'left 0.2s',
-              }
-            })
-          )
+                ? React.createElement('span', { className: 'ss-infobox-value', style: { display: 'inline-flex', alignItems: 'center', gap: 5 } },
+                    React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', background: '#8C8C8C', flexShrink: 0 } }),
+                    'Tutti gli stati'
+                  )
+                : React.createElement('span', { className: 'ss-infobox-value', style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 } },
+                    ...stateItems.map(s => React.createElement('span', { key: s.key, style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+                      React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 } }),
+                      s.label
+                    ))
+                  )
+            );
+          })()
         ),
       ),
 
       // Right panel overlay
-      React.createElement('div', { className: `ss-panel${panelOpen ? '' : ' ss-panel-hidden'}`, onClick: e => e.stopPropagation() },
+      React.createElement('div', { className: `ss-panel${panelOpen ? '' : ' ss-panel-hidden'}${planning.state === 'Completata' ? ' ss-panel--completata' : ''}`, style: planning.state === 'Completata' ? { background: '#fff', boxShadow: '-2px 0 20px rgba(0,0,0,0.06)' } : {}, onClick: e => e.stopPropagation() },
         // Toggle button
         React.createElement('div', {
           className: 'ss-panel-toggle',
@@ -6716,7 +7350,7 @@ out geom;`;
         ),
         // Tab header
         React.createElement('div', { className: 'ss-panel-header' },
-          planning.state !== 'Confermata' && React.createElement('div', {
+          planning.state !== 'Completata' && React.createElement('div', {
             className: `ss-panel-tab${panelTab === 'results' ? ' active' : ''}`,
             onClick: () => setPanelTab('results'),
           }, 'Risultati di ricerca'),
@@ -6724,25 +7358,22 @@ out geom;`;
             className: `ss-panel-tab${panelTab === 'selected' ? ' active' : ''}`,
             onClick: () => setPanelTab('selected'),
           },
-            'Spazi selezionati',
+            'Impianti selezionati',
             (() => {
-              const target = planning.faces || 0;
-              const n = totalSelFaces;
+              const n = selectedSystemIds.size;
               if (n === 0) return null;
-              if (target > 0) {
-                const done = n >= target;
-                return React.createElement('span', { className: `ss-sel-badge ${done ? 'ss-sel-badge--done' : 'ss-sel-badge--partial'}` },
-                  done ? `${n} ✓` : `${n} / ${target}`
-                );
-              }
               return React.createElement('span', { className: 'ss-sel-badge ss-sel-badge--done' }, n);
             })()
           ),
         ),
-        // Toolbar — select all
-        displayedItems.length > 0 && React.createElement('div', { className: 'ss-panel-toolbar' },
+        // Toolbar — counter + select all/deselect all
+        displayedItems.length > 0 && React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 14px', flexShrink: 0, borderBottom: '1px solid var(--gravity-border-secondary)' } },
           React.createElement('span', { className: 'ss-panel-toolbar-info' },
-            `${displayedItems.length} spazi`
+            (() => {
+              const nImp = displayedItems.length;
+              const nFac = displayedItems.reduce((sum, s) => sum + (s.faceObjs || []).length, 0);
+              return `${nImp} ${nImp === 1 ? 'impianto' : 'impianti'} · ${nFac} ${nFac === 1 ? 'faccia' : 'facce'}`;
+            })()
           ),
           !readOnly && React.createElement('span', {
             className: 'ss-panel-toolbar-action',
@@ -6750,7 +7381,7 @@ out geom;`;
           }, allDisplayedSelected ? 'Deseleziona tutti' : 'Seleziona tutti'),
         ),
         // Body — accordion
-        React.createElement('div', { className: 'ss-panel-body' },
+        React.createElement('div', { className: `ss-panel-body${panelTab === 'selected' ? ' ss-panel-body--selected' : ''}` },
           displayedItems.length === 0
             ? React.createElement('div', { className: 'ss-panel-empty' },
                 React.createElement(Empty, {
@@ -6868,7 +7499,7 @@ out geom;`;
         React.createElement('strong', { style: { color: '#3E00FB' } },
           POI_UNIT_CONFIG[poiRadiusUnit].fmt(poiRadiusIdx),
           ' (',
-          poiRadiusUnit === 'm' ? 'distanza' : poiRadiusUnit === 'walk' ? 'a piedi' : 'in auto',
+          'distanza',
           ')'
         )
       ),
@@ -7004,6 +7635,8 @@ out geom;`;
 function AppRoot() {
   const [view, setView] = useState('list');  // 'list' | 'select-systems'
   const [selectedPlanning, setSelectedPlanning] = useState(null);
+  // Lista pianificazioni: vive qui così crea/duplica/elimina sopravvivono alla navigazione lista ⇄ dettaglio
+  const [planningsList, setPlanningsList] = useState(PLANNINGS);
   // Overrides di stato per plannings: riflette cambiamenti runtime nella lista
   const [stateOverrides, setStateOverrides] = useState({});
 
@@ -7022,6 +7655,25 @@ function AppRoot() {
     setView('list');
   }
 
+  // ── Azioni dal dettaglio ────────────────────────────────
+  function handleDuplicateFromDetail(row) {
+    setPlanningsList(prev => [row, ...prev]);
+    antd.message.success(`Pianificazione duplicata come "${row.name}".`);
+  }
+
+  function handleEditFromDetail(vals) {
+    setPlanningsList(prev => prev.map(p => p.id === selectedPlanning.id ? { ...p, ...vals, updatedAt: todayStr() } : p));
+    setSelectedPlanning(prev => ({ ...prev, ...vals }));
+    antd.message.success(`Pianificazione "${vals.name}" aggiornata.`);
+  }
+
+  function handleDeleteFromDetail() {
+    setPlanningsList(prev => prev.filter(p => p.id !== selectedPlanning.id));
+    setSelectedPlanning(null);
+    setView('list');
+    antd.message.success('Pianificazione eliminata.');
+  }
+
   return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
     React.createElement(App, null,
       React.createElement('div', { className: 'app-shell' },
@@ -7030,11 +7682,17 @@ function AppRoot() {
           view === 'list' && React.createElement(PlanningsList, {
             onSelect: handleSelectPlanning,
             stateOverrides,
+            planningsList,
+            setPlanningsList,
           }),
           view === 'select-systems' && selectedPlanning && React.createElement(SelectSystems, {
             planning: selectedPlanning,
             onBack: () => setView('list'),
             onApply: handleApplySelection,
+            planningsList,
+            onDuplicate: handleDuplicateFromDetail,
+            onEdit: handleEditFromDetail,
+            onDelete: handleDeleteFromDetail,
           })
         )
       )
@@ -7046,7 +7704,7 @@ function AppRoot() {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(AppRoot));
 </script>
-  <script src="./handoff-steps.js"></script>
-  <script src="../../handoff.js"></script>
+<script src="./handoff-steps.js"></script>
+<script src="../../handoff.js"></script>
 </body>
 </html>
