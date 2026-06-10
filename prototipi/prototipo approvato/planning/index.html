@@ -1692,7 +1692,7 @@ function AdvertiserAvatar({ name, size = 32 }) {
 
 const PLANNINGS = [
   // ── Prima pagina: mix di stati ─────────────────────────────────────────────────
-  { id:'0101', name:'Gohan Sushi — Primavera 2026',     category:'DOOH', state:'In trattativa', start:'01/04/2026', end:'15/05/2026', advertiser:'Gohan Sushi',  goal:'traffico', budget:'€ 22.000', faces:12, hasSystems:true,  createdAt:'01/04/2025', assignee:'giulia',
+  { id:'0101', name:'PLN — Brand Awareness Q2', fromTrattativa:true,     category:'DOOH', state:'In trattativa', start:'01/04/2026', end:'15/05/2026', advertiser:'Gohan Sushi',  goal:'traffico', budget:'€ 22.000', faces:12, hasSystems:true,  createdAt:'01/04/2025', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 },{ label:'Viale della Libertà', city:'Palermo', lat:38.1230, lng:13.3521, zoom:15 }],
     briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-1' }],
     requestedTypes:['Billboard', 'Totem'], trattativaName:'TRT-Gohan-2026-P', campagnaName:'Brand Awareness Q2', deliveredAt:'20/03/2026', updatedAt:'28/03/2026' },
@@ -1700,8 +1700,8 @@ const PLANNINGS = [
     briefZones:[{ label:'Trapani', city:'Trapani', lat:37.9800, lng:12.6150, zoom:13 },{ label:'Marsala', city:'Marsala', lat:37.7998, lng:12.4289, zoom:13 },{ label:'Mazara del Vallo', city:'Mazara del Vallo', lat:37.6555, lng:12.5908, zoom:13 }],
     briefPois:[{ type:'single', id:'brief-s-3' },{ type:'collection', id:'cc-palermo' }],
     requestedTypes:['Pensilina', 'Stendardo'] },
-  { id:'0102', name:'Alessi Estate — Outdoor',          category:'OOH',  state:'Completata', start:'13/03/2024', end:'30/03/2024', advertiser:'Fondazione Alessi', goal:'consapevolezza del brand', budget:'€ 28.000', faces:13, hasSystems:true,  createdAt:'01/01/2024', assignee:'giulia', briefZones:[], briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'single', id:'brief-s-4' }], requestedTypes:[], trattativaName:'TRT-Alessi-2024-Q1', campagnaName:'Campagna Primavera', selectedFaces: Array.from({length:13},(_,i)=>`f-0102-${i+1}`), deliveredAt:'10/03/2024', updatedAt:'10/03/2024' },
-  { id:'0115', name:'Consorzio Agrituristico — Estate',  category:'OOH',  state:'In trattativa', start:'01/06/2026', end:'28/06/2026', advertiser:'Consorzio Agrituristico Sicilia', goal:'traffico', budget:'€ 31.000', faces:10, hasSystems:true,  createdAt:'10/04/2026', assignee:'giulia',
+  { id:'0102', name:'PLN — Campagna Primavera', fromTrattativa:true,          category:'OOH',  state:'Completata', start:'13/03/2024', end:'30/03/2024', advertiser:'Fondazione Alessi', goal:'consapevolezza del brand', budget:'€ 28.000', faces:13, hasSystems:true,  createdAt:'01/01/2024', assignee:'giulia', briefZones:[], briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'single', id:'brief-s-4' }], requestedTypes:[], trattativaName:'TRT-Alessi-2024-Q1', campagnaName:'Campagna Primavera', selectedFaces: Array.from({length:13},(_,i)=>`f-0102-${i+1}`), deliveredAt:'10/03/2024', updatedAt:'10/03/2024' },
+  { id:'0115', name:'PLN — Estate Siciliana', fromTrattativa:true,  category:'OOH',  state:'In trattativa', start:'01/06/2026', end:'28/06/2026', advertiser:'Consorzio Agrituristico Sicilia', goal:'traffico', budget:'€ 31.000', faces:10, hasSystems:true,  createdAt:'10/04/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Nord', city:'Palermo', lat:38.1500, lng:13.3400, zoom:13 },{ label:'Mondello', city:'Palermo', lat:38.2200, lng:13.3300, zoom:14 }],
     briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'single', id:'brief-s-4' }],
     requestedTypes:['Pensilina', 'Palina'], trattativaName:'TRT-ConsorzioAgri-2026', campagnaName:'Estate Siciliana', deliveredAt:'05/05/2026', updatedAt:'05/05/2026' },
@@ -1709,19 +1709,19 @@ const PLANNINGS = [
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 },{ label:'Palermo Est', city:'Palermo', lat:38.1100, lng:13.4200, zoom:13 },{ label:'Palermo Foro Italico', city:'Palermo', lat:38.1080, lng:13.3700, zoom:14 }],
     briefPois:[{ type:'collection', id:'scuole-palermo' },{ type:'collection', id:'universita-palermo' }],
     requestedTypes:['Billboard', 'Totem'] },
-  { id:'0107', name:'TechConf Milano 2025',             category:'DOOH', state:'Completata', start:'15/11/2024', end:'21/11/2024', advertiser:'TechConf Italia',   goal:'generazione di lead', budget:'€ 24.000', faces:9,  hasSystems:true,  createdAt:'01/09/2024', assignee:'giulia',
+  { id:'0107', name:'PLN — Brand Conference', fromTrattativa:true,             category:'DOOH', state:'Completata', start:'15/11/2024', end:'21/11/2024', advertiser:'TechConf Italia',   goal:'generazione di lead', budget:'€ 24.000', faces:9,  hasSystems:true,  createdAt:'01/09/2024', assignee:'giulia',
     briefZones:[],
     briefPois:[{ type:'collection', id:'universita-palermo' },{ type:'single', id:'brief-s-2' }],
     requestedTypes:['Billboard', 'Alux'], trattativaName:'TRT-TechConf-2024', campagnaName:'Brand Conference', selectedFaces: Array.from({length:9},(_,i)=>`f-0107-${i+1}`), deliveredAt:'12/11/2024', updatedAt:'12/11/2024' },
-  { id:'0113', name:'Credito Siciliano — Autunno 2026', category:'DOOH', state:'In trattativa', start:'15/09/2026', end:'15/11/2026', advertiser:'Credito Siciliano', goal:'fidelizzazione dei clienti', budget:'€ 52.000', faces:8, hasSystems:true, createdAt:'05/03/2026', assignee:'giulia',
+  { id:'0113', name:'PLN — Fidelizzazione Clienti', fromTrattativa:true, category:'DOOH', state:'In trattativa', start:'15/09/2026', end:'15/11/2026', advertiser:'Credito Siciliano', goal:'fidelizzazione dei clienti', budget:'€ 52.000', faces:8, hasSystems:true, createdAt:'05/03/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 },{ label:'Agrigento', city:'Agrigento', lat:37.3104, lng:13.5765, zoom:13 },{ label:'Trapani', city:'Trapani', lat:37.9800, lng:12.6150, zoom:13 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-2' }],
     requestedTypes:['Billboard', 'Alux', 'Totem'], trattativaName:'TRT-CreditoSic-2026', campagnaName:'Fidelizzazione Clienti', deliveredAt:null },
-  { id:'0109', name:'Cantine Firriato — Agrigento',     category:'OOH',  state:'Bozza', start:'15/07/2026', end:'28/07/2026', advertiser:'Cantine Firriato',  goal:'consapevolezza del brand', budget:'€ 12.000', faces:0,  hasSystems:false, createdAt:'12/03/2025', assignee:null,
+  { id:'0109', name:'PLN — Lancio Estivo Agrigento', fromTrattativa:true,     category:'OOH',  state:'Bozza', start:'15/07/2026', end:'28/07/2026', advertiser:'Cantine Firriato',  goal:'consapevolezza del brand', budget:'€ 12.000', faces:0,  hasSystems:false, createdAt:'12/03/2025', assignee:null,
     briefZones:[{ label:'Agrigento', city:'Agrigento', lat:37.3104, lng:13.5765, zoom:13 },{ label:'Sciacca', city:'Sciacca', lat:37.5076, lng:13.0783, zoom:13 }],
     briefPois:[{ type:'single', id:'brief-s-3' },{ type:'collection', id:'trasporti-palermo' }],
     requestedTypes:['Poster', 'Cassonetto'], trattativaName:'TRT-Firriato-2026-Estate', campagnaName:'Lancio Estivo Agrigento', deliveredAt:null },
-  { id:'0104', name:'SushiLab Primavera 2025',          category:'OOH',  state:'Completata', start:'10/04/2025', end:'25/04/2025', advertiser:'SushiLab Palermo',  goal:'fidelizzazione dei clienti', budget:'€ 15.000', faces:6,  hasSystems:true,  createdAt:'15/02/2025', assignee:'marco',  briefZones:[], briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:[], trattativaName:'TRT-SushiLab-2025-P', campagnaName:'Palermo Primavera', selectedFaces: Array.from({length:6},(_,i)=>`f-0104-${i+1}`), deliveredAt:'07/04/2025', updatedAt:'07/04/2025' },
+  { id:'0104', name:'PLN — Palermo Primavera', fromTrattativa:true,          category:'OOH',  state:'Completata', start:'10/04/2025', end:'25/04/2025', advertiser:'SushiLab Palermo',  goal:'fidelizzazione dei clienti', budget:'€ 15.000', faces:6,  hasSystems:true,  createdAt:'15/02/2025', assignee:'marco',  briefZones:[], briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:[], trattativaName:'TRT-SushiLab-2025-P', campagnaName:'Palermo Primavera', selectedFaces: Array.from({length:6},(_,i)=>`f-0104-${i+1}`), deliveredAt:'07/04/2025', updatedAt:'07/04/2025' },
   { id:'0112', name:'WindTre — Brand Summer 2026',      category:'DOOH', state:'Bozza', start:'01/06/2026', end:'31/08/2026', advertiser:'WindTre',           goal:'consapevolezza del brand', budget:'€ 85.000', faces:0,  hasSystems:false, createdAt:'10/02/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'collection', id:'supermercati-palermo' }],
@@ -1731,7 +1731,7 @@ const PLANNINGS = [
     briefZones:[{ label:'Palermo Nord', city:'Palermo', lat:38.1500, lng:13.3400, zoom:13 }],
     briefPois:[{ type:'collection', id:'scuole-palermo' },{ type:'collection', id:'universita-palermo' }],
     requestedTypes:['Pensilina', 'Palina'] },
-  { id:'0110', name:'MediaWorld — Sicilia Occidentale', category:'OOH',  state:'Bozza', start:'01/09/2026', end:'28/09/2026', advertiser:'MediaWorld',        goal:'traffico', budget:'€ 70.000', faces:0,  hasSystems:false, createdAt:'18/03/2025', assignee:null,
+  { id:'0110', name:'PLN — Sicilia Occidentale Q3', fromTrattativa:true, category:'OOH',  state:'Bozza', start:'01/09/2026', end:'28/09/2026', advertiser:'MediaWorld',        goal:'traffico', budget:'€ 70.000', faces:0,  hasSystems:false, createdAt:'18/03/2025', assignee:null,
     briefZones:[], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-5' }], requestedTypes:['Poster', 'Palina', 'Pensilina'], trattativaName:'TRT-MediaWorld-2026-Q3', campagnaName:'Sicilia Occidentale Q3', deliveredAt:null },
   { id:'0103', name:'Moving Retail — Digital Q3 2026',  category:'DOOH', state:'Bozza', start:'01/09/2026', end:'07/09/2026', advertiser:null,                goal:'conversione', budget:'€ 35.000', faces:0, hasSystems:false, createdAt:'05/03/2025', assignee:'marco',
     briefZones:[{ label:'Palermo Notarbartolo', city:'Palermo', lat:38.1310, lng:13.3478, zoom:14 },{ label:'Palermo Oreto', city:'Palermo', lat:38.0980, lng:13.3460, zoom:14 }],
@@ -1741,16 +1741,16 @@ const PLANNINGS = [
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 }],
     briefPois:[{ type:'collection', id:'scuole-palermo' },{ type:'collection', id:'universita-palermo' }],
     requestedTypes:['Totem', 'Alux'] },
-  { id:'0106', name:'Arredo Urbano Palermo Q4',         category:'OOH',  state:'Bozza', start:'01/10/2026', end:'31/12/2026', advertiser:'Comune di Palermo', goal:'coinvolgimento', budget:'€ 90.000', faces:0,  hasSystems:false, createdAt:'22/01/2025', assignee:null,
+  { id:'0106', name:'PLN — Arredo Urbano Q4', fromTrattativa:true,         category:'OOH',  state:'Bozza', start:'01/10/2026', end:'31/12/2026', advertiser:'Comune di Palermo', goal:'coinvolgimento', budget:'€ 90.000', faces:0,  hasSystems:false, createdAt:'22/01/2025', assignee:null,
     briefZones:[], briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'collection', id:'trasporti-palermo' }], requestedTypes:['Pensilina', 'Cassonetto', 'Palina'], trattativaName:'TRT-ComunePa-2026-Q4', campagnaName:'Arredo Urbano Q4', deliveredAt:null },
-  { id:'0116', name:'Rinascente — Apertura Palermo',    category:'OOH',  state:'Bozza', start:'15/05/2026', end:'28/05/2026', advertiser:'La Rinascente',     goal:'consapevolezza del brand', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'22/04/2026', assignee:null,
+  { id:'0116', name:'PLN — Apertura Centro Storico', fromTrattativa:true,    category:'OOH',  state:'Bozza', start:'15/05/2026', end:'28/05/2026', advertiser:'La Rinascente',     goal:'consapevolezza del brand', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'22/04/2026', assignee:null,
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 }], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:['Billboard', 'Poster', 'Pensilina'], trattativaName:'TRT-Rinascente-2026-PA', campagnaName:'Apertura Centro Storico', deliveredAt:null },
   // ── Pianificazioni confermate recenti (visibili in prima pagina) ────────────
-  { id:'0117', name:'ENI — Brand Palermo Q1',            category:'DOOH', state:'Completata', start:'01/03/2026', end:'07/03/2026', advertiser:'ENI',            goal:'consapevolezza del brand', budget:'€ 38.000', faces:16, hasSystems:true,  createdAt:'25/02/2026', assignee:'marco',
+  { id:'0117', name:'PLN — Q1 Brand Awareness', fromTrattativa:true,            category:'DOOH', state:'Completata', start:'01/03/2026', end:'07/03/2026', advertiser:'ENI',            goal:'consapevolezza del brand', budget:'€ 38.000', faces:16, hasSystems:true,  createdAt:'25/02/2026', assignee:'marco',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 }],
     briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-2' }],
     requestedTypes:['Billboard', 'Alux'], trattativaName:'TRT-ENI-2026-Q1', campagnaName:'Q1 Brand Awareness', selectedFaces: Array.from({length:16},(_,i)=>`f-0117-${i+1}`), deliveredAt:'20/02/2026', updatedAt:'20/02/2026' },
-  { id:'0118', name:'Conad — Sicilia Primavera 2026',    category:'OOH',  state:'Completata', start:'01/03/2026', end:'28/03/2026', advertiser:'Conad',          goal:'traffico', budget:'€ 27.000', faces:11, hasSystems:true,  createdAt:'12/02/2026', assignee:'giulia',
+  { id:'0118', name:'PLN — Promo Primavera', fromTrattativa:true,    category:'OOH',  state:'Completata', start:'01/03/2026', end:'28/03/2026', advertiser:'Conad',          goal:'traffico', budget:'€ 27.000', faces:11, hasSystems:true,  createdAt:'12/02/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Nord', city:'Palermo', lat:38.1500, lng:13.3400, zoom:13 },{ label:'Mondello', city:'Palermo', lat:38.2200, lng:13.3300, zoom:14 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-4' }],
     requestedTypes:['Pensilina', 'Palina', 'Poster'], trattativaName:'TRT-Conad-2026-P', campagnaName:'Promo Primavera', selectedFaces: Array.from({length:11},(_,i)=>`f-0118-${i+1}`), deliveredAt:'08/02/2026', updatedAt:'08/02/2026' },
@@ -2957,10 +2957,12 @@ const findCampagna = (tratName, campName) => {
 // Prossimo id progressivo della lista pianificazioni
 const nextPlanningIdFrom = list => String(Math.max(...list.map(p => parseInt(p.id, 10))) + 1).padStart(4, '0');
 
-// Costruisce la copia di una pianificazione: si duplicano solo gli spazi selezionati, non il brief
+// Costruisce la copia di una pianificazione: si duplicano solo gli spazi selezionati, non il brief.
+// La copia è una creazione manuale: il nome torna modificabile anche se l'originale veniva da trattativa.
 function buildDuplicateRow(src, vals, list) {
   return {
     ...src,
+    fromTrattativa: false,
     id: nextPlanningIdFrom(list), state: 'Bozza',
     createdAt: todayStr(), updatedAt: undefined, deliveredAt: null,
     assignee: readMyAgentKey(),
@@ -3140,6 +3142,9 @@ function PlanningFormDrawer({ open, mode, source, usedCampagneByTrat, onClose, o
   const end   = linkedCamp ? linkedCamp.end   : dayjsToStr(range && range[1]);
   const dateError = linkedCamp ? null : saleTypeDateError(saleType, range);
 
+  // Nome bloccato: pianificazione generata da trattativa (non creata manualmente dal planner)
+  const nameLocked = isEdit && !!(source && source.fromTrattativa);
+
   const canSave = !!name.trim() && !!start && !!end && !dateError
     && (linkedCamp || (channel && saleType))
     && (!trat || !!camp); // trattativa scelta senza campagna → incompleto
@@ -3168,12 +3173,17 @@ function PlanningFormDrawer({ open, mode, source, usedCampagneByTrat, onClose, o
     }, 'Salva'),
   },
     React.createElement(Form, { layout: 'vertical', component: 'div', requiredMark: false },
-      // ── Nome ──────────────────────────────────────────
-      React.createElement(Form.Item, { label: 'Nome pianificazione', style: { marginBottom: 0 } },
+      // ── Nome — bloccato se la pianificazione è generata da una trattativa ──
+      React.createElement(Form.Item, {
+        label: 'Nome pianificazione',
+        style: { marginBottom: 0 },
+        extra: nameLocked ? 'Generato dalla campagna collegata: non modificabile.' : undefined,
+      },
         React.createElement(Input, {
           size: 'large',
           placeholder: 'Inserisci un nome descrittivo',
           value: name,
+          disabled: nameLocked,
           onChange: e => setName(e.target.value),
           autoFocus: !isEdit,
         }),
@@ -3242,7 +3252,8 @@ function DuplicateModal({ open, source, usedCampagneByTrat, onClose, onDuplicate
 
   useEffect(() => {
     if (open && source) {
-      setName(`${source.name} (copia)`);
+      // la copia è manuale: il prefisso PLN della pianificazione da trattativa non si eredita
+      setName(`${source.name.replace(/^PLN — /, '')} (copia)`);
       setTrat(null); setCamp(null); setSaleType(null); setRange(null);
     }
   }, [open]);
