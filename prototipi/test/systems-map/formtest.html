@@ -411,7 +411,7 @@
     .create-nav-item { display: block; padding: 7px 12px; border-radius: 6px; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; margin-bottom: 2px; transition: background 0.12s, color 0.12s; user-select: none; }
     .create-nav-item:hover { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.88); }
     .create-nav-item.active { background: rgba(62,0,251,0.07); color: #3E00FB; font-weight: 500; }
-    .create-scroll { flex: 1; overflow-y: auto; padding: 40px 0 80px; background: #F5F5F5; display: flex; justify-content: center; }
+    .create-scroll { flex: 1; overflow-y: auto; padding: 40px 0; background: #F5F5F5; display: flex; justify-content: center; align-items: flex-start; }
     .create-content { width: 80%; max-width: 100%; }
     .create-section { margin-bottom: 32px; }
     .create-section-title { font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.35); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 14px; }
@@ -470,7 +470,7 @@ const {
   ExpandOutlined, SaveOutlined, EyeOutlined, PictureOutlined,
   InfoCircleOutlined, CompassOutlined, CheckCircleFilled, MoreOutlined,
   SwapOutlined, DeleteOutlined, TagsOutlined, ThunderboltOutlined, FileTextOutlined,
-  CalendarOutlined, SyncOutlined, AimOutlined, EuroCircleOutlined,
+  CalendarOutlined, SyncOutlined, AimOutlined, EuroCircleOutlined, UploadOutlined,
 } = icons;
 
 // ─────────────────────────────────────────────────────────
@@ -2485,6 +2485,51 @@ function PermitCard({ permitType, documentType, documentId, accountNumber, autho
   );
 }
 
+// Card permesso per il form di creazione — layout unificato concessione/autorizzazione,
+// senza dati già presenti nei campi del form (utenza, cimasa, canone)
+function FormPermitCard({ permitType, title, docId, ente, scadenza, state, isActive, onReplace, onRemove }) {
+  const menuItems = [
+    { key: 'view', label: 'Visualizza', icon: React.createElement(EyeOutlined) },
+    ...(permitType === 'concessione' ? [{ key: 'replace', label: 'Sostituisci', icon: React.createElement(SwapOutlined), onClick: onReplace }] : []),
+    { key: 'remove', label: 'Scollega', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
+  ];
+  const capStyle = { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 2 };
+  const valStyle = { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.85)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+  return React.createElement(Card, {
+    style: { borderRadius: 8, border: '1px solid #d9d9d9', height: '100%' },
+    styles: { body: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, height: '100%' } },
+  },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+      React.createElement('span', { style: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(0,0,0,0.45)' } },
+        permitType === 'concessione' ? 'Concessione' : 'Autorizzazione'),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+        React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
+          React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: isActive ? '#52c41a' : '#d9d9d9' } }),
+          state,
+        ),
+        React.createElement(Dropdown, { menu: { items: menuItems }, trigger: ['click'] },
+          React.createElement(MoreOutlined, { style: { fontSize: 16, color: '#595959', cursor: 'pointer' } }),
+        ),
+      ),
+    ),
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
+      React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, title),
+      React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 12, flexShrink: 0 } }, docId),
+    ),
+    React.createElement('div', { style: { display: 'flex', alignItems: 'stretch', marginTop: 'auto' } },
+      React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+        React.createElement('div', { style: capStyle }, 'Ente emittente'),
+        React.createElement('div', { style: valStyle }, ente || 'N/D'),
+      ),
+      React.createElement('div', { style: { width: 1, backgroundColor: '#f0f0f0', margin: '0 12px' } }),
+      React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+        React.createElement('div', { style: capStyle }, 'Scadenza'),
+        React.createElement('div', { style: valStyle }, scadenza || 'N/D'),
+      ),
+    ),
+  );
+}
+
 function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -3328,16 +3373,17 @@ function NewImpiantoModal({ open, onClose, onCrea, onContinua }) {
 // NUOVO IMPIANTO — PAGINA COMPLETA
 // ─────────────────────────────────────────────────────────
 const PROPRIETA_OPTS       = ['Comune','Città Metropolitana','Demanio pubblico','Proprietà privata','Altra PA'].map(v=>({value:v,label:v}));
-const MEDIA_ESTERNO_OPTS   = ['IGPDecaux','Clear Channel','Pubbliemma','Urban Vision','Posterscope','Nessuno'].map(v=>({value:v,label:v}));
-const TIPO_SUOLO_OPTS      = ['Pubblico','Privato','Demaniale','Stradale'].map(v=>({value:v,label:v}));
 const CAT_SUOLO_OPTS       = ['Urbano','Extraurbano','Autostradale','Pedonale'].map(v=>({value:v,label:v}));
-const CLASSE_COMUNE_OPTS   = ['A','B','C','D','E'].map(v=>({value:v,label:v}));
 const TIPO_FACCIA_OPTS     = ['Singola','Bifacciale','Trifacciale','Multifacciale'].map(v=>({value:v,label:v}));
 const ORIENTAMENTO_OPTS    = ['Nord','Nord-Est','Est','Sud-Est','Sud','Sud-Ovest','Ovest','Nord-Ovest'].map(v=>({value:v,label:v}));
 const RIPARATO_OPTS        = ['Riparato','Aperto'].map(v=>({value:v,label:v}));
-const MODELLO_VENDITA_OPTS = ['Flat','CPM','Revenue share','Programmatic','Forfait settimanale','Forfait mensile'].map(v=>({value:v,label:v}));
-const PRB_MDL_OPTS         = ['PRB','MDL'].map(v=>({value:v,label:v}));
-const STATO_GC_OPTS        = ['Approvato','In corso','Non richiesto','Respinto'].map(v=>({value:v,label:v}));
+// Fornitori (figure professionali) — anagrafica gestita altrove nella platform, qui solo lookup
+const FORNITORI_OPTS = [
+  'Studio Tecnico Russo & Partners','Ing. Marco Bellini','Geom. Lucia Ferraro',
+  'Studio Progetti Urbani SRL','Tecnoprogetti Sicilia','Studio Associato Vinci',
+  'Ing. Paolo Greco','Arch. Marta Vitale','Ing. Sergio Lombardo',
+  'LabStrutture Palermo','Dott. Andrea Rizzo',
+].map(v=>({value:v,label:v}));
 const TIPO_FONDAZIONE_OPTS = ['Platea','Plinti','Pali','Travi rovesce','Micropali'].map(v=>({value:v,label:v}));
 const TIPO_PALI_OPTS       = ['Acciaio','Alluminio','Vetroresina','Calcestruzzo'].map(v=>({value:v,label:v}));
 const TIPO_CORNICE_OPTS    = ['Semplice','Doppia','Rinforzata','Profilata'].map(v=>({value:v,label:v}));
@@ -3390,8 +3436,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [lat,         setLat]         = useState(iv.lat       || '');
   const [lng,         setLng]         = useState(iv.lng       || '');
   const [catSuolo,    setCatSuolo]    = useState(null);
-  const [codiceArea,  setCodiceArea]  = useState('');
-  const [classeComune,setClasseComune]= useState(null);
   const [utenza,      setUtenza]      = useState('');
   const [zn,          setZn]          = useState('');
 
@@ -3404,36 +3448,21 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [conoVis,      setConoVis]      = useState('');
   const [altTerra,     setAltTerra]     = useState('');
   const [altTotale,    setAltTotale]    = useState('');
-  const [fc,           setFc]           = useState('');
-  const [illSpe,       setIllSpe]       = useState('');
   const [illuminato,   setIlluminato]   = useState(false);
   const [riparato,     setRiparato]     = useState(null);
 
   // ── Commerciale
   const [proprieta,      setProprieta]      = useState(null);
-  const [mediaEsterno,   setMediaEsterno]   = useState(null);
   const [vendita,        setVendita]        = useState(null);
-  const [modelloVendita, setModelloVendita] = useState(null);
   const [prezzoNetto,    setPrezzoNetto]    = useState(null);
   const [prezzoLordo,    setPrezzoLordo]    = useState(null);
   const [cimasa,         setCimasa]         = useState('');
-  const [idContratto,    setIdContratto]    = useState('');
-  const [circuiti,       setCircuiti]       = useState('');
   const [squadraAff,     setSquadraAff]     = useState('');
-  const [prbMdl,         setPrbMdl]         = useState(null);
   const [codiceSquadra,  setCodiceSquadra]  = useState('');
-
-  // ── Autorizzazione
-  const [numProtocollo, setNumProtocollo] = useState('');
-  const [dataRilascio,  setDataRilascio]  = useState(null);
-  const [dataScadenza,  setDataScadenza]  = useState(null);
-  const [numGara,       setNumGara]       = useState('');
-  const [noteAut,       setNoteAut]       = useState('');
 
   // ── Progetto (ex Genio Civile)
   const [progetto,     setProgetto]     = useState('');
-  const [statoGc,      setStatoGc]      = useState(null);
-  const [protocolloNo, setProtocolloNo] = useState('');
+  const [numTavola,    setNumTavola]    = useState('');
   const [dataCollaudo, setDataCollaudo] = useState(null);
   const [dataVerifica, setDataVerifica] = useState(null);
   const [respVerifica, setRespVerifica] = useState('');
@@ -3487,26 +3516,23 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [tipoMan,    setTipoMan]    = useState(null);
   const [oggettoMan, setOggettoMan] = useState('');
 
-  // ── Contabilità
-  const [codCespite,    setCodCespite]    = useState('');
-  const [dataCespite,   setDataCespite]   = useState(null);
-  const [valoreCespite, setValoreCespite] = useState(null);
-  const [tipoAmm,       setTipoAmm]       = useState(null);
-  const [anniAmm,       setAnniAmm]       = useState(null);
-  const [valoreResiduo, setValoreResiduo] = useState(null);
-  const [centroCosto,   setCentroCosto]   = useState('');
-  const [noteContabili, setNoteContabili] = useState('');
-
   // ── Galleria
   const [fileList, setFileList] = useState([]);
-
-  // ── DOOH
-  const [configDooh, setConfigDooh] = useState('');
+  const [progettoDocs, setProgettoDocs] = useState([]);
+  const [noteVerifica, setNoteVerifica] = useState('');
 
   // ── Note
   const [noteRif, setNoteRif] = useState('');
   const [selConcessioni,    setSelConcessioni]    = useState([]);
   const [selAutorizzazioni, setSelAutorizzazioni] = useState([]);
+
+  // Permessi collegati — stessa UX del dettaglio impianto
+  const [addedPermits,      setAddedPermits]      = useState([]);
+  const [permitDrawerOpen,  setPermitDrawerOpen]  = useState(false);
+  const [permitDrawerType,  setPermitDrawerType]  = useState('concessione');
+  const [permitReplaceMode, setPermitReplaceMode] = useState(false);
+  const [permitRowKey,      setPermitRowKey]      = useState(null);
+  const [permitAuthKeys,    setPermitAuthKeys]    = useState([]);
 
   const tipoSuolo = React.useMemo(() => {
     if (!selConcessioni || selConcessioni.length === 0) return null;
@@ -3519,12 +3545,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 
   const SECTIONS = [
     { id: 'identita',        label: 'Generali' },
-    { id: 'localizzazione',        label: 'Localizzazione' },
     { id: 'dati-amministrativi',   label: 'Dati amministrativi' },
-    { id: 'caratteristiche', label: 'Caratteristiche' },
+    { id: 'caratteristiche', label: 'Dati Tecnici' },
     { id: 'commerciale',     label: 'Commerciale' },
-    { id: 'permessi',        label: 'Permessi' },
-    { id: 'progetto',        label: 'Progetto' },
     { id: 'struttura',       label: 'Struttura' },
     { id: 'manutenzione',    label: 'Manutenzione' },
     { id: 'galleria',        label: 'Galleria' },
@@ -3547,14 +3570,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const collectFormData = () => ({
     canale, nome, tipologia, formato, moduli, dimModuli, stato,
     via, civico, cap, citta, provincia, regione, nazione, lat, lng,
-    tipoSuolo, catSuolo, codiceArea, classeComune, utenza, zona: zn,
+    tipoSuolo, catSuolo, utenza, zona: zn,
     largImp, altImp, tipoFaccia, slot, orientamento, conoVis,
-    altTerra, altTotale, fc, illSpe, illuminato, riparato,
+    altTerra, altTotale, illuminato, riparato,
     proprieta, vendita,
-    prezzoNetto, prezzoLordo, cimasa, idContratto, circuiti,
+    prezzoNetto, prezzoLordo, cimasa,
     squadraAff, codiceSquadra,
-    numProtocollo, dataRilascio, dataScadenza, numGara, noteAut,
-    progetto, statoGc, protocolloNo, dataCollaudo, dataVerifica, respVerifica,
+    progetto, numTavola, dataCollaudo, dataVerifica, respVerifica,
     calcestruzzo, acciaioCarp, acciaioArm, tecnicheGc,
     progettista, ddl, rsc, collaudatore, laboratorio, geologo,
     tipoFond, dimFond, dittaCemento, dataLavoriFond, dataFineLav, noteFond,
@@ -3563,8 +3585,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     tipoPannelli, numPannelli, dimPannelli, pesoPannelli, barreAntivento, dittaPannelli, dataMontPann, notePannelli,
     numStaffeMuro, strutTerrazze, numPesiStrutt, kgPesiCadauno, pesoTotale,
     dataMan, squadraMan, tipoMan, oggettoMan,
-    codCespite, dataCespite, valoreCespite, tipoAmm, anniAmm, valoreResiduo,
-    centroCosto, noteContabili,
+    noteVerifica,
+    concessioni: selConcessioni, autorizzazioni: selAutorizzazioni, permessi: addedPermits,
   });
 
   const applyAddr = (s) => {
@@ -3573,6 +3595,66 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     setProvincia(s.provincia); setRegione(s.regione); setNazione(s.nazione);
     setLat(String(s.lat.toFixed(6))); setLng(String(s.lng.toFixed(6)));
   };
+
+  // Nome impianto autogenerato: "OOH-Pen-120x180-PA" — non editabile, il nome custom vive altrove
+  React.useEffect(() => {
+    const parts = [];
+    if (canale)    parts.push(canale);
+    if (tipologia) parts.push(tipologia.charAt(0).toUpperCase() + tipologia.slice(1, 3).toLowerCase());
+    if (formato)   parts.push(formato.replace(/\s*cm\s*$/i, '').replace(/×/g, 'x').replace(/\s+/g, ''));
+    if (provincia) parts.push(provincia.slice(0, 2).toUpperCase());
+    setNome(parts.join('-'));
+  }, [canale, tipologia, formato, provincia]);
+
+  // Permessi — handlers (stessa logica del dettaglio impianto)
+  const closePermitDrawer = () => { setPermitDrawerOpen(false); setPermitRowKey(null); setPermitAuthKeys([]); setPermitReplaceMode(false); };
+
+  const handleAddPermit = () => {
+    if (permitDrawerType === 'autorizzazione') {
+      if (!permitAuthKeys.length) { antdMsg.warning("Seleziona almeno un'autorizzazione"); return; }
+      const newPerms = permitAuthKeys.map(k => {
+        const a = AUTHORIZATIONS_DATA.find(x => x.key === k);
+        return a ? { id: k, permitType: 'autorizzazione', title: a.authorizationCategory, docId: a.protocolNumber, ente: a.issuingAuthority, scadenza: a.expirationDate, state: a.status, isActive: a.isActive } : null;
+      }).filter(Boolean);
+      setAddedPermits(prev => [...prev.filter(p => !newPerms.some(n => n.id === p.id)), ...newPerms]);
+      setSelAutorizzazioni(prev => [...new Set([...prev, ...permitAuthKeys])]);
+      closePermitDrawer();
+      antdMsg.success(newPerms.length + (newPerms.length > 1 ? ' autorizzazioni aggiunte' : ' autorizzazione aggiunta'));
+      return;
+    }
+    if (!permitRowKey) { antdMsg.warning("Seleziona un'utenza"); return; }
+    let sg = null, su = null;
+    for (const g of GRANTS_DATA) {
+      const u = g.utilities.find(u => g.key + '-' + u.utilityNumber === permitRowKey);
+      if (u) { sg = g; su = u; break; }
+    }
+    if (!sg) return;
+    const np = { id: permitRowKey, permitType: 'concessione', title: sg.documentType, docId: sg.documentId, ente: sg.issuingAuthority, scadenza: su.expirationDate || sg.expirationDate, state: sg.status || 'Attiva', isActive: sg.isActive !== false };
+    setAddedPermits(prev => [...prev.filter(p => p.permitType !== 'concessione'), np]);
+    setSelConcessioni([sg.key]);
+    setUtenza(su.utilityNumber);
+    if (su.cimasaCode && su.cimasaCode !== 'Non specificata') setCimasa(su.cimasaCode);
+    closePermitDrawer();
+    antdMsg.success(permitReplaceMode ? 'Concessione sostituita' : 'Concessione aggiunta');
+  };
+
+  const handleRemovePermit = (id) => {
+    const p = addedPermits.find(x => x.id === id);
+    if (!p) return;
+    setAddedPermits(prev => prev.filter(x => x.id !== id));
+    if (p.permitType === 'concessione') { setSelConcessioni([]); setUtenza(''); setCimasa(''); }
+    else setSelAutorizzazioni(prev => prev.filter(k => k !== id));
+    antdMsg.success('Permesso scollegato');
+  };
+
+  const hasConcessione = addedPermits.some(p => p.permitType === 'concessione');
+
+  const permitDropdown = React.createElement(Dropdown, {
+    menu: { items: [
+      { key: 'concessione', label: 'Aggiungi Concessione', disabled: hasConcessione, onClick: () => { setPermitDrawerType('concessione'); setPermitDrawerOpen(true); } },
+      { key: 'autorizzazione', label: 'Aggiungi Autorizzazione', onClick: () => { setPermitDrawerType('autorizzazione'); setPermitDrawerOpen(true); } },
+    ]},
+  }, React.createElement(Button, { icon: React.createElement(PlusOutlined) }, 'Collega Permesso'));
   const handleViaSearch = (val) => {
     setVia(val);
     if (debRef.current) clearTimeout(debRef.current);
@@ -3605,17 +3687,22 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
       ...children,
     );
 
-  // Box sottosezione con titolo e descrizione — stile settings card
-  const box = (title, description, ...children) =>
+  // Box sottosezione con titolo e descrizione — stile settings card.
+  // boxX accetta anche un nodo `extra` (es. un bottone) allineato a destra nell'header.
+  const boxX = (title, description, extra, ...children) =>
     React.createElement('div', { style: { background: '#fff', border: '1px solid #E8E8E8', borderRadius: 8, overflow: 'hidden', marginBottom: 16 } },
-      React.createElement('div', { style: { padding: '20px 24px 18px', borderBottom: '1px solid #F0F0F0' } },
-        React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 4 } }, title),
-        React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, description),
+      React.createElement('div', { style: { padding: '20px 24px 18px', borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 } },
+        React.createElement('div', null,
+          React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 4 } }, title),
+          React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, description),
+        ),
+        extra ? React.createElement('div', { style: { flexShrink: 0 } }, extra) : null,
       ),
       React.createElement('div', { style: { padding: '20px 24px 24px' } },
         ...children,
       ),
     );
+  const box = (title, description, ...children) => boxX(title, description, null, ...children);
 
   // Grid helpers
   const g2 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-2' }, ...f);
@@ -3667,10 +3754,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 
   // Campi required per sezione — usati per il nav indicator
   const sectionRequired = {
-    identita:       [canale, tipologia, formato, stato].every(Boolean),
-    localizzazione: [via.trim(), citta.trim()].every(Boolean),
+    identita: [canale, tipologia, formato, stato, via.trim(), citta.trim()].every(Boolean),
   };
-  const hasRequired = { identita: true, localizzazione: true };
+  const hasRequired = { identita: true };
 
   return React.createElement(Drawer, {
     open: open,
@@ -3719,7 +3805,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
         React.createElement('div', { className: 'create-content' },
 
         // ── 1. Identità
-        sec('identita', 'Generali', 'Canale, tipologia, stato e attributi fondamentali che classificano l\'impianto nel sistema.',
+        sec('identita', 'Generali', 'Canale, tipologia, stato, attributi fondamentali e posizione geografica dell\'impianto.',
           box('Informazioni generali', 'Canale, tipologia, formato, stato amministrativo e soggetto proprietario.',
             g2(
               cs('Canale', true,
@@ -3738,11 +3824,19 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                   tipologia ? 'Es. 120×180 cm' : 'Prima seleziona la tipologia',
                   { disabled: !tipologia, status: showErrors && !formato ? 'error' : undefined })
               ),
-              cs('Nome impianto', false, inp(nome, setNome, 'Es. Pensilina Piazza Verdi A')),
+              cs('Nome impianto', false,
+                React.createElement(Input, {
+                  value: nome,
+                  readOnly: true,
+                  variant: 'borderless',
+                  className: 'readonly-input',
+                  tabIndex: -1,
+                  style: { cursor: 'default', paddingLeft: 0 },
+                  placeholder: 'Generato in automatico',
+                })
+              ),
             ),
             g2(
-              cs('Stato', true, sel(stato, setStato, STATI_AMM_OPTS, 'Seleziona',
-                { status: showErrors && !stato ? 'error' : undefined })),
               cs('Proprietà', false,
                 React.createElement(Select, {
                   value: proprieta, onChange: setProprieta,
@@ -3761,12 +3855,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                   ],
                 })
               ),
+              cs('Stato', true, sel(stato, setStato, STATI_AMM_OPTS, 'Seleziona',
+                { status: showErrors && !stato ? 'error' : undefined })),
             ),
           ),
-        ),
-
-        // ── 2. Localizzazione
-        sec('localizzazione', 'Localizzazione', 'Posizione geografica, coordinate GPS e dati catastali dell\'impianto.',
           box('Indirizzo e coordinate', 'Posizione fisica nel territorio e coordinate GPS per la georeferenziazione.',
             React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 12 } },
               cs('Via', true, viaAutocomplete),
@@ -3780,15 +3872,33 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
             ),
             g4(
               cs('Nazione',     false, inp(nazione, setNazione, '—')),
-              cs('Zona',        false, inp(zn,      setZn,      'Es. Centro Storico')),
               cs('Latitudine',  false, inp(lat,     setLat,     '—')),
               cs('Longitudine', false, inp(lng,     setLng,     '—')),
+              cs('Zona',        false, inp(zn,      setZn,      'Es. Centro Storico')),
             ),
           ),
         ),
 
         // ── Dati amministrativi
-        sec('dati-amministrativi', 'Dati amministrativi', 'Classificazione del suolo e riferimenti catastali dell\'impianto.',
+        sec('dati-amministrativi', 'Dati amministrativi', 'Classificazione del suolo, riferimenti catastali, permessi e progetto tecnico dell\'impianto.',
+          boxX('Permessi', 'Concessioni e autorizzazioni amministrative associate all\'impianto.',
+            addedPermits.length > 0 ? permitDropdown : null,
+            addedPermits.length > 0
+              ? React.createElement(Row, { gutter: [16, 16] },
+                  addedPermits.map(p => React.createElement(Col, { span: 12, key: p.id },
+                    React.createElement(FormPermitCard, {
+                      permitType: p.permitType, title: p.title, docId: p.docId,
+                      ente: p.ente, scadenza: p.scadenza,
+                      state: p.state, isActive: p.isActive,
+                      onReplace: () => { setPermitDrawerType('concessione'); setPermitReplaceMode(true); setPermitDrawerOpen(true); },
+                      onRemove: () => handleRemovePermit(p.id),
+                    }),
+                  )),
+                )
+              : React.createElement(Empty, { description: "Aggiungi un permesso per collegarlo all'impianto", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+                  permitDropdown,
+                ),
+          ),
           box('Dati amministrativi', 'Tipo e categoria del suolo, utenza e riferimento cimasa.',
             g2(
               cs('Tipo suolo', false,
@@ -3807,10 +3917,101 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               cs('Cimasa', false, inp(cimasa, setCimasa, 'Es. CIM-2024-001')),
             ),
           ),
+          boxX('Progetto tecnico', 'Carica il documento di progetto: tavola, progettista, figure professionali e materiali si compilano in automatico.',
+            React.createElement(Upload, {
+              fileList: progettoDocs,
+              showUploadList: false,
+              onChange: ({ fileList: newList }) => {
+                const added = newList.length > progettoDocs.length;
+                setProgettoDocs(newList);
+                if (added) {
+                  // Mock: estrazione dati dal documento — compila solo i campi vuoti
+                  setProgetto(prev => prev || '1305');
+                  setNumTavola(prev => prev || 'TAV-07/A');
+                  setProgettista(prev => prev || 'Studio Tecnico Russo & Partners');
+                  setDdl(prev => prev || 'Ing. Paolo Greco');
+                  setRsc(prev => prev || 'Arch. Marta Vitale');
+                  setCollaudatore(prev => prev || 'Ing. Sergio Lombardo');
+                  setLaboratorio(prev => prev || 'LabStrutture Palermo');
+                  setGeologo(prev => prev || 'Dott. Andrea Rizzo');
+                  setCalcestruzzo(prev => prev || 'RCK > 25 MPA');
+                  setAcciaioCarp(prev => prev || 'FE 360 B');
+                  setAcciaioArm(prev => prev || 'FEB 44 K');
+                  setTecnicheGc(prev => prev || 'Saldature con elettrodi basici E 44 L 4 B e cordoni d\'angolo 8×8 mm');
+                  antdMsg.success('Dati estratti dal documento di progetto');
+                }
+              },
+              beforeUpload: () => false,
+              accept: '.pdf,.doc,.docx,.dwg',
+              multiple: true,
+            },
+              React.createElement(Button, { icon: React.createElement(UploadOutlined) }, 'Carica documento'),
+            ),
+            progettoDocs.length > 0 && React.createElement('div', { style: { marginBottom: 16 } },
+              progettoDocs.map(f =>
+                React.createElement('div', { key: f.uid, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.75)', background: '#FAFAFA', marginBottom: 4 } },
+                  React.createElement(FileTextOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }),
+                  React.createElement('span', { style: { flex: 1 } }, f.name),
+                  React.createElement(DeleteOutlined, {
+                    style: { color: 'rgba(0,0,0,0.45)', cursor: 'pointer' },
+                    onClick: () => setProgettoDocs(prev => prev.filter(x => x.uid !== f.uid)),
+                  }),
+                )
+              ),
+            ),
+            g3(
+              cs('Progetto', false, inp(progetto, setProgetto, 'Es. 1305')),
+              cs('N. tavola cartografica', false, inp(numTavola, setNumTavola, 'Es. TAV-07/A')),
+              cs('Progettista', false,
+                sel(progettista || undefined, setProgettista, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })
+              ),
+            ),
+            g3(
+              cs('D.D.L. (Direttore dei Lavori)', false,
+                sel(ddl || undefined, setDdl, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+              cs('R.S.C. (Resp. Sicurezza in Cantiere)', false,
+                sel(rsc || undefined, setRsc, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+              cs('Laboratorio', false,
+                sel(laboratorio || undefined, setLaboratorio, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+            ),
+            g3(
+              cs('Geologo', false,
+                sel(geologo || undefined, setGeologo, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+              cs('Collaudatore', false,
+                sel(collaudatore || undefined, setCollaudatore, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+              cs('Data collaudo', false, dp(dataCollaudo, setDataCollaudo)),
+            ),
+            g3(
+              cs('Calcestruzzo',       false, inp(calcestruzzo, setCalcestruzzo, 'Es. RCK > 25 MPA')),
+              cs('Acciaio carpenteria',false, inp(acciaioCarp,  setAcciaioCarp,  'Es. FE 360 B')),
+              cs('Acciaio armature',   false, inp(acciaioArm,   setAcciaioArm,   'Es. FEB 44 K')),
+            ),
+            cs('Tecniche utilizzate', false,
+              React.createElement(Input.TextArea, {
+                value: tecnicheGc, onChange: e => setTecnicheGc(e.target.value),
+                placeholder: 'Es. Saldature con elettrodi basici E 44 L 4 B e con cordoni d\'angolo 8×8 mm',
+                autoSize: { minRows: 2, maxRows: 4 },
+              })
+            ),
+          ),
+          box('Verifica', 'Verifiche periodiche dell\'impianto.',
+            g2(
+              cs('Data ultima verifica',  false, dp(dataVerifica,  setDataVerifica)),
+              cs('Resp. ultima verifica', false,
+                sel(respVerifica || undefined, setRespVerifica, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+            ),
+            cs('Note', false,
+              React.createElement(Input.TextArea, {
+                value: noteVerifica, onChange: e => setNoteVerifica(e.target.value),
+                placeholder: 'Es. Verifica strutturale superata, prossimo controllo previsto a settembre…',
+                autoSize: { minRows: 2, maxRows: 4 },
+              })
+            ),
+          ),
         ),
 
         // ── 3. Caratteristiche
-        sec('caratteristiche', 'Caratteristiche', 'Specifiche fisiche e strutturali del pannello espositivo.',
+        sec('caratteristiche', 'Dati Tecnici', 'Specifiche fisiche e strutturali del pannello espositivo.',
           box('Dimensioni pannello', 'Misure fisiche del pannello: larghezza, altezza, moduli e dimensioni.',
             g4(
               cs('Larghezza (cm)', false, num(largImp,   setLargImp,   { min: 0 })),
@@ -3852,88 +4053,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               cs('Prezzo lordo (€)',  false, num(prezzoLordo,   setPrezzoLordo,   { min: 0, precision: 2 })),
               cs('Squadra Affissione',false, inp(squadraAff,    setSquadraAff,    '—')),
               cs('Codice Squadra',    false, inp(codiceSquadra, setCodiceSquadra, '—')),
-            ),
-          ),
-        ),
-
-        // ── 5. Permessi
-        sec('permessi', 'Permessi', 'Concessioni e autorizzazioni amministrative associate all\'impianto.',
-          box('Concessioni', 'Titoli concessori che regolano l\'occupazione del suolo pubblico o privato.',
-            cs('Concessioni', false,
-              React.createElement(Select, {
-                mode: 'multiple',
-                value: selConcessioni,
-                onChange: setSelConcessioni,
-                options: GRANTS_DATA.map(g => ({
-                  value: g.key,
-                  label: g.documentType + ' — ' + g.documentId + ' (' + g.issuingAuthority + ')',
-                })),
-                placeholder: 'Seleziona concessioni…',
-                style: { width: '100%' },
-                showSearch: true,
-                filterOption: (input, opt) => (opt && opt.label ? opt.label.toLowerCase().includes(input.toLowerCase()) : false),
-              })
-            ),
-          ),
-          box('Autorizzazioni', 'Permessi edilizi, paesaggistici e altri provvedimenti autorizzativi.',
-            cs('Autorizzazioni', false,
-              React.createElement(Select, {
-                mode: 'multiple',
-                value: selAutorizzazioni,
-                onChange: setSelAutorizzazioni,
-                options: AUTHORIZATIONS_DATA.map(a => ({
-                  value: a.key,
-                  label: a.authorizationCategory + ' — ' + a.protocolNumber + ' (' + a.issuingAuthority + ')',
-                })),
-                placeholder: 'Seleziona autorizzazioni…',
-                style: { width: '100%' },
-                showSearch: true,
-                filterOption: (input, opt) => (opt && opt.label ? opt.label.toLowerCase().includes(input.toLowerCase()) : false),
-              })
-            ),
-          ),
-        ),
-
-        // ── 6. Progetto
-        sec('progetto', 'Progetto', 'Documentazione tecnica, materiali e figure professionali coinvolte.',
-          box('Progetto tecnico', 'Numero di progetto e riferimento al fascicolo tecnico.',
-            cs('Progetto', false, inp(progetto, setProgetto, 'Es. 1305')),
-          ),
-          box('Pratica', 'Stato della pratica edilizia, protocollo e date di collaudo.',
-            g3(
-              cs('Stato',            false, sel(statoGc,      setStatoGc,      STATO_GC_OPTS)),
-              cs('N. protocollo',    false, inp(protocolloNo, setProtocolloNo, 'Es. Prog. 96177 del 21/03/2022')),
-              cs('Data collaudo',    false, dp(dataCollaudo,  setDataCollaudo)),
-            ),
-            g2(
-              cs('Data ultima verifica',  false, dp(dataVerifica,  setDataVerifica)),
-              cs('Resp. ultima verifica', false, inp(respVerifica, setRespVerifica, '—')),
-            ),
-          ),
-          box('Materiali', 'Specifiche tecniche dei materiali utilizzati nella costruzione.',
-            g3(
-              cs('Calcestruzzo',       false, inp(calcestruzzo, setCalcestruzzo, 'Es. RCK > 25 MPA')),
-              cs('Acciaio carpenteria',false, inp(acciaioCarp,  setAcciaioCarp,  'Es. FE 360 B')),
-              cs('Acciaio armature',   false, inp(acciaioArm,   setAcciaioArm,   'Es. FEB 44 K')),
-            ),
-            cs('Tecniche utilizzate', false,
-              React.createElement(Input.TextArea, {
-                value: tecnicheGc, onChange: e => setTecnicheGc(e.target.value),
-                placeholder: 'Es. Saldature con elettrodi basici E 44 L 4 B e con cordoni d\'angolo 8×8 mm',
-                autoSize: { minRows: 2, maxRows: 4 },
-              })
-            ),
-          ),
-          box('Figure professionali', 'Professionisti coinvolti nel progetto, nella direzione lavori e nel collaudo.',
-            g3(
-              cs('Progettista', false, inp(progettista,  setProgettista,  '—')),
-              cs('D.D.L.',      false, inp(ddl,          setDdl,          '—')),
-              cs('R.S.C.',      false, inp(rsc,          setRsc,          '—')),
-            ),
-            g3(
-              cs('Collaudatore', false, inp(collaudatore, setCollaudatore, '—')),
-              cs('Laboratorio',  false, inp(laboratorio,  setLaboratorio,  '—')),
-              cs('Geologo',      false, inp(geologo,      setGeologo,      '—')),
             ),
           ),
         ),
@@ -4041,7 +4160,28 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 
         ) // create-content
       ) // create-scroll
-    ) // create-body
+    ), // create-body
+
+    // Permits drawer — stessa UX del dettaglio impianto
+    React.createElement(Drawer, {
+      title: permitDrawerType === 'concessione' ? (permitReplaceMode ? 'Sostituisci Concessione' : 'Aggiungi Concessione') : 'Aggiungi Autorizzazione',
+      placement: 'right',
+      styles: { wrapper: { width: '70%' }, body: { padding: 24 } },
+      onClose: closePermitDrawer, open: permitDrawerOpen,
+      extra: React.createElement(Space, null,
+        React.createElement(Button, { onClick: closePermitDrawer }, 'Annulla'),
+        React.createElement(Button, {
+          type: ((permitDrawerType === 'concessione' && permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length > 0)) ? 'primary' : 'default',
+          icon: React.createElement(PlusOutlined),
+          disabled: (permitDrawerType === 'concessione' && !permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length === 0),
+          onClick: handleAddPermit,
+        }, 'Aggiungi'),
+      ),
+    },
+      permitDrawerType === 'concessione'
+        ? React.createElement(GrantsAccordion, { data: GRANTS_DATA, selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
+        : React.createElement(AuthorizationsList, { data: AUTHORIZATIONS_DATA, selectedKeys: permitAuthKeys, onSelectionChange: setPermitAuthKeys }),
+    )
   );
 }
 
