@@ -80,10 +80,11 @@
     { key: 'Reserved',   label: 'Riservato',   color: '#1677FF' },
   ];
   // Status amministrativi (ciclo di vita impianto — Inventory)
+  // Colori: token base Ant Design (blue-6, orange-6, gold-6, nero 45%)
   const ADMIN_STATES = [
     { key: 'Attivo',          label: 'Attivo',          color: '#1677FF' },
     { key: 'In Manutenzione', label: 'In Manutenzione', color: '#FA8C16' },
-    { key: 'Inizializzato',   label: 'Inizializzato',   color: '#D48806' },
+    { key: 'Inizializzato',   label: 'Inizializzato',   color: '#FAAD14' },
     { key: 'Rimosso',         label: 'Rimosso',         color: 'rgba(0,0,0,0.45)' },
   ];
   const CHANNELS = [
