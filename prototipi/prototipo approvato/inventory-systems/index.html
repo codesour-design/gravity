@@ -22,6 +22,7 @@
     },
   };</script>
   <script src="../../navbar.js"></script>
+  <script src="../../filter-drawer.js"></script>
 
   <!-- Google Maps + MarkerClusterer -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeN8PAeuZkOtG8uyRzvXP2rOzP37HMBdI&libraries=places"></script>
@@ -356,21 +357,8 @@
     }
     .ss-map-floatcard-close:hover { color: rgba(0,0,0,0.65); background: rgba(0,0,0,0.05); }
 
-/* ── Filter drawer ── */
+/* ── Filter drawer: sezioni/chip iniettate da filter-drawer.js ── */
 .ant-drawer-body { padding-top: 8px !important; }
-.filter-section { padding: 14px 10px; border-bottom: 1px solid #F0F0F0; }
-.filter-section:last-child { border-bottom: none; }
-.filter-section-label { font-size: 12px; font-weight: 600; color: rgba(0,0,0,0.65); margin-bottom: 8px; }
-.filter-macro-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(0,0,0,0.3); margin: 8px 0 4px; }
-.filter-macro-label:first-child { margin-top: 0; }
-.filter-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border-radius: 6px; border: 1px solid #D9D9D9;
-  font-size: 13px; cursor: pointer; margin: 3px;
-  background: #fff; color: rgba(0,0,0,0.65); transition: all 0.15s; user-select: none;
-}
-.filter-chip.selected { background: #F0EAFF; border-color: #3E00FB; color: #3E00FB; font-weight: 500; }
-.filter-chip:hover:not(.selected) { border-color: #b0b0b0; color: rgba(0,0,0,0.88); }
 
 /* ── Geocoding progress banner ── */
 .geocoding-banner {
@@ -1448,203 +1436,6 @@ const TIPO_ICON_URL = {
   'Insegna':          'https://www.figma.com/api/mcp/asset/e0a5c59b-b8d4-47c1-8fda-2337b6d2e782',
 };
 const TYPE_ICONS_FILTER = TIPO_ICON_URL;
-
-function FilterPanel({
-  filterStatiAmm, onFilterStatiAmmChange,
-  filterCanale, onFilterCanaleChange,
-  filterSuolo, onFilterSuoloChange,
-  filterMediaOwner, onFilterMediaOwnerChange,
-  filterTipi, onFilterTipiChange,
-  filterFormati, onFilterFormatiChange,
-  availableFormats,
-  filterIlluminazione, onFilterIlluminazioneChange,
-  minFacesEnabled, onMinFacesEnabledChange,
-  minFacesValue, onMinFacesValueChange,
-}) {
-  const toggle = (arr, set, v) => {
-    const safe = Array.isArray(arr) ? arr : [];
-    set(safe.includes(v) ? safe.filter(x => x !== v) : [...safe, v]);
-  };
-
-  return React.createElement(React.Fragment, null,
-
-    // ── Status amministrativi ───────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { className: 'filter-section-label' }, 'Status amministrativi'),
-      React.createElement('div', { style: { display: 'flex', gap: 0, flexWrap: 'wrap' } },
-        [
-          { key: 'Attivo',          color: '#1677FF' },
-          { key: 'In Manutenzione', color: '#FA8C16' },
-          { key: 'Inizializzato',   color: '#D48806' },
-          { key: 'Rimosso',         color: 'rgba(0,0,0,0.45)' },
-        ].map(({ key, color }) =>
-          React.createElement('span', {
-            key,
-            className: 'filter-chip' + (filterStatiAmm.includes(key) ? ' selected' : ''),
-            onClick: () => toggle(filterStatiAmm, onFilterStatiAmmChange, key),
-          },
-            React.createElement(Badge, { color, style: { marginInlineEnd: 0 } }),
-            key
-          )
-        )
-      )
-    ),
-
-    // ── Canale ─────────────────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { className: 'filter-section-label' }, 'Canale'),
-      React.createElement('div', { style: { display: 'flex', gap: 0, flexWrap: 'wrap' } },
-        [
-          { key: 'OOH',  color: 'green'   },
-          { key: 'DOOH', color: 'magenta' },
-        ].map(({ key, color }) =>
-          React.createElement('span', {
-            key,
-            className: 'filter-chip' + (filterCanale.includes(key) ? ' selected' : ''),
-            onClick: () => toggle(filterCanale, onFilterCanaleChange, key),
-          },
-            React.createElement(Tag, { color, style: { marginInlineEnd: 4, lineHeight: '16px', fontSize: 11 } }, key)
-          )
-        )
-      )
-    ),
-
-    // ── Suolo ──────────────────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { className: 'filter-section-label' }, 'Suolo'),
-      React.createElement('div', { style: { display: 'flex', gap: 0, flexWrap: 'wrap' } },
-        ['Pubblico', 'Privato'].map(key =>
-          React.createElement('span', {
-            key,
-            className: 'filter-chip' + (filterSuolo.includes(key) ? ' selected' : ''),
-            onClick: () => toggle(filterSuolo, onFilterSuoloChange, key),
-          }, key)
-        )
-      )
-    ),
-
-    // ── Media owner ────────────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { className: 'filter-section-label' }, 'Media owner'),
-      React.createElement(Select, {
-        mode: 'multiple',
-        allowClear: true,
-        showSearch: true,
-        placeholder: 'Cerca o seleziona media owner…',
-        value: filterMediaOwner,
-        onChange: onFilterMediaOwnerChange,
-        style: { width: '100%' },
-        optionFilterProp: 'label',
-        maxTagCount: 'responsive',
-        options: [
-          {
-            label: React.createElement('span', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Gestione diretta'),
-            options: [{ label: 'Proprietario', value: 'Proprietario' }],
-          },
-          {
-            label: React.createElement('span', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Concessionarie'),
-            options: ['IGPDecaux', 'Clear Channel', 'Verticals', 'Geonext', 'Pubbliemme', 'Cemusa', 'Neopolis', 'Mediacom', 'Urbanspot'].map(v => ({ label: v, value: v })),
-          },
-        ],
-      }),
-    ),
-
-    // ── Tipologia impianto ──────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 } },
-        React.createElement('span', { className: 'filter-section-label', style: { marginBottom: 0 } }, 'Tipologia impianto'),
-        filterTipi.length > 0 && React.createElement('a', {
-          style: { fontSize: 12, color: 'rgba(0,0,0,0.4)', cursor: 'pointer' },
-          onClick: () => onFilterTipiChange([]),
-        }, 'Azzera'),
-      ),
-      Object.entries(MACRO_TIPI).map(([macro, tipi]) =>
-        React.createElement(React.Fragment, { key: macro },
-          React.createElement('div', { className: 'filter-macro-label' }, macro),
-          React.createElement('div', { style: { display: 'flex', gap: 0, flexWrap: 'wrap' } },
-            tipi.map(t => {
-              const iconUrl = TYPE_ICONS_FILTER[t];
-              const active = filterTipi.includes(t);
-              return React.createElement('span', {
-                key: t,
-                className: 'filter-chip' + (active ? ' selected' : ''),
-                onClick: () => {
-                  const next = active ? filterTipi.filter(x => x !== t) : [...filterTipi, t];
-                  onFilterTipiChange(next);
-                },
-              },
-                iconUrl && React.createElement('img', { src: iconUrl, style: { width: 12, height: 12, display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 } }),
-                t
-              );
-            })
-          )
-        )
-      )
-    ),
-
-    // ── Numero facce ────────────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { className: 'filter-section-label' }, 'Numero facce'),
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-        React.createElement(Switch, {
-          size: 'small', checked: minFacesEnabled,
-          onChange: v => onMinFacesEnabledChange(v),
-          style: { flexShrink: 0 },
-        }),
-        React.createElement(Text, { style: { fontSize: 13, color: minFacesEnabled ? 'rgba(0,0,0,0.88)' : 'rgba(0,0,0,0.35)' } }, 'Almeno'),
-        React.createElement(InputNumber, {
-          value: minFacesValue, min: 1, max: 10, size: 'small',
-          style: { width: 60 },
-          disabled: !minFacesEnabled,
-          onChange: v => v && onMinFacesValueChange(v),
-        }),
-        React.createElement(Text, { style: { fontSize: 13, color: minFacesEnabled ? 'rgba(0,0,0,0.88)' : 'rgba(0,0,0,0.35)' } }, 'facce'),
-      )
-    ),
-
-    // ── Illuminazione ───────────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { className: 'filter-section-label' }, 'Illuminazione'),
-      React.createElement('div', { style: { display: 'flex', gap: 0, flexWrap: 'wrap' } },
-        [
-          { key: 'Illuminate',     label: 'Illuminato',     icon: BulbOutlined },
-          { key: 'Non illuminate', label: 'Non illuminato', icon: null },
-        ].map(({ key, label, icon }) =>
-          React.createElement('span', {
-            key,
-            className: 'filter-chip' + (filterIlluminazione.includes(key) ? ' selected' : ''),
-            onClick: () => toggle(filterIlluminazione, onFilterIlluminazioneChange, key),
-          },
-            icon && React.createElement(icon, { style: { fontSize: 12 } }),
-            label
-          )
-        )
-      )
-    ),
-
-    // ── Formato impianto ────────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 } },
-        React.createElement('span', { className: 'filter-section-label', style: { marginBottom: 0 } }, 'Formato impianto'),
-        filterFormati.length > 0 && React.createElement('a', {
-          style: { fontSize: 12, color: 'rgba(0,0,0,0.4)', cursor: 'pointer' },
-          onClick: () => onFilterFormatiChange([]),
-        }, 'Azzera'),
-      ),
-      React.createElement('div', { style: { display: 'flex', gap: 0, flexWrap: 'wrap' } },
-        availableFormats.map(f =>
-          React.createElement('span', {
-            key: f,
-            className: 'filter-chip' + (filterFormati.includes(f) ? ' selected' : ''),
-            onClick: () => toggle(filterFormati, onFilterFormatiChange, f),
-            style: { fontFamily: 'monospace', fontSize: 12 },
-          }, f)
-        )
-      )
-    ),
-
-  );
-}
 
 // ─────────────────────────────────────────────────────────
 // LIST VIEW
@@ -4177,8 +3968,7 @@ function App() {
 
   const FILTERS_EMPTY = {
     statiAmm: [], canale: [], suolo: [], mediaOwner: [],
-    tipi: [], formati: [], illuminazione: [],
-    minFacesEnabled: false, minFacesValue: 1,
+    tipologia: [], formato: [], illuminazione: [], numeroFacce: [],
   };
 
   // Draft — modificati nel drawer, non ancora applicati
@@ -4192,14 +3982,6 @@ function App() {
       [key]: typeof value === 'function' ? value(prev[key]) : value,
     }));
   }, []);
-
-  // Formati disponibili in base ai tipi attivi nel draft (se nessun tipo → tutti)
-  const availableFormats = useMemo(() => {
-    if (draftFilters.tipi.length === 0) return ALL_TIPO_FORMATI;
-    const s = new Set();
-    draftFilters.tipi.forEach(t => (TIPO_FORMATI[t] || []).forEach(f => s.add(f)));
-    return [...s].sort();
-  }, [draftFilters.tipi]);
 
   const resetFilters = useCallback(() => {
     setDraftFilters({ ...FILTERS_EMPTY });
@@ -4259,13 +4041,15 @@ function App() {
       if (f.canale.length > 0 && !f.canale.includes(imp.canale)) return false;
       if (f.suolo.length > 0 && !f.suolo.includes(imp.suolo)) return false;
       if (f.mediaOwner.length > 0 && !f.mediaOwner.includes(imp.media_owner)) return false;
-      if (f.tipi.length > 0 && !f.tipi.includes(imp.tipo)) return false;
-      if (f.formati.length > 0 && !f.formati.includes(imp.formato)) return false;
+      if (f.tipologia.length > 0 && !f.tipologia.includes(imp.tipo)) return false;
+      if (f.formato.length > 0 && !f.formato.includes(imp.formato)) return false;
       if (f.illuminazione.length > 0) {
-        const k = imp.illuminato ? 'Illuminate' : 'Non illuminate';
+        // Il dato è booleano: tra gli illuminati, 1 su 3 (per id) è retroilluminato
+        const retro = imp.illuminato && parseInt(imp.id.slice(1), 10) % 3 === 0;
+        const k = !imp.illuminato ? 'Non illuminate' : retro ? 'Retroilluminate' : 'Illuminate';
         if (!f.illuminazione.includes(k)) return false;
       }
-      if (f.minFacesEnabled && imp.faces < f.minFacesValue) return false;
+      if (f.numeroFacce.length > 0 && !f.numeroFacce.includes(window.gravityFaceCountKey(imp.faces))) return false;
       // ── Filtro zona search ──
       if (appliedZone) {
         const q = appliedZone;
@@ -4303,8 +4087,8 @@ function App() {
     const f = appliedFilters;
     return [
       f.statiAmm.length > 0, f.canale.length > 0, f.suolo.length > 0,
-      f.mediaOwner.length > 0, f.tipi.length > 0, f.formati.length > 0,
-      f.illuminazione.length > 0, f.minFacesEnabled,
+      f.mediaOwner.length > 0, f.tipologia.length > 0, f.formato.length > 0,
+      f.illuminazione.length > 0, f.numeroFacce.length > 0,
     ].filter(Boolean).length;
   }, [appliedFilters]);
 
@@ -4314,7 +4098,6 @@ function App() {
       if (Array.isArray(cur)) {
         return { ...prev, [key]: cur.filter(v => v !== value) };
       }
-      if (key === 'minFacesEnabled') return { ...prev, minFacesEnabled: false };
       return prev;
     });
     setDraftFilters(prev => {
@@ -4322,7 +4105,6 @@ function App() {
       if (Array.isArray(cur)) {
         return { ...prev, [key]: cur.filter(v => v !== value) };
       }
-      if (key === 'minFacesEnabled') return { ...prev, minFacesEnabled: false };
       return prev;
     });
   }, []);
@@ -4335,18 +4117,16 @@ function App() {
       canale:    v => v,
       suolo:     v => `Suolo ${v}`,
       mediaOwner:v => v,
-      tipi:      v => v,
-      formati:   v => v,
-      illuminazione: v => v,
+      tipologia: v => v,
+      formato:   v => v,
+      illuminazione: v => v === 'Illuminate' ? 'Illuminato' : v === 'Retroilluminate' ? 'Retroilluminato' : 'Non illuminato',
+      numeroFacce: v => v === '1' ? '1 faccia' : `${v} facce`,
     };
-    ['statiAmm','canale','suolo','mediaOwner','tipi','formati','illuminazione'].forEach(key => {
+    ['statiAmm','canale','suolo','mediaOwner','tipologia','formato','illuminazione','numeroFacce'].forEach(key => {
       (f[key] || []).forEach(v => {
         chips.push({ key: `${key}:${v}`, label: LABEL_MAP[key](v), onRemove: () => removeApplied(key, v) });
       });
     });
-    if (f.minFacesEnabled) {
-      chips.push({ key: 'minFaces', label: `≥${f.minFacesValue} facce`, onRemove: () => removeApplied('minFacesEnabled', true) });
-    }
     return chips;
   }, [appliedFilters, removeApplied]);
 
@@ -4491,7 +4271,7 @@ function App() {
                 onMouseDown: e => { e.preventDefault(); openFilterDrawer(); },
               },
                 React.createElement(SlidersOutlined, { style: { fontSize: 14 } }),
-                'Filtri',
+                'Filtri avanzati',
                 activeFilterCount > 0 && React.createElement('span', { className: 'ss-bar-count' }, activeFilterCount),
               ),
 
@@ -4630,30 +4410,18 @@ function App() {
         : React.createElement(ListView, { impianti: tabFilteredImpianti, viewMode, setViewMode, onDetail: (imp) => { setDetailImpianto(imp); setSavedFormData(null); setPage('detail'); } })
     ),
 
-    React.createElement(Drawer, {
-      title: 'Filtri avanzati',
-      placement: 'right',
-      width: 480,
+    // ── Drawer: Filtri (componente condiviso GravityFilterDrawer) ──
+    React.createElement(window.GravityFilterDrawer, {
       open: filterDrawerOpen,
       onClose: () => setFilterDrawerOpen(false),
-      footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between' } },
-        React.createElement(Button, { danger: true, type: 'text', onClick: resetFilters }, 'Azzera tutto'),
-        React.createElement(Button, { type: 'primary', onClick: applyFilters }, 'Applica')
-      ),
-    },
-      React.createElement(FilterPanel, {
-        filterStatiAmm: draftFilters.statiAmm,       onFilterStatiAmmChange:    v => setDraft('statiAmm', v),
-        filterCanale: draftFilters.canale,            onFilterCanaleChange:      v => setDraft('canale', v),
-        filterSuolo: draftFilters.suolo,              onFilterSuoloChange:       v => setDraft('suolo', v),
-        filterMediaOwner: draftFilters.mediaOwner,    onFilterMediaOwnerChange:  v => setDraft('mediaOwner', v),
-        filterTipi: draftFilters.tipi,                onFilterTipiChange:        v => setDraft('tipi', v),
-        filterFormati: draftFilters.formati,          onFilterFormatiChange:     v => setDraft('formati', v),
-        availableFormats,
-        filterIlluminazione: draftFilters.illuminazione, onFilterIlluminazioneChange: v => setDraft('illuminazione', v),
-        minFacesEnabled: draftFilters.minFacesEnabled, onMinFacesEnabledChange:  v => setDraft('minFacesEnabled', v),
-        minFacesValue: draftFilters.minFacesValue,    onMinFacesValueChange:     v => setDraft('minFacesValue', v),
-      })
-    ),
+      onApply: applyFilters,
+      onReset: resetFilters,
+      activeCount: activeFilterCount,
+      sections: ['statiAmm', 'canale', 'suolo', 'mediaOwner', 'tipologia', 'numeroFacce', 'illuminazione', 'formato'],
+      values: draftFilters,
+      onChange: setDraft,
+      options: { allTypes: MACRO_TIPI, typeFormats: TIPO_FORMATI, allFormats: ALL_TIPO_FORMATI },
+    }),
 
     React.createElement(NewImpiantoModal, {
       open: modalOpen,
