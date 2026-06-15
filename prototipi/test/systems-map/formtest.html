@@ -440,7 +440,7 @@
 <div id="root"></div>
 <script>
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
-const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card } = antd;
+const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Slider } = antd;
 const { Text } = Typography;
 const {
   SearchOutlined, BellOutlined, PlusOutlined, AppstoreOutlined, SendOutlined,
@@ -452,6 +452,7 @@ const {
   InfoCircleOutlined, CompassOutlined, CheckCircleFilled, MoreOutlined,
   SwapOutlined, DeleteOutlined, TagsOutlined, ThunderboltOutlined, FileTextOutlined,
   CalendarOutlined, SyncOutlined, AimOutlined, EuroCircleOutlined, UploadOutlined,
+  LockOutlined, UnlockOutlined,
 } = icons;
 
 // ─────────────────────────────────────────────────────────
@@ -2113,6 +2114,10 @@ const AUTHORIZATIONS_DATA = [
 // Colori di stato dei permessi: pratiche Genio Civile + fallback attivo/inattivo
 const PERMIT_STATE_COLORS = { 'Da presentare': '#FAAD14', 'Presentata': '#1677FF', 'Collaudata': '#52c41a' };
 const permitDotColor = (state, isActive) => PERMIT_STATE_COLORS[state] || (isActive ? '#52c41a' : '#d9d9d9');
+// Tipo concessione: suolo pubblico vs privato
+const grantTypeTagStyle = (tipo) => tipo === 'Pubblico'
+  ? { color: '#1677FF', backgroundColor: '#E6F4FF', border: '1px solid #91CAFF' }
+  : { color: '#FA8C16', backgroundColor: '#FFF7E6', border: '1px solid #FFD591' };
 
 // SCIA — autocertificazioni (art. 19, L. 241/1990): efficaci dalla data di presentazione,
 // l'ente ha un termine per il controllo successivo (30 gg per il SUE, 60 gg per il SUAP)
@@ -2247,7 +2252,7 @@ function PermitCard({ permitType, documentType, documentId, accountNumber, autho
 
 // Card permesso per il form di creazione — layout unificato concessione/autorizzazione/autocertificazione,
 // senza dati già presenti nei campi del form (utenza, cimasa, canone)
-function FormPermitCard({ permitType, title, docId, ente, scadenza, presentata, collaudata, state, isActive, onReplace, onRemove }) {
+function FormPermitCard({ permitType, title, docId, tipo, ente, scadenza, presentata, collaudata, state, isActive, onReplace, onRemove }) {
   const menuItems = [
     { key: 'view', label: 'Visualizza', icon: React.createElement(EyeOutlined) },
     ...(permitType === 'concessione' || permitType === 'autocertificazione' ? [{ key: 'replace', label: 'Sostituisci', icon: React.createElement(SwapOutlined), onClick: onReplace }] : []),
@@ -2262,7 +2267,7 @@ function FormPermitCard({ permitType, title, docId, ente, scadenza, presentata, 
     ? [['Ente destinatario', ente], ['Presentata il', presentata], ['Termine verifica', scadenza]]
     : title === 'Genio Civile'
     ? [['Ente competente', ente], ['Data deposito', presentata], ['Data collaudo', collaudata]]
-    : [['Ente emittente', ente], ['Scadenza', scadenza]];
+    : [['Ente emittente', ente], ['Presentata il', presentata], ['Scadenza', scadenza]];
   return React.createElement(Card, {
     style: { borderRadius: 8, border: '1px solid #d9d9d9', height: '100%' },
     styles: { body: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, height: '100%' } },
@@ -2283,6 +2288,7 @@ function FormPermitCard({ permitType, title, docId, ente, scadenza, presentata, 
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
       React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, title),
       React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 12, flexShrink: 0 } }, docId),
+      tipo ? React.createElement(Tag, { style: { margin: 0, fontSize: 12, flexShrink: 0, ...grantTypeTagStyle(tipo) } }, tipo) : null,
     ),
     React.createElement('div', { style: { display: 'flex', alignItems: 'stretch', marginTop: 'auto' } },
       footerCols.flatMap(([label, value], i) => [
@@ -2293,6 +2299,132 @@ function FormPermitCard({ permitType, title, docId, ente, scadenza, presentata, 
         ),
       ]).filter(Boolean),
     ),
+  );
+}
+
+// Etichetta sintetica dell'illuminazione di una faccia (es. "Illuminato · Faretti (6 · 150W)")
+function faceIllumLabel(f) {
+  if (!f.illumStato) return null;
+  if (f.illumStato === 'Spento') return 'Spento';
+  let s = f.illumStato + (f.illumMezzo ? ' · ' + f.illumMezzo : '');
+  if (f.illumMezzo === 'Faretti' && (f.illumNFaretti || f.illumWatt)) {
+    const parts = [];
+    if (f.illumNFaretti) parts.push(f.illumNFaretti + ' faretti');
+    if (f.illumWatt) parts.push(f.illumWatt + 'W');
+    s += ' (' + parts.join(' · ') + ')';
+  }
+  return s;
+}
+
+// Faccia posteriore: campi fisici condivisi con l'anteriore, orientamento speculare (+180°).
+// Illuminazione, modello di vendita e prezzo restano indipendenti per faccia.
+const SHARED_FACE_FIELDS = ['lat', 'lng', 'coordLock', 'slot', 'cono', 'formL', 'formH'];
+const mirrorOrient = (o) => ((Number(o) || 0) + 180) % 360;
+const syncedFromAnteriore = (ant) => {
+  const p = { orient: mirrorOrient(ant.orient) };
+  SHARED_FACE_FIELDS.forEach(k => { p[k] = ant[k]; });
+  return p;
+};
+
+// Card faccia per il form di creazione — stessa famiglia visiva di FormPermitCard
+function FormFaceCard({ index, face, onEdit, onRemove, onCreatePosteriore }) {
+  const isAnt = face.tipo === 'Anteriore';
+  const tagStyle = isAnt
+    ? { backgroundColor: '#E6FFFB', border: '1px solid #87E8DE', color: '#13C2C2', margin: 0 }
+    : { backgroundColor: '#FFF2E8', border: '1px solid #FFBB96', color: '#FA541C', margin: 0 };
+  const menuItems = [
+    { key: 'edit', label: 'Modifica', icon: React.createElement(EditOutlined), onClick: onEdit },
+    ...(isAnt && onCreatePosteriore ? [{ key: 'post', label: 'Crea posteriore', icon: React.createElement(SwapOutlined), onClick: onCreatePosteriore }] : []),
+    { key: 'remove', label: isAnt && face._hasPosteriore ? 'Elimina (con posteriore)' : 'Elimina', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
+  ];
+  const infoRow = (icon, label, value, action) =>
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 20, gap: 8 } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
+        React.createElement(icon, { style: { fontSize: 14, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
+        React.createElement('span', { style: { fontSize: 12, fontWeight: 600, flexShrink: 0 } }, label),
+        React.createElement('span', { style: { fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, value),
+      ),
+      action || null,
+    );
+  return React.createElement(Card, {
+    style: { borderRadius: 8, border: '1px solid #d9d9d9', height: '100%' },
+    styles: { body: { padding: '12px 16px 12px 12px', display: 'flex', gap: 16, alignItems: 'flex-start' } },
+  },
+    // Anteprima con ribbon del modello di vendita + formato (posting format)
+    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 0 } },
+      React.createElement(Badge.Ribbon, { text: face.vendita || 'Standard', color: '#F5222D' },
+        React.createElement('div', { style: { width: '100%', height: 150, backgroundColor: '#f5f5f5', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' } },
+          React.createElement(PictureOutlined, { style: { fontSize: 32, color: '#d9d9d9' } }),
+        )),
+      (face.formL && face.formH) ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(0,0,0,0.88)' } },
+        React.createElement(ExpandOutlined, { style: { fontSize: 14, color: 'rgba(0,0,0,0.45)' } }),
+        React.createElement('span', { style: { fontWeight: 600 } }, 'Formato:'),
+        React.createElement('span', null, face.formL + '×' + face.formH + ' cm'),
+      ) : null,
+    ),
+    // Dettagli faccia
+    React.createElement('div', { style: { flex: 1, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
+          React.createElement('span', { style: { fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap' } }, 'Faccia ' + index),
+          React.createElement(Tag, { style: tagStyle }, face.tipo),
+          face.pairOf ? React.createElement(Tooltip, { title: 'Collegata alla faccia anteriore: posizione, dimensioni, slot e orientamento si aggiornano dall\'anteriore' },
+            React.createElement(SwapOutlined, { style: { fontSize: 13, color: 'rgba(0,0,0,0.4)' } })) : null,
+        ),
+        React.createElement(Dropdown, { menu: { items: menuItems }, trigger: ['click'] },
+          React.createElement(MoreOutlined, { style: { fontSize: 16, color: '#595959', cursor: 'pointer' } }),
+        ),
+      ),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } },
+        infoRow(AppstoreOutlined, 'Slot:', React.createElement('span', { style: { color: '#3E00FB', fontWeight: 600, fontSize: 14 } }, face.slot != null ? face.slot : '—')),
+        infoRow(CompassOutlined, 'Orientamento:', face.orient != null ? face.orient + '°' : '—'),
+        infoRow(AimOutlined, 'Cono di visibilità:', face.cono != null ? 'r ' + face.cono + ' cm' : '—'),
+        infoRow(BulbOutlined, 'Illuminazione:', faceIllumLabel(face) || '—'),
+        infoRow(EuroCircleOutlined, 'Prezzo:', face.prezzo != null ? '€ ' + face.prezzo : '—'),
+      ),
+    ),
+  );
+}
+
+// Card dispositivo connesso — stessa famiglia visiva di FormPermitCard
+function FormDeviceCard({ device, onEdit, onRemove }) {
+  const menuItems = [
+    { key: 'edit', label: 'Modifica', icon: React.createElement(EditOutlined), onClick: onEdit },
+    { key: 'remove', label: 'Elimina', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
+  ];
+  // Riga multi-valore: mostrata solo se valorizzata, con i valori come tag
+  const multiRow = (label, arr) => (arr && arr.length) ? React.createElement('div', { key: label, style: { display: 'flex', gap: 8, alignItems: 'baseline' } },
+    React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', flexShrink: 0, width: 124 } }, label),
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4, minWidth: 0 } },
+      arr.map((v, i) => React.createElement(Tag, { key: i, style: { margin: 0, fontSize: 12, border: '1px solid #d9d9d9', backgroundColor: '#fafafa', color: 'rgba(0,0,0,0.75)' } }, v))),
+  ) : null;
+  const rows = [
+    multiRow('MAC player', device.macPlayer),
+    multiRow('MAC sensore', device.macSensor),
+    multiRow('Serial PC', device.pcSerial),
+    multiRow('ID sensore', device.idSensore),
+    multiRow('TeamViewer', device.teamviewer),
+    multiRow('AnyDesk', device.anydesk),
+    multiRow('Telefono', device.telefono),
+  ].filter(Boolean);
+  return React.createElement(Card, {
+    style: { borderRadius: 8, border: '1px solid #d9d9d9', height: '100%' },
+    styles: { body: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, height: '100%' } },
+  },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+      React.createElement('span', { style: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(0,0,0,0.45)' } }, device.tipo || 'Dispositivo'),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+        device.stato ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
+          React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: DEVICE_STATO_COLORS[device.stato] || '#d9d9d9' } }),
+          device.stato) : null,
+        React.createElement(Dropdown, { menu: { items: menuItems }, trigger: ['click'] },
+          React.createElement(MoreOutlined, { style: { fontSize: 16, color: '#595959', cursor: 'pointer' } }),
+        ),
+      ),
+    ),
+    React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, device.nome || 'Dispositivo'),
+    device.desc ? React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.55)', lineHeight: '18px' } }, device.desc) : null,
+    rows.length ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 } }, ...rows) : null,
   );
 }
 
@@ -2317,6 +2449,7 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, marginBottom: 8 } },
             React.createElement('span', { style: { fontWeight: 500 } }, grant.documentType),
             React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 13, padding: '2px 8px' } }, grant.documentId),
+            grant.grantType ? React.createElement(Tag, { style: { margin: 0, fontSize: 13, padding: '2px 8px', ...grantTypeTagStyle(grant.grantType) } }, grant.grantType) : null,
           ),
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 24, fontSize: 13 } },
             React.createElement('span', null, React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Ente Emittente: '), grant.issuingAuthority),
@@ -2999,9 +3132,19 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
 // ─────────────────────────────────────────────────────────
 const PROPRIETA_OPTS       = ['Comune','Città Metropolitana','Demanio pubblico','Proprietà privata','Altra PA'].map(v=>({value:v,label:v}));
 const CAT_SUOLO_OPTS       = ['Urbano','Extraurbano','Autostradale','Pedonale'].map(v=>({value:v,label:v}));
-const TIPO_FACCIA_OPTS     = ['Singola','Bifacciale','Trifacciale','Multifacciale'].map(v=>({value:v,label:v}));
-const ORIENTAMENTO_OPTS    = ['Nord','Nord-Est','Est','Sud-Est','Sud','Sud-Ovest','Ovest','Nord-Ovest'].map(v=>({value:v,label:v}));
 const RIPARATO_OPTS        = ['Riparato','Aperto'].map(v=>({value:v,label:v}));
+// Illuminazione — il cliente distingue prima lo stato (luminoso = sorgente interna,
+// illuminato = sorgente esterna a faretti, spento = nessuna) e poi il mezzo.
+// Faretti (solo per "illuminato") sblocca numero faretti e watt per faretto.
+const ILLUM_STATO_OPTS     = [
+  { value: 'Spento',     label: 'Spento' },
+  { value: 'Illuminato', label: 'Illuminato (sorgente esterna)' },
+  { value: 'Luminoso',   label: 'Luminoso (sorgente interna)' },
+];
+const ILLUM_MEZZO_BY_STATO = {
+  Illuminato: ['Faretti', 'LED', 'Neon'],
+  Luminoso:   ['LED', 'Neon', 'Diodi'],
+};
 // Fornitori (figure professionali) — anagrafica gestita altrove nella platform, qui solo lookup
 const FORNITORI_OPTS = [
   'Studio Tecnico Russo & Partners','Ing. Marco Bellini','Geom. Lucia Ferraro',
@@ -3009,10 +3152,15 @@ const FORNITORI_OPTS = [
   'Ing. Paolo Greco','Arch. Marta Vitale','Ing. Sergio Lombardo',
   'LabStrutture Palermo','Dott. Andrea Rizzo',
 ].map(v=>({value:v,label:v}));
-const TIPO_FONDAZIONE_OPTS = ['Platea','Plinti','Pali','Travi rovesce','Micropali'].map(v=>({value:v,label:v}));
-const TIPO_PALI_OPTS       = ['Acciaio','Alluminio','Vetroresina','Calcestruzzo'].map(v=>({value:v,label:v}));
+const TIPO_FONDAZIONE_OPTS = ['Plinti','Trave','Dalmine','Parete'].map(v=>({value:v,label:v}));
+const TIPO_PALI_OPTS       = ['Ipe300','Ipe240','TR','Unipal','120x80'].map(v=>({value:v,label:v}));
 const TIPO_CORNICE_OPTS    = ['Semplice','Doppia','Rinforzata','Profilata'].map(v=>({value:v,label:v}));
 const TIPO_PANNELLI_OPTS   = ['Alluminio','Acciaio','Legno','Composito','PVC'].map(v=>({value:v,label:v}));
+const STRUT_TERRAZZE_OPTS  = ['Vuoto','Dalmine','Pali'].map(v=>({value:v,label:v}));
+// Dispositivi connessi (player, modem, sensori, schermi…)
+const DEVICE_TIPO_OPTS   = ['Player multimediale','Modem / Router','Sensore','Telecamera','Schermo / Display','Centralina','Altro'].map(v=>({value:v,label:v}));
+const DEVICE_STATO_OPTS  = ['Connesso','Disconnesso','In manutenzione'].map(v=>({value:v,label:v}));
+const DEVICE_STATO_COLORS = { 'Connesso': '#52c41a', 'Disconnesso': '#d9d9d9', 'In manutenzione': '#FA8C16' };
 const TIPO_MAN_OPTS        = ['Ordinaria','Straordinaria','Urgente','Preventiva'].map(v=>({value:v,label:v}));
 const TIPO_AMM_OPTS        = ['Lineare','Degress','A quote costanti'].map(v=>({value:v,label:v}));
 
@@ -3034,7 +3182,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     setNome(v.nome || '');
     setTipologia(v.tipologia || null);
     setStato(v.stato || null);
-    setIlluminato(!!v.illuminato);
+    setIllumStato(v.illumStato || (v.illuminato ? 'Illuminato' : null));
+    setIllumMezzo(v.illumMezzo || null);
+    setIllumNFaretti(v.illumNFaretti ?? null);
+    setIllumWatt(v.illumWatt ?? null);
     setVia(v.via || '');
     setCivico(v.civico || '');
     setCap(v.cap || '');
@@ -3067,14 +3218,192 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   // ── Caratteristiche
   const [largImp,      setLargImp]      = useState('');
   const [altImp,       setAltImp]       = useState('');
-  const [tipoFaccia,   setTipoFaccia]   = useState(null);
-  const [slot,         setSlot]         = useState(null);
-  const [orientamento, setOrientamento] = useState(null);
-  const [conoVis,      setConoVis]      = useState('');
+  const [profImp,      setProfImp]      = useState('');
   const [altTerra,     setAltTerra]     = useState('');
-  const [altTotale,    setAltTotale]    = useState('');
-  const [illuminato,   setIlluminato]   = useState(false);
   const [riparato,     setRiparato]     = useState(null);
+  // Facce — gestite con drawer di creazione + card (come permessi). Ogni faccia ha
+  // illuminazione propria che segue lo stesso modello dell'impianto.
+  const [facce,         setFacce]         = useState([]);
+  const [faceDrawerOpen, setFaceDrawerOpen] = useState(false);
+  const [faceEditId,    setFaceEditId]    = useState(null);
+  const [fcTipo,        setFcTipo]        = useState('Anteriore');
+  const [fcSlot,        setFcSlot]        = useState(null);
+  const [fcLat,         setFcLat]         = useState('');
+  const [fcLng,         setFcLng]         = useState('');
+  const [fcCoordLock,   setFcCoordLock]   = useState(true);  // coordinate ereditate dall'impianto finché bloccate
+  const [fcOrient,      setFcOrient]      = useState(0);     // orientamento in gradi 0–360
+  const [fcCono,        setFcCono]        = useState(null);  // raggio cono visibilità (cm)
+  const [fcFormL,       setFcFormL]       = useState(null);  // larghezza faccia (cm)
+  const [fcFormH,       setFcFormH]       = useState(null);  // altezza faccia (cm)
+  const [fcIllumStato,    setFcIllumStato]    = useState(null);
+  const [fcIllumMezzo,    setFcIllumMezzo]    = useState(null);
+  const [fcIllumNFaretti, setFcIllumNFaretti] = useState(null);
+  const [fcIllumWatt,     setFcIllumWatt]     = useState(null);
+  const [fcVendita,     setFcVendita]     = useState(null);
+  const [fcPrezzo,      setFcPrezzo]      = useState(null);
+  // Illuminazione — stato (luminoso/illuminato/spento) + mezzo, e per i faretti n. + watt
+  const [illumStato,    setIllumStato]    = useState(iv.illuminato ? 'Illuminato' : null);
+  const [illumMezzo,    setIllumMezzo]    = useState(null);
+  const [illumNFaretti, setIllumNFaretti] = useState(null);
+  const [illumWatt,     setIllumWatt]     = useState(null);
+  // Compat: alcune viste usano un booleano "illuminato"
+  const illuminato = !!illumStato && illumStato !== 'Spento';
+  const onIllumStato = (v) => {
+    setIllumStato(v);
+    if (v === 'Spento' || !v) { setIllumMezzo(null); setIllumNFaretti(null); setIllumWatt(null); }
+    else if (!(ILLUM_MEZZO_BY_STATO[v] || []).includes(illumMezzo)) { setIllumMezzo(null); setIllumNFaretti(null); setIllumWatt(null); }
+  };
+  const onIllumMezzo = (v) => {
+    setIllumMezzo(v);
+    if (v !== 'Faretti') { setIllumNFaretti(null); setIllumWatt(null); }
+  };
+  // Area espositiva (m²) calcolata automaticamente da larghezza × altezza (cm → m²)
+  const areaEspositiva = React.useMemo(() => {
+    const w = parseFloat(largImp), h = parseFloat(altImp);
+    if (!w || !h) return null;
+    return Math.round((w * h / 10000) * 100) / 100;
+  }, [largImp, altImp]);
+
+  // ── Facce — handler drawer/card
+  const onFcIllumStato = (v) => {
+    setFcIllumStato(v);
+    if (v === 'Spento' || !v) { setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null); }
+    else if (!(ILLUM_MEZZO_BY_STATO[v] || []).includes(fcIllumMezzo)) { setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null); }
+  };
+  const onFcIllumMezzo = (v) => {
+    setFcIllumMezzo(v);
+    if (v !== 'Faretti') { setFcIllumNFaretti(null); setFcIllumWatt(null); }
+  };
+  const resetFaceForm = () => {
+    setFcTipo('Anteriore'); setFcSlot(null); setFcLat(''); setFcLng(''); setFcCoordLock(true);
+    setFcOrient(0); setFcCono(null); setFcFormL(null); setFcFormH(null);
+    setFcIllumStato(null); setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null);
+    setFcVendita(null); setFcPrezzo(null);
+  };
+  // Nuova faccia: eredita coordinate e illuminazione dall'impianto (logica dell'impianto)
+  // Coordinate ereditate dall'impianto finché il lucchetto è chiuso
+  const inheritFaceCoord = () => { setFcLat(lat || ''); setFcLng(lng || ''); };
+  const toggleFcCoordLock = () => {
+    setFcCoordLock(prev => {
+      const next = !prev;
+      if (next) inheritFaceCoord(); // ri-bloccando, reimposta le coordinate dell'impianto
+      return next;
+    });
+  };
+  const openNewFace = () => {
+    resetFaceForm();
+    setFaceEditId(null);
+    setFcCoordLock(true);
+    setFcLat(lat || ''); setFcLng(lng || '');
+    setFcIllumStato(illumStato); setFcIllumMezzo(illumMezzo);
+    setFcIllumNFaretti(illumNFaretti); setFcIllumWatt(illumWatt);
+    setFaceDrawerOpen(true);
+  };
+  const openEditFace = (f) => {
+    setFaceEditId(f.id);
+    const locked = f.coordLock !== false;
+    setFcCoordLock(locked);
+    setFcTipo(f.tipo); setFcSlot(f.slot);
+    setFcLat(locked ? (lat || '') : (f.lat || ''));
+    setFcLng(locked ? (lng || '') : (f.lng || ''));
+    setFcOrient(f.orient ?? 0); setFcCono(f.cono ?? null); setFcFormL(f.formL ?? null); setFcFormH(f.formH ?? null);
+    setFcIllumStato(f.illumStato); setFcIllumMezzo(f.illumMezzo);
+    setFcIllumNFaretti(f.illumNFaretti); setFcIllumWatt(f.illumWatt);
+    setFcVendita(f.vendita); setFcPrezzo(f.prezzo);
+    setFaceDrawerOpen(true);
+  };
+  const closeFaceDrawer = () => { setFaceDrawerOpen(false); setFaceEditId(null); };
+  const saveFace = () => {
+    if (!fcTipo) { antdMsg.warning('Seleziona il tipo di faccia'); return; }
+    const data = {
+      tipo: fcTipo, slot: fcSlot,
+      lat: fcCoordLock ? (lat || '') : fcLat, lng: fcCoordLock ? (lng || '') : fcLng, coordLock: fcCoordLock,
+      orient: fcOrient, cono: fcCono, formL: fcFormL, formH: fcFormH,
+      illumStato: fcIllumStato, illumMezzo: fcIllumMezzo, illumNFaretti: fcIllumNFaretti, illumWatt: fcIllumWatt,
+      vendita: fcVendita, prezzo: fcPrezzo,
+    };
+    if (faceEditId) {
+      setFacce(prev => prev.map(f => {
+        if (f.id === faceEditId) return { ...f, ...data };
+        // Modificando l'anteriore, ri-sincronizza i campi condivisi della posteriore collegata
+        if (f.pairOf === faceEditId) return { ...f, ...syncedFromAnteriore({ ...f, ...data }) };
+        return f;
+      }));
+      antdMsg.success('Faccia aggiornata');
+    } else {
+      setFacce(prev => [...prev, { id: 'face-' + (prev.length + 1) + '-' + prev.reduce((m, f) => Math.max(m, +String(f.id).split('-')[1] || 0), 0), ...data }]);
+      antdMsg.success('Faccia aggiunta');
+    }
+    closeFaceDrawer();
+  };
+  const removeFace = (id) => {
+    // Eliminando l'anteriore si elimina anche la posteriore collegata
+    setFacce(prev => prev.filter(f => f.id !== id && f.pairOf !== id));
+    antdMsg.success('Faccia rimossa');
+  };
+  // Faccia posteriore collegata: campi fisici condivisi, orientamento speculare (+180°)
+  const createPosteriore = (f) => {
+    if (facce.some(x => x.pairOf === f.id)) { antdMsg.warning('Questa faccia ha già una posteriore collegata'); return; }
+    setFacce(prev => [...prev, {
+      ...f, id: 'face-post-' + f.id, tipo: 'Posteriore', pairOf: f.id,
+      ...syncedFromAnteriore(f),
+    }]);
+    antdMsg.success('Faccia posteriore creata e collegata (speculare)');
+  };
+  const faceAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openNewFace }, 'Aggiungi Faccia');
+  // Stiamo modificando una posteriore collegata? In tal caso i campi fisici sono guidati dall'anteriore
+  const fcIsLinkedPost = !!(facce.find(f => f.id === faceEditId) || {}).pairOf;
+
+  // ── Dispositivi connessi — stessa UX delle facce (button + drawer + card)
+  const [dispositivi,    setDispositivi]    = useState([]);
+  const [devDrawerOpen,  setDevDrawerOpen]  = useState(false);
+  const [devEditId,      setDevEditId]      = useState(null);
+  const [dvNome,       setDvNome]       = useState('');
+  const [dvDesc,       setDvDesc]       = useState('');
+  const [dvTipo,       setDvTipo]       = useState(null);
+  const [dvMacPlayer,  setDvMacPlayer]  = useState([]);
+  const [dvMacSensor,  setDvMacSensor]  = useState([]);
+  const [dvPcSerial,   setDvPcSerial]   = useState([]);
+  const [dvTeamviewer, setDvTeamviewer] = useState([]);
+  const [dvAnydesk,    setDvAnydesk]    = useState([]);
+  const [dvTelefono,   setDvTelefono]   = useState([]);
+  const [dvIdSensore,  setDvIdSensore]  = useState([]);
+  const [dvStato,      setDvStato]      = useState('Connesso');
+  const resetDeviceForm = () => {
+    setDvNome(''); setDvDesc(''); setDvTipo(null);
+    setDvMacPlayer([]); setDvMacSensor([]); setDvPcSerial([]);
+    setDvTeamviewer([]); setDvAnydesk([]); setDvTelefono([]); setDvIdSensore([]);
+    setDvStato('Connesso');
+  };
+  const openNewDevice = () => { resetDeviceForm(); setDevEditId(null); setDevDrawerOpen(true); };
+  const openEditDevice = (d) => {
+    setDevEditId(d.id);
+    setDvNome(d.nome || ''); setDvDesc(d.desc || ''); setDvTipo(d.tipo || null);
+    setDvMacPlayer(d.macPlayer || []); setDvMacSensor(d.macSensor || []); setDvPcSerial(d.pcSerial || []);
+    setDvTeamviewer(d.teamviewer || []); setDvAnydesk(d.anydesk || []); setDvTelefono(d.telefono || []); setDvIdSensore(d.idSensore || []);
+    setDvStato(d.stato || 'Connesso');
+    setDevDrawerOpen(true);
+  };
+  const closeDeviceDrawer = () => { setDevDrawerOpen(false); setDevEditId(null); };
+  const saveDevice = () => {
+    if (!dvNome.trim()) { antdMsg.warning('Inserisci il nome del dispositivo'); return; }
+    const data = {
+      nome: dvNome, desc: dvDesc, tipo: dvTipo,
+      macPlayer: dvMacPlayer, macSensor: dvMacSensor, pcSerial: dvPcSerial,
+      teamviewer: dvTeamviewer, anydesk: dvAnydesk, telefono: dvTelefono, idSensore: dvIdSensore,
+      stato: dvStato,
+    };
+    if (devEditId) {
+      setDispositivi(prev => prev.map(d => d.id === devEditId ? { ...d, ...data } : d));
+      antdMsg.success('Dispositivo aggiornato');
+    } else {
+      setDispositivi(prev => [...prev, { id: 'dev-' + (prev.length + 1) + '-' + prev.length, ...data }]);
+      antdMsg.success('Dispositivo aggiunto');
+    }
+    closeDeviceDrawer();
+  };
+  const removeDevice = (id) => { setDispositivi(prev => prev.filter(d => d.id !== id)); antdMsg.success('Dispositivo rimosso'); };
+  const devAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openNewDevice }, 'Aggiungi Dispositivo');
 
   // ── Commerciale
   const [proprieta,      setProprieta]      = useState(null);
@@ -3088,6 +3417,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   // ── Progetto (ex Genio Civile)
   const [progetto,     setProgetto]     = useState('');
   const [numTavola,    setNumTavola]    = useState('');
+  const [progDittaCA,  setProgDittaCA]  = useState('');
+  const [progDataFine, setProgDataFine] = useState(null);
   const [dataCollaudo, setDataCollaudo] = useState(null);
   const [dataVerifica, setDataVerifica] = useState(null);
   const [respVerifica, setRespVerifica] = useState('');
@@ -3105,35 +3436,29 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   // ── Struttura
   const [tipoFond,       setTipoFond]       = useState(null);
   const [dimFond,        setDimFond]        = useState('');
-  const [dittaCemento,   setDittaCemento]   = useState('');
   const [dataLavoriFond, setDataLavoriFond] = useState(null);
   const [dataFineLav,    setDataFineLav]    = useState(null);
-  const [noteFond,       setNoteFond]       = useState('');
   const [tipoPali,       setTipoPali]       = useState(null);
   const [numPali,        setNumPali]        = useState(null);
   const [diametroPali,   setDiametroPali]   = useState('');
   const [altezzaPali,    setAltezzaPali]    = useState('');
+  const [interassePali,  setInterassePali]  = useState('');
   const [dittaPali,      setDittaPali]      = useState('');
   const [dataMontPali,   setDataMontPali]   = useState(null);
   const [numPunzPali,    setNumPunzPali]    = useState('');
-  const [notePali,       setNotePali]       = useState('');
   const [tipoCornice,    setTipoCornice]    = useState(null);
   const [dittaCornice,   setDittaCornice]   = useState('');
   const [dataMontCornice,setDataMontCornice]= useState(null);
-  const [noteCornice,    setNoteCornice]    = useState('');
   const [tipoPannelli,   setTipoPannelli]   = useState(null);
-  const [numPannelli,    setNumPannelli]    = useState(null);
-  const [dimPannelli,    setDimPannelli]    = useState('');
-  const [pesoPannelli,   setPesoPannelli]   = useState('');
   const [barreAntivento, setBarreAntivento] = useState(null);
   const [dittaPannelli,  setDittaPannelli]  = useState('');
   const [dataMontPann,   setDataMontPann]   = useState(null);
-  const [notePannelli,   setNotePannelli]   = useState('');
   const [numStaffeMuro,  setNumStaffeMuro]  = useState('');
+  const [dataCollStaffe, setDataCollStaffe] = useState(null);
   const [strutTerrazze,  setStrutTerrazze]  = useState(null);
+  const [dataMontTerrazze, setDataMontTerrazze] = useState(null);
   const [numPesiStrutt,  setNumPesiStrutt]  = useState(null);
   const [kgPesiCadauno,  setKgPesiCadauno]  = useState(null);
-  const [pesoTotale,     setPesoTotale]     = useState('');
 
   // ── Manutenzione
   const [dataMan,    setDataMan]    = useState(null);
@@ -3174,8 +3499,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     { id: 'identita',        label: 'Generali' },
     { id: 'dati-amministrativi',   label: 'Dati amministrativi' },
     { id: 'caratteristiche', label: 'Dati Tecnici' },
+    { id: 'struttura',       label: 'Cespiti e Dispositivi' },
     { id: 'commerciale',     label: 'Commerciale' },
-    { id: 'struttura',       label: 'Struttura' },
     { id: 'manutenzione',    label: 'Manutenzione' },
     { id: 'galleria',        label: 'Galleria' },
     { id: 'note',            label: 'Note' },
@@ -3198,21 +3523,22 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     canale, nome, tipologia, formato, moduli, dimModuli, stato,
     via, civico, cap, citta, provincia, regione, nazione, lat, lng,
     tipoSuolo, catSuolo, utenza, zona: zn,
-    largImp, altImp, tipoFaccia, slot, orientamento, conoVis,
-    altTerra, altTotale, illuminato, riparato,
+    largImp, altImp, profImp, altTerra, areaEspositiva, riparato, facce,
+    illuminato, illumStato, illumMezzo, illumNFaretti, illumWatt,
     proprieta, vendita,
     prezzoNetto, prezzoLordo, cimasa,
     squadraAff, codiceSquadra,
-    progetto, numTavola, dataCollaudo, dataVerifica, respVerifica,
+    progetto, numTavola, progDittaCA, progDataFine, dataCollaudo, dataVerifica, respVerifica,
     calcestruzzo, acciaioCarp, acciaioArm, tecnicheGc,
     progettista, ddl, rsc, collaudatore, laboratorio, geologo,
-    tipoFond, dimFond, dittaCemento, dataLavoriFond, dataFineLav, noteFond,
-    tipoPali, numPali, diametroPali, altezzaPali, dittaPali, dataMontPali, numPunzPali, notePali,
-    tipoCornice, dittaCornice, dataMontCornice, noteCornice,
-    tipoPannelli, numPannelli, dimPannelli, pesoPannelli, barreAntivento, dittaPannelli, dataMontPann, notePannelli,
-    numStaffeMuro, strutTerrazze, numPesiStrutt, kgPesiCadauno, pesoTotale,
+    tipoFond, dimFond, dataLavoriFond, dataFineLav,
+    tipoPali, numPali, diametroPali, altezzaPali, interassePali, dittaPali, dataMontPali, numPunzPali,
+    tipoCornice, dittaCornice, dataMontCornice,
+    tipoPannelli, barreAntivento, dittaPannelli, dataMontPann,
+    numStaffeMuro, dataCollStaffe, strutTerrazze, dataMontTerrazze, numPesiStrutt, kgPesiCadauno,
     dataMan, squadraMan, tipoMan, oggettoMan,
     noteVerifica,
+    dispositivi,
     concessioni: selConcessioni, autorizzazioni: selAutorizzazioni, permessi: addedPermits,
   });
 
@@ -3260,7 +3586,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
       if (!permitAuthKeys.length) { antdMsg.warning("Seleziona almeno un'autorizzazione"); return; }
       const newPerms = permitAuthKeys.map(k => {
         const a = AUTHORIZATIONS_DATA.find(x => x.key === k);
-        return a ? { id: k, permitType: 'autorizzazione', title: a.authorizationCategory, docId: a.protocolNumber, ente: a.issuingAuthority, scadenza: a.expirationDate, presentata: a.depositDate, collaudata: a.collaudoDate, state: a.status, isActive: a.isActive } : null;
+        return a ? { id: k, permitType: 'autorizzazione', title: a.authorizationCategory, docId: a.protocolNumber, ente: a.issuingAuthority, scadenza: a.expirationDate, presentata: a.depositDate || a.stipulationDate, collaudata: a.collaudoDate, state: a.status, isActive: a.isActive } : null;
       }).filter(Boolean);
       setAddedPermits(prev => [...prev.filter(p => !newPerms.some(n => n.id === p.id)), ...newPerms]);
       setSelAutorizzazioni(prev => [...new Set([...prev, ...permitAuthKeys])]);
@@ -3297,7 +3623,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
       if (u) { sg = g; su = u; break; }
     }
     if (!sg) return;
-    const np = { id: permitRowKey, permitType: 'concessione', title: sg.documentType, docId: sg.documentId, ente: sg.issuingAuthority, scadenza: su.expirationDate || sg.expirationDate, state: sg.status || 'Attiva', isActive: sg.isActive !== false };
+    const np = { id: permitRowKey, permitType: 'concessione', title: sg.documentType, docId: sg.documentId, tipo: sg.grantType, ente: sg.issuingAuthority, scadenza: su.expirationDate || sg.expirationDate, presentata: sg.issueDate, state: sg.status || 'Attiva', isActive: sg.isActive !== false };
     setAddedPermits(prev => [...prev.filter(p => p.permitType !== 'concessione'), np]);
     setSelConcessioni([sg.key]);
     setUtenza(su.utilityNumber);
@@ -3387,6 +3713,12 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const g2 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-2' }, ...f);
   const g3 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-3' }, ...f);
   const g4 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-4' }, ...f);
+  // Sotto-intestazione dentro un box (per raggruppare più sottosezioni in un'unica card)
+  const subH = (t, first) => React.createElement('div', {
+    style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.75)',
+      margin: first ? '0 0 14px' : '24px 0 14px',
+      paddingTop: first ? 0 : 18, borderTop: first ? 'none' : '1px solid #F0F0F0' },
+  }, t);
 
   // Field helpers
   const inp = (val, set, ph='—', extra={}) =>
@@ -3401,6 +3733,12 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     React.createElement('div', { style: { paddingTop: 5 } },
       React.createElement(Switch, { checked: val, onChange: set, checkedChildren: 'Sì', unCheckedChildren: 'No' }),
     );
+  // Input multi-valore: digita e premi Invio (o virgola) per aggiungere più ID / numeri
+  const tagsInput = (val, set, ph='Aggiungi e premi Invio') =>
+    React.createElement(Select, {
+      mode: 'tags', value: val || [], onChange: set, style: { width: '100%' },
+      placeholder: ph, open: false, suffixIcon: null, tokenSeparators: [','],
+    });
 
   const viaAutocomplete = React.createElement(AutoComplete, {
     style: { width: '100%' }, value: via,
@@ -3566,7 +3904,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               ? React.createElement(Row, { gutter: [16, 16] },
                   addedPermits.map(p => React.createElement(Col, { span: 12, key: p.id },
                     React.createElement(FormPermitCard, {
-                      permitType: p.permitType, title: p.title, docId: p.docId,
+                      permitType: p.permitType, title: p.title, docId: p.docId, tipo: p.tipo,
                       ente: p.ente, scadenza: p.scadenza, presentata: p.presentata, collaudata: p.collaudata,
                       state: p.state, isActive: p.isActive,
                       onReplace: () => {
@@ -3648,11 +3986,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               ),
             ),
             g3(
-              cs('Progetto', false, inp(progetto, setProgetto, 'Es. 1305')),
-              cs('N. tavola cartografica', false, inp(numTavola, setNumTavola, 'Es. TAV-07/A')),
               cs('Progettista', false,
                 sel(progettista || undefined, setProgettista, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })
               ),
+              cs('Progetto', false, inp(progetto, setProgetto, 'Es. 1305')),
+              cs('N. tavola cartografica', false, inp(numTavola, setNumTavola, 'Es. TAV-07/A')),
             ),
             g3(
               cs('D.D.L. (Direttore dei Lavori)', false,
@@ -3673,6 +4011,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               cs('Calcestruzzo',       false, inp(calcestruzzo, setCalcestruzzo, 'Es. RCK > 25 MPA')),
               cs('Acciaio carpenteria',false, inp(acciaioCarp,  setAcciaioCarp,  'Es. FE 360 B')),
               cs('Acciaio armature',   false, inp(acciaioArm,   setAcciaioArm,   'Es. FEB 44 K')),
+            ),
+            g3(
+              cs('Ditta cemento armato', false, inp(progDittaCA, setProgDittaCA, '—')),
+              cs('Data fine lavori',     false, dp(progDataFine, setProgDataFine)),
+              React.createElement('div'),
             ),
             cs('Tecniche utilizzate', false,
               React.createElement(Input.TextArea, {
@@ -3700,27 +4043,62 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 
         // ── 3. Caratteristiche
         sec('caratteristiche', 'Dati Tecnici', 'Specifiche fisiche e strutturali del pannello espositivo.',
-          box('Dimensioni pannello', 'Misure fisiche del pannello: larghezza, altezza, moduli e dimensioni.',
+          box('Dimensioni ed esposizione', 'Misure e ingombro dell\'impianto, esposizione del sito e area espositiva (calcolata da larghezza × altezza).',
             g4(
-              cs('Larghezza (cm)', false, num(largImp,   setLargImp,   { min: 0 })),
-              cs('Altezza (cm)',   false, num(altImp,    setAltImp,    { min: 0 })),
-              cs('Moduli',         false, num(moduli,    setModuli,    { min: 1 })),
-              cs('Dim. moduli',    false, inp(dimModuli, setDimModuli, 'Es. 120×180 cm')),
+              cs('Larghezza (cm)',  false, num(largImp, setLargImp, { min: 0 })),
+              cs('Altezza (cm)',    false, num(altImp,  setAltImp,  { min: 0 })),
+              cs('Profondità (cm)', false, num(profImp, setProfImp, { min: 0 })),
+              cs('Alt. da terra (cm)', false, num(altTerra, setAltTerra, { min: 0 })),
+            ),
+            g4(
+              cs('Numero moduli',            false, num(moduli,    setModuli,    { min: 1 })),
+              cs('Dimensione singolo modulo',false, inp(dimModuli, setDimModuli, 'Es. 120×180 cm')),
+              cs('Area espositiva', false,
+                React.createElement(InputNumber, {
+                  value: areaEspositiva, disabled: true, precision: 2,
+                  style: { width: '100%' }, addonAfter: 'm²',
+                  placeholder: 'Auto',
+                })),
+              cs('Esposizione', false, sel(riparato, setRiparato, RIPARATO_OPTS)),
             ),
           ),
-          box('Esposizione e visibilità', 'Orientamento, cono di visibilità e condizioni ambientali del sito.',
-            g4(
-              cs('Tipo faccia',    false, sel(tipoFaccia,   setTipoFaccia,   TIPO_FACCIA_OPTS)),
-              cs('Slot',           false, num(slot,          setSlot,          { min: 1 })),
-              cs('Orientamento',   false, sel(orientamento,  setOrientamento,  ORIENTAMENTO_OPTS)),
-              cs('Cono visibilità',false, inp(conoVis,       setConoVis,       'Es. 180°')),
+          box('Illuminazione', 'Stato dell\'illuminazione e, se presente, il mezzo utilizzato.',
+            (illumMezzo === 'Faretti' ? g4 : g2)(
+              cs('Stato illuminazione', false,
+                sel(illumStato, onIllumStato, ILLUM_STATO_OPTS, 'Seleziona')),
+              cs('Mezzo di illuminazione', false,
+                sel(illumMezzo, onIllumMezzo,
+                  (ILLUM_MEZZO_BY_STATO[illumStato] || []).map(v => ({ value: v, label: v })),
+                  illuminato ? 'Seleziona' : '—',
+                  { disabled: !illuminato })),
+              ...(illumMezzo === 'Faretti' ? [
+                cs('Numero faretti', false, num(illumNFaretti, setIllumNFaretti, { min: 0 })),
+                cs('Watt per faretto', false, num(illumWatt, setIllumWatt, { min: 0, addonAfter: 'W' })),
+              ] : []),
             ),
-            g4(
-              cs('Alt. da terra (cm)', false, num(altTerra,  setAltTerra,  { min: 0 })),
-              cs('Alt. totale (cm)',   false, num(altTotale, setAltTotale, { min: 0 })),
-              cs('Esposizione',        false, sel(riparato,  setRiparato,  RIPARATO_OPTS)),
-              cs('Illuminato',         false, sw(illuminato, setIlluminato)),
-            ),
+          ),
+          boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+              'Facce',
+              facce.length > 0 ? React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: '#3E00FB', background: '#F0EBFF', borderRadius: 10, padding: '1px 9px', lineHeight: '18px' } }, facce.length) : null,
+            ), 'Numero e caratteristiche delle facce espositive. Per ogni faccia anteriore puoi creare la posteriore corrispondente (speculare).',
+            facce.length > 0 ? faceAddBtn : null,
+            facce.length > 0
+              ? React.createElement(Row, { gutter: [16, 16] },
+                  facce.map((f, i) => {
+                    const hasPost = facce.some(x => x.pairOf === f.id);
+                    return React.createElement(Col, { span: 12, key: f.id },
+                      React.createElement(FormFaceCard, {
+                        index: i + 1, face: { ...f, _hasPosteriore: hasPost },
+                        onEdit: () => openEditFace(f),
+                        onRemove: () => removeFace(f.id),
+                        onCreatePosteriore: (f.tipo === 'Anteriore' && !hasPost) ? () => createPosteriore(f) : null,
+                      }),
+                    );
+                  }),
+                )
+              : React.createElement(Empty, { description: "Aggiungi le facce espositive dell'impianto", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+                  faceAddBtn,
+                ),
           ),
         ),
 
@@ -3745,64 +4123,78 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
           ),
         ),
 
-        // ── 7. Struttura
-        sec('struttura', 'Struttura', 'Fondazioni, pali, cornice, pannelli e componenti strutturali dell\'impianto.',
-          box('Fondazioni', 'Tipo di fondazione, dimensioni e dati relativi alla posa in opera.',
-            g3(
-              cs('Tipo fondazione',      false, sel(tipoFond,    setTipoFond,    TIPO_FONDAZIONE_OPTS)),
-              cs('Dimensione fondazione',false, inp(dimFond,      setDimFond,     'Es. 5,50 × 3,20 × 0,80 m')),
-              cs('Ditta cemento',        false, inp(dittaCemento, setDittaCemento,'—')),
+        // ── 7. Cespiti e Dispositivi
+        sec('struttura', 'Cespiti e Dispositivi', 'Componenti strutturali (cespiti) e dispositivi connessi installati sull\'impianto.',
+          box('Cespiti', 'Fondazioni, pali, cornice, pannelli ed elementi strutturali dell\'impianto.',
+            subH('Fondazioni', true),
+            g4(
+              cs('Tipo fondazione',      false, sel(tipoFond, setTipoFond, TIPO_FONDAZIONE_OPTS)),
+              cs('Dimensione fondazione',false, inp(dimFond,   setDimFond,   'Es. 5,50 × 3,20 × 0,80 m')),
+              cs('Data inizio lavori',   false, dp(dataLavoriFond, setDataLavoriFond)),
+              cs('Data fine lavori',     false, dp(dataFineLav,    setDataFineLav)),
             ),
-            g2(
-              cs('Data inizio lavori', false, dp(dataLavoriFond, setDataLavoriFond)),
-              cs('Data fine lavori',   false, dp(dataFineLav,    setDataFineLav)),
-            ),
-            cs('Note', false, inp(noteFond, setNoteFond, '—')),
-          ),
-          box('Pali', 'Caratteristiche strutturali dei pali di sostegno e dati di montaggio.',
+
+            subH('Pali'),
             g4(
               cs('Tipo pali',     false, sel(tipoPali,     setTipoPali,     TIPO_PALI_OPTS)),
               cs('Numero pali',   false, num(numPali,      setNumPali,      { min: 0 })),
               cs('Diametro (mm)', false, inp(diametroPali, setDiametroPali, '—')),
               cs('Altezza (cm)',  false, inp(altezzaPali,  setAltezzaPali,  '—')),
             ),
-            g3(
-              cs('Ditta pali',          false, inp(dittaPali,   setDittaPali,   '—')),
-              cs('Data montaggio',      false, dp(dataMontPali, setDataMontPali)),
-              cs('N. punzonatura pali', false, inp(numPunzPali, setNumPunzPali, 'Es. 013201 - 014001')),
-            ),
-            cs('Note pali', false, inp(notePali, setNotePali, '—')),
-          ),
-          box('Cornice', 'Telaio perimetrale del pannello espositivo e dati di montaggio.',
-            g3(
-              cs('Tipo cornice',   false, sel(tipoCornice,    setTipoCornice,    TIPO_CORNICE_OPTS)),
-              cs('Ditta cornice',  false, inp(dittaCornice,   setDittaCornice,   '—')),
-              cs('Data montaggio', false, dp(dataMontCornice, setDataMontCornice)),
-            ),
-            cs('Note cornice', false, inp(noteCornice, setNoteCornice, '—')),
-          ),
-          box('Pannelli', 'Pannelli espositivi: tipo, numero, dimensioni e peso complessivo.',
             g4(
-              cs('Tipo pannelli', false, sel(tipoPannelli, setTipoPannelli, TIPO_PANNELLI_OPTS)),
-              cs('Numero',        false, num(numPannelli,  setNumPannelli,  { min: 0 })),
-              cs('Dimensioni',    false, inp(dimPannelli,  setDimPannelli,  'Es. 120×180 cm')),
-              cs('Peso (kg)',      false, inp(pesoPannelli, setPesoPannelli, '—')),
+              cs('Interasse',                false, inp(interassePali, setInterassePali, 'Es. 250 cm')),
+              cs('N. punzonatura pali',      false, inp(numPunzPali,   setNumPunzPali,   'Es. 013201 - 014001')),
+              cs('Ditta collocazione pali',  false, inp(dittaPali,     setDittaPali,     '—')),
+              cs('Data montaggio',           false, dp(dataMontPali,   setDataMontPali)),
+            ),
+
+            subH('Cornice'),
+            g4(
+              cs('Tipo cornice',             false, sel(tipoCornice,    setTipoCornice,    TIPO_CORNICE_OPTS)),
+              cs('Ditta collocazione cornice',false, inp(dittaCornice,  setDittaCornice,   '—')),
+              cs('Data montaggio',           false, dp(dataMontCornice, setDataMontCornice)),
+              React.createElement('div'),
+            ),
+
+            subH('Pannelli'),
+            g4(
+              cs('Tipo pannelli',           false, sel(tipoPannelli, setTipoPannelli, TIPO_PANNELLI_OPTS)),
+              cs('Numero barre antivento',  false, num(barreAntivento, setBarreAntivento, { min: 0 })),
+              cs('Ditta montaggio pannelli',false, inp(dittaPannelli,  setDittaPannelli,  '—')),
+              cs('Data montaggio',          false, dp(dataMontPann, setDataMontPann)),
+            ),
+
+            subH('Extra struttura'),
+            g4(
+              cs('N. staffe muro',          false, inp(numStaffeMuro, setNumStaffeMuro, 'Es. 12 tassellate + 4')),
+              cs('Data collocazione staffe',false, dp(dataCollStaffe, setDataCollStaffe)),
+              cs('Strutture terrazze',      false, sel(strutTerrazze, setStrutTerrazze, STRUT_TERRAZZE_OPTS)),
+              cs('Data montaggio terrazze', false, dp(dataMontTerrazze, setDataMontTerrazze)),
             ),
             g4(
-              cs('Barre antivento', false, num(barreAntivento, setBarreAntivento, { min: 0 })),
-              cs('Ditta pannelli',  false, inp(dittaPannelli,  setDittaPannelli,  '—')),
-              cs('Data montaggio',  false, dp(dataMontPann,    setDataMontPann)),
-              cs('Peso totale (kg)',false, inp(pesoTotale,     setPesoTotale,     '—')),
-            ),
-            cs('Note pannelli', false, inp(notePannelli, setNotePannelli, '—')),
-          ),
-          box('Extra struttura', 'Elementi aggiuntivi: staffe, terrazze e pesi strutturali.',
-            g4(
-              cs('N. staffe muro',     false, inp(numStaffeMuro, setNumStaffeMuro, 'Es. 12 tassellate + 4')),
-              cs('Strutture terrazze', false, num(strutTerrazze, setStrutTerrazze, { min: 0 })),
               cs('N. pesi struttura',  false, num(numPesiStrutt, setNumPesiStrutt, { min: 0 })),
               cs('Kg pesi cadauno',    false, num(kgPesiCadauno, setKgPesiCadauno, { min: 0 })),
+              React.createElement('div'), React.createElement('div'),
             ),
+          ),
+          boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+              'Dispositivi',
+              dispositivi.length > 0 ? React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: '#3E00FB', background: '#F0EBFF', borderRadius: 10, padding: '1px 9px', lineHeight: '18px' } }, dispositivi.length) : null,
+            ), 'Dispositivi connessi installati sull\'impianto (player, modem, sensori, schermi…).',
+            dispositivi.length > 0 ? devAddBtn : null,
+            dispositivi.length > 0
+              ? React.createElement(Row, { gutter: [16, 16] },
+                  dispositivi.map(d => React.createElement(Col, { span: 12, key: d.id },
+                    React.createElement(FormDeviceCard, {
+                      device: d,
+                      onEdit: () => openEditDevice(d),
+                      onRemove: () => removeDevice(d.id),
+                    }),
+                  )),
+                )
+              : React.createElement(Empty, { description: "Aggiungi un dispositivo connesso all'impianto", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+                  devAddBtn,
+                ),
           ),
         ),
 
@@ -3878,6 +4270,115 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
             onRemove: (id) => setPermitSciaUploads(prev => ({ ...prev, [id]: null })),
           })
         : React.createElement(AuthorizationsList, { data: AUTHORIZATIONS_DATA, selectedKeys: permitAuthKeys, onSelectionChange: setPermitAuthKeys }),
+    ),
+
+    // Face creation drawer — creazione/modifica della singola faccia
+    React.createElement(Drawer, {
+      title: faceEditId ? 'Modifica Faccia' : 'Aggiungi Faccia',
+      placement: 'right', width: 720,
+      styles: { body: { padding: 24 } },
+      onClose: closeFaceDrawer, open: faceDrawerOpen,
+      extra: React.createElement(Space, null,
+        React.createElement(Button, { onClick: closeFaceDrawer }, 'Annulla'),
+        React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: saveFace }, faceEditId ? 'Salva' : 'Aggiungi'),
+      ),
+    },
+      fcIsLinkedPost ? React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginBottom: 16, background: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
+        React.createElement(InfoCircleOutlined, { style: { fontSize: 14, color: '#3E00FB', marginTop: 2 } }),
+        React.createElement('span', null, 'Faccia posteriore collegata: posizione, dimensioni, slot e orientamento sono guidati dalla faccia anteriore. Qui puoi modificare illuminazione, modello di vendita e prezzo.'),
+      ) : null,
+      g2(
+        cs('Tipo faccia', true,
+          React.createElement(Segmented, { block: true, value: fcTipo, onChange: setFcTipo, disabled: fcIsLinkedPost,
+            options: [{ label: 'Anteriore', value: 'Anteriore' }, { label: 'Posteriore', value: 'Posteriore' }] })),
+        cs('Numero slot', false, num(fcSlot, setFcSlot, { min: 1, disabled: fcIsLinkedPost })),
+      ),
+      cs(fcCoordLock ? 'Coordinate (ereditate dall\'impianto)' : 'Coordinate', false,
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+          React.createElement(Input, { value: fcLat, onChange: e => setFcLat(e.target.value), placeholder: 'Latitudine', disabled: fcCoordLock || fcIsLinkedPost, style: { flex: 1 } }),
+          React.createElement(Input, { value: fcLng, onChange: e => setFcLng(e.target.value), placeholder: 'Longitudine', disabled: fcCoordLock || fcIsLinkedPost, style: { flex: 1 } }),
+          React.createElement(Tooltip, { title: fcCoordLock ? 'Coordinate ereditate dall\'impianto — sblocca per modificarle' : 'Blocca e reimposta le coordinate dell\'impianto' },
+            React.createElement(Button, {
+              icon: React.createElement(fcCoordLock ? LockOutlined : UnlockOutlined),
+              type: fcCoordLock ? 'primary' : 'default', disabled: fcIsLinkedPost,
+              onClick: toggleFcCoordLock,
+            })),
+        )),
+      cs('Orientamento — ' + (fcOrient || 0) + '°' + (fcIsLinkedPost ? ' (speculare all\'anteriore)' : ''), false,
+        React.createElement('div', { style: { padding: '0 8px' } },
+          React.createElement(Slider, {
+            min: 0, max: 360, value: fcOrient || 0, onChange: setFcOrient, disabled: fcIsLinkedPost,
+            marks: { 0: '0', 90: '90', 180: '180', 270: '270', 360: '360' },
+            tooltip: { formatter: v => v + '°' },
+          }))),
+      g2(
+        cs('Cono di visibilità', false,
+          React.createElement(InputNumber, { value: fcCono, onChange: setFcCono, min: 0, disabled: fcIsLinkedPost, addonBefore: 'r', addonAfter: 'cm', placeholder: '0', style: { width: '100%' } })),
+        cs('Formato', false,
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            React.createElement(InputNumber, { value: fcFormL, onChange: setFcFormL, min: 0, disabled: fcIsLinkedPost, addonAfter: 'cm', placeholder: 'l', style: { flex: 1 } }),
+            React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)' } }, '×'),
+            React.createElement(InputNumber, { value: fcFormH, onChange: setFcFormH, min: 0, disabled: fcIsLinkedPost, addonAfter: 'cm', placeholder: 'h', style: { flex: 1 } }),
+          )),
+      ),
+      React.createElement('div', { className: 'ni-section-title', style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '8px 0 12px' } }, 'Illuminazione'),
+      cs('Stato illuminazione', false,
+        React.createElement(Segmented, { block: true, value: fcIllumStato || 'Spento', onChange: onFcIllumStato,
+          options: [{ label: 'Spento', value: 'Spento' }, { label: 'Illuminato', value: 'Illuminato' }, { label: 'Luminoso', value: 'Luminoso' }] })),
+      (fcIllumStato && fcIllumStato !== 'Spento') ? g2(
+        cs('Mezzo di illuminazione', false,
+          sel(fcIllumMezzo, onFcIllumMezzo,
+            (ILLUM_MEZZO_BY_STATO[fcIllumStato] || []).map(v => ({ value: v, label: v })), 'Seleziona')),
+        React.createElement('div'),
+      ) : null,
+      fcIllumMezzo === 'Faretti' ? g2(
+        cs('Numero faretti', false, num(fcIllumNFaretti, setFcIllumNFaretti, { min: 0 })),
+        cs('Watt per faretto', false, num(fcIllumWatt, setFcIllumWatt, { min: 0, addonAfter: 'W' })),
+      ) : null,
+      React.createElement('div', { className: 'ni-section-title', style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '8px 0 12px' } }, 'Commerciale'),
+      g2(
+        cs('Modello di vendita', false,
+          React.createElement(Segmented, { block: true, value: fcVendita || 'Standard', onChange: setFcVendita,
+            options: [{ label: 'Standard', value: 'Standard' }, { label: 'Long term', value: 'Long term' }] })),
+        cs('Prezzo faccia (€)', false, num(fcPrezzo, setFcPrezzo, { min: 0, precision: 2 })),
+      ),
+    ),
+
+    // Device drawer — creazione/modifica del singolo dispositivo connesso
+    React.createElement(Drawer, {
+      title: devEditId ? 'Modifica Dispositivo' : 'Aggiungi Dispositivo',
+      placement: 'right', width: 600,
+      styles: { body: { padding: 24 } },
+      onClose: closeDeviceDrawer, open: devDrawerOpen,
+      extra: React.createElement(Space, null,
+        React.createElement(Button, { onClick: closeDeviceDrawer }, 'Annulla'),
+        React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: saveDevice }, devEditId ? 'Salva' : 'Aggiungi'),
+      ),
+    },
+      g2(
+        cs('Nome dispositivo', true, inp(dvNome, setDvNome, 'Es. Player faccia A')),
+        cs('Tipo dispositivo', false, sel(dvTipo, setDvTipo, DEVICE_TIPO_OPTS, 'Seleziona')),
+      ),
+      cs('Descrizione breve', false,
+        React.createElement(Input.TextArea, { value: dvDesc, onChange: e => setDvDesc(e.target.value), placeholder: 'Breve descrizione del dispositivo', autoSize: { minRows: 2, maxRows: 3 } })),
+      cs('Stato', false,
+        React.createElement(Segmented, { block: true, value: dvStato || 'Connesso', onChange: setDvStato,
+          options: [{ label: 'Connesso', value: 'Connesso' }, { label: 'Disconnesso', value: 'Disconnesso' }, { label: 'Manutenzione', value: 'In manutenzione' }] })),
+      React.createElement('div', { className: 'ni-section-title', style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '8px 0 12px' } }, 'Identificativi e connettività'),
+      React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 14, marginTop: -4 } }, 'Ogni campo accetta più valori: digita e premi Invio (o virgola) per aggiungerne più di uno.'),
+      g2(
+        cs('MAC address player',  false, tagsInput(dvMacPlayer, setDvMacPlayer, 'Es. 00:1B:44:11:3A:B7')),
+        cs('MAC address sensore', false, tagsInput(dvMacSensor, setDvMacSensor, 'Es. 00:1B:44:11:3A:C2')),
+      ),
+      g2(
+        cs('Numero di serie PC', false, tagsInput(dvPcSerial, setDvPcSerial, 'Es. SN-204813')),
+        cs('ID sensore',         false, tagsInput(dvIdSensore, setDvIdSensore, 'Es. SENS-0012')),
+      ),
+      g2(
+        cs('ID TeamViewer', false, tagsInput(dvTeamviewer, setDvTeamviewer, 'Es. 1 234 567 890')),
+        cs('ID AnyDesk',    false, tagsInput(dvAnydesk, setDvAnydesk, 'Es. 123 456 789')),
+      ),
+      cs('Numero di telefono', false, tagsInput(dvTelefono, setDvTelefono, 'Es. +39 333 1234567')),
     )
   );
 }
