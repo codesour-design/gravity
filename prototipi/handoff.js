@@ -1,14 +1,16 @@
 /**
- * Gravity Handoff Engine v5 — Spotlight custom
- * Tour completamente blindato: overlay full-screen, spotlight sul target,
- * scroll bloccato, solo il balloon è interagibile.
+ * Gravity Handoff Engine v6 — Controlli in navbar + Inspector componenti
+ *
+ * - Niente più FAB: i controlli vivono nella navbar accanto alla campanella.
+ *   · Switch con icona dev → attiva l'inspector: in hover su ogni componente
+ *     mostra nome, livello atomico, funzione e variante Figma.
+ *   · Icona user story → dropdown con i tour (motore spotlight invariato).
  *
  * Configurazione in handoff-steps.js:
- *   window.HANDOFF_META    — { title, version, date, author }
- *   window.HANDOFF_SCREENS — { key: { label, detect: fn } }
- *   window.HANDOFF_TOURS   — [{ id, title, description, roles?, startScreen?,
- *                               novita?, steps: [{ title, description,
- *                               selector?, placement?, mask?, onEnter?, delay? }] }]
+ *   window.HANDOFF_META       — { title, version, date, author }
+ *   window.HANDOFF_SCREENS    — { key: { label, detect: fn } }
+ *   window.HANDOFF_TOURS      — [{ id, title, description, roles?, startScreen?, novita?, steps: [...] }]
+ *   window.HANDOFF_COMPONENTS — [{ selector, name, level, custom?, funzione, figma, variant?(el) }]
  */
 (function () {
   if (!window.HANDOFF_TOURS || !window.HANDOFF_TOURS.length) return;
@@ -19,9 +21,10 @@
   var useRef      = React.useRef;
   var useMemo     = React.useMemo;
 
-  var ALL_TOURS = window.HANDOFF_TOURS;
-  var SCREENS   = window.HANDOFF_SCREENS || null;
-  var META      = window.HANDOFF_META || {};
+  var ALL_TOURS  = window.HANDOFF_TOURS;
+  var SCREENS    = window.HANDOFF_SCREENS || null;
+  var META       = window.HANDOFF_META || {};
+  var COMPONENTS = window.HANDOFF_COMPONENTS || [];
 
   var ROLE_COLOR = {
     'Tenant Admin':       'purple',
@@ -32,6 +35,7 @@
     'Inventory Manager':  'cyan',
   };
   var FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
+  var MONO = '"SF Mono","Fira Code",monospace';
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -58,6 +62,207 @@
 
   function filterTours(role) {
     return ALL_TOURS.filter(function(t) { return !t.roles || t.roles.indexOf(role) !== -1; });
+  }
+
+  // ── Rilevamento variante AntD generico (da classi DOM) ────────────────────
+
+  function detectVariant(el) {
+    var c = el.classList;
+    if (c.contains('ant-btn')) {
+      var type = c.contains('ant-btn-primary') ? 'Primary'
+               : c.contains('ant-btn-dashed')  ? 'Dashed'
+               : c.contains('ant-btn-text')    ? 'Text'
+               : c.contains('ant-btn-link')    ? 'Link' : 'Default';
+      var size = c.contains('ant-btn-sm') ? 'Small' : c.contains('ant-btn-lg') ? 'Large' : 'Default';
+      var parts = ['Type=' + type, 'Size=' + size];
+      if (c.contains('ant-btn-dangerous')) parts.push('Danger=True');
+      if (c.contains('ant-btn-icon-only')) parts.push('Content=Icon Only');
+      else if (el.querySelector('.anticon')) parts.push('Content=Icon');
+      if (el.disabled) parts.push('State=Disabled');
+      return parts.join(' · ');
+    }
+    if (c.contains('ant-select')) {
+      var parts2 = ['Size=' + (c.contains('ant-select-sm') ? 'Small' : c.contains('ant-select-lg') ? 'Large' : 'Default')];
+      if (c.contains('ant-select-multiple')) parts2.push('Mode=Multiple');
+      if (c.contains('ant-select-disabled')) parts2.push('State=Disabled');
+      else if (c.contains('ant-select-open')) parts2.push('State=Open');
+      return parts2.join(' · ');
+    }
+    if (c.contains('ant-input-affix-wrapper') || c.contains('ant-input')) {
+      var size3 = (c.contains('ant-input-affix-wrapper-lg') || c.contains('ant-input-lg')) ? 'Large'
+                : (c.contains('ant-input-affix-wrapper-sm') || c.contains('ant-input-sm')) ? 'Small' : 'Default';
+      var p3 = ['Size=' + size3];
+      if (el.querySelector('.ant-input-prefix')) p3.push('Prefix=True');
+      if (el.querySelector('.ant-input-suffix')) p3.push('Suffix=True');
+      return p3.join(' · ');
+    }
+    if (c.contains('ant-picker')) {
+      return (c.contains('ant-picker-range') ? 'Range' : 'Single')
+        + (c.contains('ant-picker-disabled') ? ' · State=Disabled' : '');
+    }
+    if (c.contains('ant-checkbox-wrapper')) {
+      var box = el.querySelector('.ant-checkbox');
+      if (!box) return null;
+      return box.classList.contains('ant-checkbox-indeterminate') ? 'State=Indeterminate'
+           : box.classList.contains('ant-checkbox-checked') ? 'State=Checked'
+           : box.classList.contains('ant-checkbox-disabled') ? 'State=Disabled' : 'State=Default';
+    }
+    if (c.contains('ant-switch')) {
+      return 'Size=' + (c.contains('ant-switch-small') ? 'Small' : 'Default')
+        + ' · Checked=' + (c.contains('ant-switch-checked') ? 'True' : 'False');
+    }
+    if (c.contains('ant-tag')) {
+      return el.querySelector('.anticon-close') ? 'Closable=True' : null;
+    }
+    if (c.contains('ant-progress')) {
+      return 'Type=Line · ShowInfo=False';
+    }
+    if (c.contains('ant-alert')) {
+      return 'Type=' + (c.contains('ant-alert-success') ? 'Success' : c.contains('ant-alert-warning') ? 'Warning' : c.contains('ant-alert-error') ? 'Error' : 'Info')
+        + (el.querySelector('.ant-alert-description') ? ' · Description=True' : '');
+    }
+    if (c.contains('ant-form-item')) {
+      var lbl = el.querySelector('.ant-form-item-label label');
+      return 'Layout=Vertical' + (lbl ? ' · Label="' + lbl.textContent + '"' : '');
+    }
+    if (c.contains('ant-avatar')) {
+      return 'Shape=Circle · Type=' + (el.querySelector('img') ? 'Image' : 'Text');
+    }
+    return null;
+  }
+
+  // ── DevInspector ──────────────────────────────────────────────────────────
+  // Hover su un componente registrato → highlight + card informativa.
+
+  function levelColor(level) {
+    return level === 'Atomo'     ? '#52C41A'
+         : level === 'Molecola'  ? '#1677FF'
+         : level === 'Organismo' ? '#722ED1'
+         : '#8C8C8C';
+  }
+
+  function DevInspector() {
+    var _t = useState(null); var target = _t[0]; var setTarget = _t[1];
+
+    useEffect(function () {
+      function onMove(e) {
+        var node = e.target;
+        if (!(node instanceof Element)) return;
+        // ignora la UI dell'handoff stessa
+        if (node.closest('#gravity-handoff-root') || node.closest('#ghf-nav-slot') ||
+            node.closest('.ghf-us-panel') || node.closest('.ant-tooltip')) return;
+        var best = null;
+        var bestDepth = -1;
+        for (var i = 0; i < COMPONENTS.length; i++) {
+          var entry = COMPONENTS[i];
+          var el;
+          try { el = node.closest(entry.selector); } catch (err) { el = null; }
+          if (!el) continue;
+          var depth = 0; var p = el;
+          while (p) { depth++; p = p.parentElement; }
+          if (depth > bestDepth) { bestDepth = depth; best = { entry: entry, el: el }; }
+        }
+        if (!best) { setTarget(null); return; }
+        setTarget(function (prev) {
+          if (prev && prev.el === best.el && prev.entry === best.entry) return prev;
+          return best;
+        });
+      }
+      function onLeave() { setTarget(null); }
+      document.addEventListener('mouseover', onMove, true);
+      document.addEventListener('mouseleave', onLeave);
+      window.addEventListener('scroll', onLeave, true);
+      return function () {
+        document.removeEventListener('mouseover', onMove, true);
+        document.removeEventListener('mouseleave', onLeave);
+        window.removeEventListener('scroll', onLeave, true);
+      };
+    }, []);
+
+    if (!target || !target.el.isConnected) return null;
+
+    var entry = target.entry;
+    var rect  = target.el.getBoundingClientRect();
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+
+    // variante: custom della entry oppure rilevata dalle classi
+    var variant = null;
+    try {
+      variant = typeof entry.variant === 'function' ? entry.variant(target.el)
+              : entry.variant || detectVariant(target.el);
+    } catch (e) {}
+
+    // card sotto al componente, sopra se non c'è spazio
+    var CARD_W = 320;
+    var cardLeft = Math.max(8, Math.min(rect.left, vw - CARD_W - 8));
+    var below = rect.bottom + 170 < vh;
+    var cardStyle = {
+      position: 'fixed',
+      left: cardLeft,
+      top: below ? rect.bottom + 8 : undefined,
+      bottom: below ? undefined : (vh - rect.top + 8),
+      width: CARD_W,
+      background: '#101010',
+      borderRadius: 10,
+      padding: '12px 14px',
+      zIndex: 9600,
+      pointerEvents: 'none',
+      fontFamily: FONT,
+      boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
+    };
+
+    return h(React.Fragment, null,
+      // highlight
+      h('div', {
+        style: {
+          position: 'fixed',
+          left: rect.left - 3, top: rect.top - 3,
+          width: rect.width + 6, height: rect.height + 6,
+          border: '2px solid #3E00FB',
+          background: 'rgba(62,0,251,0.05)',
+          borderRadius: 6,
+          zIndex: 9590,
+          pointerEvents: 'none',
+        },
+      }),
+      // card info
+      h('div', { className: 'ghf-inspector-card', style: cardStyle },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' } },
+          h('span', { style: { fontSize: 13, fontWeight: 700, color: '#fff' } }, entry.name),
+          h('span', {
+            style: {
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase',
+              color: levelColor(entry.level), border: '1px solid ' + levelColor(entry.level),
+              borderRadius: 4, padding: '1px 6px',
+            },
+          }, entry.level || 'Atomo'),
+          entry.custom ? h('span', {
+            style: {
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.6px',
+              background: '#FF4A1C', color: '#fff', borderRadius: 4, padding: '2px 6px',
+            },
+          }, 'CUSTOM') : null
+        ),
+        entry.funzione ? h('div', {
+          style: { fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, marginBottom: 8 },
+        }, entry.funzione) : null,
+        h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
+          entry.figma ? h('div', { style: { fontSize: 11, fontFamily: MONO } },
+            h('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'figma  '),
+            h('span', { style: { color: '#9CDCFE' } }, entry.figma)
+          ) : null,
+          variant ? h('div', { style: { fontSize: 11, fontFamily: MONO } },
+            h('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'variante  '),
+            h('span', { style: { color: '#CE9178' } }, variant)
+          ) : null,
+          entry.composizione ? h('div', { style: { fontSize: 11, fontFamily: MONO } },
+            h('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'composto da  '),
+            h('span', { style: { color: '#B5CEA8' } }, entry.composizione)
+          ) : null
+        )
+      )
+    );
   }
 
   // ── SpotlightOverlay ──────────────────────────────────────────────────────
@@ -280,7 +485,7 @@
               cursor: 'pointer', fontSize: 11, fontWeight: 600,
               padding: '2px 6px', borderRadius: 4, fontFamily: FONT,
             },
-          }, h(icons.UnorderedListOutlined, { style: { fontSize: 10 } }), '\u00a0Indice')
+          }, h(icons.UnorderedListOutlined, { style: { fontSize: 10 } }), ' Indice')
         ),
         // Indice step (collassabile, sempre accessibile)
         indexOpen ? h('div', {
@@ -331,7 +536,7 @@
               background: devOpen ? '#1a1a1a' : 'rgba(0,0,0,.05)',
               color: devOpen ? '#9CDCFE' : 'rgba(0,0,0,.3)',
               border: 'none', borderRadius: 4, cursor: 'pointer',
-              fontSize: 11, fontFamily: '"SF Mono","Fira Code",monospace', fontWeight: 600,
+              fontSize: 11, fontFamily: MONO, fontWeight: 600,
             },
           }, '{ } dev'),
           devOpen ? h('div', {
@@ -349,7 +554,7 @@
                   style: { fontSize: 9, color: 'rgba(255,255,255,.3)', marginBottom: 3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' },
                 }, item.label) : null,
                 h('pre', {
-                  style: { margin: 0, fontSize: 11, color: '#9CDCFE', fontFamily: '"SF Mono","Fira Code",monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.55 },
+                  style: { margin: 0, fontSize: 11, color: '#9CDCFE', fontFamily: MONO, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.55 },
                 }, item.value)
               );
             })
@@ -383,18 +588,122 @@
     );
   }
 
+  // ── Pannello user story (contenuto del dropdown in navbar) ────────────────
+
+  function UsPanel({ tours, screen, role, roleColor, onStart }) {
+    var curScreenLabel = screen ? screenLabel(screen) : null;
+    var items = tours.length === 0
+      ? h('div', { style: { padding: '24px 16px', textAlign: 'center', fontSize: 12, color: 'rgba(0,0,0,.3)' } },
+          'Nessuna user story disponibile per questo ruolo.')
+      : tours.map(function (tour) {
+          var wrongScreen = tour.startScreen && screen && tour.startScreen !== screen;
+          return h('div', {
+            key: tour.id,
+            onClick: function () { onStart(tour); },
+            style: { padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,.04)', transition: 'background .1s' },
+            onMouseEnter: function (e) { e.currentTarget.style.background = 'rgba(62,0,251,.03)'; },
+            onMouseLeave: function (e) { e.currentTarget.style.background = ''; },
+          },
+            h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' } },
+              h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,.88)' } }, tour.title),
+              tour.novita ? h(antd.Tag, { color: '#FF4A1C', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px', fontWeight: 600 } }, 'Novità') : null,
+              tour.roles  ? h(antd.Tag, { color: ROLE_COLOR[tour.roles[0]] || 'default', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px' } }, tour.roles.join(', ')) : null
+            ),
+            h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.45)', marginBottom: wrongScreen ? 6 : 0, lineHeight: 1.5 } }, parseBold(tour.description)),
+            wrongScreen ? h('div', { style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#FA8C16' } },
+              h(icons.InfoCircleOutlined, { style: { fontSize: 10 } }),
+              h('span', null, 'Inizia da: ' + screenLabel(tour.startScreen))
+            ) : null,
+            h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.25)', marginTop: 4 } }, tour.steps.length + ' step')
+          );
+        });
+
+    return h('div', {
+      className: 'ghf-us-panel',
+      style: {
+        width: 300, background: '#fff', borderRadius: 12,
+        boxShadow: '0 8px 32px rgba(0,0,0,.15)',
+        maxHeight: 480, overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        fontFamily: FONT,
+      },
+    },
+      h('div', { style: { padding: '12px 16px 10px', borderBottom: '1px solid rgba(0,0,0,.06)' } },
+        h('div', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)', marginBottom: 5 } },
+          'User story — ' + (curScreenLabel || META.title || 'Handoff')),
+        h(antd.Tag, { color: roleColor, style: { margin: 0, fontSize: 11, fontWeight: 600 } }, role)
+      ),
+      h('div', { style: { flex: 1, overflowY: 'auto' } }, items)
+    );
+  }
+
+  // ── Controlli in navbar (portal accanto alla campanella) ─────────────────
+
+  function NavControls({ devMode, onDevToggle, tours, onStart, screen, role, roleColor, novitaCount }) {
+    return h('span', {
+      style: { display: 'inline-flex', alignItems: 'center', gap: 14, marginRight: 2 },
+    },
+      // Switch dev — attiva l'inspector componenti
+      h(antd.Tooltip, { title: devMode ? 'Inspector componenti attivo' : 'Inspector componenti (dev)', placement: 'bottom' },
+        h(antd.Switch, {
+          size: 'small',
+          checked: devMode,
+          onChange: onDevToggle,
+          checkedChildren: h(icons.CodeOutlined, { style: { fontSize: 10 } }),
+          unCheckedChildren: h(icons.CodeOutlined, { style: { fontSize: 10 } }),
+        })
+      ),
+      // Icona user story — dropdown con i tour
+      h(antd.Dropdown, {
+        trigger: ['click'],
+        placement: 'bottomRight',
+        dropdownRender: function () {
+          return h(UsPanel, { tours: tours, screen: screen, role: role, roleColor: roleColor, onStart: onStart });
+        },
+      },
+        h('span', { style: { display: 'inline-flex', cursor: 'pointer' }, title: 'User story' },
+          h(antd.Badge, { count: novitaCount, size: 'small', offset: [2, -2] },
+            h(icons.FlagOutlined, { style: { fontSize: 17, color: 'rgba(0,0,0,0.45)' } })
+          )
+        )
+      )
+    );
+  }
+
   // ── HandoffApp ────────────────────────────────────────────────────────────
 
   function HandoffApp() {
-    var _a = useState(false);        var panelOpen  = _a[0]; var setPanelOpen  = _a[1];
-    var _b = useState(false);        var minimized  = _b[0]; var setMinimized  = _b[1];
     var _c = useState(null);         var activeTour = _c[0]; var setActiveTour = _c[1];
     var _d = useState(0);            var tourCur    = _d[0]; var setTourCur    = _d[1];
     var _e = useState(false);        var tourOpen   = _e[0]; var setTourOpen   = _e[1];
     var _f = useState(detectScreen); var screen     = _f[0]; var setScreen     = _f[1];
     var _g = useState(getRole);      var role       = _g[0]; var setRole       = _g[1];
+    var _h = useState(function () { return localStorage.getItem('ghf_dev_mode') === '1'; });
+    var devMode = _h[0]; var setDevMode = _h[1];
+    var _s = useState(null);         var slotEl     = _s[0]; var setSlotEl     = _s[1];
 
     var tours = useMemo(function () { return filterTours(role); }, [role]);
+
+    // Inserisce (e mantiene) lo slot nella navbar, prima della campanella
+    useEffect(function () {
+      function ensureSlot() {
+        var existing = document.getElementById('ghf-nav-slot');
+        if (existing && existing.isConnected) {
+          setSlotEl(function (prev) { return prev === existing ? prev : existing; });
+          return;
+        }
+        var bell = document.getElementById('gravity-bell-btn');
+        if (!bell || !bell.parentNode) return;
+        var slot = document.createElement('span');
+        slot.id = 'ghf-nav-slot';
+        slot.style.display = 'inline-flex';
+        slot.style.alignItems = 'center';
+        bell.parentNode.insertBefore(slot, bell);
+        setSlotEl(slot);
+      }
+      ensureSlot();
+      var id = setInterval(ensureSlot, 600);
+      return function () { clearInterval(id); };
+    }, []);
 
     // MutationObserver: rileva cambio schermata
     useEffect(function () {
@@ -418,6 +727,11 @@
       return function () { clearInterval(id); };
     }, [activeTour]);
 
+    function toggleDev(v) {
+      setDevMode(v);
+      try { localStorage.setItem('ghf_dev_mode', v ? '1' : '0'); } catch (e) {}
+    }
+
     // goToStep — gestisce onEnter + delay prima di aggiornare l'indice
     function goToStep(tour, newCur) {
       if (!tour || newCur < 0 || newCur >= tour.steps.length) return;
@@ -433,7 +747,6 @@
     function startTour(tour) {
       setActiveTour(tour);
       setTourOpen(true);
-      setPanelOpen(false);
       goToStep(tour, 0);
     }
 
@@ -441,151 +754,59 @@
       setActiveTour(null);
       setTourOpen(false);
       setTourCur(0);
-      setPanelOpen(true);
       var hl = document.getElementById('ghf-col-hl');
       if (hl) hl.remove();
     }
 
-    var roleColor       = ROLE_COLOR[role] || 'default';
-    var curScreenLabel  = screen ? screenLabel(screen) : null;
-    var novitaCount     = tours.filter(function (t) { return t.novita; }).length;
+    var roleColor      = ROLE_COLOR[role] || 'default';
+    var curScreenLabel = screen ? screenLabel(screen) : null;
+    var novitaCount    = tours.filter(function (t) { return t.novita; }).length;
 
-    // ── Vista tour attivo ─────────────────────────────────────────────────
-    if (tourOpen && activeTour) {
-      var step      = activeTour.steps[tourCur];
-      var totalSteps = activeTour.steps.length;
-      return h(antd.ConfigProvider, { theme: window.GRAVITY_THEME || {} },
-        h(antd.App, null,
-          h(SpotlightOverlay, { selector: step.selector, colIndex: step.colIndex, padding: step.colIndex ? 0 : (step.mask === false ? 0 : 10) }),
-          h(TourBalloon, {
-            step:        step,
-            index:       tourCur,
-            total:       totalSteps,
-            steps:       activeTour.steps,
-            screenLabel: curScreenLabel || '—',
-            role:        role,
-            roleColor:   roleColor,
-            onPrev:      function () { goToStep(activeTour, tourCur - 1); },
-            onNext:      function () { goToStep(activeTour, tourCur + 1); },
-            onGoTo:      function (i) { goToStep(activeTour, i); },
-            onExit:      exitTour,
-          })
-        )
-      );
-    }
-
-    // ── Vista pannello (selezione tour) ───────────────────────────────────
-
-    var tourListItems = tours.length === 0
-      ? h('div', { style: { padding: '24px 16px', textAlign: 'center', fontSize: 12, color: 'rgba(0,0,0,.3)' } },
-          'Nessun tour disponibile per questo ruolo.')
-      : tours.map(function (tour) {
-          var wrongScreen = tour.startScreen && screen && tour.startScreen !== screen;
-          return h('div', {
-            key: tour.id,
-            onClick: function () { startTour(tour); },
-            style: { padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,.04)', transition: 'background .1s' },
-            onMouseEnter: function (e) { e.currentTarget.style.background = 'rgba(62,0,251,.03)'; },
-            onMouseLeave: function (e) { e.currentTarget.style.background = ''; },
-          },
-            h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' } },
-              h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,.88)' } }, tour.title),
-              tour.novita ? h(antd.Tag, { color: '#FF4A1C', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px', fontWeight: 600 } }, 'Novità') : null,
-              tour.roles  ? h(antd.Tag, { color: ROLE_COLOR[tour.roles[0]] || 'default', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px' } }, tour.roles.join(', ')) : null
-            ),
-            h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.45)', marginBottom: wrongScreen ? 6 : 0, lineHeight: 1.5 } }, tour.description),
-            wrongScreen ? h('div', { style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#FA8C16' } },
-              h(icons.InfoCircleOutlined, { style: { fontSize: 10 } }),
-              h('span', null, 'Inizia da: ' + screenLabel(tour.startScreen))
-            ) : null,
-            h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.25)', marginTop: 4 } }, tour.steps.length + ' step')
-          );
-        });
-
-    var panel = (panelOpen && !minimized) ? h('div', {
-      style: {
-        position: 'fixed', bottom: 80, right: 24, width: 288,
-        background: '#fff', borderRadius: 12,
-        boxShadow: '0 8px 32px rgba(0,0,0,.15)',
-        zIndex: 9000, display: 'flex', flexDirection: 'column',
-        maxHeight: 520, overflow: 'hidden', fontFamily: FONT,
-      },
-    },
-      // Header
-      h('div', { style: { padding: '14px 16px 12px', borderBottom: '1px solid rgba(0,0,0,.06)' } },
-        h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
-          h('div', null,
-            h('div', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)', marginBottom: 5 } },
-              curScreenLabel || META.title || 'Handoff Guide'),
-            h(antd.Tag, { color: roleColor, style: { margin: 0, fontSize: 11, fontWeight: 600 } }, role)
-          ),
-          h('button', {
-            onClick: function () { setMinimized(true); },
-            style: { border: 'none', background: 'none', cursor: 'pointer', color: 'rgba(0,0,0,.25)', fontSize: 18, lineHeight: 1, padding: '0 2px', flexShrink: 0 },
-          }, '–')
-        )
-      ),
-      // Lista tour
-      h('div', { style: { flex: 1, overflowY: 'auto' } }, tourListItems)
+    var navControls = slotEl ? ReactDOM.createPortal(
+      h(NavControls, {
+        devMode:     devMode,
+        onDevToggle: toggleDev,
+        tours:       tours,
+        onStart:     startTour,
+        screen:      screen,
+        role:        role,
+        roleColor:   roleColor,
+        novitaCount: novitaCount,
+      }),
+      slotEl
     ) : null;
 
-    var fab = h('div', { style: { position: 'fixed', bottom: 24, right: 24, zIndex: 9999 } },
-      !panelOpen ? h('span', { className: 'ghf-pulse-ring' }) : null,
-      novitaCount > 0 ? h('span', { className: 'ghf-badge' }, novitaCount) : null,
-      h('button', {
-        className: 'ghf-fab',
-        title: panelOpen && !minimized ? 'Chiudi guida' : 'Handoff Guide',
-        onClick: function () {
-          if (minimized) { setMinimized(false); setPanelOpen(true); return; }
-          if (panelOpen) setPanelOpen(false); else setPanelOpen(true);
-        },
-      },
-        h(icons.InfoCircleOutlined, { style: { fontSize: 15 } }),
-        h('span', null, 'Handoff')
-      )
-    );
+    var tourUi = (tourOpen && activeTour) ? h(React.Fragment, null,
+      h(SpotlightOverlay, {
+        selector: activeTour.steps[tourCur].selector,
+        colIndex: activeTour.steps[tourCur].colIndex,
+        padding:  activeTour.steps[tourCur].colIndex ? 0 : (activeTour.steps[tourCur].mask === false ? 0 : 10),
+      }),
+      h(TourBalloon, {
+        step:        activeTour.steps[tourCur],
+        index:       tourCur,
+        total:       activeTour.steps.length,
+        steps:       activeTour.steps,
+        screenLabel: curScreenLabel || '—',
+        role:        role,
+        roleColor:   roleColor,
+        onPrev:      function () { goToStep(activeTour, tourCur - 1); },
+        onNext:      function () { goToStep(activeTour, tourCur + 1); },
+        onGoTo:      function (i) { goToStep(activeTour, i); },
+        onExit:      exitTour,
+      })
+    ) : null;
 
     return h(antd.ConfigProvider, { theme: window.GRAVITY_THEME || {} },
-      h(antd.App, null, panel, fab)
+      h(antd.App, null,
+        navControls,
+        tourUi,
+        (devMode && !tourOpen && COMPONENTS.length) ? h(DevInspector) : null
+      )
     );
   }
 
   // ── Mount ─────────────────────────────────────────────────────────────────
-  var style = document.createElement('style');
-  style.textContent = [
-    '@keyframes ghf-pulse-ring {',
-    '  0%   { transform: scale(1);   opacity: 0.55; }',
-    '  100% { transform: scale(2.2); opacity: 0; }',
-    '}',
-    '.ghf-fab {',
-    '  display: flex; align-items: center; gap: 7px;',
-    '  background: #3E00FB; color: #fff;',
-    '  border: none; border-radius: 20px;',
-    '  padding: 0 18px; height: 40px;',
-    '  font-size: 13px; font-weight: 600;',
-    '  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;',
-    '  cursor: pointer; white-space: nowrap;',
-    '  box-shadow: 0 4px 14px rgba(62,0,251,0.35);',
-    '  transition: background .15s, box-shadow .15s;',
-    '  position: relative; z-index: 1;',
-    '}',
-    '.ghf-fab:hover { background: #2d00c4; box-shadow: 0 6px 18px rgba(62,0,251,0.45); }',
-    '.ghf-pulse-ring {',
-    '  position: absolute; inset: 0; border-radius: 20px;',
-    '  background: #3E00FB;',
-    '  animation: ghf-pulse-ring 1.8s ease-out infinite;',
-    '}',
-    '.ghf-badge {',
-    '  position: absolute; top: -6px; right: -6px;',
-    '  background: #FF4A1C; color: #fff;',
-    '  font-size: 10px; font-weight: 700;',
-    '  min-width: 16px; height: 16px; border-radius: 8px;',
-    '  display: flex; align-items: center; justify-content: center;',
-    '  padding: 0 4px; z-index: 2;',
-    '}',
-  ].join('\n');
-  document.head.appendChild(style);
-
   var container = document.createElement('div');
   container.id = 'gravity-handoff-root';
   document.body.appendChild(container);
