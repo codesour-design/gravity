@@ -1594,6 +1594,7 @@ function AgentAvatar({ name, initials, size = 24 }) {
   return React.createElement(antd.Avatar, {
     size,
     shape: 'circle',
+    className: 'gv-agent-avatar',
     style: { background: bg, color: fg, fontWeight: 700, fontSize: size * 0.38, flexShrink: 0 },
   }, initials);
 }
@@ -1645,6 +1646,7 @@ function AdvertiserAvatar({ name, size = 32 }) {
 
   if (logo.url && imgOk) {
     return React.createElement('div', {
+      className: 'gv-advertiser-avatar',
       style: {
         width: size, height: size, borderRadius: '50%',
         background: 'var(--gravity-bg-container)', border: '1px solid #e8e8e8',
@@ -1662,6 +1664,7 @@ function AdvertiserAvatar({ name, size = 32 }) {
   return React.createElement(Avatar, {
     size,
     shape: 'circle',
+    className: 'gv-advertiser-avatar',
     style: { background: logo.bg, color: logo.fg, fontWeight: 700, fontSize: size * 0.38, flexShrink: 0 },
   }, logo.initials);
 }
@@ -2860,12 +2863,14 @@ async function photonSuggest(query, limit = 7) {
 function CategoryTag({ category }) {
   const s = CAT_STYLE[category] || {};
   return React.createElement(Tag, {
+    className: 'gv-category-tag',
     style: { ...s, fontWeight: 500, fontSize: 12, marginRight: 0 },
   }, category);
 }
 
 function StateBadge({ state }) {
   return React.createElement('span', {
+    className: 'gv-state-badge',
     style: { display: 'inline-flex', alignItems: 'center', gap: 6 },
   },
     React.createElement('span', {
@@ -2903,7 +2908,7 @@ const CHANNEL_DOT_STYLE = {
   DOOH: { width:6, height:6, borderRadius:'50%', background:'#eb2f96', flexShrink:0 },
 };
 function ChannelChip({ channel }) {
-  return React.createElement('span', { style: CHANNEL_CHIP_STYLE[channel] }, channel);
+  return React.createElement('span', { className: 'gv-channel-chip', style: CHANNEL_CHIP_STYLE[channel] }, channel);
 }
 
 // ══════════════════════════════════════════════════════
@@ -3184,6 +3189,7 @@ function PlanningFormDrawer({ open, mode, source, usedCampagneByTrat, onClose, o
         }),
       ),
       linkedCamp && React.createElement('div', {
+        className: 'gv-inherited-box',
         style: {
           display: 'flex', flexDirection: 'column', gap: 12,
           background: 'var(--gravity-bg-subtle, #FAFAFA)', border: '1px solid rgba(0,0,0,0.06)',
@@ -3297,6 +3303,7 @@ function DuplicateModal({ open, source, usedCampagneByTrat, onClose, onDuplicate
       ),
       campObj && React.createElement(React.Fragment, null,
         React.createElement('div', {
+          className: 'gv-inherited-box',
           style: {
             display: 'flex', flexDirection: 'column', gap: 10,
             background: 'var(--gravity-bg-subtle, #FAFAFA)', border: '1px solid rgba(0,0,0,0.06)',

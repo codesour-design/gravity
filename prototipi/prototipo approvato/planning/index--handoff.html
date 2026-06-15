@@ -22,6 +22,7 @@
     },
   };</script>
   <script src="../../navbar.js"></script>
+  <script src="../../filter-drawer.js"></script>
 
   <!-- Google Maps + MarkerClusterer -->
   <!-- ⚠️ API KEY: limitare questa chiave al dominio di deployment in Google Cloud Console
@@ -988,32 +989,7 @@
     .gm-style-iw-d { overflow: hidden !important; padding: 10px 14px !important; }
     .gm-ui-hover-effect { top: 2px !important; right: 2px !important; }
     .ss-row-selected td { background: var(--gravity-primary-bg) !important; }
-    .filter-section {
-      padding: var(--gravity-space-sm) var(--gravity-space-md);
-      border-bottom: 1px solid var(--gravity-border-secondary);
-    }
-    .filter-section:last-child { border-bottom: none; }
-    .filter-section-label {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--gravity-text-secondary);
-      margin-bottom: 8px;
-    }
-    .filter-macro-label {
-      font-size: var(--gravity-fs-micro); font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.06em; color: var(--gravity-text-disabled);
-      margin: 8px 0 4px;
-    }
-    .filter-macro-label:first-child { margin-top: 0; }
-    .filter-chip {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 12px; border-radius: var(--gravity-radius); border: 1px solid var(--gravity-border);
-      font-size: var(--gravity-fs-body-sm); cursor: pointer; margin: 3px;
-      background: var(--gravity-bg-container); color: var(--gravity-text-secondary);
-      transition: all 0.15s; user-select: none;
-    }
-    .filter-chip.selected { background: var(--gravity-primary-bg); border-color: var(--gravity-primary); color: var(--gravity-primary); font-weight: 500; }
-    .filter-chip:hover:not(.selected) { border-color: #b0b0b0; color: var(--gravity-text); }
+    /* Stili sezioni/chip del drawer filtri: iniettati da filter-drawer.js */
     /* ── Strip filtri attivi (sotto searchbar) ── */
     .ss-active-filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 0 2px; }
     .filter-active-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: var(--gravity-radius); background: rgba(0,0,0,0.04); border: 1px solid var(--gravity-border); font-size: 12px; color: var(--gravity-text-secondary); cursor: default; }
@@ -1618,6 +1594,7 @@ function AgentAvatar({ name, initials, size = 24 }) {
   return React.createElement(antd.Avatar, {
     size,
     shape: 'circle',
+    className: 'gv-agent-avatar',
     style: { background: bg, color: fg, fontWeight: 700, fontSize: size * 0.38, flexShrink: 0 },
   }, initials);
 }
@@ -1669,6 +1646,7 @@ function AdvertiserAvatar({ name, size = 32 }) {
 
   if (logo.url && imgOk) {
     return React.createElement('div', {
+      className: 'gv-advertiser-avatar',
       style: {
         width: size, height: size, borderRadius: '50%',
         background: 'var(--gravity-bg-container)', border: '1px solid #e8e8e8',
@@ -1686,6 +1664,7 @@ function AdvertiserAvatar({ name, size = 32 }) {
   return React.createElement(Avatar, {
     size,
     shape: 'circle',
+    className: 'gv-advertiser-avatar',
     style: { background: logo.bg, color: logo.fg, fontWeight: 700, fontSize: size * 0.38, flexShrink: 0 },
   }, logo.initials);
 }
@@ -2149,6 +2128,10 @@ const SEARCH_RESULTS = (() => {
         lng:      sysLng,
         state:    sysState,
         faceObjs,
+        // Tri-stato illuminazione del sistema: derivato dalle facce;
+        // tra i sistemi illuminati, 1 su 3 è retroilluminato
+        illumination: !faceObjs.some(f => f.illuminated) ? 'none'
+                      : (n % 3 === 0 ? 'backlit' : 'front'),
         _geoKey:  `${street}, ${city}`,
       });
     }
@@ -2880,12 +2863,14 @@ async function photonSuggest(query, limit = 7) {
 function CategoryTag({ category }) {
   const s = CAT_STYLE[category] || {};
   return React.createElement(Tag, {
+    className: 'gv-category-tag',
     style: { ...s, fontWeight: 500, fontSize: 12, marginRight: 0 },
   }, category);
 }
 
 function StateBadge({ state }) {
   return React.createElement('span', {
+    className: 'gv-state-badge',
     style: { display: 'inline-flex', alignItems: 'center', gap: 6 },
   },
     React.createElement('span', {
@@ -2923,7 +2908,7 @@ const CHANNEL_DOT_STYLE = {
   DOOH: { width:6, height:6, borderRadius:'50%', background:'#eb2f96', flexShrink:0 },
 };
 function ChannelChip({ channel }) {
-  return React.createElement('span', { style: CHANNEL_CHIP_STYLE[channel] }, channel);
+  return React.createElement('span', { className: 'gv-channel-chip', style: CHANNEL_CHIP_STYLE[channel] }, channel);
 }
 
 // ══════════════════════════════════════════════════════
@@ -3204,6 +3189,7 @@ function PlanningFormDrawer({ open, mode, source, usedCampagneByTrat, onClose, o
         }),
       ),
       linkedCamp && React.createElement('div', {
+        className: 'gv-inherited-box',
         style: {
           display: 'flex', flexDirection: 'column', gap: 12,
           background: 'var(--gravity-bg-subtle, #FAFAFA)', border: '1px solid rgba(0,0,0,0.06)',
@@ -3317,6 +3303,7 @@ function DuplicateModal({ open, source, usedCampagneByTrat, onClose, onDuplicate
       ),
       campObj && React.createElement(React.Fragment, null,
         React.createElement('div', {
+          className: 'gv-inherited-box',
           style: {
             display: 'flex', flexDirection: 'column', gap: 10,
             background: 'var(--gravity-bg-subtle, #FAFAFA)', border: '1px solid rgba(0,0,0,0.06)',
@@ -4149,216 +4136,6 @@ const OOH_TYPE_FORMATS = {
   'Fermata Bus':      ['70×100cm',  '100×140cm', '140×200cm'],
 };
 const OOH_ALL_FORMATS = [...new Set(Object.values(OOH_TYPE_FORMATS).flat())].sort();
-
-function FilterPanel({
-  visibleStates, onVisibleStatesChange,
-  selectedTypes, onSelectedTypesChange,
-  selectedFormats, onSelectedFormatsChange,
-  selectedModels, onSelectedModelsChange,
-  selectedIllumination, onSelectedIlluminationChange,
-  minFacesEnabled, onMinFacesEnabledChange,
-  minFacesValue, onMinFacesValueChange,
-  maxPriceEnabled, onMaxPriceEnabledChange,
-  maxPriceValue, onMaxPriceValueChange,
-  allTypes,
-  planning,
-}) {
-  allTypes = allTypes || {};
-  const isOOH = !planning || planning.category !== 'DOOH';
-
-  const toggle = (arr, set, v) => set(prev =>
-    prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]
-  );
-
-  const TYPE_ICONS = {
-    'Stendardo':        ColumnHeightOutlined,
-    'Plancia':          AppstoreOutlined,
-    'Telo':             PictureOutlined,
-    'Rotor':            SyncOutlined,
-    'Speciale':         StarOutlined,
-    'Palina':           PushpinOutlined,
-    'Palina Butterfly': BranchesOutlined,
-    'Cartello':         TagOutlined,
-    'Insegna':          ShopOutlined,
-    'Pensilina':        HomeOutlined,
-    'Parapedonale':     CarOutlined,
-    'Palo Luce':        BulbOutlined,
-    'Cassonetto':       InboxOutlined,
-    'Fioriera':         HeartOutlined,
-    'Fermata Bus':      CarOutlined,
-    'Billboard':        DesktopOutlined,
-    'Alux':             PlayCircleOutlined,
-    'Totem':            MobileOutlined,
-  };
-
-  // Formati disponibili in base alle tipologie selezionate
-  const availableFormats = React.useMemo(() => {
-    if (selectedTypes.length === 0) return OOH_ALL_FORMATS;
-    const s = new Set();
-    selectedTypes.forEach(t => (OOH_TYPE_FORMATS[t] || []).forEach(f => s.add(f)));
-    return [...s].sort();
-  }, [selectedTypes]);
-
-  // Rimuove formati selezionati non più disponibili quando cambia la tipologia
-  React.useEffect(() => {
-    if (selectedFormats.length === 0) return;
-    const valid = selectedFormats.filter(f => availableFormats.includes(f));
-    if (valid.length !== selectedFormats.length) onSelectedFormatsChange(valid);
-  }, [availableFormats]);
-
-  return React.createElement(React.Fragment, null,
-
-    // ── Stato spazi ─────────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { className: 'filter-section-label' }, 'Stato spazi'),
-      React.createElement('div', { style: { display: 'flex', gap: 0, flexWrap: 'wrap' } },
-        ['Available', 'In Option', 'Reserved'].map(s =>
-          React.createElement('span', {
-            key: s,
-            className: 'filter-chip' + (visibleStates.includes(s) ? ' selected' : ''),
-            onClick: () => toggle(visibleStates, onVisibleStatesChange, s),
-          },
-            React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: AVAIL_COLOR[s], flexShrink: 0 } }),
-            STATE_LABELS[s] || s
-          )
-        )
-      )
-    ),
-
-    // ── Tipologia impianto ─────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 } },
-        React.createElement('span', { className: 'filter-section-label', style: { marginBottom: 0 } }, 'Tipologia impianto'),
-        selectedTypes.length > 0 && React.createElement('a', {
-          style: { fontSize: 12, color: 'rgba(0,0,0,0.4)', cursor: 'pointer' },
-          onClick: () => onSelectedTypesChange([]),
-        }, 'Tutti'),
-      ),
-      Object.entries(allTypes).map(([macro, tipi]) =>
-        React.createElement(React.Fragment, { key: macro },
-          React.createElement('div', { className: 'filter-macro-label' }, macro),
-          React.createElement('div', { style: { display: 'flex', gap: 0, flexWrap: 'wrap' } },
-            tipi.map(t => {
-              const IconComp = TYPE_ICONS[t];
-              const active = selectedTypes.includes(t);
-              return React.createElement('span', {
-                key: t,
-                className: 'filter-chip' + (active ? ' selected' : ''),
-                onClick: () => {
-                  const next = active
-                    ? selectedTypes.filter(x => x !== t)
-                    : [...selectedTypes, t];
-                  onSelectedTypesChange(next);
-                },
-              },
-                IconComp && React.createElement(IconComp, { style: { fontSize: 12 } }),
-                t
-              );
-            })
-          )
-        )
-      )
-    ),
-
-    // ── Numero facce (solo OOH) ────────────────────────────
-    isOOH && React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { className: 'filter-section-label' }, 'Numero facce'),
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-        React.createElement(antd.Switch, {
-          size: 'small', checked: minFacesEnabled,
-          onChange: v => onMinFacesEnabledChange(v),
-          style: { flexShrink: 0 },
-        }),
-        React.createElement(Text, { style: { fontSize: 13, color: minFacesEnabled ? 'rgba(0,0,0,0.88)' : 'rgba(0,0,0,0.35)' } }, 'Almeno'),
-        React.createElement(InputNumber, {
-          value: minFacesValue, min: 1, max: 10, size: 'small',
-          style: { width: 60 },
-          disabled: !minFacesEnabled,
-          onChange: v => v && onMinFacesValueChange(v),
-        }),
-        React.createElement(Text, { style: { fontSize: 13, color: minFacesEnabled ? 'rgba(0,0,0,0.88)' : 'rgba(0,0,0,0.35)' } }, 'facce'),
-      )
-    ),
-
-    // ── Illuminazione facce ────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { className: 'filter-section-label' }, 'Illuminazione facce'),
-      React.createElement('div', { style: { display: 'flex', gap: 0, flexWrap: 'wrap' } },
-        [
-          { key: 'Illuminate',     label: 'Illuminato',     icon: BulbOutlined },
-          { key: 'Non illuminate', label: 'Non illuminato', icon: null },
-        ].map(({ key, label, icon }) =>
-          React.createElement('span', {
-            key,
-            className: 'filter-chip' + (selectedIllumination.includes(key) ? ' selected' : ''),
-            onClick: () => toggle(selectedIllumination, onSelectedIlluminationChange, key),
-          },
-            icon && React.createElement(icon, { style: { fontSize: 12 } }),
-            label
-          )
-        )
-      )
-    ),
-
-    // ── Formato impianto ───────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 } },
-        React.createElement('span', { className: 'filter-section-label', style: { marginBottom: 0 } }, 'Formato impianto'),
-        selectedFormats.length > 0 && React.createElement('a', {
-          style: { fontSize: 12, color: 'rgba(0,0,0,0.4)', cursor: 'pointer' },
-          onClick: () => onSelectedFormatsChange([]),
-        }, 'Tutti'),
-      ),
-      React.createElement('div', { style: { display: 'flex', gap: 0, flexWrap: 'wrap' } },
-        availableFormats.map(f =>
-          React.createElement('span', {
-            key: f,
-            className: 'filter-chip' + (selectedFormats.includes(f) ? ' selected' : ''),
-            onClick: () => toggle(selectedFormats, onSelectedFormatsChange, f),
-            style: { fontFamily: 'monospace', fontSize: 12 },
-          }, f)
-        )
-      )
-    ),
-
-    // ── Modello di vendita ─────────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { className: 'filter-section-label' }, 'Modello di vendita'),
-      React.createElement('div', { style: { display: 'flex', gap: 0, flexWrap: 'wrap' } },
-        ['Standard', 'Lungo termine'].map(m =>
-          React.createElement('span', {
-            key: m,
-            className: 'filter-chip' + (selectedModels.includes(m) ? ' selected' : ''),
-            onClick: () => toggle(selectedModels, onSelectedModelsChange, m),
-          }, m)
-        )
-      )
-    ),
-
-    // ── Prezzo max per faccia ──────────────────────────────
-    React.createElement('div', { className: 'filter-section' },
-      React.createElement('div', { className: 'filter-section-label' }, 'Prezzo max per faccia'),
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-        React.createElement(antd.Switch, {
-          size: 'small', checked: maxPriceEnabled,
-          onChange: v => onMaxPriceEnabledChange(v),
-          style: { flexShrink: 0 },
-        }),
-        React.createElement(Text, { style: { fontSize: 13, color: maxPriceEnabled ? 'rgba(0,0,0,0.88)' : 'rgba(0,0,0,0.35)' } }, 'Max'),
-        React.createElement(InputNumber, {
-          value: maxPriceValue, min: 50, max: 2000, step: 50, size: 'small',
-          style: { width: 90 },
-          disabled: !maxPriceEnabled,
-          formatter: v => `€ ${v}`,
-          parser: v => v.replace(/€\s?/, ''),
-          onChange: v => v && onMaxPriceValueChange(v),
-        }),
-        React.createElement(Text, { style: { fontSize: 13, color: maxPriceEnabled ? 'rgba(0,0,0,0.88)' : 'rgba(0,0,0,0.35)' } }, '/ faccia'),
-      )
-    ),
-
-  );
-}
 
 // ══════════════════════════════════════════════════════
 // SELECT SYSTEMS
@@ -5297,14 +5074,11 @@ function SelectSystems({ planning, onBack, onApply, planningsList, onDuplicate, 
   const [selectedTypes, setSelectedTypes]       = useState([]);
   const [selectedModels, setSelectedModels]     = useState([]);
   const [selectedIllumination, setSelectedIllumination] = useState([]);
-  const [minFacesEnabled, setMinFacesEnabled]   = useState(false);
-  const [minFacesValue, setMinFacesValue]       = useState(2);
+  const [selectedFaceCounts, setSelectedFaceCounts] = useState([]);
   const [appliedZones, setAppliedZones]           = useState([]);
   const [zoneGeometries, setZoneGeometries]       = useState(new Map()); // text → { type:'polygon'|'polyline', paths }
   const zoneGeoCacheRef                           = React.useRef(new Map()); // cache persistente
   const [selectedFormats, setSelectedFormats]     = useState([]);
-  const [maxPriceEnabled, setMaxPriceEnabled]     = useState(false);
-  const [maxPriceValue, setMaxPriceValue]         = useState(300);
   const [fullscreen, setFullscreen]               = useState(false);
   const [mapZoom, setMapZoom]                     = useState(10);
   const [fsFlashing, setFsFlashing]               = useState(false);
@@ -5470,14 +5244,42 @@ function SelectSystems({ planning, onBack, onApply, planningsList, onDuplicate, 
 
   const activeSinglePois = React.useMemo(() => activePois.filter(p => !p.isCategory), [activePois]);
 
+  // ── Drawer filtri: draft + applied ───────────────────────
+  // I filtri agiscono solo alla pressione di "Applica"; il draft
+  // vive nel drawer, lo stato applicato resta nei singoli useState.
+  const FILTER_DRAFT_EMPTY = { statoSpazi: [], tipologia: [], numeroFacce: [], illuminazione: [], formato: [], modelloVendita: [] };
+  const [draftFilters, setDraftFilters] = useState(FILTER_DRAFT_EMPTY);
+
+  const openFilterDrawer = () => {
+    setDraftFilters({
+      statoSpazi:     visibleStates,
+      tipologia:      selectedTypes,
+      numeroFacce:    selectedFaceCounts,
+      illuminazione:  selectedIllumination,
+      formato:        selectedFormats,
+      modelloVendita: selectedModels,
+    });
+    setFilterDrawerOpen(true);
+  };
+
+  const applyFilters = () => {
+    setVisibleStates(draftFilters.statoSpazi);
+    setSelectedTypes(draftFilters.tipologia);
+    setSelectedFaceCounts(draftFilters.numeroFacce);
+    setSelectedIllumination(draftFilters.illuminazione);
+    setSelectedFormats(draftFilters.formato);
+    setSelectedModels(draftFilters.modelloVendita);
+    setFilterDrawerOpen(false);
+  };
+
   const resetFilters = () => {
+    setDraftFilters(FILTER_DRAFT_EMPTY);
     setVisibleStates([]);
     setSelectedTypes([]);
     setSelectedModels([]);
     setSelectedIllumination([]);
     setSelectedFormats([]);
-    setMinFacesEnabled(false);
-    setMaxPriceEnabled(false);
+    setSelectedFaceCounts([]);
   };
 
   // ── Label system ─────────────────────────────────────────
@@ -5942,10 +5744,12 @@ out geom;`;
       if (selectedTypes.length > 0 && !selectedTypes.includes(sys.type)) return false;
       if (selectedFormats.length > 0 && !selectedFormats.includes(sys.faceObjs?.[0]?.format)) return false;
       if (selectedIllumination.length > 0) {
-        const k = sys.illuminated ? 'Illuminate' : 'Non illuminate';
+        const k = sys.illumination === 'none'    ? 'Non illuminate'
+                : sys.illumination === 'backlit' ? 'Retroilluminate'
+                : 'Illuminate';
         if (!selectedIllumination.includes(k)) return false;
       }
-      if (minFacesEnabled && sys.faces < minFacesValue) return false;
+      if (selectedFaceCounts.length > 0 && !selectedFaceCounts.includes(window.gravityFaceCountKey((sys.faceObjs || []).length))) return false;
       if (appliedZones.length > 0) {
         const STREET_ZONE_TYPES = new Set(['via', 'corso', 'viale', 'piazza', 'street']);
         const matchesAny = appliedZones.some(({ text: q, target }) => {
@@ -5976,7 +5780,7 @@ out geom;`;
     });
   }, [planning.category, planning.start, planning.end,
       visibleStates, selectedTypes, selectedFormats,
-      selectedIllumination, minFacesEnabled, minFacesValue,
+      selectedIllumination, selectedFaceCounts,
       appliedZones, zoneGeometries, activePois, poiRadiusM, filteredPoiPoints]);
 
   // ── Auto-framing mappa ───────────────────────────────────
@@ -6061,18 +5865,18 @@ out geom;`;
   const activeFilterChips = React.useMemo(() => {
     const chips = [];
     selectedTypes.forEach(t => chips.push({ key: `tipo:${t}`, label: t }));
-    selectedIllumination.forEach(i => chips.push({ key: `ill:${i}`, label: i === 'Illuminate' ? 'Illuminato' : 'Non illuminato' }));
+    selectedIllumination.forEach(i => chips.push({ key: `ill:${i}`, label: i === 'Illuminate' ? 'Illuminato' : i === 'Retroilluminate' ? 'Retroilluminato' : 'Non illuminato' }));
     selectedFormats.forEach(f => chips.push({ key: `fmt:${f}`, label: f, mono: true }));
-    if (minFacesEnabled) chips.push({ key: 'faces', label: `Min ${minFacesValue} ${minFacesValue === 1 ? 'faccia' : 'facce'}` });
+    selectedFaceCounts.forEach(c => chips.push({ key: `facce:${c}`, label: c === '1' ? '1 faccia' : `${c} facce` }));
     return chips;
-  }, [selectedTypes, selectedIllumination, selectedFormats, minFacesEnabled, minFacesValue]);
+  }, [selectedTypes, selectedIllumination, selectedFormats, selectedFaceCounts]);
 
   const removeFilterChip = React.useCallback((key) => {
     if (key.startsWith('stato:'))     setVisibleStates(prev => prev.filter(x => x !== key.slice(6)));
     else if (key.startsWith('tipo:')) setSelectedTypes(prev => prev.filter(x => x !== key.slice(5)));
     else if (key.startsWith('ill:'))  setSelectedIllumination(prev => prev.filter(x => x !== key.slice(4)));
     else if (key.startsWith('fmt:'))  setSelectedFormats(prev => prev.filter(x => x !== key.slice(4)));
-    else if (key === 'faces')         setMinFacesEnabled(false);
+    else if (key.startsWith('facce:')) setSelectedFaceCounts(prev => prev.filter(x => x !== key.slice(6)));
   }, []);
 
   const mapContainerRef    = React.useRef(null);
@@ -6988,7 +6792,7 @@ out geom;`;
             // Sezione 3: Filtri avanzati
             React.createElement('button', {
               className: `ss-bar-trigger${activeFilterChips.length > 0 ? ' active' : ''}`,
-              onMouseDown: e => { e.preventDefault(); setFilterDrawerOpen(true); },
+              onMouseDown: e => { e.preventDefault(); openFilterDrawer(); },
             },
               React.createElement(icons.SlidersOutlined, { style: { fontSize: 14 } }),
               'Filtri Avanzati',
@@ -7394,36 +7198,26 @@ out geom;`;
       )
     ),
 
-    // ── Drawer: Filtri (v2) ──────────────────────────────────
-    React.createElement(Drawer, {
-      title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
-        'Filtri avanzati',
-        activeFilterChips.length > 0 && React.createElement('span', { className: 'ss-bar-count', style: { marginLeft: 2 } }, activeFilterChips.length)
-      ),
-      placement: 'right',
-      width: 480,
-      styles: { header: { padding: '12px 16px' }, body: { padding: 0 }, footer: { padding: '12px 16px' } },
+    // ── Drawer: Filtri (componente condiviso GravityFilterDrawer) ──
+    React.createElement(window.GravityFilterDrawer, {
       open: filterDrawerOpen,
       onClose: () => setFilterDrawerOpen(false),
-      footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between' } },
-        React.createElement(Button, { danger: true, type: 'text', onClick: resetFilters }, 'Azzera tutto'),
-        React.createElement(Button, { type: 'primary', onClick: () => setFilterDrawerOpen(false) }, 'Applica')
-      ),
-    },
-      React.createElement(FilterPanel, {
-        visibleStates, onVisibleStatesChange: setVisibleStates,
-        selectedTypes, onSelectedTypesChange: setSelectedTypes,
-        selectedFormats, onSelectedFormatsChange: setSelectedFormats,
-        selectedModels, onSelectedModelsChange: setSelectedModels,
-        selectedIllumination, onSelectedIlluminationChange: setSelectedIllumination,
-        minFacesEnabled, onMinFacesEnabledChange: setMinFacesEnabled,
-        minFacesValue, onMinFacesValueChange: setMinFacesValue,
-        maxPriceEnabled, onMaxPriceEnabledChange: setMaxPriceEnabled,
-        maxPriceValue, onMaxPriceValueChange: setMaxPriceValue,
-        allTypes: channelAllTypes,
-        planning,
-      })
-    ),
+      onApply: applyFilters,
+      onReset: resetFilters,
+      activeCount: activeFilterChips.length,
+      sections: [
+        'statoSpazi',
+        'tipologia',
+        ...(planning.category !== 'DOOH' ? ['numeroFacce'] : []),
+        'illuminazione',
+        'formato',
+        'modelloVendita',
+        'prezzoMax',
+      ],
+      values: draftFilters,
+      onChange: (key, value) => setDraftFilters(prev => ({ ...prev, [key]: value })),
+      options: { allTypes: channelAllTypes, typeFormats: OOH_TYPE_FORMATS, allFormats: OOH_ALL_FORMATS },
+    }),
 
     // ── Drawer POI (v2 — Collezioni categorie) ───────────────
     React.createElement(antd.Drawer, {
@@ -7704,7 +7498,7 @@ function AppRoot() {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(AppRoot));
 </script>
-<script src="./handoff-steps.js"></script>
-<script src="../../handoff.js"></script>
+  <script src="./handoff-steps.js"></script>
+  <script src="../../handoff.js"></script>
 </body>
 </html>
