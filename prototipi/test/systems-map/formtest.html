@@ -440,7 +440,7 @@
 <div id="root"></div>
 <script>
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
-const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Slider } = antd;
+const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Slider, Radio } = antd;
 const { Text } = Typography;
 const {
   SearchOutlined, BellOutlined, PlusOutlined, AppstoreOutlined, SendOutlined,
@@ -452,7 +452,7 @@ const {
   InfoCircleOutlined, CompassOutlined, CheckCircleFilled, MoreOutlined,
   SwapOutlined, DeleteOutlined, TagsOutlined, ThunderboltOutlined, FileTextOutlined,
   CalendarOutlined, SyncOutlined, AimOutlined, EuroCircleOutlined, UploadOutlined,
-  LockOutlined, UnlockOutlined,
+  LockOutlined, UnlockOutlined, CarOutlined,
 } = icons;
 
 // ─────────────────────────────────────────────────────────
@@ -510,6 +510,32 @@ const TIPO_FORMATI = {
   'Insegna':          ['150×50cm',  '230×60cm',  '300×60cm', '400×80cm'],
 };
 const ALL_TIPO_FORMATI = [...new Set(Object.values(TIPO_FORMATI).flat())].sort();
+
+// Facce previste di default per tipologia (tipo + numero) — pre-create all'apertura del form
+const FACCE_PER_TIPO = {
+  'Pensilina':        ['Anteriore', 'Posteriore'],
+  'Poster':           ['Anteriore'],
+  'Palina':           ['Anteriore', 'Posteriore'],
+  'Fermata bus':      ['Anteriore', 'Posteriore'],
+  'Cassonetto':       ['Anteriore', 'Posteriore'],
+  'Palo luce':        ['Anteriore'],
+  'Speciale':         ['Anteriore', 'Posteriore', 'Sinistra', 'Destra'],
+  'Palina butterfly': ['Sinistra', 'Destra'],
+  'Stendardo':        ['Anteriore', 'Posteriore'],
+  'Parapedonale':     ['Anteriore', 'Posteriore'],
+  'Telo':             ['Anteriore'],
+  'Rotor':            ['Anteriore', 'Posteriore', 'Sinistra'],
+  'Plancia':          ['Anteriore'],
+  'Fioriera':         ['Anteriore', 'Posteriore'],
+  'Insegna':          ['Anteriore'],
+};
+// Colori del tag per tipo faccia
+const FACE_TIPO_STYLE = {
+  'Anteriore':  { backgroundColor: '#E6FFFB', border: '1px solid #87E8DE', color: '#13C2C2' },
+  'Posteriore': { backgroundColor: '#FFF2E8', border: '1px solid #FFBB96', color: '#FA541C' },
+  'Sinistra':   { backgroundColor: '#F9F0FF', border: '1px solid #D3ADF7', color: '#722ED1' },
+  'Destra':     { backgroundColor: '#E6F4FF', border: '1px solid #91CAFF', color: '#1677FF' },
+};
 
 
 // ─────────────────────────────────────────────────────────
@@ -2316,6 +2342,18 @@ function faceIllumLabel(f) {
   return s;
 }
 
+// Etichetta illuminazione sintetica per la card (es. "3 faretti · 150W" oppure "Neon")
+function faceIllumShort(f) {
+  if (!f.illumStato || f.illumStato === 'Spento') return '—';
+  if (f.illumMezzo === 'Faretti') {
+    const parts = [];
+    if (f.illumNFaretti) parts.push(f.illumNFaretti + ' faretti');
+    if (f.illumWatt) parts.push(f.illumWatt + 'W');
+    return parts.length ? parts.join(' · ') : 'Faretti';
+  }
+  return f.illumMezzo || f.illumStato;
+}
+
 // Faccia posteriore: campi fisici condivisi con l'anteriore, orientamento speculare (+180°).
 // Illuminazione, modello di vendita e prezzo restano indipendenti per faccia.
 const SHARED_FACE_FIELDS = ['lat', 'lng', 'coordLock', 'slot', 'cono', 'formL', 'formH'];
@@ -2327,103 +2365,110 @@ const syncedFromAnteriore = (ant) => {
 };
 
 // Card faccia per il form di creazione — stessa famiglia visiva di FormPermitCard
-function FormFaceCard({ index, face, onEdit, onRemove, onCreatePosteriore }) {
+function FormFaceCard({ name, face, onEdit, onRemove, onCreatePosteriore }) {
   const isAnt = face.tipo === 'Anteriore';
-  const tagStyle = isAnt
-    ? { backgroundColor: '#E6FFFB', border: '1px solid #87E8DE', color: '#13C2C2', margin: 0 }
-    : { backgroundColor: '#FFF2E8', border: '1px solid #FFBB96', color: '#FA541C', margin: 0 };
+  const tagStyle = { ...(FACE_TIPO_STYLE[face.tipo] || FACE_TIPO_STYLE['Anteriore']), margin: 0 };
   const menuItems = [
     { key: 'edit', label: 'Modifica', icon: React.createElement(EditOutlined), onClick: onEdit },
     ...(isAnt && onCreatePosteriore ? [{ key: 'post', label: 'Crea posteriore', icon: React.createElement(SwapOutlined), onClick: onCreatePosteriore }] : []),
     { key: 'remove', label: isAnt && face._hasPosteriore ? 'Elimina (con posteriore)' : 'Elimina', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
   ];
-  const infoRow = (icon, label, value, action) =>
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 20, gap: 8 } },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
-        React.createElement(icon, { style: { fontSize: 14, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
-        React.createElement('span', { style: { fontSize: 12, fontWeight: 600, flexShrink: 0 } }, label),
-        React.createElement('span', { style: { fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, value),
-      ),
-      action || null,
+  // Riga compatta: icona + etichetta + valore subito accanto
+  const row = (icon, label, value, valueStyle, wrapStyle) =>
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, ...(wrapStyle || {}) } },
+      React.createElement(icon, { style: { fontSize: 13, color: 'rgba(0,0,0,0.4)', flexShrink: 0 } }),
+      React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, label),
+      React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', ...(valueStyle || {}) } }, value),
     );
+  const accent = (FACE_TIPO_STYLE[face.tipo] || FACE_TIPO_STYLE['Anteriore']).color;
   return React.createElement(Card, {
-    style: { borderRadius: 8, border: '1px solid #d9d9d9', height: '100%' },
-    styles: { body: { padding: '12px 16px 12px 12px', display: 'flex', gap: 16, alignItems: 'flex-start' } },
+    style: { borderRadius: 8, border: '1px solid #f0f0f0', borderLeft: '3px solid ' + accent, height: '100%' },
+    styles: { body: { padding: '10px 14px' } },
   },
-    // Anteprima con ribbon del modello di vendita + formato (posting format)
-    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 0 } },
-      React.createElement(Badge.Ribbon, { text: face.vendita || 'Standard', color: '#F5222D' },
-        React.createElement('div', { style: { width: '100%', height: 150, backgroundColor: '#f5f5f5', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' } },
-          React.createElement(PictureOutlined, { style: { fontSize: 32, color: '#d9d9d9' } }),
-        )),
-      (face.formL && face.formH) ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(0,0,0,0.88)' } },
-        React.createElement(ExpandOutlined, { style: { fontSize: 14, color: 'rgba(0,0,0,0.45)' } }),
-        React.createElement('span', { style: { fontWeight: 600 } }, 'Formato:'),
-        React.createElement('span', null, face.formL + '×' + face.formH + ' cm'),
-      ) : null,
-    ),
-    // Dettagli faccia
-    React.createElement('div', { style: { flex: 1, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 } },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 } },
-        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
-          React.createElement('span', { style: { fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap' } }, 'Faccia ' + index),
-          React.createElement(Tag, { style: tagStyle }, face.tipo),
-          face.pairOf ? React.createElement(Tooltip, { title: 'Collegata alla faccia anteriore: posizione, dimensioni, slot e orientamento si aggiornano dall\'anteriore' },
-            React.createElement(SwapOutlined, { style: { fontSize: 13, color: 'rgba(0,0,0,0.4)' } })) : null,
-        ),
+    // Intestazione su una riga
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #f5f5f5' } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
+        React.createElement('span', { style: { fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap' } }, name),
+        React.createElement(Tag, {
+          icon: React.createElement(CarOutlined),
+          style: face.visMarcia
+            ? { backgroundColor: '#F0EBFF', border: '1px solid #D3C4FF', color: '#3E00FB', margin: 0, fontWeight: 500 }
+            : { margin: 0 },
+        }, face.visMarcia ? 'Visibile' : 'Non visibile'),
+        face.pairOf ? React.createElement(Tooltip, { title: 'Collegata alla faccia anteriore: posizione, dimensioni, slot e orientamento si aggiornano dall\'anteriore' },
+          React.createElement(SwapOutlined, { style: { fontSize: 13, color: 'rgba(0,0,0,0.4)' } })) : null,
+      ),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 } },
+        face.slot != null ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+          React.createElement(AppstoreOutlined, { style: { fontSize: 13, color: 'rgba(0,0,0,0.4)', flexShrink: 0 } }),
+          React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, 'Slot'),
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap' } }, face.slot),
+        ) : null,
         React.createElement(Dropdown, { menu: { items: menuItems }, trigger: ['click'] },
           React.createElement(MoreOutlined, { style: { fontSize: 16, color: '#595959', cursor: 'pointer' } }),
         ),
       ),
-      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } },
-        infoRow(AppstoreOutlined, 'Slot:', React.createElement('span', { style: { color: '#3E00FB', fontWeight: 600, fontSize: 14 } }, face.slot != null ? face.slot : '—')),
-        infoRow(CompassOutlined, 'Orientamento:', face.orient != null ? face.orient + '°' : '—'),
-        infoRow(AimOutlined, 'Cono di visibilità:', face.cono != null ? 'r ' + face.cono + ' cm' : '—'),
-        infoRow(BulbOutlined, 'Illuminazione:', faceIllumLabel(face) || '—'),
-        infoRow(EuroCircleOutlined, 'Prezzo:', face.prezzo != null ? '€ ' + face.prezzo : '—'),
-      ),
+    ),
+    // Dettagli — due colonne
+    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 16, rowGap: 8 } },
+      row(TagOutlined, 'Modello', face.vendita || 'Standard'),
+      row(ExpandOutlined, 'Formato', (face.formL && face.formH) ? face.formL + '×' + face.formH + ' cm' : '—'),
+      row(CompassOutlined, 'Orientamento', face.orient != null ? face.orient + '°' : '—'),
+      row(AimOutlined, 'Cono', face.cono != null ? 'r ' + face.cono + ' cm' : '—'),
+      row(EuroCircleOutlined, 'Prezzo', face.prezzo != null ? '€ ' + face.prezzo : '—', { fontWeight: 600 }),
+      row(BulbOutlined, 'Illuminazione', faceIllumShort(face)),
     ),
   );
 }
 
-// Card dispositivo connesso — stessa famiglia visiva di FormPermitCard
-function FormDeviceCard({ device, onEdit, onRemove }) {
+// Card unica cespite/dispositivo — generata dal catalogo ASSET_TYPES.
+// Mostra solo i campi valorizzati; i campi multi-valore (tags) come tag.
+function FormAssetCard({ asset, onEdit, onRemove }) {
+  const def = getAssetType(asset.tipo) || { category: 'Cespite', fields: [] };
+  const v = asset.vals || {};
   const menuItems = [
     { key: 'edit', label: 'Modifica', icon: React.createElement(EditOutlined), onClick: onEdit },
     { key: 'remove', label: 'Elimina', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
   ];
-  // Riga multi-valore: mostrata solo se valorizzata, con i valori come tag
-  const multiRow = (label, arr) => (arr && arr.length) ? React.createElement('div', { key: label, style: { display: 'flex', gap: 8, alignItems: 'baseline' } },
-    React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', flexShrink: 0, width: 124 } }, label),
+  const labelCell = (label) => React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', flexShrink: 0, width: 140 } }, label);
+  const dataRow = (label, value) => React.createElement('div', { key: label, style: { display: 'flex', gap: 8, alignItems: 'baseline' } },
+    labelCell(label),
+    React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.85)', minWidth: 0 } }, value),
+  );
+  const tagRow = (label, arr) => React.createElement('div', { key: label, style: { display: 'flex', gap: 8, alignItems: 'baseline' } },
+    labelCell(label),
     React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4, minWidth: 0 } },
-      arr.map((v, i) => React.createElement(Tag, { key: i, style: { margin: 0, fontSize: 12, border: '1px solid #d9d9d9', backgroundColor: '#fafafa', color: 'rgba(0,0,0,0.75)' } }, v))),
-  ) : null;
-  const rows = [
-    multiRow('MAC player', device.macPlayer),
-    multiRow('MAC sensore', device.macSensor),
-    multiRow('Serial PC', device.pcSerial),
-    multiRow('ID sensore', device.idSensore),
-    multiRow('TeamViewer', device.teamviewer),
-    multiRow('AnyDesk', device.anydesk),
-    multiRow('Telefono', device.telefono),
-  ].filter(Boolean);
+      arr.map((x, i) => React.createElement(Tag, { key: i, style: { margin: 0, fontSize: 12, border: '1px solid #d9d9d9', backgroundColor: '#fafafa', color: 'rgba(0,0,0,0.75)' } }, x))),
+  );
+  const rows = def.fields
+    .filter(f => f.key !== 'nome' && f.key !== 'desc' && f.key !== 'stato')
+    .map(f => {
+      const val = v[f.key];
+      if (val == null || val === '' || (Array.isArray(val) && !val.length)) return null;
+      if (f.kind === 'tags') return tagRow(f.label, val);
+      if (f.kind === 'date')  return dataRow(f.label, val.format ? val.format('DD/MM/YYYY') : String(val));
+      return dataRow(f.label, val);
+    })
+    .filter(Boolean);
+  const catStyle = ASSET_CATEGORY_STYLE[def.category] || ASSET_CATEGORY_STYLE['Cespite'];
   return React.createElement(Card, {
     style: { borderRadius: 8, border: '1px solid #d9d9d9', height: '100%' },
     styles: { body: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, height: '100%' } },
   },
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
-      React.createElement('span', { style: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(0,0,0,0.45)' } }, device.tipo || 'Dispositivo'),
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
-        device.stato ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
-          React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: DEVICE_STATO_COLORS[device.stato] || '#d9d9d9' } }),
-          device.stato) : null,
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } },
+      React.createElement('span', { style: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(0,0,0,0.45)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, asset.tipo),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 } },
+        React.createElement(Tag, { style: { ...catStyle, margin: 0, fontSize: 11, fontWeight: 500 } }, def.category),
+        (def.category === 'Dispositivo' && v.stato) ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
+          React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: DEVICE_STATO_COLORS[v.stato] || '#d9d9d9' } }),
+          v.stato) : null,
         React.createElement(Dropdown, { menu: { items: menuItems }, trigger: ['click'] },
           React.createElement(MoreOutlined, { style: { fontSize: 16, color: '#595959', cursor: 'pointer' } }),
         ),
       ),
     ),
-    React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, device.nome || 'Dispositivo'),
-    device.desc ? React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.55)', lineHeight: '18px' } }, device.desc) : null,
+    v.nome ? React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, v.nome) : null,
+    v.desc ? React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.55)', lineHeight: '18px' } }, v.desc) : null,
     rows.length ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 } }, ...rows) : null,
   );
 }
@@ -3161,7 +3206,86 @@ const STRUT_TERRAZZE_OPTS  = ['Vuoto','Dalmine','Pali'].map(v=>({value:v,label:v
 const DEVICE_TIPO_OPTS   = ['Player multimediale','Modem / Router','Sensore','Telecamera','Schermo / Display','Centralina','Altro'].map(v=>({value:v,label:v}));
 const DEVICE_STATO_OPTS  = ['Connesso','Disconnesso','In manutenzione'].map(v=>({value:v,label:v}));
 const DEVICE_STATO_COLORS = { 'Connesso': '#52c41a', 'Disconnesso': '#d9d9d9', 'In manutenzione': '#FA8C16' };
+
+// ── Cespiti + Dispositivi: catalogo unico per il drawer condiviso.
+// La select "Tipo cespite o dispositivo" elenca tutti i tipi; in base alla scelta
+// vengono mostrati i campi (fields) del tipo. kind: select|input|number|date|tags|textarea|segmented.
+// full: true → il campo occupa l'intera riga. I dispositivi condividono lo stesso set di campi.
+const DEVICE_FIELDS = [
+  { key: 'nome', label: 'Nome dispositivo', kind: 'input', ph: 'Es. Player faccia A', required: true },
+  { key: 'stato', label: 'Stato', kind: 'segmented', full: true, default: 'Connesso',
+    opts: [{ label: 'Connesso', value: 'Connesso' }, { label: 'Disconnesso', value: 'Disconnesso' }, { label: 'In manutenzione', value: 'In manutenzione' }] },
+  { key: 'desc', label: 'Descrizione breve', kind: 'textarea', full: true, ph: 'Breve descrizione del dispositivo' },
+  { key: 'macPlayer',  label: 'MAC address player',  kind: 'tags', ph: 'Es. 00:1B:44:11:3A:B7' },
+  { key: 'macSensor',  label: 'MAC address sensore', kind: 'tags', ph: 'Es. 00:1B:44:11:3A:C2' },
+  { key: 'pcSerial',   label: 'Numero di serie PC',  kind: 'tags', ph: 'Es. SN-204813' },
+  { key: 'idSensore',  label: 'ID sensore',          kind: 'tags', ph: 'Es. SENS-0012' },
+  { key: 'teamviewer', label: 'ID TeamViewer',       kind: 'tags', ph: 'Es. 1 234 567 890' },
+  { key: 'anydesk',    label: 'ID AnyDesk',          kind: 'tags', ph: 'Es. 123 456 789' },
+  { key: 'telefono',   label: 'Numero di telefono',  kind: 'tags', ph: 'Es. +39 333 1234567' },
+];
+const ASSET_TYPES = [
+  // ── Cespiti
+  { value: 'Fondazione', category: 'Cespite', fields: [
+    { key: 'tipoFond', label: 'Tipo fondazione', kind: 'select', opts: TIPO_FONDAZIONE_OPTS },
+    { key: 'dimFond',  label: 'Dimensione fondazione', kind: 'input', ph: 'Es. 5,50 × 3,20 × 0,80 m' },
+    { key: 'dataInizio', label: 'Data inizio lavori', kind: 'date' },
+    { key: 'dataFine',   label: 'Data fine lavori',   kind: 'date' },
+  ] },
+  { value: 'Pali', category: 'Cespite', fields: [
+    { key: 'tipoPali',     label: 'Tipo pali', kind: 'select', opts: TIPO_PALI_OPTS },
+    { key: 'numPali',      label: 'Numero pali', kind: 'number', props: { min: 0 } },
+    { key: 'diametroPali', label: 'Diametro (mm)', kind: 'input' },
+    { key: 'altezzaPali',  label: 'Altezza (cm)', kind: 'input' },
+    { key: 'interassePali',label: 'Interasse', kind: 'input', ph: 'Es. 250 cm' },
+    { key: 'numPunzPali',  label: 'N. punzonatura pali', kind: 'input', ph: 'Es. 013201 - 014001' },
+    { key: 'dittaPali',    label: 'Ditta collocazione pali', kind: 'input' },
+    { key: 'dataMontPali', label: 'Data montaggio', kind: 'date' },
+  ] },
+  { value: 'Cornice', category: 'Cespite', fields: [
+    { key: 'tipoCornice',    label: 'Tipo cornice', kind: 'select', opts: TIPO_CORNICE_OPTS },
+    { key: 'dittaCornice',   label: 'Ditta collocazione cornice', kind: 'input' },
+    { key: 'dataMontCornice',label: 'Data montaggio', kind: 'date' },
+  ] },
+  { value: 'Pannelli', category: 'Cespite', fields: [
+    { key: 'tipoPannelli',  label: 'Tipo pannelli', kind: 'select', opts: TIPO_PANNELLI_OPTS },
+    { key: 'barreAntivento',label: 'Numero barre antivento', kind: 'number', props: { min: 0 } },
+    { key: 'dittaPannelli', label: 'Ditta montaggio pannelli', kind: 'input' },
+    { key: 'dataMontPann',  label: 'Data montaggio', kind: 'date' },
+  ] },
+  { value: 'Extra struttura', category: 'Cespite', fields: [
+    { key: 'numStaffeMuro',   label: 'N. staffe muro', kind: 'input', ph: 'Es. 12 tassellate + 4' },
+    { key: 'dataCollStaffe',  label: 'Data collocazione staffe', kind: 'date' },
+    { key: 'strutTerrazze',   label: 'Strutture terrazze', kind: 'select', opts: STRUT_TERRAZZE_OPTS },
+    { key: 'dataMontTerrazze',label: 'Data montaggio terrazze', kind: 'date' },
+    { key: 'numPesiStrutt',   label: 'N. pesi struttura', kind: 'number', props: { min: 0 } },
+    { key: 'kgPesiCadauno',   label: 'Kg pesi cadauno', kind: 'number', props: { min: 0 } },
+  ] },
+  // ── Dispositivi (stesso set di campi per ogni tipo)
+  ...DEVICE_TIPO_OPTS.map(o => ({ value: o.value, category: 'Dispositivo', fields: DEVICE_FIELDS })),
+];
+const getAssetType = (t) => ASSET_TYPES.find(x => x.value === t);
+// Opzioni della select raggruppate per categoria
+const ASSET_TIPO_OPTS = [
+  { label: 'Cespiti',     options: ASSET_TYPES.filter(t => t.category === 'Cespite').map(t => ({ value: t.value, label: t.value })) },
+  { label: 'Dispositivi', options: ASSET_TYPES.filter(t => t.category === 'Dispositivo').map(t => ({ value: t.value, label: t.value })) },
+];
+// Stile del tag categoria nella card
+const ASSET_CATEGORY_STYLE = {
+  'Cespite':     { backgroundColor: '#E6F4FF', border: '1px solid #91CAFF', color: '#1677FF' },
+  'Dispositivo': { backgroundColor: '#F0EBFF', border: '1px solid #D3C4FF', color: '#3E00FB' },
+};
 const TIPO_MAN_OPTS        = ['Ordinaria','Straordinaria','Urgente','Preventiva'].map(v=>({value:v,label:v}));
+// Squadre di affissione: selezionando la squadra il codice si compila in automatico
+const SQUADRE_AFF = [
+  { nome: 'START Affissioni',     codice: 'SQ-001' },
+  { nome: 'Affissioni Palermo',   codice: 'SQ-002' },
+  { nome: 'Sicilia Poster',       codice: 'SQ-003' },
+  { nome: 'Media Affissioni SRL', codice: 'SQ-004' },
+];
+// Opzioni con codice + nome insieme ("SQ-002 Affissioni Palermo"); la ricerca filtra su entrambi
+const SQUADRE_AFF_OPTS = SQUADRE_AFF.map(s => ({ value: s.nome, label: s.codice + '  ' + s.nome }));
+const TIPO_AFFISSIONE_OPTS = ['Prebagnato','Adesivo','Telo'].map(v=>({value:v,label:v}));
 const TIPO_AMM_OPTS        = ['Lineare','Degress','A quote costanti'].map(v=>({value:v,label:v}));
 
 function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
@@ -3182,10 +3306,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     setNome(v.nome || '');
     setTipologia(v.tipologia || null);
     setStato(v.stato || null);
-    setIllumStato(v.illumStato || (v.illuminato ? 'Illuminato' : null));
-    setIllumMezzo(v.illumMezzo || null);
-    setIllumNFaretti(v.illumNFaretti ?? null);
-    setIllumWatt(v.illumWatt ?? null);
     setVia(v.via || '');
     setCivico(v.civico || '');
     setCap(v.cap || '');
@@ -3241,22 +3361,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [fcIllumWatt,     setFcIllumWatt]     = useState(null);
   const [fcVendita,     setFcVendita]     = useState(null);
   const [fcPrezzo,      setFcPrezzo]      = useState(null);
-  // Illuminazione — stato (luminoso/illuminato/spento) + mezzo, e per i faretti n. + watt
-  const [illumStato,    setIllumStato]    = useState(iv.illuminato ? 'Illuminato' : null);
-  const [illumMezzo,    setIllumMezzo]    = useState(null);
-  const [illumNFaretti, setIllumNFaretti] = useState(null);
-  const [illumWatt,     setIllumWatt]     = useState(null);
-  // Compat: alcune viste usano un booleano "illuminato"
-  const illuminato = !!illumStato && illumStato !== 'Spento';
-  const onIllumStato = (v) => {
-    setIllumStato(v);
-    if (v === 'Spento' || !v) { setIllumMezzo(null); setIllumNFaretti(null); setIllumWatt(null); }
-    else if (!(ILLUM_MEZZO_BY_STATO[v] || []).includes(illumMezzo)) { setIllumMezzo(null); setIllumNFaretti(null); setIllumWatt(null); }
-  };
-  const onIllumMezzo = (v) => {
-    setIllumMezzo(v);
-    if (v !== 'Faretti') { setIllumNFaretti(null); setIllumWatt(null); }
-  };
+  const [fcVisMarcia,   setFcVisMarcia]   = useState(false);  // faccia visibile nel senso di marcia
   // Area espositiva (m²) calcolata automaticamente da larghezza × altezza (cm → m²)
   const areaEspositiva = React.useMemo(() => {
     const w = parseFloat(largImp), h = parseFloat(altImp);
@@ -3278,7 +3383,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     setFcTipo('Anteriore'); setFcSlot(null); setFcLat(''); setFcLng(''); setFcCoordLock(true);
     setFcOrient(0); setFcCono(null); setFcFormL(null); setFcFormH(null);
     setFcIllumStato(null); setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null);
-    setFcVendita(null); setFcPrezzo(null);
+    setFcVendita(null); setFcPrezzo(null); setFcVisMarcia(false);
   };
   // Nuova faccia: eredita coordinate e illuminazione dall'impianto (logica dell'impianto)
   // Coordinate ereditate dall'impianto finché il lucchetto è chiuso
@@ -3295,8 +3400,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     setFaceEditId(null);
     setFcCoordLock(true);
     setFcLat(lat || ''); setFcLng(lng || '');
-    setFcIllumStato(illumStato); setFcIllumMezzo(illumMezzo);
-    setFcIllumNFaretti(illumNFaretti); setFcIllumWatt(illumWatt);
     setFaceDrawerOpen(true);
   };
   const openEditFace = (f) => {
@@ -3310,6 +3413,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     setFcIllumStato(f.illumStato); setFcIllumMezzo(f.illumMezzo);
     setFcIllumNFaretti(f.illumNFaretti); setFcIllumWatt(f.illumWatt);
     setFcVendita(f.vendita); setFcPrezzo(f.prezzo);
+    setFcVisMarcia(!!f.visMarcia);
     setFaceDrawerOpen(true);
   };
   const closeFaceDrawer = () => { setFaceDrawerOpen(false); setFaceEditId(null); };
@@ -3320,7 +3424,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
       lat: fcCoordLock ? (lat || '') : fcLat, lng: fcCoordLock ? (lng || '') : fcLng, coordLock: fcCoordLock,
       orient: fcOrient, cono: fcCono, formL: fcFormL, formH: fcFormH,
       illumStato: fcIllumStato, illumMezzo: fcIllumMezzo, illumNFaretti: fcIllumNFaretti, illumWatt: fcIllumWatt,
-      vendita: fcVendita, prezzo: fcPrezzo,
+      vendita: fcVendita, prezzo: fcPrezzo, visMarcia: fcVisMarcia,
     };
     if (faceEditId) {
       setFacce(prev => prev.map(f => {
@@ -3350,60 +3454,88 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     }]);
     antdMsg.success('Faccia posteriore creata e collegata (speculare)');
   };
+  // Pre-crea le facce previste dalla tipologia (tipo + slot progressivo, coordinate ereditate)
+  const buildFacceForTipo = (tipo) => (FACCE_PER_TIPO[tipo] || ['Anteriore']).map((t, i) => ({
+    id: 'face-auto-' + (i + 1), tipo: t, slot: i + 1,
+    lat: lat || '', lng: lng || '', coordLock: true,
+    orient: 0, cono: null, formL: null, formH: null,
+    illumStato: null, illumMezzo: null, illumNFaretti: null, illumWatt: null,
+    vendita: null, prezzo: null, visMarcia: t === 'Anteriore',
+  }));
   const faceAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openNewFace }, 'Aggiungi Faccia');
+  // Popover informativo per "Tipo faccia": schema corsie/auto + descrizioni (come da design)
+  const faceTypeHelp = React.createElement('div', { style: { maxWidth: 360 } },
+    React.createElement('div', { style: { display: 'flex', gap: 16 } },
+      // Schema: vista dall'alto dell'impianto con i 4 lati colorati per tipo
+      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, auto)', alignItems: 'center', justifyItems: 'center', gap: 4, flexShrink: 0, paddingTop: 2 } },
+        React.createElement('span'),
+        React.createElement('div', { style: { width: 26, height: 4, borderRadius: 2, backgroundColor: FACE_TIPO_STYLE['Anteriore'].color } }),
+        React.createElement('span'),
+        React.createElement('div', { style: { width: 4, height: 26, borderRadius: 2, backgroundColor: FACE_TIPO_STYLE['Sinistra'].color } }),
+        React.createElement('div', { style: { width: 30, height: 30, borderRadius: 4, border: '1.5px solid rgba(0,0,0,0.2)', background: '#fafafa' } }),
+        React.createElement('div', { style: { width: 4, height: 26, borderRadius: 2, backgroundColor: FACE_TIPO_STYLE['Destra'].color } }),
+        React.createElement('span'),
+        React.createElement('div', { style: { width: 26, height: 4, borderRadius: 2, backgroundColor: FACE_TIPO_STYLE['Posteriore'].color } }),
+        React.createElement('span'),
+      ),
+      React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)', lineHeight: 1.5 } },
+        React.createElement('div', { style: { marginBottom: 5 } },
+          React.createElement('span', { style: { fontWeight: 600, color: FACE_TIPO_STYLE['Anteriore'].color } }, 'Anteriore: '),
+          'faccia frontale dell’impianto.'),
+        React.createElement('div', { style: { marginBottom: 5 } },
+          React.createElement('span', { style: { fontWeight: 600, color: FACE_TIPO_STYLE['Posteriore'].color } }, 'Posteriore: '),
+          'faccia opposta alla frontale (retro).'),
+        React.createElement('div', { style: { marginBottom: 5 } },
+          React.createElement('span', { style: { fontWeight: 600, color: FACE_TIPO_STYLE['Sinistra'].color } }, 'Sinistra: '),
+          'faccia sul lato sinistro.'),
+        React.createElement('div', null,
+          React.createElement('span', { style: { fontWeight: 600, color: FACE_TIPO_STYLE['Destra'].color } }, 'Destra: '),
+          'faccia sul lato destro.'),
+      ),
+    ),
+    // Nota: la visibilità rispetto al traffico è un attributo a parte (switch)
+    React.createElement('div', { style: { marginTop: 10, paddingTop: 10, borderTop: '1px solid #f0f0f0', fontSize: 12, color: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-start', gap: 6 } },
+      React.createElement(icons.InfoCircleOutlined, { style: { fontSize: 12, marginTop: 2, flexShrink: 0 } }),
+      React.createElement('span', null, 'Il tipo indica la posizione del pannello sulla struttura. La visibilità rispetto al senso di marcia si imposta con lo switch dedicato.'),
+    ),
+  );
+  const tipoFacciaLabel = React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+    'Tipo faccia',
+    React.createElement(Popover, { title: 'Tipo Faccia', content: faceTypeHelp, placement: 'topLeft' },
+      React.createElement(icons.QuestionCircleOutlined, { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', cursor: 'help' } })),
+  );
   // Stiamo modificando una posteriore collegata? In tal caso i campi fisici sono guidati dall'anteriore
   const fcIsLinkedPost = !!(facce.find(f => f.id === faceEditId) || {}).pairOf;
 
-  // ── Dispositivi connessi — stessa UX delle facce (button + drawer + card)
-  const [dispositivi,    setDispositivi]    = useState([]);
-  const [devDrawerOpen,  setDevDrawerOpen]  = useState(false);
-  const [devEditId,      setDevEditId]      = useState(null);
-  const [dvNome,       setDvNome]       = useState('');
-  const [dvDesc,       setDvDesc]       = useState('');
-  const [dvTipo,       setDvTipo]       = useState(null);
-  const [dvMacPlayer,  setDvMacPlayer]  = useState([]);
-  const [dvMacSensor,  setDvMacSensor]  = useState([]);
-  const [dvPcSerial,   setDvPcSerial]   = useState([]);
-  const [dvTeamviewer, setDvTeamviewer] = useState([]);
-  const [dvAnydesk,    setDvAnydesk]    = useState([]);
-  const [dvTelefono,   setDvTelefono]   = useState([]);
-  const [dvIdSensore,  setDvIdSensore]  = useState([]);
-  const [dvStato,      setDvStato]      = useState('Connesso');
-  const resetDeviceForm = () => {
-    setDvNome(''); setDvDesc(''); setDvTipo(null);
-    setDvMacPlayer([]); setDvMacSensor([]); setDvPcSerial([]);
-    setDvTeamviewer([]); setDvAnydesk([]); setDvTelefono([]); setDvIdSensore([]);
-    setDvStato('Connesso');
-  };
-  const openNewDevice = () => { resetDeviceForm(); setDevEditId(null); setDevDrawerOpen(true); };
-  const openEditDevice = (d) => {
-    setDevEditId(d.id);
-    setDvNome(d.nome || ''); setDvDesc(d.desc || ''); setDvTipo(d.tipo || null);
-    setDvMacPlayer(d.macPlayer || []); setDvMacSensor(d.macSensor || []); setDvPcSerial(d.pcSerial || []);
-    setDvTeamviewer(d.teamviewer || []); setDvAnydesk(d.anydesk || []); setDvTelefono(d.telefono || []); setDvIdSensore(d.idSensore || []);
-    setDvStato(d.stato || 'Connesso');
-    setDevDrawerOpen(true);
-  };
-  const closeDeviceDrawer = () => { setDevDrawerOpen(false); setDevEditId(null); };
-  const saveDevice = () => {
-    if (!dvNome.trim()) { antdMsg.warning('Inserisci il nome del dispositivo'); return; }
-    const data = {
-      nome: dvNome, desc: dvDesc, tipo: dvTipo,
-      macPlayer: dvMacPlayer, macSensor: dvMacSensor, pcSerial: dvPcSerial,
-      teamviewer: dvTeamviewer, anydesk: dvAnydesk, telefono: dvTelefono, idSensore: dvIdSensore,
-      stato: dvStato,
-    };
-    if (devEditId) {
-      setDispositivi(prev => prev.map(d => d.id === devEditId ? { ...d, ...data } : d));
-      antdMsg.success('Dispositivo aggiornato');
+  // ── Cespiti e Dispositivi — drawer unico: la select "Tipo" elenca tutti i tipi
+  // (cespiti + dispositivi) e i campi mostrati cambiano in base alla scelta (ASSET_TYPES).
+  // Ogni elemento è { id, tipo, vals: {…} } e diventa una card nella stessa lista.
+  const [assets,         setAssets]         = useState([]);
+  const [assetDrawerOpen,setAssetDrawerOpen]= useState(false);
+  const [assetEditId,    setAssetEditId]    = useState(null);
+  const [acTipo,         setAcTipo]         = useState(null);   // tipo selezionato
+  const [acVals,         setAcVals]         = useState({});     // valori dei campi del tipo
+  const setAcVal = (key, nv) => setAcVals(prev => ({ ...prev, [key]: nv }));
+  const openNewAsset = () => { setAssetEditId(null); setAcTipo(null); setAcVals({}); setAssetDrawerOpen(true); };
+  const openEditAsset = (a) => { setAssetEditId(a.id); setAcTipo(a.tipo); setAcVals({ ...(a.vals || {}) }); setAssetDrawerOpen(true); };
+  const closeAssetDrawer = () => { setAssetDrawerOpen(false); setAssetEditId(null); };
+  const saveAsset = () => {
+    if (!acTipo) { antdMsg.warning('Seleziona il tipo di cespite o dispositivo'); return; }
+    const def = getAssetType(acTipo);
+    const nameField = (def.fields || []).find(f => f.key === 'nome');
+    if (nameField && nameField.required && !String(acVals.nome || '').trim()) { antdMsg.warning('Inserisci il nome del dispositivo'); return; }
+    const data = { tipo: acTipo, vals: { ...acVals } };
+    if (assetEditId) {
+      setAssets(prev => prev.map(a => a.id === assetEditId ? { ...a, ...data } : a));
+      antdMsg.success('Elemento aggiornato');
     } else {
-      setDispositivi(prev => [...prev, { id: 'dev-' + (prev.length + 1) + '-' + prev.length, ...data }]);
-      antdMsg.success('Dispositivo aggiunto');
+      setAssets(prev => [...prev, { id: 'asset-' + (prev.length + 1) + '-' + prev.length, ...data }]);
+      antdMsg.success('Elemento aggiunto');
     }
-    closeDeviceDrawer();
+    closeAssetDrawer();
   };
-  const removeDevice = (id) => { setDispositivi(prev => prev.filter(d => d.id !== id)); antdMsg.success('Dispositivo rimosso'); };
-  const devAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openNewDevice }, 'Aggiungi Dispositivo');
+  const removeAsset = (id) => { setAssets(prev => prev.filter(a => a.id !== id)); antdMsg.success('Elemento rimosso'); };
+  const assetAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openNewAsset }, 'Aggiungi');
 
   // ── Commerciale
   const [proprieta,      setProprieta]      = useState(null);
@@ -3413,6 +3545,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [cimasa,         setCimasa]         = useState('');
   const [squadraAff,     setSquadraAff]     = useState('');
   const [codiceSquadra,  setCodiceSquadra]  = useState('');
+  const [tipoAffissione, setTipoAffissione] = useState(null);
+  const [costoAffissione,    setCostoAffissione]    = useState(null);
+  const [costoPreincoll,     setCostoPreincoll]     = useState(null);
 
   // ── Progetto (ex Genio Civile)
   const [progetto,     setProgetto]     = useState('');
@@ -3433,33 +3568,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [laboratorio,  setLaboratorio]  = useState('');
   const [geologo,      setGeologo]      = useState('');
 
-  // ── Struttura
-  const [tipoFond,       setTipoFond]       = useState(null);
-  const [dimFond,        setDimFond]        = useState('');
-  const [dataLavoriFond, setDataLavoriFond] = useState(null);
-  const [dataFineLav,    setDataFineLav]    = useState(null);
-  const [tipoPali,       setTipoPali]       = useState(null);
-  const [numPali,        setNumPali]        = useState(null);
-  const [diametroPali,   setDiametroPali]   = useState('');
-  const [altezzaPali,    setAltezzaPali]    = useState('');
-  const [interassePali,  setInterassePali]  = useState('');
-  const [dittaPali,      setDittaPali]      = useState('');
-  const [dataMontPali,   setDataMontPali]   = useState(null);
-  const [numPunzPali,    setNumPunzPali]    = useState('');
-  const [tipoCornice,    setTipoCornice]    = useState(null);
-  const [dittaCornice,   setDittaCornice]   = useState('');
-  const [dataMontCornice,setDataMontCornice]= useState(null);
-  const [tipoPannelli,   setTipoPannelli]   = useState(null);
-  const [barreAntivento, setBarreAntivento] = useState(null);
-  const [dittaPannelli,  setDittaPannelli]  = useState('');
-  const [dataMontPann,   setDataMontPann]   = useState(null);
-  const [numStaffeMuro,  setNumStaffeMuro]  = useState('');
-  const [dataCollStaffe, setDataCollStaffe] = useState(null);
-  const [strutTerrazze,  setStrutTerrazze]  = useState(null);
-  const [dataMontTerrazze, setDataMontTerrazze] = useState(null);
-  const [numPesiStrutt,  setNumPesiStrutt]  = useState(null);
-  const [kgPesiCadauno,  setKgPesiCadauno]  = useState(null);
-
   // ── Manutenzione
   const [dataMan,    setDataMan]    = useState(null);
   const [squadraMan, setSquadraMan] = useState('');
@@ -3471,8 +3579,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [progettoDocs, setProgettoDocs] = useState([]);
   const [noteVerifica, setNoteVerifica] = useState('');
 
-  // ── Note
-  const [noteRif, setNoteRif] = useState('');
   const [selConcessioni,    setSelConcessioni]    = useState([]);
   const [selAutorizzazioni, setSelAutorizzazioni] = useState([]);
 
@@ -3500,10 +3606,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     { id: 'dati-amministrativi',   label: 'Dati amministrativi' },
     { id: 'caratteristiche', label: 'Dati Tecnici' },
     { id: 'struttura',       label: 'Cespiti e Dispositivi' },
-    { id: 'commerciale',     label: 'Commerciale' },
     { id: 'manutenzione',    label: 'Manutenzione' },
+    { id: 'affissione',      label: 'Affissione' },
+    { id: 'commerciale',     label: 'Commerciale' },
     { id: 'galleria',        label: 'Galleria' },
-    { id: 'note',            label: 'Note' },
   ];
 
 
@@ -3524,21 +3630,15 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     via, civico, cap, citta, provincia, regione, nazione, lat, lng,
     tipoSuolo, catSuolo, utenza, zona: zn,
     largImp, altImp, profImp, altTerra, areaEspositiva, riparato, facce,
-    illuminato, illumStato, illumMezzo, illumNFaretti, illumWatt,
     proprieta, vendita,
     prezzoNetto, prezzoLordo, cimasa,
-    squadraAff, codiceSquadra,
+    squadraAff, codiceSquadra, tipoAffissione, costoAffissione, costoPreincoll,
     progetto, numTavola, progDittaCA, progDataFine, dataCollaudo, dataVerifica, respVerifica,
     calcestruzzo, acciaioCarp, acciaioArm, tecnicheGc,
     progettista, ddl, rsc, collaudatore, laboratorio, geologo,
-    tipoFond, dimFond, dataLavoriFond, dataFineLav,
-    tipoPali, numPali, diametroPali, altezzaPali, interassePali, dittaPali, dataMontPali, numPunzPali,
-    tipoCornice, dittaCornice, dataMontCornice,
-    tipoPannelli, barreAntivento, dittaPannelli, dataMontPann,
-    numStaffeMuro, dataCollStaffe, strutTerrazze, dataMontTerrazze, numPesiStrutt, kgPesiCadauno,
     dataMan, squadraMan, tipoMan, oggettoMan,
     noteVerifica,
-    dispositivi,
+    assets,
     concessioni: selConcessioni, autorizzazioni: selAutorizzazioni, permessi: addedPermits,
   });
 
@@ -3711,6 +3811,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 
   // Grid helpers
   const g2 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-2' }, ...f);
+  // Riga flex: i campi stanno affiancati alla loro larghezza naturale, separati da un gap (non stirati su colonne)
+  const gapRow = (...f) => React.createElement('div', { style: { display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 16 } }, ...f);
   const g3 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-3' }, ...f);
   const g4 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-4' }, ...f);
   // Sotto-intestazione dentro un box (per raggruppare più sottosezioni in un'unica card)
@@ -3727,6 +3829,12 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     React.createElement(InputNumber, { value: val, onChange: set, style: { width: '100%' }, placeholder: '—', ...props });
   const sel = (val, set, opts, ph='Seleziona', props={}) =>
     React.createElement(Select, { value: val, onChange: set, options: opts, style: { width: '100%' }, placeholder: ph, ...props });
+  // Campo a sola lettura compilato in automatico: stesso look di "Nome impianto" (borderless, allineato a sinistra)
+  const autoText = (val, ph='Compilato in automatico', extra={}) =>
+    React.createElement(Input, {
+      value: val, readOnly: true, variant: 'borderless', className: 'readonly-input',
+      tabIndex: -1, style: { cursor: 'default', paddingLeft: 0 }, placeholder: ph, ...extra,
+    });
   const dp = (val, set) =>
     React.createElement(DatePicker, { value: val, onChange: set, style: { width: '100%' }, placeholder: 'Seleziona data', format: 'DD/MM/YYYY' });
   const sw = (val, set) =>
@@ -3739,6 +3847,35 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
       mode: 'tags', value: val || [], onChange: set, style: { width: '100%' },
       placeholder: ph, open: false, suffixIcon: null, tokenSeparators: [','],
     });
+
+  // ── Drawer Cespiti/Dispositivi: rende un campo a partire dalla sua definizione (ASSET_TYPES)
+  const renderAssetField = (f) => {
+    const set = (nv) => setAcVal(f.key, nv);
+    const val = acVals[f.key];
+    switch (f.kind) {
+      case 'select':   return sel(val == null ? null : val, set, f.opts, f.ph || 'Seleziona');
+      case 'number':   return num(val == null ? null : val, set, f.props || {});
+      case 'date':     return dp(val == null ? null : val, set);
+      case 'tags':      return tagsInput(val || [], set, f.ph);
+      case 'textarea': return React.createElement(Input.TextArea, { value: val || '', onChange: e => set(e.target.value), placeholder: f.ph || '', autoSize: { minRows: 2, maxRows: 3 } });
+      case 'segmented':return React.createElement(Segmented, { block: true, value: val || f.default, onChange: set, options: f.opts });
+      default:         return inp(val || '', set, f.ph || '—');
+    }
+  };
+  // Impagina i campi del tipo: campi "full" su riga intera, gli altri a coppie (g2)
+  const renderAssetFields = (tipo) => {
+    const def = getAssetType(tipo);
+    if (!def) return null;
+    const nodes = []; let pair = [];
+    const flush = () => { if (pair.length) { nodes.push(g2(...pair, ...(pair.length === 1 ? [React.createElement('div')] : []))); pair = []; } };
+    def.fields.forEach((f, i) => {
+      const field = cs(f.label, !!f.required, renderAssetField(f));
+      if (f.full) { flush(); nodes.push(React.createElement('div', { key: 'af' + i }, field)); }
+      else { pair.push(field); if (pair.length === 2) flush(); }
+    });
+    flush();
+    return nodes;
+  };
 
   const viaAutocomplete = React.createElement(AutoComplete, {
     style: { width: '100%' }, value: via,
@@ -3830,7 +3967,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                   { status: showErrors && !canale ? 'error' : undefined })
               ),
               cs('Tipologia', true,
-                sel(tipologia, v => { setTipologia(v); setFormato(null); }, tipologieOpts,
+                sel(tipologia, v => { setTipologia(v); setFormato(null); setFacce(buildFacceForTipo(v)); }, tipologieOpts,
                   canale ? 'Es. Pensilina, Palina…' : 'Prima seleziona il canale',
                   { disabled: !canale, showSearch: true, status: showErrors && !tipologia ? 'error' : undefined })
               ),
@@ -4025,20 +4162,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               })
             ),
           ),
-          box('Verifica', 'Verifiche periodiche dell\'impianto.',
-            g2(
-              cs('Data ultima verifica',  false, dp(dataVerifica,  setDataVerifica)),
-              cs('Resp. ultima verifica', false,
-                sel(respVerifica || undefined, setRespVerifica, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
-            ),
-            cs('Note', false,
-              React.createElement(Input.TextArea, {
-                value: noteVerifica, onChange: e => setNoteVerifica(e.target.value),
-                placeholder: 'Es. Verifica strutturale superata, prossimo controllo previsto a settembre…',
-                autoSize: { minRows: 2, maxRows: 4 },
-              })
-            ),
-          ),
         ),
 
         // ── 3. Caratteristiche
@@ -4055,45 +4178,32 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               cs('Dimensione singolo modulo',false, inp(dimModuli, setDimModuli, 'Es. 120×180 cm')),
               cs('Area espositiva', false,
                 React.createElement(InputNumber, {
-                  value: areaEspositiva, disabled: true, precision: 2,
-                  style: { width: '100%' }, addonAfter: 'm²',
-                  placeholder: 'Auto',
+                  value: areaEspositiva, readOnly: true, controls: false, precision: 2,
+                  variant: 'borderless', className: 'readonly-input', tabIndex: -1,
+                  style: { width: '100%', cursor: 'default', paddingLeft: 0 },
+                  formatter: v => (v === '' || v === null || v === undefined) ? '' : v + ' m²',
+                  placeholder: 'Calcolata in automatico',
                 })),
               cs('Esposizione', false, sel(riparato, setRiparato, RIPARATO_OPTS)),
             ),
           ),
-          box('Illuminazione', 'Stato dell\'illuminazione e, se presente, il mezzo utilizzato.',
-            (illumMezzo === 'Faretti' ? g4 : g2)(
-              cs('Stato illuminazione', false,
-                sel(illumStato, onIllumStato, ILLUM_STATO_OPTS, 'Seleziona')),
-              cs('Mezzo di illuminazione', false,
-                sel(illumMezzo, onIllumMezzo,
-                  (ILLUM_MEZZO_BY_STATO[illumStato] || []).map(v => ({ value: v, label: v })),
-                  illuminato ? 'Seleziona' : '—',
-                  { disabled: !illuminato })),
-              ...(illumMezzo === 'Faretti' ? [
-                cs('Numero faretti', false, num(illumNFaretti, setIllumNFaretti, { min: 0 })),
-                cs('Watt per faretto', false, num(illumWatt, setIllumWatt, { min: 0, addonAfter: 'W' })),
-              ] : []),
-            ),
-          ),
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Facce',
-              facce.length > 0 ? React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: '#3E00FB', background: '#F0EBFF', borderRadius: 10, padding: '1px 9px', lineHeight: '18px' } }, facce.length) : null,
+              facce.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, facce.length) : null,
             ), 'Numero e caratteristiche delle facce espositive. Per ogni faccia anteriore puoi creare la posteriore corrispondente (speculare).',
             facce.length > 0 ? faceAddBtn : null,
             facce.length > 0
-              ? React.createElement(Row, { gutter: [16, 16] },
+              ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 } },
                   facce.map((f, i) => {
                     const hasPost = facce.some(x => x.pairOf === f.id);
-                    return React.createElement(Col, { span: 12, key: f.id },
-                      React.createElement(FormFaceCard, {
-                        index: i + 1, face: { ...f, _hasPosteriore: hasPost },
-                        onEdit: () => openEditFace(f),
-                        onRemove: () => removeFace(f.id),
-                        onCreatePosteriore: (f.tipo === 'Anteriore' && !hasPost) ? () => createPosteriore(f) : null,
-                      }),
-                    );
+                    const ordinal = facce.slice(0, i + 1).filter(x => x.tipo === f.tipo).length;
+                    return React.createElement(FormFaceCard, {
+                      key: f.id,
+                      name: f.tipo + '-' + ordinal, face: { ...f, _hasPosteriore: hasPost },
+                      onEdit: () => openEditFace(f),
+                      onRemove: () => removeFace(f.id),
+                      onCreatePosteriore: (f.tipo === 'Anteriore' && !hasPost) ? () => createPosteriore(f) : null,
+                    });
                   }),
                 )
               : React.createElement(Empty, { description: "Aggiungi le facce espositive dell'impianto", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
@@ -4102,98 +4212,25 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
           ),
         ),
 
-        // ── 4. Commerciale
-        sec('commerciale', 'Commerciale', 'Modello di vendita, prezzi e squadra di affissione.',
-          box('Modello commerciale', 'Struttura di vendita e listino prezzi associati all\'impianto.',
-            g2(
-              cs('Modello di vendita', false,
-                sel(vendita, setVendita, [
-                  { value: 'Standard',  label: 'Standard' },
-                  { value: 'Long term', label: 'Long term' },
-                ])
-              ),
-              React.createElement('div'),
-            ),
-            g4(
-              cs('Prezzo netto (€)',  false, num(prezzoNetto,   setPrezzoNetto,   { min: 0, precision: 2 })),
-              cs('Prezzo lordo (€)',  false, num(prezzoLordo,   setPrezzoLordo,   { min: 0, precision: 2 })),
-              cs('Squadra Affissione',false, inp(squadraAff,    setSquadraAff,    '—')),
-              cs('Codice Squadra',    false, inp(codiceSquadra, setCodiceSquadra, '—')),
-            ),
-          ),
-        ),
-
         // ── 7. Cespiti e Dispositivi
         sec('struttura', 'Cespiti e Dispositivi', 'Componenti strutturali (cespiti) e dispositivi connessi installati sull\'impianto.',
-          box('Cespiti', 'Fondazioni, pali, cornice, pannelli ed elementi strutturali dell\'impianto.',
-            subH('Fondazioni', true),
-            g4(
-              cs('Tipo fondazione',      false, sel(tipoFond, setTipoFond, TIPO_FONDAZIONE_OPTS)),
-              cs('Dimensione fondazione',false, inp(dimFond,   setDimFond,   'Es. 5,50 × 3,20 × 0,80 m')),
-              cs('Data inizio lavori',   false, dp(dataLavoriFond, setDataLavoriFond)),
-              cs('Data fine lavori',     false, dp(dataFineLav,    setDataFineLav)),
-            ),
-
-            subH('Pali'),
-            g4(
-              cs('Tipo pali',     false, sel(tipoPali,     setTipoPali,     TIPO_PALI_OPTS)),
-              cs('Numero pali',   false, num(numPali,      setNumPali,      { min: 0 })),
-              cs('Diametro (mm)', false, inp(diametroPali, setDiametroPali, '—')),
-              cs('Altezza (cm)',  false, inp(altezzaPali,  setAltezzaPali,  '—')),
-            ),
-            g4(
-              cs('Interasse',                false, inp(interassePali, setInterassePali, 'Es. 250 cm')),
-              cs('N. punzonatura pali',      false, inp(numPunzPali,   setNumPunzPali,   'Es. 013201 - 014001')),
-              cs('Ditta collocazione pali',  false, inp(dittaPali,     setDittaPali,     '—')),
-              cs('Data montaggio',           false, dp(dataMontPali,   setDataMontPali)),
-            ),
-
-            subH('Cornice'),
-            g4(
-              cs('Tipo cornice',             false, sel(tipoCornice,    setTipoCornice,    TIPO_CORNICE_OPTS)),
-              cs('Ditta collocazione cornice',false, inp(dittaCornice,  setDittaCornice,   '—')),
-              cs('Data montaggio',           false, dp(dataMontCornice, setDataMontCornice)),
-              React.createElement('div'),
-            ),
-
-            subH('Pannelli'),
-            g4(
-              cs('Tipo pannelli',           false, sel(tipoPannelli, setTipoPannelli, TIPO_PANNELLI_OPTS)),
-              cs('Numero barre antivento',  false, num(barreAntivento, setBarreAntivento, { min: 0 })),
-              cs('Ditta montaggio pannelli',false, inp(dittaPannelli,  setDittaPannelli,  '—')),
-              cs('Data montaggio',          false, dp(dataMontPann, setDataMontPann)),
-            ),
-
-            subH('Extra struttura'),
-            g4(
-              cs('N. staffe muro',          false, inp(numStaffeMuro, setNumStaffeMuro, 'Es. 12 tassellate + 4')),
-              cs('Data collocazione staffe',false, dp(dataCollStaffe, setDataCollStaffe)),
-              cs('Strutture terrazze',      false, sel(strutTerrazze, setStrutTerrazze, STRUT_TERRAZZE_OPTS)),
-              cs('Data montaggio terrazze', false, dp(dataMontTerrazze, setDataMontTerrazze)),
-            ),
-            g4(
-              cs('N. pesi struttura',  false, num(numPesiStrutt, setNumPesiStrutt, { min: 0 })),
-              cs('Kg pesi cadauno',    false, num(kgPesiCadauno, setKgPesiCadauno, { min: 0 })),
-              React.createElement('div'), React.createElement('div'),
-            ),
-          ),
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
-              'Dispositivi',
-              dispositivi.length > 0 ? React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: '#3E00FB', background: '#F0EBFF', borderRadius: 10, padding: '1px 9px', lineHeight: '18px' } }, dispositivi.length) : null,
-            ), 'Dispositivi connessi installati sull\'impianto (player, modem, sensori, schermi…).',
-            dispositivi.length > 0 ? devAddBtn : null,
-            dispositivi.length > 0
+              'Cespiti e Dispositivi',
+              assets.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, assets.length) : null,
+            ), 'Aggiungi un elemento e scegli il tipo: fondazioni, pali, cornice, pannelli, extra struttura o un dispositivo connesso. I campi cambiano in base al tipo scelto.',
+            assets.length > 0 ? assetAddBtn : null,
+            assets.length > 0
               ? React.createElement(Row, { gutter: [16, 16] },
-                  dispositivi.map(d => React.createElement(Col, { span: 12, key: d.id },
-                    React.createElement(FormDeviceCard, {
-                      device: d,
-                      onEdit: () => openEditDevice(d),
-                      onRemove: () => removeDevice(d.id),
+                  assets.map(a => React.createElement(Col, { span: 12, key: a.id },
+                    React.createElement(FormAssetCard, {
+                      asset: a,
+                      onEdit: () => openEditAsset(a),
+                      onRemove: () => removeAsset(a.id),
                     }),
                   )),
                 )
-              : React.createElement(Empty, { description: "Aggiungi un dispositivo connesso all'impianto", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
-                  devAddBtn,
+              : React.createElement(Empty, { description: "Aggiungi un cespite o un dispositivo dell'impianto", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+                  assetAddBtn,
                 ),
           ),
         ),
@@ -4205,7 +4242,61 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               cs('Data ultima man.', false, dp(dataMan,     setDataMan)),
               cs('Squadra',          false, inp(squadraMan, setSquadraMan, '—')),
               cs('Tipo intervento',  false, sel(tipoMan,    setTipoMan,   TIPO_MAN_OPTS)),
-              cs('Oggetto',          false, inp(oggettoMan, setOggettoMan,'—')),
+              cs('Componente interessato', false, inp(oggettoMan, setOggettoMan,'Es. pannello frontale, illuminazione…')),
+            ),
+          ),
+          box('Verifica', 'Verifiche periodiche dell\'impianto.',
+            g2(
+              cs('Data ultima verifica',  false, dp(dataVerifica,  setDataVerifica)),
+              cs('Resp. ultima verifica', false,
+                sel(respVerifica || undefined, setRespVerifica, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+            ),
+            cs('Note', false,
+              React.createElement(Input.TextArea, {
+                value: noteVerifica, onChange: e => setNoteVerifica(e.target.value),
+                placeholder: 'Es. Verifica strutturale superata, prossimo controllo previsto a settembre…',
+                autoSize: { minRows: 2, maxRows: 4 },
+              })
+            ),
+          ),
+        ),
+
+        // ── Affissione
+        sec('affissione', 'Affissione', 'Squadra incaricata, modalità e costi delle operazioni di affissione.',
+          box('Squadra, modalità e costi', 'Squadra incaricata (codice incluso), tipo di affissione e relativi costi.',
+            g2(
+              cs('Squadra affissione', false,
+                sel(squadraAff || undefined, (v) => {
+                  setSquadraAff(v || '');
+                  const f = SQUADRE_AFF.find(s => s.nome === v);
+                  setCodiceSquadra(f ? f.codice : '');
+                }, SQUADRE_AFF_OPTS, 'Cerca per codice o nome…', {
+                  showSearch: true, allowClear: true, optionFilterProp: 'label',
+                })),
+              cs('Tipo affissione', false, sel(tipoAffissione, setTipoAffissione, TIPO_AFFISSIONE_OPTS)),
+            ),
+            g2(
+              cs('Costo affissione (€)',     false, num(costoAffissione, setCostoAffissione, { min: 0, precision: 2 })),
+              cs('Costo preincollaggio (€)', false, num(costoPreincoll,  setCostoPreincoll,  { min: 0, precision: 2 })),
+            ),
+          ),
+        ),
+
+        // ── Commerciale
+        sec('commerciale', 'Commerciale', 'Modello di vendita e prezzi.',
+          box('Modello commerciale', 'Struttura di vendita e listino prezzi associati all\'impianto.',
+            g2(
+              cs('Modello di vendita', false,
+                sel(vendita, setVendita, [
+                  { value: 'Standard',  label: 'Standard' },
+                  { value: 'Long term', label: 'Long term' },
+                ])
+              ),
+              React.createElement('div'),
+            ),
+            g2(
+              cs('Prezzo netto (€)',  false, num(prezzoNetto,   setPrezzoNetto,   { min: 0, precision: 2 })),
+              cs('Prezzo lordo (€)',  false, num(prezzoLordo,   setPrezzoLordo,   { min: 0, precision: 2 })),
             ),
           ),
         ),
@@ -4225,15 +4316,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                 React.createElement(PlusOutlined),
                 React.createElement('div', { style: { marginTop: 8, fontSize: 13 } }, 'Aggiungi foto'),
               )
-            ),
-          ),
-        ),
-
-        // ── 10. Note
-        sec('note', 'Note', 'Annotazioni aggiuntive, osservazioni libere e riferimenti topografici.',
-          box('Note aggiuntive', 'Informazioni non strutturate: riferimenti di posizione, contesto urbano, osservazioni.',
-            cs('Note', false,
-              React.createElement(Input.TextArea, { value: noteRif, onChange: e => setNoteRif(e.target.value), placeholder: 'Es. angolo con Via Bandiera, fronte semaforo…', autoSize: { minRows: 4, maxRows: 8 } })
             ),
           ),
         ),
@@ -4287,12 +4369,14 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
         React.createElement(InfoCircleOutlined, { style: { fontSize: 14, color: '#3E00FB', marginTop: 2 } }),
         React.createElement('span', null, 'Faccia posteriore collegata: posizione, dimensioni, slot e orientamento sono guidati dalla faccia anteriore. Qui puoi modificare illuminazione, modello di vendita e prezzo.'),
       ) : null,
-      g2(
-        cs('Tipo faccia', true,
-          React.createElement(Segmented, { block: true, value: fcTipo, onChange: setFcTipo, disabled: fcIsLinkedPost,
-            options: [{ label: 'Anteriore', value: 'Anteriore' }, { label: 'Posteriore', value: 'Posteriore' }] })),
-        cs('Numero slot', false, num(fcSlot, setFcSlot, { min: 1, disabled: fcIsLinkedPost })),
+      cs(tipoFacciaLabel, true,
+        React.createElement(Radio.Group, { optionType: 'button', value: fcTipo, onChange: e => setFcTipo(e.target.value), disabled: fcIsLinkedPost,
+          options: [{ label: 'Anteriore', value: 'Anteriore' }, { label: 'Posteriore', value: 'Posteriore' }, { label: 'Sinistra', value: 'Sinistra' }, { label: 'Destra', value: 'Destra' }] })),
+      React.createElement('div', { className: 'ni-field', style: { display: 'flex', alignItems: 'center', gap: 12 } },
+        React.createElement('div', { className: 'ni-label', style: { marginBottom: 0 } }, 'Visibile nel senso di marcia'),
+        React.createElement(Switch, { checked: fcVisMarcia, onChange: setFcVisMarcia, checkedChildren: 'Sì', unCheckedChildren: 'No' }),
       ),
+      cs('Numero slot', false, num(fcSlot, setFcSlot, { min: 1, disabled: fcIsLinkedPost, style: { width: 160 } })),
       cs(fcCoordLock ? 'Coordinate (ereditate dall\'impianto)' : 'Coordinate', false,
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
           React.createElement(Input, { value: fcLat, onChange: e => setFcLat(e.target.value), placeholder: 'Latitudine', disabled: fcCoordLock || fcIsLinkedPost, style: { flex: 1 } }),
@@ -4311,74 +4395,61 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
             marks: { 0: '0', 90: '90', 180: '180', 270: '270', 360: '360' },
             tooltip: { formatter: v => v + '°' },
           }))),
-      g2(
-        cs('Cono di visibilità', false,
-          React.createElement(InputNumber, { value: fcCono, onChange: setFcCono, min: 0, disabled: fcIsLinkedPost, addonBefore: 'r', addonAfter: 'cm', placeholder: '0', style: { width: '100%' } })),
-        cs('Formato', false,
-          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-            React.createElement(InputNumber, { value: fcFormL, onChange: setFcFormL, min: 0, disabled: fcIsLinkedPost, addonAfter: 'cm', placeholder: 'l', style: { flex: 1 } }),
-            React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)' } }, '×'),
-            React.createElement(InputNumber, { value: fcFormH, onChange: setFcFormH, min: 0, disabled: fcIsLinkedPost, addonAfter: 'cm', placeholder: 'h', style: { flex: 1 } }),
-          )),
-      ),
+      cs('Cono di visibilità', false,
+        React.createElement(InputNumber, { value: fcCono, onChange: setFcCono, min: 0, disabled: fcIsLinkedPost, addonBefore: 'r', addonAfter: 'cm', placeholder: '0', style: { width: 200 } })),
+      cs('Formato', false,
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+          React.createElement(InputNumber, { value: fcFormL, onChange: setFcFormL, min: 0, disabled: fcIsLinkedPost, addonAfter: 'cm', placeholder: 'l', style: { flex: 1 } }),
+          React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)' } }, '×'),
+          React.createElement(InputNumber, { value: fcFormH, onChange: setFcFormH, min: 0, disabled: fcIsLinkedPost, addonAfter: 'cm', placeholder: 'h', style: { flex: 1 } }),
+        )),
       React.createElement('div', { className: 'ni-section-title', style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '8px 0 12px' } }, 'Illuminazione'),
-      cs('Stato illuminazione', false,
-        React.createElement(Segmented, { block: true, value: fcIllumStato || 'Spento', onChange: onFcIllumStato,
-          options: [{ label: 'Spento', value: 'Spento' }, { label: 'Illuminato', value: 'Illuminato' }, { label: 'Luminoso', value: 'Luminoso' }] })),
-      (fcIllumStato && fcIllumStato !== 'Spento') ? g2(
-        cs('Mezzo di illuminazione', false,
-          sel(fcIllumMezzo, onFcIllumMezzo,
-            (ILLUM_MEZZO_BY_STATO[fcIllumStato] || []).map(v => ({ value: v, label: v })), 'Seleziona')),
-        React.createElement('div'),
-      ) : null,
-      fcIllumMezzo === 'Faretti' ? g2(
-        cs('Numero faretti', false, num(fcIllumNFaretti, setFcIllumNFaretti, { min: 0 })),
-        cs('Watt per faretto', false, num(fcIllumWatt, setFcIllumWatt, { min: 0, addonAfter: 'W' })),
+      gapRow(
+        cs('Stato illuminazione', false,
+          React.createElement(Radio.Group, { optionType: 'button', value: fcIllumStato || 'Spento', onChange: e => onFcIllumStato(e.target.value),
+            options: [{ label: 'Spento', value: 'Spento' }, { label: 'Illuminato', value: 'Illuminato' }, { label: 'Luminoso', value: 'Luminoso' }] })),
+        (fcIllumStato && fcIllumStato !== 'Spento')
+          ? cs('Mezzo di illuminazione', false,
+              sel(fcIllumMezzo, onFcIllumMezzo,
+                (ILLUM_MEZZO_BY_STATO[fcIllumStato] || []).map(v => ({ value: v, label: v })), 'Seleziona', { style: { width: 240 } }))
+          : null,
+      ),
+      fcIllumMezzo === 'Faretti' ? gapRow(
+        cs('Numero faretti', false, num(fcIllumNFaretti, setFcIllumNFaretti, { min: 0, style: { width: 160 } })),
+        cs('Watt per faretto', false, num(fcIllumWatt, setFcIllumWatt, { min: 0, addonAfter: 'W', style: { width: 160 } })),
       ) : null,
       React.createElement('div', { className: 'ni-section-title', style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '8px 0 12px' } }, 'Commerciale'),
-      g2(
+      gapRow(
         cs('Modello di vendita', false,
-          React.createElement(Segmented, { block: true, value: fcVendita || 'Standard', onChange: setFcVendita,
+          React.createElement(Radio.Group, { optionType: 'button', value: fcVendita || 'Standard', onChange: e => setFcVendita(e.target.value),
             options: [{ label: 'Standard', value: 'Standard' }, { label: 'Long term', value: 'Long term' }] })),
-        cs('Prezzo faccia (€)', false, num(fcPrezzo, setFcPrezzo, { min: 0, precision: 2 })),
+        cs('Prezzo faccia (€)', false, num(fcPrezzo, setFcPrezzo, { min: 0, precision: 2, style: { width: 200 } })),
       ),
     ),
 
-    // Device drawer — creazione/modifica del singolo dispositivo connesso
+    // Drawer unico Cespiti/Dispositivi — la select Tipo determina i campi mostrati
     React.createElement(Drawer, {
-      title: devEditId ? 'Modifica Dispositivo' : 'Aggiungi Dispositivo',
+      title: assetEditId ? 'Modifica elemento' : 'Aggiungi cespite o dispositivo',
       placement: 'right', width: 600,
       styles: { body: { padding: 24 } },
-      onClose: closeDeviceDrawer, open: devDrawerOpen,
+      onClose: closeAssetDrawer, open: assetDrawerOpen,
       extra: React.createElement(Space, null,
-        React.createElement(Button, { onClick: closeDeviceDrawer }, 'Annulla'),
-        React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: saveDevice }, devEditId ? 'Salva' : 'Aggiungi'),
+        React.createElement(Button, { onClick: closeAssetDrawer }, 'Annulla'),
+        React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: saveAsset }, assetEditId ? 'Salva' : 'Aggiungi'),
       ),
     },
-      g2(
-        cs('Nome dispositivo', true, inp(dvNome, setDvNome, 'Es. Player faccia A')),
-        cs('Tipo dispositivo', false, sel(dvTipo, setDvTipo, DEVICE_TIPO_OPTS, 'Seleziona')),
-      ),
-      cs('Descrizione breve', false,
-        React.createElement(Input.TextArea, { value: dvDesc, onChange: e => setDvDesc(e.target.value), placeholder: 'Breve descrizione del dispositivo', autoSize: { minRows: 2, maxRows: 3 } })),
-      cs('Stato', false,
-        React.createElement(Segmented, { block: true, value: dvStato || 'Connesso', onChange: setDvStato,
-          options: [{ label: 'Connesso', value: 'Connesso' }, { label: 'Disconnesso', value: 'Disconnesso' }, { label: 'Manutenzione', value: 'In manutenzione' }] })),
-      React.createElement('div', { className: 'ni-section-title', style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '8px 0 12px' } }, 'Identificativi e connettività'),
-      React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 14, marginTop: -4 } }, 'Ogni campo accetta più valori: digita e premi Invio (o virgola) per aggiungerne più di uno.'),
-      g2(
-        cs('MAC address player',  false, tagsInput(dvMacPlayer, setDvMacPlayer, 'Es. 00:1B:44:11:3A:B7')),
-        cs('MAC address sensore', false, tagsInput(dvMacSensor, setDvMacSensor, 'Es. 00:1B:44:11:3A:C2')),
-      ),
-      g2(
-        cs('Numero di serie PC', false, tagsInput(dvPcSerial, setDvPcSerial, 'Es. SN-204813')),
-        cs('ID sensore',         false, tagsInput(dvIdSensore, setDvIdSensore, 'Es. SENS-0012')),
-      ),
-      g2(
-        cs('ID TeamViewer', false, tagsInput(dvTeamviewer, setDvTeamviewer, 'Es. 1 234 567 890')),
-        cs('ID AnyDesk',    false, tagsInput(dvAnydesk, setDvAnydesk, 'Es. 123 456 789')),
-      ),
-      cs('Numero di telefono', false, tagsInput(dvTelefono, setDvTelefono, 'Es. +39 333 1234567')),
+      cs('Tipo cespite o dispositivo', true,
+        React.createElement(Select, {
+          value: acTipo, onChange: setAcTipo, options: ASSET_TIPO_OPTS,
+          style: { width: '100%' }, placeholder: 'Seleziona il tipo',
+          showSearch: true, optionFilterProp: 'label',
+        })),
+      acTipo
+        ? renderAssetFields(acTipo)
+        : React.createElement(Empty, {
+            description: 'Seleziona un tipo per vedere i campi da compilare',
+            image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '16px 0', margin: '8px 0' },
+          }),
     )
   );
 }
