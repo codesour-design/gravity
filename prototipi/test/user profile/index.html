@@ -32,16 +32,12 @@
     .gv-nav-menu.ant-menu-horizontal > .ant-menu-submenu::after { bottom: 0 !important; border-bottom-width: 2px !important; }
     .gv-nav-menu.ant-menu-horizontal > .ant-menu-overflow { height: 64px; }
 
-    /* Avatar header — edit badge visibile solo in hover */
-    .gv-avatar-wrap .gv-avatar-edit { opacity: 0; transition: opacity 0.15s ease; }
-    .gv-avatar-wrap:hover .gv-avatar-edit { opacity: 1; }
+    /* Avatar header — overlay "Modifica" visibile solo in hover */
+    .gv-avatar-wrap .gv-avatar-overlay { opacity: 0; transition: opacity 0.15s ease; }
+    .gv-avatar-wrap:hover .gv-avatar-overlay { opacity: 1; }
 
-    /* Tenant select: nessun bordo visibile nella navbar */
-    .gv-tenant-select.ant-select { height: auto !important; }
-    .gv-tenant-select .ant-select-selector { border-color: transparent !important; background: transparent !important; box-shadow: none !important; height: auto !important; padding: 10px 11px !important; }
-    .gv-tenant-select:hover .ant-select-selector { border-color: rgba(0,0,0,0.1) !important; }
-    .gv-tenant-select .ant-select-selection-item { height: auto !important; line-height: normal !important; }
-    .gv-tenant-select .ant-select-arrow { color: rgba(0,0,0,0.45); }
+    /* Tenant switcher trigger */
+    .gv-tenant-trigger:hover { background: rgba(0,0,0,0.04); }
   </style>
 </head>
 <body>
@@ -55,12 +51,13 @@ const { useState, useEffect, useRef } = React;
 const {
   ConfigProvider, App, Layout, Space, Typography,
   Button, Avatar, Upload, Modal, Form, Input, Select, Card, Tag,
-  Dropdown, Skeleton, Alert, Divider,
+  Dropdown, Skeleton, Alert, Divider, Checkbox, Popover,
 } = antd;
 const {
-  UserOutlined, LockOutlined, BellOutlined, EnvironmentOutlined,
+  UserOutlined, LockOutlined, BellOutlined,
   CheckOutlined, InfoCircleOutlined, SettingOutlined, DownOutlined,
-  CarOutlined, EditOutlined, SwapOutlined,
+  EditOutlined, SwapOutlined, CameraOutlined, HistoryOutlined,
+  ArrowLeftOutlined, FilterOutlined, LoadingOutlined, CheckCircleOutlined,
 } = icons;
 const { Title, Text } = Typography;
 
@@ -77,7 +74,8 @@ const ROLE_NAV = {
 };
 
 const NAV = {
-  Overview:   { items: ['Dashboard finance', 'Dashboard analytics'], links: {} },
+  Overview:   { items: ['Per te', 'Dashboard finance', 'Dashboard analytics'],
+                links: { 'Per te': './index.html' } },
   Inventory:  { items: ['Systems', 'Licenses', 'Supplier'],
                 links: { Systems: '../../prototipo%20approvato/inventory-systems/index.html' } },
   Commercial: { items: ['Wallet', 'Activities', 'Negotiations', 'Orders'],
@@ -93,6 +91,7 @@ const SECTION_LABEL = {
 };
 
 const ITEM_LABEL = {
+  'Per te': 'Per te',
   'Dashboard finance': 'Dashboard Finance', 'Dashboard analytics': 'Dashboard Analytics',
   'Systems': 'Impianti', 'Licenses': 'Permessi', 'Supplier': 'Fornitori',
   'Wallet': 'Portafoglio', 'Activities': 'Attività', 'Negotiations': 'Trattative', 'Orders': 'Ordini',
@@ -127,184 +126,357 @@ function nameColor(name) {
 
 const TENANTS = {
   gravity: {
-    key: 'gravity',
-    name: 'Gravity (White Label)',
-    company: 'Gravity Platform S.r.l.',
-    email: { 'Tenant Admin': 'g.bonanno@gravity.com', 'Inventory Manager': 'g.bonanno@gravity.com', 'Operation Manager': 'g.bonanno@gravity.com', 'Planner': 'g.bonanno@gravity.com', 'Sales': 'g.bonanno@gravity.com' },
-    area: { 'Tenant Admin': 'Gestione piattaforma — Italia', 'Inventory Manager': 'Inventory — Italia', 'Operation Manager': 'Operations & Delivery — Italia', 'Planner': 'Pianificazione — Italia', 'Sales': 'Commerciale — Italia' },
-    spaces: [
-      { code: 'GW-MIL-001', city: 'Milano',  type: 'Maxi LED · Duomo',          status: 'booked',    occupancy: 95 },
-      { code: 'GW-ROM-002', city: 'Roma',     type: 'DOOH 86″ · Termini',        status: 'booked',    occupancy: 88 },
-      { code: 'GW-TOR-003', city: 'Torino',   type: '6x3 OOH · P. Castello',    status: 'available', occupancy: 52 },
-      { code: 'GW-FIR-004', city: 'Firenze',  type: 'Totem DOOH · Duomo',       status: 'expiring',  occupancy: 71 },
-      { code: 'GW-NAP-005', city: 'Napoli',   type: 'Affissione 4x3 · Vomero',  status: 'available', occupancy: 44 },
-    ],
+    key: 'gravity', name: 'Gravity (White Label)', company: 'Gravity Platform S.r.l.',
+    logo: '../../../brand/Gravity_mark.svg', domain: 'gravity.com',
   },
   alessi: {
-    key: 'alessi',
-    name: 'Alessi Pubblicità Spa',
-    company: 'Alessi Media S.p.A.',
-    email: { 'Tenant Admin': 's.marchetti@alessimedia.it', 'Inventory Manager': 't.ferrara@alessimedia.it', 'Operation Manager': 'd.serra@alessimedia.it', 'Planner': 'g.romano@alessimedia.it', 'Sales': 'l.bianchi@alessimedia.it' },
-    area: { 'Tenant Admin': 'Gestione piattaforma — Nord Italia', 'Inventory Manager': 'Inventory — Nord Italia', 'Operation Manager': 'Operations & Delivery — Nord Italia', 'Planner': 'Pianificazione — Nord Italia', 'Sales': 'Commerciale — Nord Italia' },
-    spaces: [
-      { code: 'MI-DUO-014', city: 'Milano',  type: "Maxi LED · P. Duomo",     status: 'booked',    occupancy: 92 },
-      { code: 'TO-PNZ-031', city: 'Torino',  type: "DOOH 75'' · P. Crociera", status: 'available', occupancy: 41 },
-      { code: 'BG-CEN-009', city: 'Bergamo', type: '6x3 OOH · Centro',        status: 'expiring',  occupancy: 68 },
-      { code: 'VR-AR-022',  city: 'Verona',  type: 'Affissione 4x3 · Arena',  status: 'booked',    occupancy: 81 },
-      { code: 'BO-FIE-019', city: 'Bologna', type: 'Totem DOOH · Fiera',      status: 'available', occupancy: 55 },
-    ],
+    key: 'alessi', name: 'Alessi Pubblicità Spa', company: 'Alessi Media S.p.A.',
+    logo: 'assets/logo-alessi.png', domain: 'alessimedia.it',
   },
   movingup: {
-    key: 'movingup',
-    name: 'Moving Up Srl',
-    company: 'Moving Up Italia Srl',
-    email: { 'Tenant Admin': 's.marchetti@movingup.it', 'Inventory Manager': 't.ferrara@movingup.it', 'Operation Manager': 'd.serra@movingup.it', 'Planner': 'g.romano@movingup.it', 'Sales': 'l.bianchi@movingup.it' },
-    area: { 'Tenant Admin': 'Gestione piattaforma — Centro Sud', 'Inventory Manager': 'Inventory — Centro Sud', 'Operation Manager': 'Operations & Delivery — Centro Sud', 'Planner': 'Pianificazione — Centro Sud', 'Sales': 'Commerciale — Centro Sud' },
-    spaces: [
-      { code: 'RM-TER-082', city: 'Roma',    type: '6x3 OOH · Termini',       status: 'expiring',  occupancy: 78 },
-      { code: 'NA-VOM-007', city: 'Napoli',  type: 'Affissione 4x3 · Vomero', status: 'booked',    occupancy: 86 },
-      { code: 'BA-MUR-044', city: 'Bari',    type: "DOOH 65'' · Murat",       status: 'available', occupancy: 62 },
-      { code: 'CT-ETN-013', city: 'Catania', type: 'Maxi LED · V. Etnea',     status: 'booked',    occupancy: 90 },
-      { code: 'PA-POL-028', city: 'Palermo', type: 'Totem DOOH · Politeama',  status: 'expiring',  occupancy: 49 },
-    ],
+    key: 'movingup', name: 'Moving Up Srl', company: 'Moving Up Italia Srl',
+    logo: 'assets/logo-movingup.png', domain: 'movingup.it',
   },
 };
+
+// Area di competenza per ruolo — coerente con il planning (Giulia Romano · Sicilia Occidentale)
+const ROLE_AREA = {
+  'Tenant Admin':      'Gestione piattaforma — Sicilia Occidentale',
+  'Inventory Manager': 'Inventory — Sicilia Occidentale',
+  'Operation Manager': 'Operations & Delivery — Sicilia Occidentale',
+  'Planner':           'Pianificazione — Sicilia Occidentale',
+  'Sales':             'Commerciale — Sicilia Occidentale',
+};
+
+// Email aziendale derivata dall'utente effettivamente visualizzato + dominio del tenant
+function userEmail(role, tenant) {
+  const u = ROLE_USER[role] || { nome: 'u', cognome: '' };
+  const local = (u.nome[0] + '.' + u.cognome).toLowerCase().replace(/\s+/g, '');
+  return local + '@' + tenant.domain;
+}
+
+// ── Prodotti piattaforma (universale per tutti i ruoli) ────────────────────────
+
+// Sotto-prodotti Gravity — naming a tema gravità/spazio, icone placeholder colorate
+const PRODUCTS = [
+  { name: 'Atlas',   desc: 'Inventory OOH/DOOH',     color: '#3E00FB', icon: 'EnvironmentOutlined' },
+  { name: 'Quasar',  desc: 'Inventory Web',          color: '#0EA5E9', icon: 'GlobalOutlined' },
+  { name: 'Vega',    desc: 'CRM Mobile & Desktop',   color: '#16A34A', icon: 'ContactsOutlined' },
+  { name: 'Orbit',   desc: 'Pianificazione OOH/DOOH', color: '#F59E0B', icon: 'CalendarOutlined' },
+  { name: 'Pulsar',  desc: 'Pianificazione Web',     color: '#EC4899', icon: 'ScheduleOutlined' },
+  { name: 'Comet',   desc: 'Espletamento Campagne',  color: '#EF4444', icon: 'RocketOutlined' },
+  { name: 'Aurora',  desc: 'Advertorial',            color: '#8B5CF6', icon: 'ReadOutlined' },
+  { name: 'Polaris', desc: 'ERP & Contabilità',      color: '#0D9488', icon: 'CalculatorOutlined' },
+];
+
+// ── Categorie attività (stile + icona condivisi tra ruoli) ─────────────────────
+
+const CATEGORY_STYLE = {
+  // Operation Manager / commerciale
+  'Pagamenti':      { color: '#ff4d4f', icon: 'CreditCardOutlined' },
+  'Preventivi':     { color: '#fa8c16', icon: 'FileTextOutlined' },
+  'Anagrafiche':    { color: '#3E00FB', icon: 'IdcardOutlined' },
+  'Contratti':      { color: '#16A34A', icon: 'SolutionOutlined' },
+  'Assegnazioni':   { color: '#0EA5E9', icon: 'UsergroupAddOutlined' },
+  // Inventory
+  'Impianti':       { color: '#3E00FB', icon: 'EnvironmentOutlined' },
+  'Permessi':       { color: '#fa8c16', icon: 'SafetyCertificateOutlined' },
+  'Fornitori':      { color: '#0EA5E9', icon: 'ShopOutlined' },
+  'Manutenzione':   { color: '#16A34A', icon: 'ToolOutlined' },
+  // Tenant Admin
+  'Utenti':         { color: '#3E00FB', icon: 'TeamOutlined' },
+  'Fatturazione':   { color: '#ff4d4f', icon: 'DollarOutlined' },
+  'Compliance':     { color: '#722ED1', icon: 'AuditOutlined' },
+  'Listini':        { color: '#fa8c16', icon: 'TagsOutlined' },
+  // Planner
+  'Pianificazione': { color: '#3E00FB', icon: 'CalendarOutlined' },
+  'Disponibilità':  { color: '#16A34A', icon: 'AppstoreOutlined' },
+  'Ordini':         { color: '#0EA5E9', icon: 'ShoppingOutlined' },
+  'Conflitti':      { color: '#ff4d4f', icon: 'WarningOutlined' },
+  'Campagne':       { color: '#722ED1', icon: 'ThunderboltOutlined' },
+  // Sales
+  'Trattative':     { color: '#3E00FB', icon: 'SolutionOutlined' },
+  'Clienti':        { color: '#16A34A', icon: 'UserOutlined' },
+  'Follow-up':      { color: '#0EA5E9', icon: 'ClockCircleOutlined' },
+  'Demo':           { color: '#fa8c16', icon: 'DesktopOutlined' },
+};
+
+function catStyle(cat) { return CATEGORY_STYLE[cat] || { color: '#8c8c8c', icon: 'TagOutlined' }; }
+function catIcon(cat, size) {
+  const s = catStyle(cat);
+  const Ico = icons[s.icon] || icons.TagOutlined;
+  return React.createElement(Ico, { style: { color: s.color, fontSize: size || 14 } });
+}
 
 // ── Dati per ruolo ────────────────────────────────────────────────────────────
 
+// Ogni metrica: icon = icona pertinente (header) · action = link button del footer
 const ROLE_METRICS = {
   'Tenant Admin': [
-    { label: 'Spazi totali gestiti',  value: '214',   trend: '+8 vs mese',   trendUp: true  },
-    { label: 'Fatturato mensile',     value: '€487K', trend: '+4,2%',        trendUp: true  },
-    { label: 'Utenti attivi',         value: '23',    trend: 'su 2 tenant',  trendUp: null  },
-    { label: 'Campagne attive',       value: '28',    trend: '+3 oggi',      trendUp: true  },
+    { label: 'Spazi totali gestiti',  value: '214',   trend: '+8 vs mese',   trendUp: true,  icon: 'EnvironmentOutlined', action: 'Vedi inventario' },
+    { label: 'Fatturato mensile',     value: '€487K', trend: '+4,2%',        trendUp: true,  icon: 'EuroOutlined',        action: 'Apri report finance' },
+    { label: 'Utenti attivi',         value: '23',    trend: 'su 2 tenant',  trendUp: null,  icon: 'TeamOutlined',        action: 'Gestisci utenti' },
+    { label: 'Campagne attive',       value: '28',    trend: '+3 oggi',      trendUp: true,  icon: 'ThunderboltOutlined', action: 'Vedi campagne' },
   ],
   'Inventory Manager': [
-    { label: 'Spazi disponibili',        value: '128',   trend: '+12 vs sett.', trendUp: true  },
-    { label: 'Permessi in scadenza',     value: '9',     trend: 'entro 30 gg',  trendUp: false },
-    { label: 'Occupazione media',        value: '73,4%', trend: '+2,1%',        trendUp: true  },
-    { label: 'Manutenzioni programmate', value: '4',     trend: 'questo mese',  trendUp: null  },
+    { label: 'Spazi disponibili',        value: '128',   trend: '+12 vs sett.', trendUp: true,  icon: 'EnvironmentOutlined',       action: 'Vedi inventario' },
+    { label: 'Permessi in scadenza',     value: '9',     trend: 'entro 30 gg',  trendUp: false, icon: 'SafetyCertificateOutlined', action: 'Gestisci permessi' },
+    { label: 'Occupazione media',        value: '73,4%', trend: '+2,1%',        trendUp: true,  icon: 'PieChartOutlined',          action: 'Apri analytics' },
+    { label: 'Manutenzioni programmate', value: '4',     trend: 'questo mese',  trendUp: null,  icon: 'ToolOutlined',              action: 'Vedi calendario' },
   ],
+  // Vista di riferimento — dati esatti da Figma Make (5 metriche operative)
   'Operation Manager': [
-    { label: 'Campagne in delivery', value: '17',   trend: '+3 oggi',  trendUp: true  },
-    { label: 'Anomalie attive',      value: '2',    trend: '-1 vs ieri', trendUp: true  },
-    { label: 'SLA rispettato',       value: '94,2%', trend: '+0,8%',   trendUp: true  },
-    { label: 'Uptime impianti',      value: '97,8%', trend: '-0,3%',   trendUp: false },
+    { label: 'Anagrafiche da verificare',  value: '23', trend: 'da completare',        trendUp: false, icon: 'IdcardOutlined',       action: 'Vai a Portafoglio commerciale' },
+    { label: 'Inserzionisti da assegnare', value: '11', trend: '+4 oggi',              trendUp: false, icon: 'UsergroupAddOutlined', action: 'Assegna Inserzionista', disabled: true, popover: 'Wizard da definire' },
+    { label: 'Pagamenti scaduti',          value: '7',  trend: 'azione richiesta',     trendUp: false, icon: 'CreditCardOutlined',   action: 'Vai a ordini' },
+    { label: 'Preventivi da approvare',    value: '14', trend: 'intervento operation', trendUp: false, icon: 'FileTextOutlined',     action: 'Vai a preventivi' },
+    { label: 'Contratti da preparare',     value: '9',  trend: 'approvati da cliente', trendUp: true,  icon: 'SolutionOutlined',     action: 'Vai a contratti', disabled: true, popover: 'No MVP' },
   ],
   'Planner': [
-    { label: 'Ordini pianificati',  value: '34',  trend: '+5 vs sett.', trendUp: true  },
-    { label: 'Disponibilità Q3',    value: '62%', trend: '-3% vs Q2',   trendUp: false },
-    { label: 'Copertura campagne',  value: '88%', trend: '+2%',         trendUp: true  },
-    { label: 'Slot liberi oggi',    value: '47',  trend: '+8 vs ieri',  trendUp: true  },
+    { label: 'Ordini pianificati',  value: '34',  trend: '+5 vs sett.', trendUp: true,  icon: 'ScheduleOutlined', action: 'Vedi pianificazioni' },
+    { label: 'Disponibilità Q3',    value: '62%', trend: '-3% vs Q2',   trendUp: false, icon: 'CalendarOutlined', action: 'Apri calendario' },
+    { label: 'Copertura campagne',  value: '88%', trend: '+2%',         trendUp: true,  icon: 'AimOutlined',      action: 'Vedi campagne' },
+    { label: 'Slot liberi oggi',    value: '47',  trend: '+8 vs ieri',  trendUp: true,  icon: 'AppstoreOutlined', action: 'Pianifica slot' },
   ],
   'Sales': [
-    { label: 'Trattative attive',  value: '12',   trend: '+2 questa sett.', trendUp: true },
-    { label: 'Pipeline totale',    value: '€340K', trend: '+18%',           trendUp: true },
-    { label: 'Nuovi clienti mese', value: '3',    trend: 'in trattativa',   trendUp: null },
-    { label: 'Tasso chiusura',     value: '68%',  trend: '+4%',             trendUp: true },
+    { label: 'Trattative attive',  value: '12',    trend: '+2 questa sett.', trendUp: true, icon: 'SolutionOutlined', action: 'Vedi trattative' },
+    { label: 'Pipeline totale',    value: '€340K', trend: '+18%',            trendUp: true, icon: 'FundOutlined',     action: 'Apri pipeline' },
+    { label: 'Nuovi clienti mese', value: '3',     trend: 'in trattativa',   trendUp: null, icon: 'UserAddOutlined',  action: 'Gestisci clienti' },
+    { label: 'Tasso chiusura',     value: '68%',   trend: '+4%',             trendUp: true, icon: 'RiseOutlined',     action: 'Report vendite' },
   ],
-};
-
-const ROLE_SPACES_LABEL = {
-  'Tenant Admin':      'Spazi del tenant',
-  'Inventory Manager': 'Spazi in gestione',
-  'Operation Manager': 'Impianti in delivery',
-  'Planner':           'Spazi pianificabili',
-  'Sales':             'Spazi più performanti',
 };
 
 const ROLE_PENDING = {
   'Tenant Admin': [
-    { title: 'Rinnovo contratto Alessi',        desc: 'Scadenza licenza piattaforma Q3',           time: 'scade in 12 gg', priority: 'high'   },
-    { title: 'Revisione permessi utenti',       desc: '3 utenti con accessi da aggiornare',         time: '2 ore fa',       priority: 'high'   },
-    { title: 'Approvazione fattura fornitore',  desc: 'Affissioni Nord Ovest — €12.400',            time: 'ieri',           priority: 'medium' },
-    { title: 'Audit accessi piattaforma',       desc: 'Report mensile compliance',                  time: '3 gg fa',        priority: 'medium' },
-    { title: 'Aggiornamento listino prezzi',    desc: 'DOOH Q3 — Nord Italia',                      time: '5 gg fa',        priority: 'low'    },
+    { title: 'Rinnovo contratto Alessi',        desc: 'Scadenza licenza piattaforma Q3',     time: 'scade in 12 gg', priority: 'high',   category: 'Contratti'    },
+    { title: 'Revisione permessi utenti',       desc: '3 utenti con accessi da aggiornare',   time: '2 ore fa',       priority: 'high',   category: 'Utenti'       },
+    { title: 'Approvazione fattura fornitore',  desc: 'Affissioni Nord Ovest — €12.400',      time: 'ieri',           priority: 'medium', category: 'Fatturazione' },
+    { title: 'Audit accessi piattaforma',       desc: 'Report mensile compliance',            time: '3 gg fa',        priority: 'medium', category: 'Compliance'   },
+    { title: 'Aggiornamento listino prezzi',    desc: 'DOOH Q3 — Nord Italia',                time: '5 gg fa',        priority: 'low',    category: 'Listini'      },
   ],
   'Inventory Manager': [
-    { title: 'Permesso BG-CEN-009',      desc: 'Rinnovo concessione comunale',      time: 'scade in 8 gg', priority: 'high'   },
-    { title: 'Scheda tecnica mancante',  desc: 'TO-PNZ-031 — dati impianto incompleti', time: '1 ora fa',  priority: 'high'   },
-    { title: 'Verifica fornitore',       desc: 'Affissioni Nord Ovest — SLA Q2',   time: 'ieri',          priority: 'medium' },
-    { title: 'Aggiornamento coordinate', desc: '4 impianti con GPS da correggere', time: '2 gg fa',       priority: 'medium' },
-    { title: 'Aggiornamento listino',    desc: 'DOOH Bologna Fiera Q3',             time: '4 gg fa',       priority: 'low'    },
+    { title: 'Permesso BG-CEN-009',      desc: 'Rinnovo concessione comunale',          time: 'scade in 8 gg', priority: 'high',   category: 'Permessi'  },
+    { title: 'Scheda tecnica mancante',  desc: 'TO-PNZ-031 — dati impianto incompleti', time: '1 ora fa',      priority: 'high',   category: 'Impianti'  },
+    { title: 'Verifica fornitore',       desc: 'Affissioni Nord Ovest — SLA Q2',        time: 'ieri',          priority: 'medium', category: 'Fornitori' },
+    { title: 'Aggiornamento coordinate', desc: '4 impianti con GPS da correggere',      time: '2 gg fa',       priority: 'medium', category: 'Impianti'  },
+    { title: 'Aggiornamento listino',    desc: 'DOOH Bologna Fiera Q3',                 time: '4 gg fa',       priority: 'low',    category: 'Listini'   },
   ],
+  // Vista di riferimento — dati esatti da Figma Make
   'Operation Manager': [
-    { title: 'Anomalia delivery MI-DUO-014', desc: 'Player offline dalle 06:12',      time: '1 ora fa',      priority: 'high'   },
-    { title: 'Permesso BG-CEN-009',          desc: 'Rinnovo concessione comunale',     time: 'scade in 8 gg', priority: 'high'   },
-    { title: 'Conflitto pianificazione',     desc: 'Ordine #4821 vs #4855 — Verona',  time: '3 ore fa',      priority: 'medium' },
-    { title: 'Verifica fornitore',           desc: 'Affissioni Nord Ovest — SLA Q2',  time: 'ieri',          priority: 'medium' },
-    { title: 'Aggiornamento listino',        desc: 'DOOH Bologna Fiera Q3',            time: '2 gg fa',       priority: 'low'    },
+    { title: 'Sollecito pagamento scaduto', desc: 'Fattura #2024-318 · AutoMove S.p.A. — 18 gg di ritardo', time: 'scaduto', priority: 'high',   category: 'Pagamenti'   },
+    { title: 'Approva preventivo #PR-4821', desc: 'Campagna Estate Milano · BrandX Srl',                    time: '1 ora fa', priority: 'high',   category: 'Preventivi'  },
+    { title: 'Verifica anagrafica BrandX Srl', desc: 'P.IVA e sede legale incomplete',                      time: '2 ore fa', priority: 'high',   category: 'Anagrafiche' },
+    { title: 'Assegna 3 nuovi nominativi',  desc: 'Lead Nord Ovest da smistare al team',                    time: '3 ore fa', priority: 'medium', category: 'Assegnazioni' },
+    { title: 'Prepara contratto #PR-4790',  desc: 'Preventivo approvato dal cliente — invio firma',         time: 'ieri',     priority: 'medium', category: 'Contratti'   },
   ],
   'Planner': [
-    { title: 'Conflitto slot MI-DUO-014',   desc: 'Ordine #4821 sovrapposto al #4855', time: '2 ore fa',      priority: 'high'   },
-    { title: 'Capacità esaurita VR-AR-022', desc: 'Nessuna disponibilità luglio',       time: '4 ore fa',      priority: 'high'   },
-    { title: 'Richiesta slot urgente',       desc: 'Cliente BrandX — 3 impianti MI',   time: 'ieri',          priority: 'medium' },
-    { title: 'Revisione piano Q3',           desc: 'Bozza condivisa da approvare',      time: '2 gg fa',       priority: 'medium' },
-    { title: 'Prenotazione scaduta',         desc: 'BO-FIE-019 — opzione non confermata', time: '3 gg fa',    priority: 'low'    },
+    { title: 'Conflitto slot MI-DUO-014',   desc: 'Ordine #4821 sovrapposto al #4855',  time: '2 ore fa', priority: 'high',   category: 'Conflitti'      },
+    { title: 'Capacità esaurita VR-AR-022', desc: 'Nessuna disponibilità luglio',        time: '4 ore fa', priority: 'high',   category: 'Disponibilità'  },
+    { title: 'Richiesta slot urgente',       desc: 'Cliente BrandX — 3 impianti MI',     time: 'ieri',     priority: 'medium', category: 'Pianificazione' },
+    { title: 'Revisione piano Q3',           desc: 'Bozza condivisa da approvare',        time: '2 gg fa',  priority: 'medium', category: 'Pianificazione' },
+    { title: 'Prenotazione scaduta',         desc: 'BO-FIE-019 — opzione non confermata', time: '3 gg fa',  priority: 'low',    category: 'Ordini'         },
   ],
   'Sales': [
-    { title: 'Follow-up BrandX',          desc: 'Proposta inviata — attesa risposta',  time: 'scade in 2 gg', priority: 'high'   },
-    { title: 'Rinnovo contratto AutoMove', desc: 'Contratto campagne annuale in scadenza', time: '5 gg',      priority: 'high'   },
-    { title: 'Demo Nuovo cliente',         desc: 'GreenCo S.r.l. — call alle 15:00',   time: 'oggi',          priority: 'medium' },
-    { title: 'Preventivo MediaGroup',      desc: 'Budget DOOH Q3 — da quotare',         time: 'ieri',          priority: 'medium' },
-    { title: 'Aggiornamento CRM',          desc: '5 contatti da qualificare',           time: '3 gg fa',       priority: 'low'    },
+    { title: 'Follow-up BrandX',          desc: 'Proposta inviata — attesa risposta',     time: 'scade in 2 gg', priority: 'high',   category: 'Follow-up'  },
+    { title: 'Rinnovo contratto AutoMove', desc: 'Contratto campagne annuale in scadenza', time: '5 gg',         priority: 'high',   category: 'Contratti'  },
+    { title: 'Demo Nuovo cliente',         desc: 'GreenCo S.r.l. — call alle 15:00',       time: 'oggi',          priority: 'medium', category: 'Demo'       },
+    { title: 'Preventivo MediaGroup',      desc: 'Budget DOOH Q3 — da quotare',            time: 'ieri',          priority: 'medium', category: 'Preventivi' },
+    { title: 'Aggiornamento CRM',          desc: '5 contatti da qualificare',              time: '3 gg fa',       priority: 'low',    category: 'Clienti'    },
   ],
 };
 
 const ROLE_IN_PROGRESS = {
   'Tenant Admin': [
-    { title: 'Config SSO nuovo tenant',     desc: 'Integrazione SAML — Moving Up',      time: '30 min fa', priority: 'high'   },
-    { title: 'Migrazione dati storici',     desc: 'Inventario Q1-Q2 2025',              time: '2 ore fa',  priority: 'high'   },
-    { title: 'Report executive mensile',    desc: 'Board Alessi Media — giugno 2026',   time: '1 gg fa',   priority: 'medium' },
-    { title: 'Revisione SLA contratti',     desc: '3 fornitori da rinegoziare',         time: 'ieri',      priority: 'medium' },
-    { title: 'Onboarding utente Sales',     desc: 'L. Bianchi — accessi da configurare', time: '2 gg fa',  priority: 'low'    },
+    { title: 'Config SSO nuovo tenant',     desc: 'Integrazione SAML — Moving Up',       time: '30 min fa', priority: 'high',   category: 'Utenti'     },
+    { title: 'Migrazione dati storici',     desc: 'Inventario Q1-Q2 2025',               time: '2 ore fa',  priority: 'high',   category: 'Compliance' },
+    { title: 'Report executive mensile',    desc: 'Board Alessi Media — giugno 2026',    time: '1 gg fa',   priority: 'medium', category: 'Compliance' },
+    { title: 'Revisione SLA contratti',     desc: '3 fornitori da rinegoziare',          time: 'ieri',      priority: 'medium', category: 'Contratti'  },
+    { title: 'Onboarding utente Sales',     desc: 'L. Bianchi — accessi da configurare', time: '2 gg fa',   priority: 'low',    category: 'Utenti'     },
   ],
   'Inventory Manager': [
-    { title: 'Audit inventario DOOH',   desc: 'Nord Italia — 47 spazi',              time: '2 ore fa',  priority: 'high'   },
-    { title: 'Onboarding spazio nuovo', desc: 'BG-CEN-010 — scheda in compilazione', time: '3 ore fa',  priority: 'medium' },
-    { title: 'Aggiornamento foto',      desc: '12 impianti da fotografare',          time: 'ieri',      priority: 'medium' },
-    { title: 'Rinnovo licenza SIAE',    desc: 'TO-PNZ-031 — pratica in corso',       time: '2 gg fa',   priority: 'low'    },
-    { title: 'Verifica stato impianti', desc: 'Report trimestrale Q2',               time: '3 gg fa',   priority: 'low'    },
+    { title: 'Audit inventario DOOH',   desc: 'Nord Italia — 47 spazi',               time: '2 ore fa', priority: 'high',   category: 'Impianti'    },
+    { title: 'Onboarding spazio nuovo', desc: 'BG-CEN-010 — scheda in compilazione',  time: '3 ore fa', priority: 'medium', category: 'Impianti'    },
+    { title: 'Aggiornamento foto',      desc: '12 impianti da fotografare',           time: 'ieri',     priority: 'medium', category: 'Impianti'    },
+    { title: 'Rinnovo licenza SIAE',    desc: 'TO-PNZ-031 — pratica in corso',        time: '2 gg fa',  priority: 'low',    category: 'Permessi'    },
+    { title: 'Verifica stato impianti', desc: 'Report trimestrale Q2',                time: '3 gg fa',  priority: 'low',    category: 'Manutenzione' },
   ],
+  // Vista di riferimento — dati esatti da Figma Make
   'Operation Manager': [
-    { title: 'Pianificazione ordine #4861', desc: 'BrandX — 12 spazi MI/TO',        time: '20 min fa', priority: 'high'   },
-    { title: 'Upload materiali creativi',   desc: 'Campagna Estate · 4 esecutivi',  time: '1 ora fa',  priority: 'medium' },
-    { title: 'Audit inventario DOOH',       desc: 'Nord Italia — 47 spazi',         time: '2 ore fa',  priority: 'medium' },
-    { title: 'Report delivery settimanale', desc: 'Cliente AutoMove S.p.A.',        time: 'ieri',      priority: 'low'    },
-    { title: 'Onboarding fornitore',        desc: 'Affissioni Veneto Srl',          time: '2 gg fa',   priority: 'low'    },
+    { title: 'Riconciliazione pagamenti scaduti', desc: 'Allineamento con amministrazione — 4 posizioni', time: '20 min fa', priority: 'high',   category: 'Pagamenti'    },
+    { title: 'Revisione preventivo #PR-4855',     desc: 'In attesa approvazione sconto volume',           time: '1 ora fa',  priority: 'medium', category: 'Preventivi'   },
+    { title: 'Completamento anagrafiche',         desc: 'Import batch · 10 contatti da arricchire',       time: '2 ore fa',  priority: 'medium', category: 'Anagrafiche'  },
+    { title: 'Invio contratto firmato',           desc: 'BeverageCo · attesa controfirma',                time: 'ieri',      priority: 'low',    category: 'Contratti'    },
+    { title: 'Assegnazione lead campagna Q3',     desc: '5 nominativi al commerciale di area',            time: '2 gg fa',   priority: 'low',    category: 'Assegnazioni' },
   ],
   'Planner': [
-    { title: 'Piano ordine #4861',       desc: 'BrandX — distribuzione 12 spazi',  time: '30 min fa', priority: 'high'   },
-    { title: 'Ottimizzazione slot Q3',   desc: '47 spazi Nord Italia — luglio',    time: '1 ora fa',  priority: 'medium' },
-    { title: 'Calendario campagna GreenCo', desc: 'Settembre — 8 impianti',        time: 'ieri',      priority: 'medium' },
-    { title: 'Verifica disponibilità',   desc: 'MI/TO — richiesta urgente BrandX', time: '2 gg fa',   priority: 'low'    },
-    { title: 'Report copertura mensile', desc: 'Giugno 2026 — bozza pronta',       time: '3 gg fa',   priority: 'low'    },
+    { title: 'Piano ordine #4861',          desc: 'BrandX — distribuzione 12 spazi',  time: '30 min fa', priority: 'high',   category: 'Pianificazione' },
+    { title: 'Ottimizzazione slot Q3',      desc: '47 spazi Nord Italia — luglio',    time: '1 ora fa',  priority: 'medium', category: 'Disponibilità'  },
+    { title: 'Calendario campagna GreenCo', desc: 'Settembre — 8 impianti',           time: 'ieri',      priority: 'medium', category: 'Campagne'       },
+    { title: 'Verifica disponibilità',      desc: 'MI/TO — richiesta urgente BrandX', time: '2 gg fa',   priority: 'low',    category: 'Disponibilità'  },
+    { title: 'Report copertura mensile',    desc: 'Giugno 2026 — bozza pronta',       time: '3 gg fa',   priority: 'low',    category: 'Pianificazione' },
   ],
   'Sales': [
-    { title: 'Proposta DOOH BrandX',     desc: '12 spazi MI/TO — offerta premium', time: '20 min fa', priority: 'high'   },
-    { title: 'Trattativa GreenCo',       desc: 'Budget Q3 — €45.000',              time: '2 ore fa',  priority: 'high'   },
-    { title: 'Upsell AutoMove S.p.A.',   desc: 'Estensione campagna autunnale',    time: 'ieri',      priority: 'medium' },
-    { title: 'Referral MediaGroup',      desc: 'Contatto introdotto da BrandX',    time: '2 gg fa',   priority: 'medium' },
-    { title: 'Report vendite giugno',    desc: 'Bozza per review con AM',          time: '3 gg fa',   priority: 'low'    },
+    { title: 'Proposta DOOH BrandX',     desc: '12 spazi MI/TO — offerta premium', time: '20 min fa', priority: 'high',   category: 'Preventivi' },
+    { title: 'Trattativa GreenCo',       desc: 'Budget Q3 — €45.000',              time: '2 ore fa',  priority: 'high',   category: 'Trattative' },
+    { title: 'Upsell AutoMove S.p.A.',   desc: 'Estensione campagna autunnale',    time: 'ieri',      priority: 'medium', category: 'Trattative' },
+    { title: 'Referral MediaGroup',      desc: 'Contatto introdotto da BrandX',    time: '2 gg fa',   priority: 'medium', category: 'Clienti'    },
+    { title: 'Report vendite giugno',    desc: 'Bozza per review con AM',          time: '3 gg fa',   priority: 'low',    category: 'Follow-up'  },
   ],
 };
 
-const SPACE_STATUS = {
-  available: { label: 'Disponibile',          color: 'success'    },
-  booked:    { label: 'Prenotato',            color: 'processing' },
-  expiring:  { label: 'Permesso in scadenza', color: 'warning'    },
+// Cronologia per ruolo — voci ordinate, raggruppate per data nel render
+const ROLE_HISTORY = {
+  'Tenant Admin': [
+    { title: 'Permessi utente aggiornati',      desc: '3 accessi rivisti — team Nord',        category: 'Utenti',       status: 'in_progress', date: 'Oggi',        time: '11:30', user: 'Sofia Marchetti' },
+    { title: 'Approvazione fattura fornitore',  desc: 'Affissioni Nord Ovest — €12.400',      category: 'Fatturazione', status: 'pending',     date: 'Oggi',        time: '09:15', user: 'Sofia Marchetti' },
+    { title: 'Config SSO Moving Up completata', desc: 'Integrazione SAML attiva',             category: 'Utenti',       status: 'completed',   date: 'Ieri',        time: '17:40', user: 'Sofia Marchetti' },
+    { title: 'Report executive maggio inviato', desc: 'Board Alessi Media',                   category: 'Compliance',   status: 'completed',   date: 'Ieri',        time: '14:10', user: 'Sofia Marchetti' },
+    { title: 'Contratto Alessi rinnovato',      desc: 'Licenza piattaforma Q3 firmata',       category: 'Contratti',    status: 'completed',   date: '15 giu 2026', time: '16:00', user: 'Sofia Marchetti' },
+    { title: 'Audit accessi Q2 chiuso',         desc: 'Report compliance archiviato',         category: 'Compliance',   status: 'completed',   date: '15 giu 2026', time: '10:20', user: 'Marco Conti'     },
+    { title: 'Listino DOOH Q3 pubblicato',      desc: 'Nord Italia — nuovi prezzi',           category: 'Listini',      status: 'completed',   date: '14 giu 2026', time: '12:45', user: 'Sofia Marchetti' },
+    { title: 'Onboarding utente Sales',         desc: 'L. Bianchi — accessi configurati',     category: 'Utenti',       status: 'completed',   date: '14 giu 2026', time: '09:05', user: 'Sofia Marchetti' },
+  ],
+  'Inventory Manager': [
+    { title: 'Scheda tecnica TO-PNZ-031',       desc: 'Dati impianto in completamento',       category: 'Impianti',    status: 'in_progress', date: 'Oggi',        time: '10:50', user: 'Tommaso Ferrara' },
+    { title: 'Rinnovo permesso BG-CEN-009',     desc: 'Concessione comunale — pratica avviata', category: 'Permessi',  status: 'pending',     date: 'Oggi',        time: '09:00', user: 'Tommaso Ferrara' },
+    { title: 'Audit inventario DOOH Nord',      desc: '47 spazi verificati',                  category: 'Impianti',    status: 'completed',   date: 'Ieri',        time: '16:30', user: 'Tommaso Ferrara' },
+    { title: '12 impianti fotografati',         desc: 'Aggiornamento gallery completato',     category: 'Impianti',    status: 'completed',   date: 'Ieri',        time: '11:15', user: 'Luca Verdi'      },
+    { title: 'Licenza SIAE TO-PNZ-031 rinnovata', desc: 'Pratica chiusa',                     category: 'Permessi',    status: 'completed',   date: '15 giu 2026', time: '15:20', user: 'Tommaso Ferrara' },
+    { title: 'Coordinate GPS corrette',         desc: '4 impianti riallineati',               category: 'Impianti',    status: 'completed',   date: '15 giu 2026', time: '09:40', user: 'Tommaso Ferrara' },
+    { title: 'Manutenzione MI-DUO-014 chiusa',  desc: 'Player sostituito',                    category: 'Manutenzione', status: 'completed',  date: '14 giu 2026', time: '14:00', user: 'Luca Verdi'      },
+    { title: 'Onboarding BG-CEN-010',           desc: 'Scheda impianto creata',               category: 'Impianti',    status: 'completed',   date: '14 giu 2026', time: '08:30', user: 'Tommaso Ferrara' },
+  ],
+  // Vista di riferimento — dati esatti da Figma Make
+  'Operation Manager': [
+    { title: 'Sollecito pagamento scaduto',     desc: 'Fattura #2024-318 · AutoMove S.p.A.',  category: 'Pagamenti',   status: 'in_progress', date: 'Oggi',        time: '11:20', user: 'Davide Serra'  },
+    { title: 'Approva preventivo #PR-4821',     desc: 'Campagna Estate Milano · BrandX Srl',  category: 'Preventivi',  status: 'pending',     date: 'Oggi',        time: '10:05', user: 'Davide Serra'  },
+    { title: 'Verifica anagrafica BrandX Srl',  desc: 'P.IVA e sede legale incomplete',       category: 'Anagrafiche', status: 'pending',     date: 'Oggi',        time: '09:14', user: 'Davide Serra'  },
+    { title: 'Contratto #PR-4781 inviato',      desc: 'AutoMove S.p.A. · in attesa firma cliente', category: 'Contratti', status: 'completed', date: 'Ieri',     time: '17:48', user: 'Davide Serra'  },
+    { title: 'Preventivo #PR-4790 approvato',   desc: 'Campagna Primavera · BrandX Srl',      category: 'Preventivi',  status: 'completed',   date: 'Ieri',        time: '15:32', user: 'Giulia Conti'  },
+    { title: '8 nominativi assegnati',          desc: 'Lead fiera MIA Milano al team Nord',   category: 'Assegnazioni', status: 'completed',  date: 'Ieri',        time: '11:10', user: 'Davide Serra'  },
+    { title: 'Pagamento #2024-301 incassato',   desc: 'BeverageCo · € 12.400 saldato',        category: 'Pagamenti',   status: 'completed',   date: '12 giu 2026', time: '16:20', user: 'Amm.ne'        },
+    { title: 'Anagrafica TechWave Srl completata', desc: 'Dati fiscali e referenti verificati', category: 'Anagrafiche', status: 'completed', date: '12 giu 2026', time: '10:45', user: 'Giulia Conti'  },
+    { title: 'Contratto #PR-4755 firmato',      desc: 'AutoMove S.p.A. · archiviato',         category: 'Contratti',   status: 'completed',   date: '11 giu 2026', time: '14:02', user: 'Davide Serra'  },
+    { title: 'Preventivo #PR-4762 rifiutato',   desc: 'Budget cliente non confermato',        category: 'Preventivi',  status: 'completed',   date: '11 giu 2026', time: '09:30', user: 'Davide Serra'  },
+    { title: 'Sollecito #2024-288 inviato',     desc: 'TurismoNord · 30 gg di ritardo',       category: 'Pagamenti',   status: 'completed',   date: '10 giu 2026', time: '12:15', user: 'Amm.ne'        },
+  ],
+  'Planner': [
+    { title: 'Piano ordine #4861',              desc: 'BrandX — distribuzione 12 spazi',      category: 'Pianificazione', status: 'in_progress', date: 'Oggi',     time: '11:05', user: 'Giulia Romano' },
+    { title: 'Conflitto slot MI-DUO-014',       desc: 'Ordine #4821 vs #4855 da risolvere',   category: 'Conflitti',      status: 'pending',     date: 'Oggi',     time: '09:30', user: 'Giulia Romano' },
+    { title: 'Ottimizzazione slot Q3 completata', desc: '47 spazi Nord Italia',               category: 'Disponibilità',  status: 'completed',   date: 'Ieri',        time: '17:00', user: 'Giulia Romano' },
+    { title: 'Calendario campagna GreenCo',     desc: 'Settembre — 8 impianti definiti',      category: 'Campagne',       status: 'completed',   date: 'Ieri',        time: '12:20', user: 'Giulia Romano' },
+    { title: 'Piano copertura giugno chiuso',   desc: 'Report mensile archiviato',            category: 'Pianificazione', status: 'completed',   date: '15 giu 2026', time: '16:10', user: 'Marco Neri'    },
+    { title: 'Disponibilità luglio verificata', desc: 'MI/TO — capacità confermata',          category: 'Disponibilità',  status: 'completed',   date: '15 giu 2026', time: '10:00', user: 'Giulia Romano' },
+    { title: 'Ordine #4821 pianificato',        desc: 'Distribuzione confermata',             category: 'Ordini',         status: 'completed',   date: '14 giu 2026', time: '13:30', user: 'Giulia Romano' },
+    { title: 'Conflitto VR-AR-022 risolto',     desc: 'Slot riassegnato',                     category: 'Conflitti',      status: 'completed',   date: '14 giu 2026', time: '09:15', user: 'Marco Neri'    },
+  ],
+  'Sales': [
+    { title: 'Trattativa GreenCo aggiornata',   desc: 'Budget Q3 — €45.000',                  category: 'Trattative', status: 'in_progress', date: 'Oggi',        time: '10:40', user: 'Lorenzo Bianchi' },
+    { title: 'Follow-up BrandX',                desc: 'Proposta inviata — attesa risposta',   category: 'Follow-up',  status: 'pending',     date: 'Oggi',        time: '09:10', user: 'Lorenzo Bianchi' },
+    { title: 'Proposta DOOH BrandX inviata',    desc: '12 spazi MI/TO — offerta premium',     category: 'Preventivi', status: 'completed',   date: 'Ieri',        time: '18:00', user: 'Lorenzo Bianchi' },
+    { title: 'Demo GreenCo svolta',             desc: 'Call commerciale conclusa',            category: 'Demo',       status: 'completed',   date: 'Ieri',        time: '14:30', user: 'Lorenzo Bianchi' },
+    { title: 'Contratto AutoMove rinnovato',    desc: 'Campagne annuali confermate',          category: 'Contratti',  status: 'completed',   date: '15 giu 2026', time: '15:45', user: 'Lorenzo Bianchi' },
+    { title: 'Preventivo MediaGroup quotato',   desc: 'Budget DOOH Q3 inviato',               category: 'Preventivi', status: 'completed',   date: '15 giu 2026', time: '11:00', user: 'Sara Galli'      },
+    { title: '5 contatti CRM qualificati',      desc: 'Lead inbound sito web',                category: 'Clienti',    status: 'completed',   date: '14 giu 2026', time: '16:20', user: 'Lorenzo Bianchi' },
+    { title: 'Referral MediaGroup acquisito',   desc: 'Introdotto da BrandX',                 category: 'Clienti',    status: 'completed',   date: '14 giu 2026', time: '09:50', user: 'Sara Galli'      },
+  ],
 };
 
 const PRIORITY_DOT = { high: '#ff4d4f', medium: '#fa8c16', low: '#52c41a' };
 
-// ── GravityNavbarTenant — variante con tenant switcher ────────────────────────
-function GravityNavbarTenant({ role, onRoleChange, tenantKey, onTenantChange }) {
+const HISTORY_STATUS = {
+  completed:   { label: 'Completata', color: '#16A34A' },
+  in_progress: { label: 'In corso',   color: '#3E00FB' },
+  pending:     { label: 'Da gestire', color: '#fa8c16' },
+};
+
+// ── Tenant switcher (dropdown con loghi aziendali) ────────────────────────────
+function TenantSwitcher({ tenantKey, onTenantChange, loading }) {
+  const h = React.createElement;
+  const [open, setOpen] = useState(false);
+  const tenant = TENANTS[tenantKey];
+
+  const logoBox = (t, size) => h('div', {
+    style: {
+      width: size, height: size, borderRadius: 6, overflow: 'hidden', flexShrink: 0,
+      background: '#fff', border: '1px solid rgba(0,0,0,0.06)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    },
+  },
+    h('img', {
+      src: t.logo, alt: t.name,
+      style: { width: '100%', height: '100%', objectFit: 'contain' },
+      onError: (e) => { e.target.style.display = 'none'; },
+    })
+  );
+
+  return h('div', { style: { position: 'relative' } },
+    h('button', {
+      type: 'button',
+      className: 'gv-tenant-trigger',
+      onClick: () => setOpen((v) => !v),
+      style: {
+        display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+        border: 'none', background: 'transparent', borderRadius: 8, padding: '4px 8px',
+        transition: 'background 0.15s ease',
+      },
+    },
+      h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 } },
+        h('span', { style: { fontSize: 10, color: 'rgba(0,0,0,0.35)', letterSpacing: '0.04em', marginBottom: 4 } }, 'AZIENDA'),
+        h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, tenant.name)
+      ),
+      loading
+        ? h(LoadingOutlined, { style: { fontSize: 12, color: '#3E00FB' }, spin: true })
+        : h(DownOutlined, { style: { fontSize: 10, color: 'rgba(0,0,0,0.45)' } })
+    ),
+
+    open && h(React.Fragment, null,
+      h('div', { style: { position: 'fixed', inset: 0, zIndex: 10 }, onClick: () => setOpen(false) }),
+      h('div', {
+        style: {
+          position: 'absolute', right: 0, top: 'calc(100% + 8px)', zIndex: 20,
+          background: '#fff', borderRadius: 8, minWidth: 260, padding: '6px 0',
+          border: '1px solid #f0f0f0', boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
+        },
+      },
+        h('div', { style: { padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(0,0,0,0.45)' } }, 'Cambia tenant'),
+        Object.values(TENANTS).map((t) => {
+          const active = t.key === tenantKey;
+          return h('button', {
+            key: t.key,
+            type: 'button',
+            onClick: () => { setOpen(false); onTenantChange(t.key); },
+            style: {
+              width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 12px', border: 'none', background: active ? 'rgba(62,0,251,0.04)' : 'transparent',
+              cursor: 'pointer',
+            },
+            onMouseEnter: (e) => { if (!active) e.currentTarget.style.background = 'rgba(62,0,251,0.04)'; },
+            onMouseLeave: (e) => { if (!active) e.currentTarget.style.background = 'transparent'; },
+          },
+            logoBox(t, 28),
+            h('div', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 } },
+              h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, t.name),
+              h('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, t.company)
+            ),
+            active && h(CheckOutlined, { style: { color: '#3E00FB', fontSize: 12 } })
+          );
+        })
+      )
+    )
+  );
+}
+
+// ── GravityNavbarTenant — navbar role-driven + tenant switcher ────────────────
+function GravityNavbarTenant({ role, onRoleChange, tenantKey, onTenantChange, tenantLoading, avatarSrc }) {
   const h = React.createElement;
 
   const user    = ROLE_USER[role] || { nome: 'U', cognome: '' };
   const abbr    = (user.nome[0] + (user.cognome[0] || '')).toUpperCase();
   const palette = nameColor(user.nome + ' ' + user.cognome);
-  const sections = ROLE_NAV[role] || [];
+  // "Panoramica" (con "Per te") è l'area personale: sempre disponibile per ogni ruolo,
+  // anche se non elencata in ROLE_NAV (es. Sales). La forziamo come prima sezione.
+  const sections = ['Overview', ...(ROLE_NAV[role] || []).filter((s) => s !== 'Overview')];
 
   const menuItems = sections.map((sec) => {
     const conf = NAV[sec];
@@ -318,15 +490,13 @@ function GravityNavbarTenant({ role, onRoleChange, tenantKey, onTenantChange }) 
           key: sec + '/' + item,
           label: link
             ? h('a', { href: link }, lbl)
-            : h('span', { style: { color: 'rgba(0,0,0,0.25)', cursor: 'default' } }, lbl),
+            : h(Popover, { content: 'Funzionalità da implementare', placement: 'right' },
+                h('span', { style: { color: 'rgba(0,0,0,0.25)', cursor: 'not-allowed' } }, lbl)
+              ),
         };
       }),
     };
   });
-
-  // Questa pagina è accessibile da tutti i ruoli: nessun selectedKey fisso
-  // ma mostriamo Overview come sezione di appartenenza quando disponibile
-  const selectedKeys = sections.includes('Overview') ? [] : [];
 
   const avatarMenuItems = [
     {
@@ -335,8 +505,7 @@ function GravityNavbarTenant({ role, onRoleChange, tenantKey, onTenantChange }) 
         h('div', {
           style: {
             width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-            background: palette.bg,
-            border: '1.5px solid ' + palette.fg + '22',
+            background: palette.bg, border: '1.5px solid ' + palette.fg + '22',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           },
         }, h('span', { style: { color: palette.fg, fontSize: 13, fontWeight: 700 } }, abbr)),
@@ -349,95 +518,64 @@ function GravityNavbarTenant({ role, onRoleChange, tenantKey, onTenantChange }) 
     },
     { type: 'divider' },
     { key: '_hd', disabled: true,
-      label: h('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.5px' } },
-        'Vista ruolo'),
+      label: h('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Vista ruolo'),
     },
     ...ROLES.map((r) => ({
       key: r,
       label: h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32, minWidth: 200 } },
         h('span', { style: { fontWeight: r === role ? 600 : 400 } }, r),
-        r === role ? h(icons.CheckOutlined, { style: { color: '#3e00fb', fontSize: 12 } }) : null
+        r === role ? h(CheckOutlined, { style: { color: '#3e00fb', fontSize: 12 } }) : null
       ),
       onClick: () => onRoleChange(r),
     })),
   ];
 
-  const tenantOptions = Object.values(TENANTS).map((t) => ({ value: t.key, label: t.name }));
-
   return h('nav', {
     style: {
-      background: '#fff',
-      borderBottom: '1px solid rgba(0,0,0,0.06)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      height: 64,
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      flexShrink: 0,
+      background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.06)',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      height: 64, position: 'sticky', top: 0, zIndex: 100, flexShrink: 0,
     },
   },
     // Sinistra: logo + menu
     h('div', { style: { display: 'flex', alignItems: 'stretch', height: '100%', flex: 1, minWidth: 0 } },
       h('a', {
         href: './index.html',
-        style: { padding: '0 24px', display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 },
+        style: { padding: '0 24px 0 80px', display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 },
       },
         h('img', {
-          src: '../../../brand/Gravity_type.svg',
-          alt: 'Gravity',
-          style: { height: 26 },
-          onError: (e) => { e.target.style.display = 'none'; },
+          src: '../../../brand/Gravity_type.svg', alt: 'Gravity',
+          style: { height: 26 }, onError: (e) => { e.target.style.display = 'none'; },
         })
       ),
       h(antd.Menu, {
-        mode: 'horizontal',
-        selectedKeys,
-        items: menuItems,
-        className: 'gv-nav-menu',
-        style: { border: 'none', flex: 1, minWidth: 0 },
+        mode: 'horizontal', selectedKeys: ['Overview/Per te'], items: menuItems,
+        className: 'gv-nav-menu', style: { border: 'none', flex: 1, minWidth: 0 },
       })
     ),
 
-    // Destra: campana | avatar + tenant switcher
-    h('div', { style: { display: 'flex', alignItems: 'center', gap: 16, padding: '0 20px', flexShrink: 0 } },
-
-      h(icons.BellOutlined, { style: { fontSize: 18, color: 'rgba(0,0,0,0.45)', cursor: 'pointer' } }),
-
-      // Avatar + tenant switcher affiancati
+    // Destra: campana | avatar (role switcher) + tenant switcher
+    h('div', { style: { display: 'flex', alignItems: 'center', gap: 16, padding: '0 80px', flexShrink: 0 } },
+      h(BellOutlined, { style: { fontSize: 18, color: 'rgba(0,0,0,0.45)', cursor: 'pointer' } }),
       h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-        h(antd.Dropdown, {
-          menu: { items: avatarMenuItems },
-          trigger: ['click'],
-          placement: 'bottom',
-        },
-          h('div', {
-            style: {
-              width: 32, height: 32, borderRadius: '50%',
-              background: palette.bg,
-              border: '1.5px solid ' + palette.fg + '22',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', userSelect: 'none',
-            },
-          },
-            h('span', { style: { color: palette.fg, fontSize: 11, fontWeight: 700 } }, abbr)
-          )
+        h(Dropdown, { menu: { items: avatarMenuItems }, trigger: ['click'], placement: 'bottom' },
+          avatarSrc
+            ? h('div', {
+                style: {
+                  width: 32, height: 32, borderRadius: '50%', overflow: 'hidden',
+                  cursor: 'pointer', flexShrink: 0,
+                },
+              }, h('img', { src: avatarSrc, alt: 'Avatar', style: { width: '100%', height: '100%', objectFit: 'cover' } }))
+            : h('div', {
+                style: {
+                  width: 32, height: 32, borderRadius: '50%', background: palette.bg,
+                  border: '1.5px solid ' + palette.fg + '22',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', userSelect: 'none',
+                },
+              }, h('span', { style: { color: palette.fg, fontSize: 11, fontWeight: 700 } }, abbr))
         ),
-
-        h(antd.Select, {
-          value: tenantKey,
-          onChange: onTenantChange,
-          options: tenantOptions,
-          className: 'gv-tenant-select',
-          style: { width: 220 },
-          suffixIcon: h(SwapOutlined, { style: { fontSize: 12 } }),
-          variant: 'borderless',
-          labelRender: ({ label }) => h('div', { style: { display: 'flex', flexDirection: 'column', lineHeight: 1 } },
-            h('span', { style: { fontSize: 10, color: 'rgba(0,0,0,0.35)', letterSpacing: '0.04em', marginBottom: 5 } }, 'AZIENDA'),
-            h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' } }, label)
-          ),
-        })
+        h(TenantSwitcher, { tenantKey, onTenantChange, loading: tenantLoading })
       )
     )
   );
@@ -475,15 +613,15 @@ function PasswordModal({ open, onClose }) {
   },
     success
       ? React.createElement('div', { style: { textAlign: 'center', padding: '32px 0' } },
-          React.createElement(CheckOutlined, { style: { fontSize: 36, color: '#52c41a' } }),
+          React.createElement(CheckCircleOutlined, { style: { fontSize: 36, color: '#52c41a' } }),
           React.createElement('div', { style: { marginTop: 12, fontWeight: 600 } }, 'Password aggiornata')
         )
       : React.createElement(Form, { form, layout: 'vertical', onFinish },
           React.createElement(Alert, {
             type: 'info', showIcon: true, style: { marginBottom: 16 },
             message: React.createElement('span', { style: { fontSize: 12 } },
-              'La modifica si applica a ', React.createElement('strong', null, 'tutti i tenant'),
-              ' a cui hai accesso. Dovrai riautenticarti su tutti i dispositivi.'
+              'La modifica riguarda il tuo account Gravity e si applica a ', React.createElement('strong', null, 'tutti i tenant'),
+              ' a cui hai accesso, non solo a quello selezionato. Dovrai riautenticarti su tutti i dispositivi.'
             ),
           }),
           React.createElement(Form.Item, { name: 'current', label: 'Password attuale',
@@ -522,56 +660,54 @@ function HeaderCard({ role, tenant, avatarSrc, onAvatarChange }) {
     beforeUpload: (file) => { onAvatarChange(URL.createObjectURL(file)); return false; },
   };
 
+  // overlay "Modifica" mostrato in hover sopra l'avatar
+  const editOverlay = React.createElement('div', {
+    className: 'gv-avatar-overlay',
+    style: {
+      position: 'absolute', inset: 0, borderRadius: '50%',
+      background: 'rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 2,
+    },
+  },
+    React.createElement(CameraOutlined, { style: { color: '#fff', fontSize: 18 } }),
+    React.createElement('span', { style: { color: '#fff', fontSize: 11, fontWeight: 500 } }, 'Modifica')
+  );
+
   return React.createElement(React.Fragment, null,
     React.createElement(Card, {
       bordered: false,
       style: { borderRadius: 8, border: '1px solid rgba(0,0,0,0.06)', width: '100%' },
-      styles: { body: { padding: '16px 24px' } },
+      styles: { body: { padding: '16px' } },
     },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20 } },
 
-        // Avatar con upload — edit visibile solo in hover
+        // Avatar con upload — overlay "Modifica" in hover
         React.createElement(Upload, uploadProps,
-          React.createElement('div', { className: 'gv-avatar-wrap', style: { position: 'relative', cursor: 'pointer', flexShrink: 0 } },
+          React.createElement('div', { className: 'gv-avatar-wrap', style: { position: 'relative', cursor: 'pointer', flexShrink: 0, width: 88, height: 88, borderRadius: '50%', overflow: 'hidden' } },
             avatarSrc
-              ? React.createElement(Avatar, { size: 88, src: avatarSrc })
+              ? React.createElement('img', { src: avatarSrc, alt: 'Avatar', style: { width: '100%', height: '100%', objectFit: 'cover' } })
               : React.createElement('div', {
                   style: {
                     width: 88, height: 88, borderRadius: '50%',
-                    background: palette.bg,
-                    border: '2px solid ' + palette.fg + '22',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    userSelect: 'none',
+                    background: palette.bg, border: '2px solid ' + palette.fg + '22',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none',
                   },
                 }, React.createElement('span', { style: { color: palette.fg, fontSize: 28, fontWeight: 700 } }, abbr)),
-            React.createElement('div', {
-              className: 'gv-avatar-edit',
-              style: {
-                position: 'absolute', bottom: 0, right: 0,
-                width: 24, height: 24, borderRadius: '50%',
-                background: '#3E00FB', border: '2px solid #fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              },
-            }, React.createElement(EditOutlined, { style: { color: '#fff', fontSize: 11 } }))
+            editOverlay
           )
         ),
 
         // Blocco testo: welcome + meta row
         React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-
-          // Riga 1 — welcome + ruolo
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 } },
             React.createElement(Text, { style: { fontSize: 20, fontWeight: 600, color: 'rgba(0,0,0,0.88)', lineHeight: '28px' } },
               'Benvenuto, ' + roleUser.nome + ' ' + roleUser.cognome),
             React.createElement(Tag, { style: { margin: 0, fontSize: 12, fontWeight: 600 } }, role)
           ),
-
-          // Riga 2 — meta info, stesso pattern del planning header
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, minWidth: 0, overflow: 'hidden' } },
             ...[
-              { label: 'Azienda', value: tenant.company,            maxW: 200 },
-              { label: 'Area',    value: tenant.area[role]  || '—', maxW: 220 },
-              { label: 'Email',   value: tenant.email[role] || '—', maxW: 220 },
+              { label: 'Area di competenza', value: ROLE_AREA[role] || '—', maxW: 280 },
+              { label: 'Email aziendale',   value: userEmail(role, tenant), maxW: 280 },
             ].map(({ label, value, maxW }) =>
               React.createElement('div', { key: label, style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, maxWidth: maxW, flexShrink: 1 } },
                 React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, label + ':'),
@@ -582,11 +718,7 @@ function HeaderCard({ role, tenant, avatarSrc, onAvatarChange }) {
         ),
 
         // Azione Gestisci
-        React.createElement(Dropdown, {
-          menu: { items: gestisciItems },
-          trigger: ['click'],
-          placement: 'bottomRight',
-        },
+        React.createElement(Dropdown, { menu: { items: gestisciItems }, trigger: ['click'], placement: 'bottomRight' },
           React.createElement(Button, { icon: React.createElement(SettingOutlined), style: { flexShrink: 0 } },
             'Gestisci', React.createElement(DownOutlined, { style: { fontSize: 10, marginLeft: 4 } })
           )
@@ -598,104 +730,155 @@ function HeaderCard({ role, tenant, avatarSrc, onAvatarChange }) {
 }
 
 // ── Metric Cards ──────────────────────────────────────────────────────────────
-function MetricCard({ label, value, trend, trendUp }) {
-  const trendTag = trend
-    ? React.createElement(Tag, {
-        color: trendUp === true ? 'success' : trendUp === false ? 'error' : 'default',
-        style: { margin: 0, fontWeight: 600, fontSize: 11 },
-      }, trend)
-    : null;
+// Card KPI a 3 livelli (Head / Value / Extra) — icona pertinente + link button nel footer
+function MetricCard({ label, value, icon, action, href, disabled, popover }) {
+  const Ico = icons[icon] || icons.BarChartOutlined;
+  const btnIcon = React.createElement(Ico, { style: { fontSize: 13 } });
 
   return React.createElement(Card, {
     bordered: false,
-    style: { flex: 1, minWidth: 0, borderRadius: 8, border: '1px solid #f0f0f0' },
-    styles: { body: { padding: 0 } },
+    style: { flex: '1 1 0', minWidth: 180, borderRadius: 8, border: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column' },
+    styles: { body: { padding: 0, flex: 1, display: 'flex', flexDirection: 'column', width: '100%' } },
   },
-    React.createElement('div', {
-      style: { padding: '8px 12px', borderBottom: '1px solid #f0f0f0',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-    },
-      React.createElement(Text, { strong: true, style: { fontSize: 14 } }, label),
-      React.createElement(InfoCircleOutlined, { style: { color: 'rgba(0,0,0,0.45)' } })
+    // Livello 1 — Head: icona pertinente + label
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 8px' } },
+      React.createElement(Ico, { style: { color: 'rgba(0,0,0,0.88)', fontSize: 16, flexShrink: 0 } }),
+      React.createElement(Text, { strong: true, ellipsis: true, style: { fontSize: 14 } }, label)
     ),
-    React.createElement('div', { style: { padding: '16px 12px' } },
-      React.createElement(Space, { align: 'baseline', size: 10 },
-        React.createElement(Text, {
-          style: { fontSize: 32, fontWeight: 700, lineHeight: 1.1, color: 'rgba(0,0,0,0.88)' },
-        }, value),
-        trendTag
-      )
+    // Livello 2 — Value: numero (28/700/lineHeight 1, come la vista lista del planning)
+    React.createElement('div', { style: { padding: '0 16px 16px' } },
+      React.createElement('div', { style: { fontSize: 28, fontWeight: 700, lineHeight: 1, color: 'rgba(0,0,0,0.88)' } }, value)
+    ),
+    // Livello 3 — Extra/footer: link button coerente col contenuto (link / disabled+popover)
+    action && React.createElement('div', { style: { padding: '8px 16px', borderTop: '1px solid #f0f0f0', marginTop: 'auto' } },
+      disabled
+        ? React.createElement(Popover, { content: popover, trigger: 'hover', placement: 'top' },
+            React.createElement('span', { style: { display: 'inline-block', cursor: 'not-allowed' } },
+              React.createElement(Button, { type: 'link', size: 'small', disabled: true, icon: btnIcon, style: { padding: 0, height: 'auto', pointerEvents: 'none' } },
+                action
+              )
+            )
+          )
+        : React.createElement(Button, { type: 'link', size: 'small', icon: btnIcon, href: href || undefined, style: { padding: 0, height: 'auto' } },
+            action
+          )
     )
   );
 }
 
 function MetricRow({ role }) {
   const metrics = ROLE_METRICS[role] || ROLE_METRICS['Tenant Admin'];
-  return React.createElement('div', { style: { display: 'flex', gap: 10, width: '100%' } },
+  return React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 10, width: '100%' } },
     metrics.map((m) => React.createElement(MetricCard, { key: m.label, ...m }))
   );
 }
 
-// ── Space Cards ───────────────────────────────────────────────────────────────
-function SpaceCard({ code, city, type, status, occupancy }) {
-  const s = SPACE_STATUS[status];
+// ── Product Cards (universale) ─────────────────────────────────────────────────
+function ProductCard({ name, desc, color, icon }) {
+  const Ico = icons[icon] || icons.AppstoreOutlined;
   return React.createElement(Card, {
+    hoverable: true,
     bordered: false,
-    style: { flex: 1, minWidth: 0, borderRadius: 8, border: '1px solid #f0f0f0' },
-    styles: { body: { padding: 16 } },
+    style: { borderRadius: 8, border: '1px solid #f0f0f0', cursor: 'pointer', width: '100%' },
+    styles: { body: { padding: '16px' } },
   },
-    React.createElement(Space, { size: 12, align: 'start' },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
       React.createElement('div', {
-        style: { width: 40, height: 40, borderRadius: 8, flexShrink: 0,
-          background: 'rgba(62,0,251,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-      }, React.createElement(EnvironmentOutlined, { style: { color: '#3E00FB', fontSize: 18 } })),
+        style: { width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center' },
+      }, React.createElement(Ico, { style: { color: '#fff', fontSize: 20 } })),
       React.createElement('div', { style: { minWidth: 0 } },
-        React.createElement(Text, { strong: true, ellipsis: true, style: { display: 'block', fontSize: 14 } },
-          code + ' · ' + city),
-        React.createElement(Text, { type: 'secondary', ellipsis: true, style: { display: 'block', fontSize: 12 } }, type),
-        React.createElement(Space, { size: 6, style: { marginTop: 6 } },
-          React.createElement(Tag, { color: s.color, style: { margin: 0, fontSize: 10, fontWeight: 600 } }, s.label),
-          React.createElement(Text, { type: 'secondary', style: { fontSize: 11 } }, 'occ. ' + occupancy + '%')
-        )
+        React.createElement(Text, { strong: true, style: { display: 'block', fontSize: 15, lineHeight: '22px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, name),
+        React.createElement(Text, { type: 'secondary', style: { display: 'block', fontSize: 12, lineHeight: '20px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, desc)
       )
     )
   );
 }
 
-function SpacesSection({ role, tenant }) {
-  const label = ROLE_SPACES_LABEL[role] || 'I tuoi spazi';
-  return React.createElement(React.Fragment, null,
-    React.createElement(Title, { level: 4, style: { margin: 0 } }, label),
-    React.createElement('div', { style: { display: 'flex', gap: 16, width: '100%' } },
-      tenant.spaces.map((s) => React.createElement(SpaceCard, { key: s.code, ...s }))
+function ProductsSection() {
+  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
+    React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue app'),
+    // Card app a griglia (2 colonne)
+    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, width: '100%' } },
+      PRODUCTS.map((p) => React.createElement(ProductCard, { key: p.name, ...p }))
     )
   );
 }
 
 // ── Task Cards ────────────────────────────────────────────────────────────────
-function TaskCard({ title, desc, time, priority }) {
+function TaskCard({ title, desc, time, priority, category }) {
+  const s = catStyle(category);
   return React.createElement(Card, {
     bordered: false,
     style: { width: '100%', borderRadius: 8, border: '1px solid #f0f0f0' },
-    styles: { body: { padding: '10px 16px' } },
+    styles: { body: { padding: '12px 16px' } },
   },
-    React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 } },
-      React.createElement(Space, { size: 10, align: 'start' },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 } },
         React.createElement('div', {
-          style: { width: 32, height: 32, borderRadius: 6, flexShrink: 0,
-            background: 'rgba(62,0,251,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-        }, React.createElement(CarOutlined, { style: { color: '#3E00FB', fontSize: 14 } })),
-        React.createElement('div', null,
-          React.createElement(Space, { size: 6, align: 'center' },
-            React.createElement(Text, { strong: true, style: { fontSize: 14, lineHeight: '22px' } }, title),
+          style: { width: 32, height: 32, borderRadius: 6, flexShrink: 0, background: s.color + '1F',
+            display: 'flex', alignItems: 'center', justifyContent: 'center' },
+        }, catIcon(category, 16)),
+        React.createElement('div', { style: { minWidth: 0 } },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+            React.createElement(Text, { strong: true, ellipsis: true, style: { fontSize: 14, lineHeight: '22px' } }, title),
             priority && React.createElement('span', {
               style: { width: 6, height: 6, borderRadius: '50%', background: PRIORITY_DOT[priority], display: 'inline-block', flexShrink: 0 },
             })
           ),
-          React.createElement(Text, { type: 'secondary', style: { fontSize: 12, display: 'block', lineHeight: '18px' } }, desc)
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 } },
+            React.createElement('span', {
+              style: { fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 3, flexShrink: 0,
+                color: s.color, background: s.color + '1A' },
+            }, category),
+            React.createElement(Text, { type: 'secondary', ellipsis: true, style: { fontSize: 12, lineHeight: '18px' } }, desc)
+          )
         )
       ),
       React.createElement(Text, { type: 'secondary', style: { fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 } }, time)
+    )
+  );
+}
+
+// ── Filtro categorie (multi-selezione) ─────────────────────────────────────────
+function ActivityFilter({ categories, selected, onToggle, onClear }) {
+  const h = React.createElement;
+  const [open, setOpen] = useState(false);
+  const label = selected.length === 0 ? 'Tutte le attività'
+    : selected.length === 1 ? selected[0] : selected.length + ' tipologie';
+
+  return h('div', { style: { position: 'relative' } },
+    h(Button, { icon: h(FilterOutlined), onClick: () => setOpen((v) => !v) },
+      label, h(DownOutlined, { style: { fontSize: 10, marginLeft: 4 } })
+    ),
+    open && h(React.Fragment, null,
+      h('div', { style: { position: 'fixed', inset: 0, zIndex: 10 }, onClick: () => setOpen(false) }),
+      h('div', {
+        style: { position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20,
+          background: '#fff', borderRadius: 8, minWidth: 200, padding: '6px 0',
+          border: '1px solid #f0f0f0', boxShadow: '0 6px 16px rgba(0,0,0,0.08)' },
+      },
+        h('div', {
+          onClick: onClear,
+          style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer' },
+        },
+          h(Checkbox, { checked: selected.length === 0 }),
+          h('span', { style: { fontSize: 14, color: 'rgba(0,0,0,0.88)' } }, 'Tutte le attività')
+        ),
+        h('div', { style: { borderTop: '1px solid #f0f0f0', margin: '4px 12px' } }),
+        categories.map((c) => {
+          const s = catStyle(c);
+          return h('div', {
+            key: c,
+            onClick: () => onToggle(c),
+            style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer' },
+          },
+            h(Checkbox, { checked: selected.includes(c) }),
+            h('span', { style: { width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 } }),
+            h('span', { style: { fontSize: 14, color: 'rgba(0,0,0,0.88)' } }, c)
+          );
+        })
+      )
     )
   );
 }
@@ -710,49 +893,92 @@ function TaskColumn({ tasks, label }) {
         style: { background: 'rgba(62,0,251,0.08)', color: '#3E00FB', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 600 },
       }, tasks.length)
     ),
-    React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
-      tasks.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
-    )
+    tasks.length === 0
+      ? React.createElement('div', { style: { padding: '24px 0', textAlign: 'center', fontSize: 13, color: 'rgba(0,0,0,0.35)' } },
+          'Nessuna attività per i filtri selezionati')
+      : React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+          tasks.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
+        )
   );
 }
 
-function ActivitiesSection({ role }) {
-  const pending    = ROLE_PENDING[role]    || ROLE_PENDING['Operation Manager'];
-  const inProgress = ROLE_IN_PROGRESS[role] || ROLE_IN_PROGRESS['Operation Manager'];
-  return React.createElement(React.Fragment, null,
-    React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
-    React.createElement('div', { style: { display: 'flex', gap: 8, width: '100%', alignItems: 'flex-start' } },
-      React.createElement(TaskColumn, { tasks: pending,    label: 'Da gestire' }),
-      React.createElement(TaskColumn, { tasks: inProgress, label: 'In corso'   })
+function ActivitiesSection({ role, onOpenHistory }) {
+  const pending = ROLE_PENDING[role] || ROLE_PENDING['Operation Manager'];
+
+  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
+    // Header: titolo a sinistra, "Vedi tutte (N)" all'estrema destra
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%' } },
+      React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
+      React.createElement(Button, { type: 'link', onClick: onOpenHistory, style: { padding: 0, height: 'auto' } },
+        'Vedi tutte (' + pending.length + ')', React.createElement(icons.ArrowRightOutlined, { style: { fontSize: 12, marginLeft: 6 } })
+      )
+    ),
+    // Card delle attività da fare (Da gestire)
+    pending.length === 0
+      ? React.createElement('div', { style: { padding: '24px 0', textAlign: 'center', fontSize: 13, color: 'rgba(0,0,0,0.35)' } },
+          'Nessuna attività')
+      : React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+          pending.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
+        )
+  );
+}
+
+// ── Schermata Cronologia ────────────────────────────────────────────────────────
+// Pagina dedicata "Vedi tutte" — SOLO attività da fare (Da gestire), no in corso/completate
+function HistoryScreen({ role, onBack }) {
+  const [filter, setFilter] = useState([]);
+  const pendingAll = ROLE_PENDING[role] || ROLE_PENDING['Operation Manager'];
+  const categories = Array.from(new Set(pendingAll.map((t) => t.category)));
+  const toggle = (c) => setFilter((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
+  const apply = (tasks) => filter.length === 0 ? tasks : tasks.filter((t) => filter.includes(t.category));
+  const pending = apply(pendingAll);
+
+  return React.createElement(Space, { direction: 'vertical', size: 24, style: { width: '100%' } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%' } },
+      React.createElement(Space, { size: 12, align: 'center' },
+        React.createElement(Button, { icon: React.createElement(ArrowLeftOutlined), onClick: onBack, 'aria-label': 'Torna indietro' }),
+        React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Attività da fare')
+      ),
+      React.createElement(ActivityFilter, { categories, selected: filter, onToggle: toggle, onClear: () => setFilter([]) })
+    ),
+    React.createElement('div', { style: { maxWidth: 800, width: '100%' } },
+      pending.length === 0
+        ? React.createElement('div', { style: { padding: '40px 0', textAlign: 'center', fontSize: 14, color: 'rgba(0,0,0,0.35)' } },
+            'Nessuna attività per i filtri selezionati')
+        : React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+            pending.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
+          )
     )
   );
 }
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function ContentSkeleton() {
-  return React.createElement(Space, { direction: 'vertical', size: 16, style: { width: '100%' } },
-    React.createElement(Card, { bordered: false, style: { border: '1px solid #f0f0f0' }, styles: { body: { padding: '20px 24px' } } },
+  return React.createElement(Space, { direction: 'vertical', size: 32, style: { width: '100%' } },
+    React.createElement(Card, { bordered: false, style: { border: '1px solid #f0f0f0' }, styles: { body: { padding: '16px' } } },
       React.createElement(Space, { size: 24, align: 'center' },
         React.createElement(Skeleton.Avatar, { active: true, size: 88 }),
         React.createElement('div', { style: { flex: 1 } }, React.createElement(Skeleton, { active: true, paragraph: { rows: 2 } })),
         React.createElement(Skeleton.Button, { active: true, style: { width: 120, height: 32 } })
       )
     ),
-    React.createElement('div', { style: { display: 'flex', gap: 10 } },
-      ...[0,1,2,3].map((i) =>
-        React.createElement(Card, { key: i, bordered: false, style: { flex: 1, border: '1px solid #f0f0f0' }, styles: { body: { padding: 0 } } },
-          React.createElement('div', { style: { padding: '8px 12px', borderBottom: '1px solid #f0f0f0' } },
-            React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 140, height: 14 } })),
-          React.createElement('div', { style: { padding: '16px 12px', display: 'flex', gap: 12, alignItems: 'baseline' } },
-            React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 80, height: 28 } }),
-            React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 60, height: 16 } })
-          )
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 10 } },
+      ...[0,1,2,3,4].map((i) =>
+        React.createElement(Card, { key: i, bordered: false, style: { flex: '1 1 0', minWidth: 180, border: '1px solid #f0f0f0' }, styles: { body: { padding: 0 } } },
+          React.createElement('div', { style: { padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center' } },
+            React.createElement(Skeleton.Avatar, { active: true, size: 16 }),
+            React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 120, height: 14 } })),
+          React.createElement('div', { style: { padding: '20px 12px' } },
+            React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 80, height: 28 } })),
+          React.createElement('div', { style: { padding: '0 12px 12px' } },
+            React.createElement('div', { style: { borderTop: '1px solid #f0f0f0', margin: '0 0 12px' } }),
+            React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 70, height: 16 } }))
         )
       )
     ),
     React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 120, height: 20 } }),
     React.createElement('div', { style: { display: 'flex', gap: 16 } },
-      ...[0,1,2,3,4].map((i) =>
+      ...[0,1,2,3].map((i) =>
         React.createElement(Card, { key: i, bordered: false, style: { flex: 1, border: '1px solid #f0f0f0' }, styles: { body: { padding: 16 } } },
           React.createElement(Space, { size: 12 },
             React.createElement(Skeleton.Avatar, { active: true, shape: 'square', size: 40 }),
@@ -768,7 +994,7 @@ function ContentSkeleton() {
         React.createElement('div', { key: col, style: { flex: 1 } },
           React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
             ...[0,1,2,3,4].map((i) =>
-              React.createElement(Card, { key: i, bordered: false, style: { border: '1px solid #f0f0f0' }, styles: { body: { padding: '10px 16px' } } },
+              React.createElement(Card, { key: i, bordered: false, style: { border: '1px solid #f0f0f0' }, styles: { body: { padding: '12px 16px' } } },
                 React.createElement(Skeleton, { active: true, avatar: { size: 32, shape: 'square' }, title: { width: 180 }, paragraph: { rows: 1, width: 220 } })
               )
             )
@@ -779,12 +1005,39 @@ function ContentSkeleton() {
   );
 }
 
+function HistorySkeleton() {
+  return React.createElement(Space, { direction: 'vertical', size: 24, style: { width: '100%' } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+      React.createElement(Space, { size: 12 },
+        React.createElement(Skeleton.Avatar, { active: true, shape: 'square', size: 32 }),
+        React.createElement(Skeleton.Button, { active: true, style: { width: 200, height: 28 } })
+      ),
+      React.createElement(Skeleton.Button, { active: true, style: { width: 150, height: 32 } })
+    ),
+    React.createElement(Card, { bordered: false, style: { border: '1px solid #f0f0f0' }, styles: { body: { padding: 16 } } },
+      ...[0,1,2].map((g) =>
+        React.createElement('div', { key: g, style: { marginBottom: 16 } },
+          React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 90, height: 14, marginBottom: 12 } }),
+          ...[0,1,2].map((i) =>
+            React.createElement('div', { key: i, style: { display: 'flex', gap: 14, padding: '10px 0', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none' } },
+              React.createElement(Skeleton.Avatar, { active: true, shape: 'square', size: 32 }),
+              React.createElement('div', { style: { flex: 1 } }, React.createElement(Skeleton, { active: true, paragraph: { rows: 1 } }))
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
 // ── App Root ──────────────────────────────────────────────────────────────────
 function AppRoot() {
-  const [role, setRole] = useState(localStorage.getItem('gravity_proto_role') || 'Tenant Admin');
+  const [role, setRole] = useState(localStorage.getItem('gravity_proto_role') || 'Operation Manager');
   const [tenantKey, setTenantKey] = useState('gravity');
   const [loading, setLoading] = useState(true);
+  const [tenantLoading, setTenantLoading] = useState(false);
   const [avatarSrc, setAvatarSrc] = useState(null);
+  const [view, setView] = useState('dashboard');
 
   const tenant = TENANTS[tenantKey];
 
@@ -795,6 +1048,7 @@ function AppRoot() {
 
   const handleRoleChange = (r) => {
     localStorage.setItem('gravity_proto_role', r);
+    setView('dashboard');
     setLoading(true);
     setTimeout(() => { setRole(r); setLoading(false); }, 600);
   };
@@ -802,31 +1056,54 @@ function AppRoot() {
   const handleTenantChange = (k) => {
     if (k === 'alessi' || k === 'movingup') {
       const tenantParam = k === 'alessi' ? 'alessi-pubblicita' : 'moving-up';
+      setTenantLoading(true);
       window.location.href = '../../prototipo%20approvato/single-signon/index.html?tenant=' + tenantParam;
       return;
     }
+    setView('dashboard');
     setLoading(true);
     setTimeout(() => { setTenantKey(k); setLoading(false); }, 200);
   };
 
-  const content = loading
-    ? React.createElement(ContentSkeleton)
-    : React.createElement(Space, { direction: 'vertical', size: 16, style: { width: '100%' } },
-        React.createElement(HeaderCard, { role, tenant, avatarSrc, onAvatarChange: setAvatarSrc }),
-        React.createElement(MetricRow, { role }),
-        React.createElement(SpacesSection, { role, tenant }),
-        React.createElement(ActivitiesSection, { role })
-      );
+  const openHistory = () => {
+    setView('history');
+    setLoading(true);
+    setTimeout(() => setLoading(false), 500);
+  };
+
+  let content;
+  if (view === 'history') {
+    content = loading
+      ? React.createElement(HistorySkeleton)
+      : React.createElement(HistoryScreen, { role, onBack: () => setView('dashboard') });
+  } else {
+    content = loading
+      ? React.createElement(ContentSkeleton)
+      : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 32, width: '100%' } },
+          React.createElement(HeaderCard, { role, tenant, avatarSrc, onAvatarChange: setAvatarSrc }),
+          React.createElement(MetricRow, { role }),
+          // Due colonne: sinistra "Le tue attività", destra "Le tue app"
+          React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start', width: '100%' } },
+            React.createElement('div', { style: { flex: '1 1 0', minWidth: 320 } },
+              React.createElement(ActivitiesSection, { role, onOpenHistory: openHistory })
+            ),
+            React.createElement('div', { style: { flex: '0 1 500px', minWidth: 320 } },
+              React.createElement(ProductsSection)
+            )
+          )
+        );
+  }
 
   return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
     React.createElement(App, null,
       React.createElement(Layout, { style: { minHeight: '100vh', background: '#f5f5f5' } },
         React.createElement(GravityNavbarTenant, {
           role, onRoleChange: handleRoleChange,
-          tenantKey, onTenantChange: handleTenantChange,
+          tenantKey, onTenantChange: handleTenantChange, tenantLoading,
+          avatarSrc,
         }),
         React.createElement(Layout.Content, {
-          style: { padding: '16px 24px', background: '#f5f5f5', overflowY: 'auto' },
+          style: { padding: '16px 80px', background: '#f5f5f5', overflowY: 'auto' },
         },
           content,
           React.createElement('div', { style: { height: 24 } })
