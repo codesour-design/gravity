@@ -25,6 +25,7 @@
   var SCREENS    = window.HANDOFF_SCREENS || null;
   var META       = window.HANDOFF_META || {};
   var COMPONENTS = window.HANDOFF_COMPONENTS || [];
+  var DEPS       = window.HANDOFF_DEPENDENCIES || [];
 
   var ROLE_COLOR = {
     'Tenant Admin':       'purple',
@@ -55,9 +56,76 @@
     var parts = text.split('**');
     return parts.map(function (part, i) {
       return i % 2 === 1
-        ? h('strong', { key: i, style: { fontWeight: 700, color: 'rgba(0,0,0,.78)' } }, part)
+        ? h('strong', { key: i, style: { fontWeight: 700 } }, part)  // colore ereditato (leggibile su bianco e su scuro)
         : part;
     });
+  }
+
+  // Rendering schematico: **grassetto** + righe che iniziano con "- " → lista puntata.
+  function renderRich(text) {
+    if (text == null) return null;
+    var lines = String(text).split('\n');
+    return lines.map(function (line, i) {
+      var bullet = /^\s*-\s+/.test(line);
+      var content = bullet ? line.replace(/^\s*-\s+/, '') : line;
+      return h('div', {
+        key: i,
+        style: bullet ? { paddingLeft: 12, position: 'relative', marginTop: 2 } : (i > 0 ? { marginTop: 3 } : null),
+      },
+        bullet ? h('span', { style: { position: 'absolute', left: 2 } }, '•') : null,
+        parseBold(content)
+      );
+    });
+  }
+
+  // Pill pulita che indica la schermata di riferimento (evidente e coerente).
+  function screenChip(label) {
+    if (!label) return null;
+    return h('span', {
+      style: {
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        fontSize: 11, fontWeight: 600, color: '#3E00FB',
+        background: 'rgba(62,0,251,0.08)', borderRadius: 4, padding: '1px 8px', lineHeight: '18px',
+      },
+    }, h(icons.LayoutOutlined, { style: { fontSize: 10 } }), label);
+  }
+
+  // Renderer tabella riusabile (step.table e pannello Dipendenze).
+  // Marche: ✓ verde · ✗ grigio · ◐ ambra; le altre celle restano testo normale.
+  function renderMatrix(tbl) {
+    return h('div', { style: { borderRadius: 6, border: '1px solid rgba(0,0,0,.08)', overflow: 'hidden' } },
+      h('table', { style: { width: '100%', borderCollapse: 'collapse', fontFamily: FONT } },
+        h('thead', null,
+          h('tr', null, tbl.headers.map(function (hd, i) {
+            return h('th', {
+              key: i,
+              style: {
+                textAlign: i === 0 ? 'left' : 'center', padding: '6px 8px',
+                background: 'rgba(0,0,0,.03)', color: 'rgba(0,0,0,.55)',
+                fontWeight: 600, fontSize: 11, borderBottom: '1px solid rgba(0,0,0,.08)',
+              },
+            }, hd);
+          }))
+        ),
+        h('tbody', null, tbl.rows.map(function (r, ri) {
+          return h('tr', { key: ri }, r.map(function (c, ci) {
+            var mark = c === '✓' ? '#52C41A' : c === '✗' ? 'rgba(0,0,0,.25)' : c === '◐' ? '#FA8C16' : null;
+            return h('td', {
+              key: ci,
+              style: {
+                textAlign: ci === 0 ? 'left' : 'center', padding: '5px 8px',
+                fontSize: 12, fontWeight: ci === 0 ? 500 : 700, whiteSpace: 'nowrap',
+                color: mark || (ci === 0 ? 'rgba(0,0,0,.8)' : 'rgba(0,0,0,.65)'),
+                borderBottom: ri < tbl.rows.length - 1 ? '1px solid rgba(0,0,0,.05)' : 'none',
+              },
+            }, c);
+          }));
+        }))
+      ),
+      tbl.note ? h('div', {
+        style: { padding: '5px 8px', fontSize: 10, color: 'rgba(0,0,0,.4)', background: 'rgba(0,0,0,.02)' },
+      }, tbl.note) : null
+    );
   }
 
   function filterTours(role) {
@@ -141,6 +209,73 @@
          : '#8C8C8C';
   }
 
+  // Riga meta della card inspector (label + valore monospace)
+  function metaLine(label, value, vColor) {
+    return h('div', { style: { fontSize: 11, fontFamily: MONO } },
+      h('span', { style: { color: 'rgba(255,255,255,0.35)' } }, label + '  '),
+      h('span', { style: { color: vColor || '#9CDCFE' } }, value)
+    );
+  }
+
+  // Info tipografiche basate sui token ufficiali Ant Design (Typography):
+  // base 14 · SM 12 · LG 16 · XL 20 · Heading1-5 = 38/30/24/20/16 ·
+  // fontWeightStrong 600 · colorText 0.88 / Secondary 0.65 / Tertiary 0.45 / Quaternary 0.25.
+  function typographyInfo(el) {
+    if (!el) return null;
+    var cs;
+    try { cs = window.getComputedStyle(el); } catch (e) { return null; }
+    var sizePx = Math.round(parseFloat(cs.fontSize) || 0);
+    if (!sizePx) return null;
+    var weight = parseInt(cs.fontWeight, 10) || 400;
+    var lhPx = (cs.lineHeight === 'normal') ? null : Math.round(parseFloat(cs.lineHeight));
+    var color = cs.color;
+    var ls = (cs.letterSpacing && cs.letterSpacing !== 'normal') ? cs.letterSpacing : null;
+    var tag = (el.tagName || '').toLowerCase();
+    var cls = el.classList;
+    var HEAD = { h1: 1, h2: 2, h3: 3, h4: 4, h5: 5 };
+    var role = HEAD[tag] ? ('Title · livello ' + HEAD[tag])
+             : tag === 'p' ? 'Paragraph'
+             : (cls && cls.contains('ant-typography')) ? 'Text'
+             : 'Testo';
+    var SIZE = { 38: 'fontSizeHeading1', 30: 'fontSizeHeading2', 24: 'fontSizeHeading3', 20: 'fontSizeHeading4', 16: 'fontSizeHeading5', 14: 'fontSize (base)', 12: 'fontSizeSM' };
+    var sizeToken = SIZE[sizePx] || (sizePx + 'px (custom)');
+    if (!HEAD[tag]) { if (sizePx === 16) sizeToken = 'fontSizeLG'; else if (sizePx === 20) sizeToken = 'fontSizeXL'; }
+    var weightName = weight >= 600 ? 'fontWeightStrong' : weight >= 500 ? 'Medium' : 'Regular';
+    var COLORTOK = {
+      'rgba(0, 0, 0, 0.88)': 'colorText', 'rgba(0, 0, 0, 0.65)': 'colorTextSecondary',
+      'rgba(0, 0, 0, 0.45)': 'colorTextTertiary', 'rgba(0, 0, 0, 0.25)': 'colorTextQuaternary',
+    };
+    return {
+      role: role, sizePx: sizePx, sizeToken: sizeToken, weight: weight, weightName: weightName,
+      lhPx: lhPx, color: color, colorToken: COLORTOK[color] || null, ls: ls,
+    };
+  }
+
+  // rgb(a) → HEX (null se trasparente o non valido)
+  function rgbToHex(rgb) {
+    var m = (rgb || '').match(/\d+(?:\.\d+)?/g);
+    if (!m || m.length < 3) return null;
+    if (m.length >= 4 && parseFloat(m[3]) === 0) return null;
+    return '#' + m.slice(0, 3).map(function (n) { var x = parseInt(n, 10).toString(16); return x.length === 1 ? '0' + x : x; }).join('').toUpperCase();
+  }
+
+  // Colori preset Ant Design (livello 6) + palette Gravity → nome leggibile.
+  var ANTD_PRESET = {
+    '#52C41A': 'green / success', '#FF4D4F': 'red / error', '#FAAD14': 'gold / warning',
+    '#FA8C16': 'orange', '#1677FF': 'blue / processing', '#2F54EB': 'geekblue',
+    '#EB2F96': 'magenta', '#722ED1': 'purple', '#13C2C2': 'cyan', '#A0D911': 'lime',
+    '#FA541C': 'volcano', '#FF4A1C': 'volcano (Gravity secondary)', '#3E00FB': 'primary (Gravity)',
+  };
+
+  // Info colore di un tag: preset Ant Design (se riconosciuto) + valori effettivi.
+  function colorInfo(el) {
+    if (!el) return null;
+    var cs; try { cs = window.getComputedStyle(el); } catch (e) { return null; }
+    var txtHex = rgbToHex(cs.color), bgHex = rgbToHex(cs.backgroundColor), bdHex = rgbToHex(cs.borderTopColor);
+    var preset = (txtHex && ANTD_PRESET[txtHex]) || (bgHex && ANTD_PRESET[bgHex]) || (bdHex && ANTD_PRESET[bdHex]) || null;
+    return { txt: cs.color, txtHex: txtHex, bg: cs.backgroundColor, bgHex: bgHex, border: cs.borderTopColor, borderHex: bdHex, preset: preset };
+  }
+
   function DevInspector() {
     var _t = useState(null); var target = _t[0]; var setTarget = _t[1];
 
@@ -162,10 +297,15 @@
           while (p) { depth++; p = p.parentElement; }
           if (depth > bestDepth) { bestDepth = depth; best = { entry: entry, el: el }; }
         }
-        if (!best) { setTarget(null); return; }
+        // elemento di testo sotto il cursore (per le info tipografiche)
+        var textEl = null;
+        try { textEl = node.closest('.ant-typography, h1, h2, h3, h4, h5'); } catch (e3) { textEl = null; }
+        if (!textEl && node.children.length === 0 && (node.textContent || '').trim()) textEl = node;
+        if (!best && !textEl) { setTarget(null); return; }
         setTarget(function (prev) {
-          if (prev && prev.el === best.el && prev.entry === best.entry) return prev;
-          return best;
+          var bel = best ? best.el : null, ben = best ? best.entry : null;
+          if (prev && prev.el === bel && prev.entry === ben && prev.textEl === textEl) return prev;
+          return { entry: ben, el: bel, textEl: textEl };
         });
       }
       function onLeave() { setTarget(null); }
@@ -179,24 +319,31 @@
       };
     }, []);
 
-    if (!target || !target.el.isConnected) return null;
+    if (!target) return null;
+    var anchorEl = target.el || target.textEl;
+    if (!anchorEl || !anchorEl.isConnected) return null;
 
     var entry = target.entry;
-    var rect  = target.el.getBoundingClientRect();
+    var rect  = anchorEl.getBoundingClientRect();
     var vw = window.innerWidth;
     var vh = window.innerHeight;
 
-    // variante: custom della entry oppure rilevata dalle classi
+    // variante AntD: solo per componenti registrati
     var variant = null;
-    try {
-      variant = typeof entry.variant === 'function' ? entry.variant(target.el)
-              : entry.variant || detectVariant(target.el);
-    } catch (e) {}
+    if (entry) {
+      try {
+        variant = typeof entry.variant === 'function' ? entry.variant(anchorEl)
+                : entry.variant || detectVariant(anchorEl);
+      } catch (e) {}
+    }
 
-    // card sotto al componente, sopra se non c'è spazio
+    // info tipografiche dal testo sotto il cursore
+    var typo = typographyInfo(target.textEl);
+
+    // card sotto al target, sopra se non c'è spazio
     var CARD_W = 320;
     var cardLeft = Math.max(8, Math.min(rect.left, vw - CARD_W - 8));
-    var below = rect.bottom + 170 < vh;
+    var below = rect.bottom + 220 < vh;
     var cardStyle = {
       position: 'fixed',
       left: cardLeft,
@@ -228,39 +375,72 @@
       }),
       // card info
       h('div', { className: 'ghf-inspector-card', style: cardStyle },
-        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' } },
-          h('span', { style: { fontSize: 13, fontWeight: 700, color: '#fff' } }, entry.name),
-          h('span', {
-            style: {
-              fontSize: 9, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase',
-              color: levelColor(entry.level), border: '1px solid ' + levelColor(entry.level),
-              borderRadius: 4, padding: '1px 6px',
-            },
-          }, entry.level || 'Atomo'),
-          entry.custom ? h('span', {
-            style: {
-              fontSize: 9, fontWeight: 700, letterSpacing: '0.6px',
-              background: '#FF4A1C', color: '#fff', borderRadius: 4, padding: '2px 6px',
-            },
-          }, 'CUSTOM') : null
-        ),
-        entry.funzione ? h('div', {
+        // ── Header ──
+        entry
+          ? h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' } },
+              h('span', { style: { fontSize: 13, fontWeight: 700, color: '#fff' } }, entry.name),
+              h('span', {
+                style: {
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase',
+                  color: levelColor(entry.level), border: '1px solid ' + levelColor(entry.level),
+                  borderRadius: 4, padding: '1px 6px',
+                },
+              }, entry.level || 'Atomo'),
+              entry.custom ? h('span', {
+                style: {
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.6px',
+                  background: '#FF4A1C', color: '#fff', borderRadius: 4, padding: '2px 6px',
+                },
+              }, 'CUSTOM') : null
+            )
+          : h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 } },
+              h('span', { style: { fontSize: 13, fontWeight: 700, color: '#fff' } }, typo ? typo.role : 'Testo'),
+              h('span', {
+                style: {
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase',
+                  color: '#C586C0', border: '1px solid #C586C0', borderRadius: 4, padding: '1px 6px',
+                },
+              }, 'Tipografia')
+            ),
+        entry && entry.funzione ? h('div', {
           style: { fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, marginBottom: 8 },
-        }, entry.funzione) : null,
-        h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
-          entry.figma ? h('div', { style: { fontSize: 11, fontFamily: MONO } },
-            h('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'figma  '),
-            h('span', { style: { color: '#9CDCFE' } }, entry.figma)
-          ) : null,
-          variant ? h('div', { style: { fontSize: 11, fontFamily: MONO } },
-            h('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'variante  '),
-            h('span', { style: { color: '#CE9178' } }, variant)
-          ) : null,
-          entry.composizione ? h('div', { style: { fontSize: 11, fontFamily: MONO } },
-            h('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'composto da  '),
-            h('span', { style: { color: '#B5CEA8' } }, entry.composizione)
-          ) : null
-        )
+        }, renderRich(entry.funzione)) : null,
+        // ── Meta componente (solo se registrato) ──
+        entry ? h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
+          entry.custom
+            ? h(React.Fragment, null,
+                entry.composizione ? metaLine('composto da', entry.composizione, '#B5CEA8') : null,
+                entry.figma ? metaLine('figma', entry.figma, '#9CDCFE')
+                  : h('div', { style: { fontSize: 11, fontFamily: MONO, color: '#FFB454' } }, '⚠ Figma da definire — fornire link al design system')
+              )
+            : h(React.Fragment, null,
+                entry.figma ? metaLine('ant design', entry.figma, '#9CDCFE') : null,
+                entry.composizione ? metaLine('composto da', entry.composizione, '#B5CEA8') : null,
+                variant ? metaLine('variante', variant, '#CE9178') : null
+              )
+        ) : null,
+        // ── Colore (per i tag: preset Ant Design + valori effettivi) ──
+        entry && entry.tag ? (function () {
+          var ci = colorInfo(anchorEl);
+          return ci ? h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 8, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
+            h('div', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 2 } }, 'Colore'),
+            ci.preset ? metaLine('preset', ci.preset, '#9CDCFE') : null,
+            metaLine('testo', ci.txtHex ? (ci.txtHex + ' · ' + ci.txt) : ci.txt, '#DCDCAA'),
+            ci.bgHex ? metaLine('sfondo', ci.bgHex + ' · ' + ci.bg, '#DCDCAA')
+              : (ci.bg && ci.bg !== 'rgba(0, 0, 0, 0)' ? metaLine('sfondo', ci.bg, '#DCDCAA') : null),
+            ci.borderHex ? metaLine('bordo', ci.borderHex, '#DCDCAA') : null
+          ) : null;
+        })() : null,
+        // ── Tipografia (token ufficiali Ant Design) ──
+        typo ? h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: entry ? 8 : 0, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
+          entry ? h('div', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 2 } }, 'Testo') : null,
+          metaLine('tipo', typo.role, '#C586C0'),
+          metaLine('dimensione', typo.sizePx + 'px · ' + typo.sizeToken, '#9CDCFE'),
+          metaLine('peso', typo.weight + ' · ' + typo.weightName, '#CE9178'),
+          typo.lhPx ? metaLine('interlinea', typo.lhPx + 'px', '#B5CEA8') : null,
+          metaLine('colore', typo.color + (typo.colorToken ? ' · ' + typo.colorToken : ''), '#DCDCAA'),
+          typo.ls ? metaLine('spaziatura', typo.ls, '#B5CEA8') : null
+        ) : null
       )
     );
   }
@@ -294,10 +474,16 @@
         var r = el.getBoundingClientRect();
         setRect({ x: r.left, y: r.top, w: r.width, h: r.height });
       }
+      // Porta il target in vista una volta sola (lo scroll utente è bloccato: questo è programmatico)
+      var scrollEl = colIndex
+        ? (function () { var c = document.querySelectorAll('.ant-table-cell:nth-child(' + colIndex + ')'); return c.length ? c[Math.min(1, c.length - 1)] : null; })()
+        : (selector ? document.querySelector(selector) : null);
+      if (scrollEl && scrollEl.scrollIntoView) scrollEl.scrollIntoView({ block: 'center', inline: 'nearest' });
       update();
-      var raf = requestAnimationFrame(update); // dopo paint
+      var raf = requestAnimationFrame(update); // dopo paint/scroll
       window.addEventListener('resize', update);
-      return function () { cancelAnimationFrame(raf); window.removeEventListener('resize', update); };
+      window.addEventListener('scroll', update, true); // ricalcola mentre lo scroll programmatico assesta
+      return function () { cancelAnimationFrame(raf); window.removeEventListener('resize', update); window.removeEventListener('scroll', update, true); };
     }, [selector, colIndex]);
 
     // Blocca scroll: wheel e touch (non-passive) sull'overlay
@@ -365,7 +551,7 @@
   // Balloon posizionato accanto al target. Unico elemento interagibile durante il tour.
 
   function TourBalloon({ step, index, total, steps, screenLabel, role, roleColor, onPrev, onNext, onGoTo, onExit }) {
-    var BALLOON_W = 320;
+    var BALLOON_W = 440;
     var GAP       = 18;
     var _p = useState({ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' });
     var pos = _p[0]; var setPos = _p[1];
@@ -422,7 +608,8 @@
       calc();
       var raf = requestAnimationFrame(calc);
       window.addEventListener('resize', calc);
-      return function () { cancelAnimationFrame(raf); window.removeEventListener('resize', calc); };
+      window.addEventListener('scroll', calc, true); // riposiziona il balloon dopo lo scroll automatico
+      return function () { cancelAnimationFrame(raf); window.removeEventListener('resize', calc); window.removeEventListener('scroll', calc, true); };
     }, [step]);
 
     return h('div', {
@@ -492,7 +679,7 @@
           style: {
             marginBottom: 10, borderRadius: 6,
             border: '1px solid rgba(0,0,0,.07)',
-            maxHeight: 192, overflowY: 'auto',
+            maxHeight: 360, overflowY: 'auto',
           },
         },
           steps.map(function (s, i) {
@@ -525,7 +712,9 @@
         }, step.title),
         h('div', {
           style: { fontSize: 13, color: 'rgba(0,0,0,.6)', lineHeight: 1.6 },
-        }, parseBold(step.description)),
+        }, renderRich(step.description)),
+        // ── Tabella (opzionale, sempre visibile) ─────────────────────────
+        step.table ? h('div', { style: { marginTop: 10 } }, renderMatrix(step.table)) : null,
         // ── Sezione dev (opzionale) ──────────────────────────────────────
         step.dev ? h(React.Fragment, null,
           h('button', {
@@ -542,7 +731,7 @@
           devOpen ? h('div', {
             style: {
               marginTop: 6, background: '#0f0f0f', borderRadius: 6,
-              padding: '10px 12px', overflowY: 'auto', maxHeight: 200,
+              padding: '10px 12px', overflowY: 'auto', maxHeight: 360,
             },
           },
             (typeof step.dev === 'string'
@@ -592,11 +781,14 @@
 
   function UsPanel({ tours, screen, role, roleColor, onStart }) {
     var curScreenLabel = screen ? screenLabel(screen) : null;
-    var items = tours.length === 0
+    // Mostra solo le US della schermata corrente (più quelle senza schermata vincolata)
+    var visibleTours = tours.filter(function (tour) {
+      return !tour.startScreen || !screen || tour.startScreen === screen;
+    });
+    var items = visibleTours.length === 0
       ? h('div', { style: { padding: '24px 16px', textAlign: 'center', fontSize: 12, color: 'rgba(0,0,0,.3)' } },
-          'Nessuna user story disponibile per questo ruolo.')
-      : tours.map(function (tour) {
-          var wrongScreen = tour.startScreen && screen && tour.startScreen !== screen;
+          'Nessuna user story per questa schermata.')
+      : visibleTours.map(function (tour) {
           return h('div', {
             key: tour.id,
             onClick: function () { onStart(tour); },
@@ -609,11 +801,7 @@
               tour.novita ? h(antd.Tag, { color: '#FF4A1C', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px', fontWeight: 600 } }, 'Novità') : null,
               tour.roles  ? h(antd.Tag, { color: ROLE_COLOR[tour.roles[0]] || 'default', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px' } }, tour.roles.join(', ')) : null
             ),
-            h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.45)', marginBottom: wrongScreen ? 6 : 0, lineHeight: 1.5 } }, parseBold(tour.description)),
-            wrongScreen ? h('div', { style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#FA8C16' } },
-              h(icons.InfoCircleOutlined, { style: { fontSize: 10 } }),
-              h('span', null, 'Inizia da: ' + screenLabel(tour.startScreen))
-            ) : null,
+            h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.45)', marginBottom: 0, lineHeight: 1.5 } }, renderRich(tour.description)),
             h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.25)', marginTop: 4 } }, tour.steps.length + ' step')
           );
         });
@@ -628,9 +816,48 @@
       },
     },
       h('div', { style: { padding: '12px 16px 10px', borderBottom: '1px solid rgba(0,0,0,.06)' } },
-        h('div', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)', marginBottom: 5 } },
-          'User story — ' + (curScreenLabel || META.title || 'Handoff')),
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 } },
+          h('span', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'User story'),
+          screenChip(curScreenLabel)
+        ),
         h(antd.Tag, { color: roleColor, style: { margin: 0, fontSize: 11, fontWeight: 600 } }, role)
+      ),
+      h('div', { style: { flex: 1, overflowY: 'auto' } }, items)
+    );
+  }
+
+  // ── Pannello dipendenze (contenuto del dropdown in navbar) ────────────────
+
+  function DepPanel({ deps }) {
+    var items = (!deps || deps.length === 0)
+      ? h('div', { style: { padding: '24px 16px', textAlign: 'center', fontSize: 12, color: 'rgba(0,0,0,.3)' } },
+          'Nessuna dipendenza documentata.')
+      : deps.map(function (d) {
+          return h('div', {
+            key: d.id,
+            style: { padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,.05)' },
+          },
+            h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: d.description ? 4 : 8 } },
+              h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,.88)' } }, d.title),
+              screenChip(d.screen)
+            ),
+            d.description ? h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.45)', lineHeight: 1.5, marginBottom: 8 } }, renderRich(d.description)) : null,
+            d.table ? renderMatrix(d.table) : null
+          );
+        });
+
+    return h('div', {
+      className: 'ghf-dep-panel',
+      style: {
+        width: 460, background: '#fff', borderRadius: 12,
+        boxShadow: '0 8px 32px rgba(0,0,0,.15)',
+        maxHeight: 540, overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        fontFamily: FONT,
+      },
+    },
+      h('div', { style: { padding: '12px 16px 10px', borderBottom: '1px solid rgba(0,0,0,.06)' } },
+        h('div', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'Dipendenze tra entità'),
+        h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.4)', marginTop: 2 } }, 'Regole e combinazioni del prototipo')
       ),
       h('div', { style: { flex: 1, overflowY: 'auto' } }, items)
     );
@@ -638,32 +865,86 @@
 
   // ── Controlli in navbar (portal accanto alla campanella) ─────────────────
 
-  function NavControls({ devMode, onDevToggle, tours, onStart, screen, role, roleColor, novitaCount }) {
+  function NavControls({ devMode, onDevToggle, tours, onStart, screen, role, roleColor, novitaCount, deps }) {
+    var _us = useState(false); var usOpen = _us[0]; var setUsOpen = _us[1];
+    var _dep = useState(false); var depOpen = _dep[0]; var setDepOpen = _dep[1];
     return h('span', {
-      style: { display: 'inline-flex', alignItems: 'center', gap: 14, marginRight: 2 },
+      // Area unica che raggruppa toggle dev + user story
+      style: {
+        display: 'inline-flex', alignItems: 'center', gap: 10,
+        height: 32, padding: '0 6px 0 10px', marginRight: 2,
+        background: 'rgba(0,0,0,0.04)',
+        border: '1px solid rgba(0,0,0,0.06)',
+        borderRadius: 8,
+      },
     },
       // Switch dev — attiva l'inspector componenti
       h(antd.Tooltip, { title: devMode ? 'Inspector componenti attivo' : 'Inspector componenti (dev)', placement: 'bottom' },
         h(antd.Switch, {
-          size: 'small',
           checked: devMode,
           onChange: onDevToggle,
-          checkedChildren: h(icons.CodeOutlined, { style: { fontSize: 10 } }),
-          unCheckedChildren: h(icons.CodeOutlined, { style: { fontSize: 10 } }),
+          checkedChildren: h(icons.CodeOutlined, { style: { fontSize: 12 } }),
+          unCheckedChildren: h(icons.CodeOutlined, { style: { fontSize: 12 } }),
         })
       ),
-      // Icona user story — dropdown con i tour
+      // Divider interno
+      h('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }),
+      // User story — trigger con estetica button (icona + label)
       h(antd.Dropdown, {
         trigger: ['click'],
+        open: usOpen,
+        onOpenChange: setUsOpen,
         placement: 'bottomRight',
         dropdownRender: function () {
-          return h(UsPanel, { tours: tours, screen: screen, role: role, roleColor: roleColor, onStart: onStart });
+          return h(UsPanel, { tours: tours, screen: screen, role: role, roleColor: roleColor, onStart: function (tour) { setUsOpen(false); onStart(tour); } });
         },
       },
-        h('span', { style: { display: 'inline-flex', cursor: 'pointer' }, title: 'User story' },
-          h(antd.Badge, { count: novitaCount, size: 'small', offset: [2, -2] },
-            h(icons.FlagOutlined, { style: { fontSize: 17, color: 'rgba(0,0,0,0.45)' } })
+        h('span', { style: { display: 'inline-flex' } },
+          h(antd.Badge, { count: novitaCount, size: 'small', offset: [-2, 4] },
+            h('span', {
+              title: 'User story',
+              style: {
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                height: 24, padding: '0 10px',
+                background: '#fff', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 6,
+                color: 'rgba(0,0,0,0.75)', cursor: 'pointer',
+                fontFamily: FONT, fontSize: 12, fontWeight: 600, lineHeight: '22px',
+                transition: 'color .15s, border-color .15s',
+              },
+              onMouseEnter: function (e) { e.currentTarget.style.color = '#3E00FB'; e.currentTarget.style.borderColor = '#3E00FB'; },
+              onMouseLeave: function (e) { e.currentTarget.style.color = 'rgba(0,0,0,0.75)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.15)'; },
+            },
+              h(icons.FlagOutlined, { style: { fontSize: 13 } }),
+              h('span', null, 'User story')
+            )
           )
+        )
+      ),
+      // Divider interno
+      h('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }),
+      // Dipendenze — trigger con estetica button (icona + label)
+      h(antd.Dropdown, {
+        trigger: ['click'],
+        open: depOpen,
+        onOpenChange: setDepOpen,
+        placement: 'bottomRight',
+        dropdownRender: function () { return h(DepPanel, { deps: deps }); },
+      },
+        h('span', {
+          title: 'Dipendenze tra entità',
+          style: {
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            height: 24, padding: '0 10px',
+            background: '#fff', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 6,
+            color: 'rgba(0,0,0,0.75)', cursor: 'pointer',
+            fontFamily: FONT, fontSize: 12, fontWeight: 600, lineHeight: '22px',
+            transition: 'color .15s, border-color .15s',
+          },
+          onMouseEnter: function (e) { e.currentTarget.style.color = '#3E00FB'; e.currentTarget.style.borderColor = '#3E00FB'; },
+          onMouseLeave: function (e) { e.currentTarget.style.color = 'rgba(0,0,0,0.75)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.15)'; },
+        },
+          h(icons.ApartmentOutlined, { style: { fontSize: 13 } }),
+          h('span', null, 'Dipendenze')
         )
       )
     );
@@ -772,6 +1053,7 @@
         role:        role,
         roleColor:   roleColor,
         novitaCount: novitaCount,
+        deps:        DEPS,
       }),
       slotEl
     ) : null;
