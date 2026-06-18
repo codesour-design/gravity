@@ -390,11 +390,7 @@
 }
 
 
-    /* ── Nuovo Impianto (drawer) ──────────────────────────── */
-    .ni-section { padding: 10px 0; }
-    .ni-section:first-child { padding-top: 4px; }
-    .ni-section:last-child { padding-bottom: 0; }
-    .ni-section-title { font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.35); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 16px; }
+    /* ── Form Nuovo Impianto ──────────────────────────────── */
     .ni-grid { display: grid; gap: 16px 12px; margin-bottom: 16px; }
     .ni-grid:last-child { margin-bottom: 0; }
     .ni-grid .ni-field { margin-bottom: 0; }
@@ -419,21 +415,6 @@
     .ni-field:last-child { margin-bottom: 0; }
     .ni-label { font-size: 13px; color: rgba(0,0,0,0.65); margin-bottom: 5px; }
     .ni-label .req { color: #FF4D4F; margin-left: 2px; }
-    .ni-switch-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
-    .ni-switch-label { font-size: 14px; color: rgba(0,0,0,0.85); }
-    .ni-switch-sub   { font-size: 12px; color: rgba(0,0,0,0.45); margin-top: 1px; }
-    .ni-entity-tag { display: inline-flex; align-items: center; gap: 6px; background: #F5F5F5; border: 1px solid #D9D9D9; border-radius: 4px; padding: 3px 8px; font-size: 12px; color: rgba(0,0,0,0.75); margin: 3px 4px 3px 0; }
-    .ni-entity-tag-remove { cursor: pointer; color: rgba(0,0,0,0.35); font-size: 10px; }
-
-    /* ── Modale Nuovo Impianto ─────────────────────────────── */
-    .nim-field { margin-bottom: 16px; }
-    .nim-field:last-child { margin-bottom: 0; }
-    .nim-label { font-size: 13px; color: rgba(0,0,0,0.65); margin-bottom: 5px; }
-    .nim-label .req { color: #FF4D4F; }
-    .nim-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .nim-grid-addr { display: grid; grid-template-columns: 1fr 88px; gap: 12px; }
-    .nim-section-title { font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.35); text-transform: uppercase; letter-spacing: .07em; margin: 20px 0 12px; }
-    .nim-section-title:first-child { margin-top: 0; }
 
     /* ── Impianto Detail Page ───────────────────────────────── */
     .imp-detail-page { flex: 1; min-height: 0; overflow-y: auto; background: #f5f5f5; }
@@ -459,7 +440,7 @@
 <div id="root"></div>
 <script>
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
-const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card } = antd;
+const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Slider, Radio } = antd;
 const { Text } = Typography;
 const {
   SearchOutlined, BellOutlined, PlusOutlined, AppstoreOutlined, SendOutlined,
@@ -471,6 +452,7 @@ const {
   InfoCircleOutlined, CompassOutlined, CheckCircleFilled, MoreOutlined,
   SwapOutlined, DeleteOutlined, TagsOutlined, ThunderboltOutlined, FileTextOutlined,
   CalendarOutlined, SyncOutlined, AimOutlined, EuroCircleOutlined, UploadOutlined,
+  LockOutlined, UnlockOutlined, CarOutlined,
 } = icons;
 
 // ─────────────────────────────────────────────────────────
@@ -528,6 +510,32 @@ const TIPO_FORMATI = {
   'Insegna':          ['150×50cm',  '230×60cm',  '300×60cm', '400×80cm'],
 };
 const ALL_TIPO_FORMATI = [...new Set(Object.values(TIPO_FORMATI).flat())].sort();
+
+// Facce previste di default per tipologia (tipo + numero) — pre-create all'apertura del form
+const FACCE_PER_TIPO = {
+  'Pensilina':        ['Anteriore', 'Posteriore'],
+  'Poster':           ['Anteriore'],
+  'Palina':           ['Anteriore', 'Posteriore'],
+  'Fermata bus':      ['Anteriore', 'Posteriore'],
+  'Cassonetto':       ['Anteriore', 'Posteriore'],
+  'Palo luce':        ['Anteriore'],
+  'Speciale':         ['Anteriore', 'Posteriore', 'Sinistra', 'Destra'],
+  'Palina butterfly': ['Sinistra', 'Destra'],
+  'Stendardo':        ['Anteriore', 'Posteriore'],
+  'Parapedonale':     ['Anteriore', 'Posteriore'],
+  'Telo':             ['Anteriore'],
+  'Rotor':            ['Anteriore', 'Posteriore', 'Sinistra'],
+  'Plancia':          ['Anteriore'],
+  'Fioriera':         ['Anteriore', 'Posteriore'],
+  'Insegna':          ['Anteriore'],
+};
+// Colori del tag per tipo faccia
+const FACE_TIPO_STYLE = {
+  'Anteriore':  { backgroundColor: '#E6FFFB', border: '1px solid #87E8DE', color: '#13C2C2' },
+  'Posteriore': { backgroundColor: '#FFF2E8', border: '1px solid #FFBB96', color: '#FA541C' },
+  'Sinistra':   { backgroundColor: '#F9F0FF', border: '1px solid #D3ADF7', color: '#722ED1' },
+  'Destra':     { backgroundColor: '#E6F4FF', border: '1px solid #91CAFF', color: '#1677FF' },
+};
 
 
 // ─────────────────────────────────────────────────────────
@@ -1936,10 +1944,9 @@ function ListView({ impianti, viewMode, setViewMode, onDetail }) {
 }
 
 // ─────────────────────────────────────────────────────────
-// NUOVO IMPIANTO — drawer
+// FORM NUOVO IMPIANTO — opzioni condivise
 // ─────────────────────────────────────────────────────────
 const CANALI_OPTS  = [{ value: 'OOH', label: 'OOH' }, { value: 'DOOH', label: 'DOOH' }];
-const VENDITA_OPTS = ['Flat','CPM','Revenue share','Forfait settimanale','Forfait mensile'].map(v => ({ value: v, label: v }));
 const STATO_COLORS = { 'Attivo': '#1677FF', 'Inizializzato': '#FAAD14', 'In Manutenzione': '#FA8C16', 'Rimosso': 'rgba(0,0,0,0.45)' };
 const STATI_AMM_OPTS = Object.entries(STATO_COLORS).map(([v, color]) => ({
   value: v,
@@ -1948,18 +1955,6 @@ const STATI_AMM_OPTS = Object.entries(STATO_COLORS).map(([v, color]) => ({
     v
   ),
 }));
-const TITOLARE_OPTS = ['Proprietario','IGPDecaux','Clear Channel','Pubbliemma','Urban Vision','Posterscope'].map(v => ({ value: v, label: v }));
-const MOCK_AUTORIZZAZIONI = [
-  { value: 'aut-001', label: 'AUT-2024-001 · Comune di Palermo · scad. 31/12/2025' },
-  { value: 'aut-002', label: 'AUT-2024-002 · Comune di Palermo · scad. 15/06/2026' },
-  { value: 'aut-003', label: 'AUT-2023-087 · Città Metropolitana · scad. 30/09/2025' },
-  { value: 'aut-004', label: 'AUT-2024-015 · Comune di Palermo · scad. 28/02/2026' },
-];
-const MOCK_CONCESSIONI = [
-  { value: 'con-001', label: 'CONC-2022-003 · Suolo pubblico · scad. 31/12/2027' },
-  { value: 'con-002', label: 'CONC-2023-011 · Proprietà privata · scad. 01/01/2026' },
-  { value: 'con-003', label: 'CONC-2024-007 · Suolo comunale · scad. 15/03/2028' },
-];
 
 async function fetchAddrSuggestions(q) {
   if (!q || q.length < 3) return [];
@@ -2006,262 +2001,6 @@ async function fetchAddrSuggestions(q) {
   } catch { return []; }
 }
 
-function nif(label, required, children) {
-  return React.createElement('div', { className: 'ni-field' },
-    React.createElement('div', { className: 'ni-label' },
-      label, required && React.createElement('span', { className: 'req' }, ' *'),
-    ),
-    children,
-  );
-}
-
-function NewImpiantoDrawer({ open, onClose }) {
-  const [canale,     setCanale]     = useState(null);
-  const [tipologia,  setTipologia]  = useState(null);
-  const [formato,    setFormato]    = useState(null);
-  // indirizzo
-  const [addrSuggs,  setAddrSuggs]  = useState([]);
-  const [via,        setVia]        = useState('');
-  const [civico,     setCivico]     = useState('');
-  const [cap,        setCap]        = useState('');
-  const [citta,      setCitta]      = useState('');
-  const [provincia,  setProvincia]  = useState('');
-  const [regione,    setRegione]    = useState('');
-  const [nazione,    setNazione]    = useState('');
-  const [lat,        setLat]        = useState('');
-  const [lng,        setLng]        = useState('');
-  const [note,       setNote]       = useState('');
-  // altri
-  const [titolare,   setTitolare]   = useState(null);
-  const [vendita,    setVendita]    = useState(null);
-  const [cimasa,     setCimasa]     = useState('');
-  const [stato,      setStato]      = useState(null);
-  const [autorizzazioni, setAutorizzazioni] = useState([]);
-  const [concessioni,    setConcessioni]    = useState([]);
-
-  const debRef = useRef(null);
-
-  const tipologieOpts = React.useMemo(() =>
-    Object.entries(MACRO_TIPI).map(([group, tipi]) => ({
-      label: group, options: tipi.map(t => ({ value: t, label: t })),
-    })), []);
-
-  const formatiOpts = React.useMemo(() =>
-    tipologia ? (TIPO_FORMATI[tipologia] || []).map(f => ({ value: f, label: f })) : []
-  , [tipologia]);
-
-  const canSave = canale && tipologia && formato && via.trim() && citta.trim() && stato;
-
-  const applyAddr = (s) => {
-    setVia(s.via); setCivico(s.civico || ''); setAddrSuggs([]);
-    setCap(s.cap); setCitta(s.citta);
-    setProvincia(s.provincia); setRegione(s.regione); setNazione(s.nazione);
-    setLat(String(s.lat.toFixed(6))); setLng(String(s.lng.toFixed(6)));
-  };
-
-  const handleViaSearch = (val) => {
-    setVia(val);
-    if (debRef.current) clearTimeout(debRef.current);
-    if (val && val.length >= 3) {
-      debRef.current = setTimeout(async () => {
-        setAddrSuggs(await fetchAddrSuggestions(val));
-      }, 350);
-    } else {
-      setAddrSuggs([]);
-    }
-  };
-
-  const reset = () => {
-    setCanale(null); setTipologia(null); setFormato(null);
-    setAddrSuggs([]);
-    setVia(''); setCivico(''); setCap(''); setCitta(''); setProvincia(''); setRegione(''); setNazione('');
-    setLat(''); setLng(''); setNote('');
-    setTitolare(null); setVendita(null);
-    setCimasa(''); setStato(null); setAutorizzazioni([]); setConcessioni([]);
-  };
-
-  const handleClose = () => { reset(); onClose(); };
-
-  return React.createElement(Drawer, {
-    title: 'Nuovo Impianto',
-    placement: 'right',
-    size: 'large',
-    open,
-    onClose: handleClose,
-    footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8 } },
-      React.createElement(Button, { onClick: handleClose }, 'Annulla'),
-      React.createElement(Button, { type: 'primary', disabled: !canSave }, 'Crea Impianto'),
-    ),
-  },
-
-    // ── Identità ─────────────────────────────────────────
-    React.createElement('div', { className: 'ni-section' },
-      React.createElement('div', { className: 'ni-section-title' }, 'Identità'),
-      React.createElement('div', { className: 'ni-grid ni-grid-3' },
-        nif('Canale', true,
-          React.createElement(Select, {
-            placeholder: 'OOH o DOOH?', style: { width: '100%' },
-            options: CANALI_OPTS, value: canale,
-            onChange: v => { setCanale(v); setTipologia(null); setFormato(null); },
-          })
-        ),
-        nif('Tipologia', true,
-          React.createElement(Select, {
-            placeholder: canale ? 'Es. Pensilina, Palina…' : 'Prima seleziona il canale', style: { width: '100%' },
-            options: tipologieOpts, value: tipologia, disabled: !canale,
-            onChange: v => { setTipologia(v); setFormato(null); },
-          })
-        ),
-        nif('Formato', true,
-          React.createElement(Select, {
-            placeholder: tipologia ? 'Es. 120×180 cm' : 'Prima seleziona la tipologia', style: { width: '100%' },
-            options: formatiOpts, value: formato, disabled: !tipologia,
-            onChange: setFormato,
-          })
-        ),
-      ),
-    ),
-
-    // ── Localizzazione ───────────────────────────────────
-    React.createElement('div', { className: 'ni-section' },
-      React.createElement('div', { className: 'ni-section-title' }, 'Localizzazione'),
-
-      // Via + Civico
-      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 88px', gap: 12 } },
-      nif('Via', true,
-        React.createElement(AutoComplete, {
-          style: { width: '100%' },
-          value: via,
-          options: addrSuggs.map(s => ({
-            value: s.via,
-            label: React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'flex-start', padding: '2px 0' } },
-              React.createElement('div', {
-                style: { width: 24, height: 24, borderRadius: 4, background: 'rgba(62,0,251,0.08)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 },
-              },
-                React.createElement(EnvironmentOutlined, { style: { fontSize: 11, color: '#3E00FB' } })
-              ),
-              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                React.createElement('div', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, s.display),
-                s.sub && React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', marginTop: 1 } }, s.sub),
-              ),
-            ),
-            key: s.id,
-            _sdata: s,
-          })),
-          onSearch: handleViaSearch,
-          onChange: (val) => { if (typeof val === 'string') setVia(val); },
-          onSelect: (val, option) => { if (option._sdata) applyAddr(option._sdata); },
-          onClear: () => { setVia(''); setAddrSuggs([]); },
-          allowClear: true,
-          notFoundContent: null,
-          popupMatchSelectWidth: true,
-          getPopupContainer: () => document.body,
-        },
-          React.createElement(Input, {
-            prefix: React.createElement(EnvironmentOutlined, { style: { color: 'rgba(0,0,0,0.3)' } }),
-            placeholder: 'Es. Via Maqueda, Palermo…',
-          })
-        )
-      ),
-      nif('N. civico', false,
-        React.createElement(Input, {
-          placeholder: 'Es. 148',
-          value: civico, onChange: e => setCivico(e.target.value),
-        })
-      ),
-      ), // fine grid Via + Civico
-      React.createElement('div', { className: 'ni-grid ni-grid-3' },
-        nif('CAP', false,
-          React.createElement(Input, { placeholder: '—', value: cap, onChange: e => setCap(e.target.value) })
-        ),
-        nif('Città', true,
-          React.createElement(Input, { placeholder: '—', value: citta, onChange: e => setCitta(e.target.value) })
-        ),
-        nif('Provincia', false,
-          React.createElement(Input, { placeholder: '—', value: provincia, onChange: e => setProvincia(e.target.value) })
-        ),
-      ),
-      React.createElement('div', { className: 'ni-grid ni-grid-2' },
-        nif('Regione', false,
-          React.createElement(Input, { placeholder: '—', value: regione, onChange: e => setRegione(e.target.value) })
-        ),
-        nif('Nazione', false,
-          React.createElement(Input, { placeholder: '—', value: nazione, onChange: e => setNazione(e.target.value) })
-        ),
-      ),
-      React.createElement('div', { className: 'ni-grid ni-grid-2' },
-        nif('Latitudine', false,
-          React.createElement(Input, { placeholder: '—', value: lat, onChange: e => setLat(e.target.value) })
-        ),
-        nif('Longitudine', false,
-          React.createElement(Input, { placeholder: '—', value: lng, onChange: e => setLng(e.target.value) })
-        ),
-      ),
-      nif('Note geografiche', false,
-        React.createElement(Input.TextArea, {
-          placeholder: 'Es. angolo con Via Bandiera, fronte semaforo…',
-          rows: 2, value: note, onChange: e => setNote(e.target.value),
-        })
-      ),
-    ),
-
-    // ── Gestione ─────────────────────────────────────────
-    React.createElement('div', { className: 'ni-section' },
-      React.createElement('div', { className: 'ni-section-title' }, 'Gestione'),
-      React.createElement('div', { className: 'ni-grid ni-grid-2' },
-        nif('Titolare', false,
-          React.createElement(Select, {
-            placeholder: 'Ente, privato o media owner…', style: { width: '100%' }, showSearch: true,
-            options: TITOLARE_OPTS, value: titolare, onChange: setTitolare,
-          })
-        ),
-        nif('Modello di vendita', false,
-          React.createElement(Select, {
-            placeholder: 'Seleziona', style: { width: '100%' },
-            options: VENDITA_OPTS, value: vendita, onChange: setVendita,
-          })
-        ),
-      ),
-      React.createElement('div', { className: 'ni-grid ni-grid-2' },
-        nif('Cimasa', false,
-          React.createElement(Input, {
-            placeholder: 'Es. CIM-2024-001',
-            value: cimasa, onChange: e => setCimasa(e.target.value),
-          })
-        ),
-        nif('Stato', true,
-          React.createElement(Select, {
-            placeholder: 'Seleziona', style: { width: '100%' },
-            options: STATI_AMM_OPTS, value: stato, onChange: setStato,
-          })
-        ),
-      ),
-    ),
-
-    // ── Autorizzazioni e concessioni ─────────────────────
-    React.createElement('div', { className: 'ni-section' },
-      React.createElement('div', { className: 'ni-section-title' }, 'Autorizzazioni e concessioni'),
-      nif('Autorizzazioni', false,
-        React.createElement(Select, {
-          mode: 'multiple', style: { width: '100%' }, showSearch: true,
-          placeholder: 'Cerca per numero o ente…',
-          options: MOCK_AUTORIZZAZIONI, value: autorizzazioni, onChange: setAutorizzazioni,
-          optionFilterProp: 'label', maxTagCount: 'responsive',
-        })
-      ),
-      nif('Concessioni', false,
-        React.createElement(Select, {
-          mode: 'multiple', style: { width: '100%' }, showSearch: true,
-          placeholder: 'Cerca per numero o tipo…',
-          options: MOCK_CONCESSIONI, value: concessioni, onChange: setConcessioni,
-          optionFilterProp: 'label', maxTagCount: 'responsive',
-        })
-      ),
-    ),
-
-  ); // Drawer
-}
 
 // ─────────────────────────────────────────────────────────
 // IMPIANTO DETAIL PAGE
@@ -2372,6 +2111,15 @@ const GRANTS_DATA = [
   ]},
 ];
 
+// Dati di progetto trasportati dalla pratica Genio Civile, cumulativi per fase:
+// redazione (Da presentare: progettista, geologo, tavole, materiali) →
+// deposito ex art. 93 con nomina delle figure (Presentata: DDL, collaudatore, laboratorio) →
+// collaudo statico (Collaudata: data collaudo). Il RSC resta fuori: è una figura
+// della sicurezza cantiere (D.Lgs. 81/2008), non della pratica strutturale.
+const GC_PROGETTO_REDAZIONE = { progetto: '1305', numTavola: 'TAV-07/A', progettista: 'Studio Tecnico Russo & Partners', geologo: 'Dott. Andrea Rizzo', calcestruzzo: 'RCK > 25 MPA', acciaioCarp: 'FE 360 B', acciaioArm: 'FEB 44 K', tecnicheGc: 'Saldature con elettrodi basici E 44 L 4 B e cordoni d\'angolo 8×8 mm' };
+const GC_PROGETTO_DEPOSITO  = { ...GC_PROGETTO_REDAZIONE, ddl: 'Ing. Paolo Greco', collaudatore: 'Ing. Sergio Lombardo', laboratorio: 'LabStrutture Palermo' };
+const GC_PROGETTO_COLLAUDO  = { ...GC_PROGETTO_DEPOSITO, dataCollaudo: '02/09/2022' };
+
 const AUTHORIZATIONS_DATA = [
   { key: '1', authorizationCategory: 'Autorizzazione Comunale', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 23456/2023', stipulationDate: '15/01/2023', expirationDate: '30/06/2025', cup: 'J39D23000450001', status: 'Attiva', isActive: true },
   { key: '2', authorizationCategory: 'Autorizzazione Comunale', issuingAuthority: 'Soprintendenza Belle Arti', protocolNumber: 'Prot. 34567/2022', stipulationDate: '10/03/2022', expirationDate: '15/03/2024', cup: 'J38C22001230001', status: 'Scaduta', isActive: false },
@@ -2381,7 +2129,50 @@ const AUTHORIZATIONS_DATA = [
   { key: '6', authorizationCategory: 'Autorizzazione Comunale', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 78901/2021', stipulationDate: '18/09/2021', expirationDate: '10/01/2024', cup: 'J35C21000340004', status: 'Scaduta', isActive: false },
   { key: '7', authorizationCategory: 'Autorizzazione Comunale', issuingAuthority: 'Città Metropolitana di Palermo', protocolNumber: 'Prot. 89012/2023', stipulationDate: '22/04/2023', expirationDate: '31/08/2026', cup: 'J34D23000670005', status: 'Attiva', isActive: true },
   { key: '8', authorizationCategory: 'Autorizzazione Comunale', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 01234/2024', stipulationDate: '08/01/2024', expirationDate: '15/05/2024', cup: 'J33C24000120007', status: 'Scaduta', isActive: false },
-  { key: '9', authorizationCategory: 'Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Prot. 11223/2023', stipulationDate: '30/05/2023', expirationDate: '31/12/2026', cup: 'J33D23000920006', status: 'Attiva', isActive: true },
+  // Genio Civile — pratica strutturale in zona sismica (artt. 93/94 DPR 380/2001): si deposita il
+  // progetto strutturale prima dei lavori e a fine lavori si deposita il collaudo statico.
+  // Non scade: il ciclo di vita è Da presentare → Presentata → Collaudata.
+  { key: '9',  authorizationCategory: 'Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Pratica GC 102/2026', status: 'Da presentare', isActive: false, progettoDati: GC_PROGETTO_REDAZIONE },
+  { key: '10', authorizationCategory: 'Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Prot. 11223/2023', depositDate: '30/05/2023', cup: 'J33D23000920006', status: 'Presentata', isActive: true, progettoDati: GC_PROGETTO_DEPOSITO },
+  { key: '11', authorizationCategory: 'Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Prot. 09871/2021', depositDate: '14/03/2021', collaudoDate: '02/09/2022', status: 'Collaudata', isActive: true, progettoDati: GC_PROGETTO_COLLAUDO },
+];
+
+// Colori di stato dei permessi: pratiche Genio Civile + fallback attivo/inattivo
+const PERMIT_STATE_COLORS = { 'Da presentare': '#FAAD14', 'Presentata': '#1677FF', 'Collaudata': '#52c41a' };
+const permitDotColor = (state, isActive) => PERMIT_STATE_COLORS[state] || (isActive ? '#52c41a' : '#d9d9d9');
+// Tipo concessione: suolo pubblico vs privato
+const grantTypeTagStyle = (tipo) => tipo === 'Pubblico'
+  ? { color: '#1677FF', backgroundColor: '#E6F4FF', border: '1px solid #91CAFF' }
+  : { color: '#FA8C16', backgroundColor: '#FFF7E6', border: '1px solid #FFD591' };
+
+// SCIA — autocertificazioni (art. 19, L. 241/1990): efficaci dalla data di presentazione,
+// l'ente ha un termine per il controllo successivo (30 gg per il SUE, 60 gg per il SUAP)
+const SCIA_TYPES = [
+  {
+    id: 'urbanistica',
+    title: 'SCIA Urbanistica',
+    desc: 'Installazione della struttura — asseverazione tecnica di conformità urbanistico-edilizia e al Codice della Strada. Si presenta allo Sportello Unico per l\'Edilizia.',
+    ente: 'SUE — Comune di Palermo',
+    protocollo: 'Prot. SUE 48213/2026',
+    presentata: '14/04/2026',
+    dichiarante: 'Gravity Media S.r.l.',
+    tecnico: 'Ing. Paolo Greco',
+    termineVerifica: '14/05/2026',
+    fineLavori: '14/04/2029',
+    // Nuova segnalazione che subentra alla precedente (es. voltura o variante)
+    voltura: { protocollo: 'Prot. SUE 52490/2026', presentata: '03/06/2026', termineVerifica: '03/07/2026' },
+  },
+  {
+    id: 'commerciale',
+    title: 'SCIA Commerciale',
+    desc: 'Esercizio dell\'attività pubblicitaria — si presenta allo Sportello Unico per le Attività Produttive tramite impresainungiorno.gov.it.',
+    ente: 'SUAP — Comune di Palermo',
+    protocollo: 'Prot. SUAP 09877/2026',
+    presentata: '14/04/2026',
+    dichiarante: 'Gravity Media S.r.l.',
+    termineVerifica: '13/06/2026',
+    voltura: { protocollo: 'Prot. SUAP 11342/2026', presentata: '03/06/2026', termineVerifica: '02/08/2026' },
+  },
 ];
 
 const MOCK_EVENTS = [
@@ -2477,7 +2268,7 @@ function PermitCard({ permitType, documentType, documentId, accountNumber, autho
           React.createElement('span', null, 'Stato'),
         ),
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-          React.createElement('div', { style: { width: 8, height: 8, borderRadius: '50%', backgroundColor: isActive ? '#52c41a' : '#d9d9d9' } }),
+          React.createElement('div', { style: { width: 8, height: 8, borderRadius: '50%', backgroundColor: permitDotColor(state, isActive) } }),
           React.createElement('span', { style: { fontSize: 15, color: 'rgba(0,0,0,0.85)', fontWeight: 500 } }, state),
         ),
       ),
@@ -2485,26 +2276,34 @@ function PermitCard({ permitType, documentType, documentId, accountNumber, autho
   );
 }
 
-// Card permesso per il form di creazione — layout unificato concessione/autorizzazione,
+// Card permesso per il form di creazione — layout unificato concessione/autorizzazione/autocertificazione,
 // senza dati già presenti nei campi del form (utenza, cimasa, canone)
-function FormPermitCard({ permitType, title, docId, ente, scadenza, state, isActive, onReplace, onRemove }) {
+function FormPermitCard({ permitType, title, docId, tipo, ente, scadenza, presentata, collaudata, state, isActive, onReplace, onRemove }) {
   const menuItems = [
     { key: 'view', label: 'Visualizza', icon: React.createElement(EyeOutlined) },
-    ...(permitType === 'concessione' ? [{ key: 'replace', label: 'Sostituisci', icon: React.createElement(SwapOutlined), onClick: onReplace }] : []),
+    ...(permitType === 'concessione' || permitType === 'autocertificazione' ? [{ key: 'replace', label: 'Sostituisci', icon: React.createElement(SwapOutlined), onClick: onReplace }] : []),
     { key: 'remove', label: 'Scollega', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
   ];
   const capStyle = { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 2 };
   const valStyle = { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.85)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+  const typeLabel = permitType === 'concessione' ? 'Concessione' : permitType === 'autorizzazione' ? 'Autorizzazione' : 'Autocertificazione';
+  // La SCIA non scade: mostra presentazione e termine di verifica dell'ente.
+  // La pratica Genio Civile non scade: mostra deposito e collaudo statico.
+  const footerCols = permitType === 'autocertificazione'
+    ? [['Ente destinatario', ente], ['Presentata il', presentata], ['Termine verifica', scadenza]]
+    : title === 'Genio Civile'
+    ? [['Ente competente', ente], ['Data deposito', presentata], ['Data collaudo', collaudata]]
+    : [['Ente emittente', ente], ['Presentata il', presentata], ['Scadenza', scadenza]];
   return React.createElement(Card, {
     style: { borderRadius: 8, border: '1px solid #d9d9d9', height: '100%' },
     styles: { body: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, height: '100%' } },
   },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
       React.createElement('span', { style: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(0,0,0,0.45)' } },
-        permitType === 'concessione' ? 'Concessione' : 'Autorizzazione'),
+        typeLabel),
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
         React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
-          React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: isActive ? '#52c41a' : '#d9d9d9' } }),
+          React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: permitDotColor(state, isActive) } }),
           state,
         ),
         React.createElement(Dropdown, { menu: { items: menuItems }, trigger: ['click'] },
@@ -2515,18 +2314,162 @@ function FormPermitCard({ permitType, title, docId, ente, scadenza, state, isAct
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
       React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, title),
       React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 12, flexShrink: 0 } }, docId),
+      tipo ? React.createElement(Tag, { style: { margin: 0, fontSize: 12, flexShrink: 0, ...grantTypeTagStyle(tipo) } }, tipo) : null,
     ),
     React.createElement('div', { style: { display: 'flex', alignItems: 'stretch', marginTop: 'auto' } },
-      React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-        React.createElement('div', { style: capStyle }, 'Ente emittente'),
-        React.createElement('div', { style: valStyle }, ente || 'N/D'),
+      footerCols.flatMap(([label, value], i) => [
+        i > 0 && React.createElement('div', { key: label + '-sep', style: { width: 1, backgroundColor: '#f0f0f0', margin: '0 12px' } }),
+        React.createElement('div', { key: label, style: { flex: 1, minWidth: 0 } },
+          React.createElement('div', { style: capStyle }, label),
+          React.createElement('div', { style: valStyle }, value || 'N/D'),
+        ),
+      ]).filter(Boolean),
+    ),
+  );
+}
+
+// Etichetta sintetica dell'illuminazione di una faccia (es. "Illuminato · Faretti (6 · 150W)")
+function faceIllumLabel(f) {
+  if (!f.illumStato) return null;
+  if (f.illumStato === 'Spento') return 'Spento';
+  let s = f.illumStato + (f.illumMezzo ? ' · ' + f.illumMezzo : '');
+  if (f.illumMezzo === 'Faretti' && (f.illumNFaretti || f.illumWatt)) {
+    const parts = [];
+    if (f.illumNFaretti) parts.push(f.illumNFaretti + ' faretti');
+    if (f.illumWatt) parts.push(f.illumWatt + 'W');
+    s += ' (' + parts.join(' · ') + ')';
+  }
+  return s;
+}
+
+// Etichetta illuminazione sintetica per la card (es. "3 faretti · 150W" oppure "Neon")
+function faceIllumShort(f) {
+  if (!f.illumStato || f.illumStato === 'Spento') return '—';
+  if (f.illumMezzo === 'Faretti') {
+    const parts = [];
+    if (f.illumNFaretti) parts.push(f.illumNFaretti + ' faretti');
+    if (f.illumWatt) parts.push(f.illumWatt + 'W');
+    return parts.length ? parts.join(' · ') : 'Faretti';
+  }
+  return f.illumMezzo || f.illumStato;
+}
+
+// Faccia posteriore: campi fisici condivisi con l'anteriore, orientamento speculare (+180°).
+// Illuminazione, modello di vendita e prezzo restano indipendenti per faccia.
+const SHARED_FACE_FIELDS = ['lat', 'lng', 'coordLock', 'slot', 'cono', 'formL', 'formH'];
+const mirrorOrient = (o) => ((Number(o) || 0) + 180) % 360;
+const syncedFromAnteriore = (ant) => {
+  const p = { orient: mirrorOrient(ant.orient) };
+  SHARED_FACE_FIELDS.forEach(k => { p[k] = ant[k]; });
+  return p;
+};
+
+// Card faccia per il form di creazione — stessa famiglia visiva di FormPermitCard
+function FormFaceCard({ name, face, onEdit, onRemove, onCreatePosteriore }) {
+  const isAnt = face.tipo === 'Anteriore';
+  const tagStyle = { ...(FACE_TIPO_STYLE[face.tipo] || FACE_TIPO_STYLE['Anteriore']), margin: 0 };
+  const menuItems = [
+    { key: 'edit', label: 'Modifica', icon: React.createElement(EditOutlined), onClick: onEdit },
+    ...(isAnt && onCreatePosteriore ? [{ key: 'post', label: 'Crea posteriore', icon: React.createElement(SwapOutlined), onClick: onCreatePosteriore }] : []),
+    { key: 'remove', label: isAnt && face._hasPosteriore ? 'Elimina (con posteriore)' : 'Elimina', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
+  ];
+  // Riga compatta: icona + etichetta + valore subito accanto
+  const row = (icon, label, value, valueStyle, wrapStyle) =>
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, ...(wrapStyle || {}) } },
+      React.createElement(icon, { style: { fontSize: 13, color: 'rgba(0,0,0,0.4)', flexShrink: 0 } }),
+      React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, label),
+      React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', ...(valueStyle || {}) } }, value),
+    );
+  const accent = (FACE_TIPO_STYLE[face.tipo] || FACE_TIPO_STYLE['Anteriore']).color;
+  return React.createElement(Card, {
+    style: { borderRadius: 8, border: '1px solid #f0f0f0', borderLeft: '3px solid ' + accent, height: '100%' },
+    styles: { body: { padding: '10px 14px' } },
+  },
+    // Intestazione su una riga
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #f5f5f5' } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
+        React.createElement('span', { style: { fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap' } }, name),
+        React.createElement(Tag, {
+          icon: React.createElement(CarOutlined),
+          style: face.visMarcia
+            ? { backgroundColor: '#F0EBFF', border: '1px solid #D3C4FF', color: '#3E00FB', margin: 0, fontWeight: 500 }
+            : { margin: 0 },
+        }, face.visMarcia ? 'Visibile' : 'Non visibile'),
+        face.pairOf ? React.createElement(Tooltip, { title: 'Collegata alla faccia anteriore: posizione, dimensioni, slot e orientamento si aggiornano dall\'anteriore' },
+          React.createElement(SwapOutlined, { style: { fontSize: 13, color: 'rgba(0,0,0,0.4)' } })) : null,
       ),
-      React.createElement('div', { style: { width: 1, backgroundColor: '#f0f0f0', margin: '0 12px' } }),
-      React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-        React.createElement('div', { style: capStyle }, 'Scadenza'),
-        React.createElement('div', { style: valStyle }, scadenza || 'N/D'),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 } },
+        face.slot != null ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+          React.createElement(AppstoreOutlined, { style: { fontSize: 13, color: 'rgba(0,0,0,0.4)', flexShrink: 0 } }),
+          React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, 'Slot'),
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap' } }, face.slot),
+        ) : null,
+        React.createElement(Dropdown, { menu: { items: menuItems }, trigger: ['click'] },
+          React.createElement(MoreOutlined, { style: { fontSize: 16, color: '#595959', cursor: 'pointer' } }),
+        ),
       ),
     ),
+    // Dettagli — due colonne
+    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 16, rowGap: 8 } },
+      row(TagOutlined, 'Modello', face.vendita || 'Standard'),
+      row(ExpandOutlined, 'Formato', (face.formL && face.formH) ? face.formL + '×' + face.formH + ' cm' : '—'),
+      row(CompassOutlined, 'Orientamento', face.orient != null ? face.orient + '°' : '—'),
+      row(AimOutlined, 'Cono', face.cono != null ? 'r ' + face.cono + ' cm' : '—'),
+      row(EuroCircleOutlined, 'Prezzo', face.prezzo != null ? '€ ' + face.prezzo : '—', { fontWeight: 600 }),
+      row(BulbOutlined, 'Illuminazione', faceIllumShort(face)),
+    ),
+  );
+}
+
+// Card unica cespite/dispositivo — generata dal catalogo ASSET_TYPES.
+// Mostra solo i campi valorizzati; i campi multi-valore (tags) come tag.
+function FormAssetCard({ asset, onEdit, onRemove }) {
+  const def = getAssetType(asset.tipo) || { category: 'Cespite', fields: [] };
+  const v = asset.vals || {};
+  const menuItems = [
+    { key: 'edit', label: 'Modifica', icon: React.createElement(EditOutlined), onClick: onEdit },
+    { key: 'remove', label: 'Elimina', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
+  ];
+  const labelCell = (label) => React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', flexShrink: 0, width: 140 } }, label);
+  const dataRow = (label, value) => React.createElement('div', { key: label, style: { display: 'flex', gap: 8, alignItems: 'baseline' } },
+    labelCell(label),
+    React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.85)', minWidth: 0 } }, value),
+  );
+  const tagRow = (label, arr) => React.createElement('div', { key: label, style: { display: 'flex', gap: 8, alignItems: 'baseline' } },
+    labelCell(label),
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4, minWidth: 0 } },
+      arr.map((x, i) => React.createElement(Tag, { key: i, style: { margin: 0, fontSize: 12, border: '1px solid #d9d9d9', backgroundColor: '#fafafa', color: 'rgba(0,0,0,0.75)' } }, x))),
+  );
+  const rows = def.fields
+    .filter(f => f.key !== 'nome' && f.key !== 'desc' && f.key !== 'stato')
+    .map(f => {
+      const val = v[f.key];
+      if (val == null || val === '' || (Array.isArray(val) && !val.length)) return null;
+      if (f.kind === 'tags') return tagRow(f.label, val);
+      if (f.kind === 'date')  return dataRow(f.label, val.format ? val.format('DD/MM/YYYY') : String(val));
+      return dataRow(f.label, val);
+    })
+    .filter(Boolean);
+  const catStyle = ASSET_CATEGORY_STYLE[def.category] || ASSET_CATEGORY_STYLE['Cespite'];
+  return React.createElement(Card, {
+    style: { borderRadius: 8, border: '1px solid #d9d9d9', height: '100%' },
+    styles: { body: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, height: '100%' } },
+  },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } },
+      React.createElement('span', { style: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(0,0,0,0.45)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, asset.tipo),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 } },
+        React.createElement(Tag, { style: { ...catStyle, margin: 0, fontSize: 11, fontWeight: 500 } }, def.category),
+        (def.category === 'Dispositivo' && v.stato) ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
+          React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: DEVICE_STATO_COLORS[v.stato] || '#d9d9d9' } }),
+          v.stato) : null,
+        React.createElement(Dropdown, { menu: { items: menuItems }, trigger: ['click'] },
+          React.createElement(MoreOutlined, { style: { fontSize: 16, color: '#595959', cursor: 'pointer' } }),
+        ),
+      ),
+    ),
+    v.nome ? React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, v.nome) : null,
+    v.desc ? React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.55)', lineHeight: '18px' } }, v.desc) : null,
+    rows.length ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 } }, ...rows) : null,
   );
 }
 
@@ -2551,6 +2494,7 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, marginBottom: 8 } },
             React.createElement('span', { style: { fontWeight: 500 } }, grant.documentType),
             React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 13, padding: '2px 8px' } }, grant.documentId),
+            grant.grantType ? React.createElement(Tag, { style: { margin: 0, fontSize: 13, padding: '2px 8px', ...grantTypeTagStyle(grant.grantType) } }, grant.grantType) : null,
           ),
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 24, fontSize: 13 } },
             React.createElement('span', null, React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Ente Emittente: '), grant.issuingAuthority),
@@ -2649,10 +2593,16 @@ function AuthorizationsList({ data, selectedKeys, onSelectionChange }) {
                 React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, marginBottom: 8 } },
                   React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)' } }, auth.authorizationCategory),
                   React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 13, padding: '2px 8px' } }, auth.protocolNumber),
+                  React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
+                    React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: permitDotColor(auth.status, auth.isActive) } }),
+                    auth.status,
+                  ),
                 ),
                 React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 24, fontSize: 12, color: 'rgba(0,0,0,0.45)', flexWrap: 'wrap' } },
                   React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, React.createElement('span', null, 'Ente Emittente:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, auth.issuingAuthority)),
                   auth.stipulationDate ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, React.createElement('span', null, 'Data Stipula:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, auth.stipulationDate)) : null,
+                  auth.depositDate ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, React.createElement('span', null, 'Data Deposito:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, auth.depositDate)) : null,
+                  auth.collaudoDate ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, React.createElement('span', null, 'Data Collaudo:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, auth.collaudoDate)) : null,
                   auth.expirationDate ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, React.createElement('span', null, 'Data Scadenza:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, auth.expirationDate)) : null,
                   auth.cup ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, React.createElement('span', null, 'CUP:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, auth.cup)) : null,
                 ),
@@ -2664,6 +2614,56 @@ function AuthorizationsList({ data, selectedKeys, onSelectionChange }) {
           })
         : React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, showOnlySelected ? 'Nessuna autorizzazione selezionata' : 'Nessuna autorizzazione disponibile'),
     ),
+  );
+}
+
+// Pannello drawer per le autocertificazioni: una sezione per ogni SCIA,
+// upload del documento e anteprima dei dati estratti (mock).
+// In modalità sostituzione (replaceId) mostra solo la SCIA da sostituire,
+// con i dati della nuova segnalazione che subentra (es. voltura o variante).
+function SciaUploadPanel({ uploads, onUpload, onRemove, replaceId }) {
+  const capStyle = { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 2 };
+  const valStyle = { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.85)' };
+  const sections = replaceId ? SCIA_TYPES.filter(s => s.id === replaceId) : SCIA_TYPES;
+  return React.createElement('div', null,
+    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
+      replaceId
+        ? 'Carica la nuova segnalazione (es. voltura o variante): subentrerà alla SCIA attualmente collegata'
+        : 'Carica le SCIA presentate per questo impianto: i dati della segnalazione vengono estratti automaticamente dal documento'),
+    sections.map(rawScia => {
+      const scia = replaceId ? { ...rawScia, ...rawScia.voltura } : rawScia;
+      const file = uploads[scia.id];
+      return React.createElement('div', { key: scia.id, style: { border: '1px solid #d9d9d9', borderRadius: 6, padding: 16, marginBottom: 16 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: file ? 12 : 0 } },
+          React.createElement('div', { style: { flex: 1 } },
+            React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 2 } }, scia.title),
+            React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, scia.desc),
+          ),
+          !file && React.createElement(Upload, {
+            showUploadList: false, beforeUpload: () => false, accept: '.pdf,.p7m',
+            onChange: ({ file: f }) => onUpload(scia.id, f),
+          }, React.createElement(Button, { icon: React.createElement(UploadOutlined) }, 'Carica SCIA')),
+        ),
+        file && React.createElement(React.Fragment, null,
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.75)', background: '#FAFAFA', marginBottom: 12 } },
+            React.createElement(FileTextOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }),
+            React.createElement('span', { style: { flex: 1 } }, file.name),
+            React.createElement(DeleteOutlined, { style: { color: 'rgba(0,0,0,0.45)', cursor: 'pointer' }, onClick: () => onRemove(scia.id) }),
+          ),
+          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 16px' } },
+            [['Protocollo', scia.protocollo], ['Data presentazione', scia.presentata], ['Ente destinatario', scia.ente],
+             ['Dichiarante', scia.dichiarante], ['Tecnico asseverante', scia.tecnico], ['Termine verifica ente', scia.termineVerifica],
+             ['Fine lavori entro', scia.fineLavori],
+            ].filter(([, v]) => v).map(([label, value]) =>
+              React.createElement('div', { key: label },
+                React.createElement('div', { style: capStyle }, label),
+                React.createElement('div', { style: valStyle }, value),
+              )
+            ),
+          ),
+        ),
+      );
+    }),
   );
 }
 
@@ -3171,212 +3171,25 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────
-// MODALE NUOVO IMPIANTO
-// ─────────────────────────────────────────────────────────
-function NewImpiantoModal({ open, onClose, onCrea, onContinua }) {
-  const [canale,     setCanale]     = useState(null);
-  const [tipologia,  setTipologia]  = useState(null);
-  const [formato,    setFormato]    = useState(null);
-  const [nome,       setNome]       = useState('');
-  const [stato,      setStato]      = useState(null);
-  const [addrSuggs,  setAddrSuggs]  = useState([]);
-  const [via,        setVia]        = useState('');
-  const [civico,     setCivico]     = useState('');
-  const [cap,        setCap]        = useState('');
-  const [citta,      setCitta]      = useState('');
-  const [provincia,  setProvincia]  = useState('');
-  const [regione,    setRegione]    = useState('');
-  const [nazione,    setNazione]    = useState('');
-  const [lat,        setLat]        = useState('');
-  const [lng,        setLng]        = useState('');
-  const [showErrors, setShowErrors] = useState(false);
-  const debRef = useRef(null);
-
-  const reset = () => {
-    setCanale(null); setTipologia(null); setFormato(null);
-    setNome(''); setStato(null); setShowErrors(false);
-    setVia(''); setCivico(''); setCap(''); setCitta('');
-    setProvincia(''); setRegione(''); setNazione(''); setLat(''); setLng('');
-    setAddrSuggs([]);
-  };
-
-  const handleClose = () => { reset(); onClose(); };
-
-  const canSave = canale && tipologia && formato && via.trim() && citta.trim() && stato;
-
-  const tipologieOpts = React.useMemo(() =>
-    Object.entries(MACRO_TIPI).map(([group, tipi]) => ({
-      label: group, options: tipi.map(t => ({ value: t, label: t })),
-    })), []);
-  const formatiOpts = React.useMemo(() =>
-    tipologia ? (FORMATI_PER_TIPO[tipologia] || []).map(f => ({ value: f, label: f })) : [],
-    [tipologia]);
-
-  const applyAddr = (s) => {
-    setVia(s.via); setCivico(s.civico || ''); setAddrSuggs([]);
-    setCap(s.cap); setCitta(s.citta);
-    setProvincia(s.provincia); setRegione(s.regione); setNazione(s.nazione);
-    setLat(String(s.lat.toFixed(6))); setLng(String(s.lng.toFixed(6)));
-  };
-  const handleViaSearch = (val) => {
-    setVia(val);
-    if (debRef.current) clearTimeout(debRef.current);
-    if (val && val.length >= 3) {
-      debRef.current = setTimeout(async () => {
-        setAddrSuggs(await fetchAddrSuggestions(val));
-      }, 350);
-    } else {
-      setAddrSuggs([]);
-    }
-  };
-
-  const nf = (label, required, children) =>
-    React.createElement('div', { className: 'nim-field' },
-      React.createElement('div', { className: 'nim-label' },
-        label, required && React.createElement('span', { className: 'req' }, ' *'),
-      ),
-      children,
-    );
-
-  const viaErr = showErrors && !via.trim();
-  const viaAC = React.createElement(AutoComplete, {
-    style: { width: '100%' }, value: via,
-    status: viaErr ? 'error' : undefined,
-    options: addrSuggs.map(s => ({
-      value: s.via, key: s.id, _sdata: s,
-      label: React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'flex-start', padding: '2px 0' } },
-        React.createElement('div', { style: { width: 24, height: 24, borderRadius: 4, background: 'rgba(62,0,251,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 } },
-          React.createElement(EnvironmentOutlined, { style: { fontSize: 11, color: '#3E00FB' } })
-        ),
-        React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-          React.createElement('div', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, s.display),
-          s.sub && React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', marginTop: 1 } }, s.sub),
-        ),
-      ),
-    })),
-    onSearch: handleViaSearch,
-    onChange: (val) => { if (typeof val === 'string') setVia(val); },
-    onSelect: (val, option) => { if (option._sdata) applyAddr(option._sdata); },
-    onClear: () => { setVia(''); setAddrSuggs([]); },
-    allowClear: true, notFoundContent: null,
-    popupMatchSelectWidth: true, getPopupContainer: () => document.body,
-  },
-    React.createElement(Input, {
-      prefix: React.createElement(EnvironmentOutlined, { style: { color: 'rgba(0,0,0,0.3)' } }),
-      placeholder: 'Es. Via Maqueda, Palermo…',
-      status: viaErr ? 'error' : undefined,
-    })
-  );
-
-  const collectData = () => ({
-    id: 'IMP-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
-    codice: (canale || 'OOH') + '-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
-    canale, tipologia, formato, nome, stato,
-    via, civico, cap, citta, provincia, regione, nazione, lat, lng,
-    autorizzazioni: [], concessioni: [],
-  });
-
-  const handleCrea = () => {
-    if (!canSave) { setShowErrors(true); return; }
-    onCrea(collectData());
-    antdMsg.success('Impianto creato con successo');
-    handleClose();
-  };
-  const handleContinua = () => {
-    if (!canSave) { setShowErrors(true); return; }
-    onContinua(collectData());
-    handleClose();
-  };
-
-  return React.createElement(Modal, {
-    open,
-    title: 'Nuovo Impianto',
-    onCancel: handleClose,
-    width: 560,
-    footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8 } },
-      React.createElement(Button, { onClick: handleContinua }, 'Completa'),
-      React.createElement(Button, { type: 'primary', onClick: handleCrea }, 'Crea'),
-    ),
-  },
-
-    // ── Identità
-    React.createElement('div', { className: 'nim-section-title' }, 'Identità'),
-    React.createElement('div', { className: 'nim-grid-2' },
-      nf('Canale', true,
-        React.createElement(Select, {
-          value: canale, onChange: v => { setCanale(v); setTipologia(null); setFormato(null); },
-          options: CANALI_OPTS, style: { width: '100%' }, placeholder: 'OOH o DOOH?',
-          status: showErrors && !canale ? 'error' : undefined,
-        })
-      ),
-      nf('Nome impianto', false,
-        React.createElement(Input, { value: nome, onChange: e => setNome(e.target.value), placeholder: 'Es. Pensilina Piazza Verdi A' })
-      ),
-    ),
-    React.createElement('div', { className: 'nim-grid-2' },
-      nf('Tipologia', true,
-        React.createElement(Select, {
-          value: tipologia,
-          onChange: v => { setTipologia(v); setFormato(null); },
-          options: tipologieOpts,
-          disabled: !canale, showSearch: true,
-          style: { width: '100%' },
-          placeholder: canale ? 'Es. Pensilina, Palina…' : 'Prima seleziona il canale',
-          status: showErrors && !tipologia ? 'error' : undefined,
-        })
-      ),
-      nf('Formato', true,
-        React.createElement(Select, {
-          value: formato, onChange: setFormato,
-          options: formatiOpts, disabled: !tipologia,
-          style: { width: '100%' },
-          placeholder: tipologia ? 'Seleziona formato' : 'Prima seleziona la tipologia',
-          status: showErrors && !formato ? 'error' : undefined,
-        })
-      ),
-    ),
-
-    // ── Localizzazione
-    React.createElement('div', { className: 'nim-section-title' }, 'Localizzazione'),
-    React.createElement('div', { className: 'nim-grid-addr' },
-      nf('Via', true, viaAC),
-      nf('N. civico', false,
-        React.createElement(Input, { value: civico, onChange: e => setCivico(e.target.value), placeholder: '—' })
-      ),
-    ),
-    React.createElement('div', { className: 'nim-grid-2' },
-      nf('Città', true,
-        React.createElement(Input, {
-          value: citta, onChange: e => setCitta(e.target.value), placeholder: '—',
-          status: showErrors && !citta.trim() ? 'error' : undefined,
-        })
-      ),
-      nf('Provincia', false,
-        React.createElement(Input, { value: provincia, onChange: e => setProvincia(e.target.value), placeholder: '—' })
-      ),
-    ),
-
-    // ── Gestione
-    React.createElement('div', { className: 'nim-section-title' }, 'Gestione'),
-    nf('Stato', true,
-      React.createElement(Select, {
-        value: stato, onChange: setStato,
-        options: STATI_AMM_OPTS, style: { width: '100%' }, placeholder: 'Seleziona',
-        status: showErrors && !stato ? 'error' : undefined,
-      })
-    ),
-  );
-}
 
 // ─────────────────────────────────────────────────────────
 // NUOVO IMPIANTO — PAGINA COMPLETA
 // ─────────────────────────────────────────────────────────
 const PROPRIETA_OPTS       = ['Comune','Città Metropolitana','Demanio pubblico','Proprietà privata','Altra PA'].map(v=>({value:v,label:v}));
 const CAT_SUOLO_OPTS       = ['Urbano','Extraurbano','Autostradale','Pedonale'].map(v=>({value:v,label:v}));
-const TIPO_FACCIA_OPTS     = ['Singola','Bifacciale','Trifacciale','Multifacciale'].map(v=>({value:v,label:v}));
-const ORIENTAMENTO_OPTS    = ['Nord','Nord-Est','Est','Sud-Est','Sud','Sud-Ovest','Ovest','Nord-Ovest'].map(v=>({value:v,label:v}));
 const RIPARATO_OPTS        = ['Riparato','Aperto'].map(v=>({value:v,label:v}));
+// Illuminazione — il cliente distingue prima lo stato (luminoso = sorgente interna,
+// illuminato = sorgente esterna a faretti, spento = nessuna) e poi il mezzo.
+// Faretti (solo per "illuminato") sblocca numero faretti e watt per faretto.
+const ILLUM_STATO_OPTS     = [
+  { value: 'Spento',     label: 'Spento' },
+  { value: 'Illuminato', label: 'Illuminato (sorgente esterna)' },
+  { value: 'Luminoso',   label: 'Luminoso (sorgente interna)' },
+];
+const ILLUM_MEZZO_BY_STATO = {
+  Illuminato: ['Faretti', 'LED', 'Neon'],
+  Luminoso:   ['LED', 'Neon', 'Diodi'],
+};
 // Fornitori (figure professionali) — anagrafica gestita altrove nella platform, qui solo lookup
 const FORNITORI_OPTS = [
   'Studio Tecnico Russo & Partners','Ing. Marco Bellini','Geom. Lucia Ferraro',
@@ -3384,11 +3197,95 @@ const FORNITORI_OPTS = [
   'Ing. Paolo Greco','Arch. Marta Vitale','Ing. Sergio Lombardo',
   'LabStrutture Palermo','Dott. Andrea Rizzo',
 ].map(v=>({value:v,label:v}));
-const TIPO_FONDAZIONE_OPTS = ['Platea','Plinti','Pali','Travi rovesce','Micropali'].map(v=>({value:v,label:v}));
-const TIPO_PALI_OPTS       = ['Acciaio','Alluminio','Vetroresina','Calcestruzzo'].map(v=>({value:v,label:v}));
+const TIPO_FONDAZIONE_OPTS = ['Plinti','Trave','Dalmine','Parete'].map(v=>({value:v,label:v}));
+const TIPO_PALI_OPTS       = ['Ipe300','Ipe240','TR','Unipal','120x80'].map(v=>({value:v,label:v}));
 const TIPO_CORNICE_OPTS    = ['Semplice','Doppia','Rinforzata','Profilata'].map(v=>({value:v,label:v}));
 const TIPO_PANNELLI_OPTS   = ['Alluminio','Acciaio','Legno','Composito','PVC'].map(v=>({value:v,label:v}));
+const STRUT_TERRAZZE_OPTS  = ['Vuoto','Dalmine','Pali'].map(v=>({value:v,label:v}));
+// Dispositivi connessi (player, modem, sensori, schermi…)
+const DEVICE_TIPO_OPTS   = ['Player multimediale','Modem / Router','Sensore','Telecamera','Schermo / Display','Centralina','Altro'].map(v=>({value:v,label:v}));
+const DEVICE_STATO_OPTS  = ['Connesso','Disconnesso','In manutenzione'].map(v=>({value:v,label:v}));
+const DEVICE_STATO_COLORS = { 'Connesso': '#52c41a', 'Disconnesso': '#d9d9d9', 'In manutenzione': '#FA8C16' };
+
+// ── Cespiti + Dispositivi: catalogo unico per il drawer condiviso.
+// La select "Tipo cespite o dispositivo" elenca tutti i tipi; in base alla scelta
+// vengono mostrati i campi (fields) del tipo. kind: select|input|number|date|tags|textarea|segmented.
+// full: true → il campo occupa l'intera riga. I dispositivi condividono lo stesso set di campi.
+const DEVICE_FIELDS = [
+  { key: 'nome', label: 'Nome dispositivo', kind: 'input', ph: 'Es. Player faccia A', required: true },
+  { key: 'stato', label: 'Stato', kind: 'segmented', full: true, default: 'Connesso',
+    opts: [{ label: 'Connesso', value: 'Connesso' }, { label: 'Disconnesso', value: 'Disconnesso' }, { label: 'In manutenzione', value: 'In manutenzione' }] },
+  { key: 'desc', label: 'Descrizione breve', kind: 'textarea', full: true, ph: 'Breve descrizione del dispositivo' },
+  { key: 'macPlayer',  label: 'MAC address player',  kind: 'tags', ph: 'Es. 00:1B:44:11:3A:B7' },
+  { key: 'macSensor',  label: 'MAC address sensore', kind: 'tags', ph: 'Es. 00:1B:44:11:3A:C2' },
+  { key: 'pcSerial',   label: 'Numero di serie PC',  kind: 'tags', ph: 'Es. SN-204813' },
+  { key: 'idSensore',  label: 'ID sensore',          kind: 'tags', ph: 'Es. SENS-0012' },
+  { key: 'teamviewer', label: 'ID TeamViewer',       kind: 'tags', ph: 'Es. 1 234 567 890' },
+  { key: 'anydesk',    label: 'ID AnyDesk',          kind: 'tags', ph: 'Es. 123 456 789' },
+  { key: 'telefono',   label: 'Numero di telefono',  kind: 'tags', ph: 'Es. +39 333 1234567' },
+];
+const ASSET_TYPES = [
+  // ── Cespiti
+  { value: 'Fondazione', category: 'Cespite', fields: [
+    { key: 'tipoFond', label: 'Tipo fondazione', kind: 'select', opts: TIPO_FONDAZIONE_OPTS },
+    { key: 'dimFond',  label: 'Dimensione fondazione', kind: 'input', ph: 'Es. 5,50 × 3,20 × 0,80 m' },
+    { key: 'dataInizio', label: 'Data inizio lavori', kind: 'date' },
+    { key: 'dataFine',   label: 'Data fine lavori',   kind: 'date' },
+  ] },
+  { value: 'Pali', category: 'Cespite', fields: [
+    { key: 'tipoPali',     label: 'Tipo pali', kind: 'select', opts: TIPO_PALI_OPTS },
+    { key: 'numPali',      label: 'Numero pali', kind: 'number', props: { min: 0 } },
+    { key: 'diametroPali', label: 'Diametro (mm)', kind: 'input' },
+    { key: 'altezzaPali',  label: 'Altezza (cm)', kind: 'input' },
+    { key: 'interassePali',label: 'Interasse', kind: 'input', ph: 'Es. 250 cm' },
+    { key: 'numPunzPali',  label: 'N. punzonatura pali', kind: 'input', ph: 'Es. 013201 - 014001' },
+    { key: 'dittaPali',    label: 'Ditta collocazione pali', kind: 'input' },
+    { key: 'dataMontPali', label: 'Data montaggio', kind: 'date' },
+  ] },
+  { value: 'Cornice', category: 'Cespite', fields: [
+    { key: 'tipoCornice',    label: 'Tipo cornice', kind: 'select', opts: TIPO_CORNICE_OPTS },
+    { key: 'dittaCornice',   label: 'Ditta collocazione cornice', kind: 'input' },
+    { key: 'dataMontCornice',label: 'Data montaggio', kind: 'date' },
+  ] },
+  { value: 'Pannelli', category: 'Cespite', fields: [
+    { key: 'tipoPannelli',  label: 'Tipo pannelli', kind: 'select', opts: TIPO_PANNELLI_OPTS },
+    { key: 'barreAntivento',label: 'Numero barre antivento', kind: 'number', props: { min: 0 } },
+    { key: 'dittaPannelli', label: 'Ditta montaggio pannelli', kind: 'input' },
+    { key: 'dataMontPann',  label: 'Data montaggio', kind: 'date' },
+  ] },
+  { value: 'Extra struttura', category: 'Cespite', fields: [
+    { key: 'numStaffeMuro',   label: 'N. staffe muro', kind: 'input', ph: 'Es. 12 tassellate + 4' },
+    { key: 'dataCollStaffe',  label: 'Data collocazione staffe', kind: 'date' },
+    { key: 'strutTerrazze',   label: 'Strutture terrazze', kind: 'select', opts: STRUT_TERRAZZE_OPTS },
+    { key: 'dataMontTerrazze',label: 'Data montaggio terrazze', kind: 'date' },
+    { key: 'numPesiStrutt',   label: 'N. pesi struttura', kind: 'number', props: { min: 0 } },
+    { key: 'kgPesiCadauno',   label: 'Kg pesi cadauno', kind: 'number', props: { min: 0 } },
+  ] },
+  // ── Dispositivi (stesso set di campi per ogni tipo)
+  ...DEVICE_TIPO_OPTS.map(o => ({ value: o.value, category: 'Dispositivo', fields: DEVICE_FIELDS })),
+];
+const getAssetType = (t) => ASSET_TYPES.find(x => x.value === t);
+// Opzioni della select raggruppate per categoria
+const ASSET_TIPO_OPTS = [
+  { label: 'Cespiti',     options: ASSET_TYPES.filter(t => t.category === 'Cespite').map(t => ({ value: t.value, label: t.value })) },
+  { label: 'Dispositivi', options: ASSET_TYPES.filter(t => t.category === 'Dispositivo').map(t => ({ value: t.value, label: t.value })) },
+];
+// Stile del tag categoria nella card
+const ASSET_CATEGORY_STYLE = {
+  'Cespite':     { backgroundColor: '#E6F4FF', border: '1px solid #91CAFF', color: '#1677FF' },
+  'Dispositivo': { backgroundColor: '#F0EBFF', border: '1px solid #D3C4FF', color: '#3E00FB' },
+};
 const TIPO_MAN_OPTS        = ['Ordinaria','Straordinaria','Urgente','Preventiva'].map(v=>({value:v,label:v}));
+// Squadre di affissione: selezionando la squadra il codice si compila in automatico
+const SQUADRE_AFF = [
+  { nome: 'START Affissioni',     codice: 'SQ-001' },
+  { nome: 'Affissioni Palermo',   codice: 'SQ-002' },
+  { nome: 'Sicilia Poster',       codice: 'SQ-003' },
+  { nome: 'Media Affissioni SRL', codice: 'SQ-004' },
+];
+// Opzioni con codice + nome insieme ("SQ-002 Affissioni Palermo"); la ricerca filtra su entrambi
+const SQUADRE_AFF_OPTS = SQUADRE_AFF.map(s => ({ value: s.nome, label: s.codice + '  ' + s.nome }));
+const TIPO_AFFISSIONE_OPTS = ['Prebagnato','Adesivo','Telo'].map(v=>({value:v,label:v}));
 const TIPO_AMM_OPTS        = ['Lineare','Degress','A quote costanti'].map(v=>({value:v,label:v}));
 
 function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
@@ -3409,7 +3306,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     setNome(v.nome || '');
     setTipologia(v.tipologia || null);
     setStato(v.stato || null);
-    setIlluminato(!!v.illuminato);
     setVia(v.via || '');
     setCivico(v.civico || '');
     setCap(v.cap || '');
@@ -3442,14 +3338,204 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   // ── Caratteristiche
   const [largImp,      setLargImp]      = useState('');
   const [altImp,       setAltImp]       = useState('');
-  const [tipoFaccia,   setTipoFaccia]   = useState(null);
-  const [slot,         setSlot]         = useState(null);
-  const [orientamento, setOrientamento] = useState(null);
-  const [conoVis,      setConoVis]      = useState('');
+  const [profImp,      setProfImp]      = useState('');
   const [altTerra,     setAltTerra]     = useState('');
-  const [altTotale,    setAltTotale]    = useState('');
-  const [illuminato,   setIlluminato]   = useState(false);
   const [riparato,     setRiparato]     = useState(null);
+  // Facce — gestite con drawer di creazione + card (come permessi). Ogni faccia ha
+  // illuminazione propria che segue lo stesso modello dell'impianto.
+  const [facce,         setFacce]         = useState([]);
+  const [faceDrawerOpen, setFaceDrawerOpen] = useState(false);
+  const [faceEditId,    setFaceEditId]    = useState(null);
+  const [fcTipo,        setFcTipo]        = useState('Anteriore');
+  const [fcSlot,        setFcSlot]        = useState(null);
+  const [fcLat,         setFcLat]         = useState('');
+  const [fcLng,         setFcLng]         = useState('');
+  const [fcCoordLock,   setFcCoordLock]   = useState(true);  // coordinate ereditate dall'impianto finché bloccate
+  const [fcOrient,      setFcOrient]      = useState(0);     // orientamento in gradi 0–360
+  const [fcCono,        setFcCono]        = useState(null);  // raggio cono visibilità (cm)
+  const [fcFormL,       setFcFormL]       = useState(null);  // larghezza faccia (cm)
+  const [fcFormH,       setFcFormH]       = useState(null);  // altezza faccia (cm)
+  const [fcIllumStato,    setFcIllumStato]    = useState(null);
+  const [fcIllumMezzo,    setFcIllumMezzo]    = useState(null);
+  const [fcIllumNFaretti, setFcIllumNFaretti] = useState(null);
+  const [fcIllumWatt,     setFcIllumWatt]     = useState(null);
+  const [fcVendita,     setFcVendita]     = useState(null);
+  const [fcPrezzo,      setFcPrezzo]      = useState(null);
+  const [fcVisMarcia,   setFcVisMarcia]   = useState(false);  // faccia visibile nel senso di marcia
+  // Area espositiva (m²) calcolata automaticamente da larghezza × altezza (cm → m²)
+  const areaEspositiva = React.useMemo(() => {
+    const w = parseFloat(largImp), h = parseFloat(altImp);
+    if (!w || !h) return null;
+    return Math.round((w * h / 10000) * 100) / 100;
+  }, [largImp, altImp]);
+
+  // ── Facce — handler drawer/card
+  const onFcIllumStato = (v) => {
+    setFcIllumStato(v);
+    if (v === 'Spento' || !v) { setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null); }
+    else if (!(ILLUM_MEZZO_BY_STATO[v] || []).includes(fcIllumMezzo)) { setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null); }
+  };
+  const onFcIllumMezzo = (v) => {
+    setFcIllumMezzo(v);
+    if (v !== 'Faretti') { setFcIllumNFaretti(null); setFcIllumWatt(null); }
+  };
+  const resetFaceForm = () => {
+    setFcTipo('Anteriore'); setFcSlot(null); setFcLat(''); setFcLng(''); setFcCoordLock(true);
+    setFcOrient(0); setFcCono(null); setFcFormL(null); setFcFormH(null);
+    setFcIllumStato(null); setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null);
+    setFcVendita(null); setFcPrezzo(null); setFcVisMarcia(false);
+  };
+  // Nuova faccia: eredita coordinate e illuminazione dall'impianto (logica dell'impianto)
+  // Coordinate ereditate dall'impianto finché il lucchetto è chiuso
+  const inheritFaceCoord = () => { setFcLat(lat || ''); setFcLng(lng || ''); };
+  const toggleFcCoordLock = () => {
+    setFcCoordLock(prev => {
+      const next = !prev;
+      if (next) inheritFaceCoord(); // ri-bloccando, reimposta le coordinate dell'impianto
+      return next;
+    });
+  };
+  const openNewFace = () => {
+    resetFaceForm();
+    setFaceEditId(null);
+    setFcCoordLock(true);
+    setFcLat(lat || ''); setFcLng(lng || '');
+    setFaceDrawerOpen(true);
+  };
+  const openEditFace = (f) => {
+    setFaceEditId(f.id);
+    const locked = f.coordLock !== false;
+    setFcCoordLock(locked);
+    setFcTipo(f.tipo); setFcSlot(f.slot);
+    setFcLat(locked ? (lat || '') : (f.lat || ''));
+    setFcLng(locked ? (lng || '') : (f.lng || ''));
+    setFcOrient(f.orient ?? 0); setFcCono(f.cono ?? null); setFcFormL(f.formL ?? null); setFcFormH(f.formH ?? null);
+    setFcIllumStato(f.illumStato); setFcIllumMezzo(f.illumMezzo);
+    setFcIllumNFaretti(f.illumNFaretti); setFcIllumWatt(f.illumWatt);
+    setFcVendita(f.vendita); setFcPrezzo(f.prezzo);
+    setFcVisMarcia(!!f.visMarcia);
+    setFaceDrawerOpen(true);
+  };
+  const closeFaceDrawer = () => { setFaceDrawerOpen(false); setFaceEditId(null); };
+  const saveFace = () => {
+    if (!fcTipo) { antdMsg.warning('Seleziona il tipo di faccia'); return; }
+    const data = {
+      tipo: fcTipo, slot: fcSlot,
+      lat: fcCoordLock ? (lat || '') : fcLat, lng: fcCoordLock ? (lng || '') : fcLng, coordLock: fcCoordLock,
+      orient: fcOrient, cono: fcCono, formL: fcFormL, formH: fcFormH,
+      illumStato: fcIllumStato, illumMezzo: fcIllumMezzo, illumNFaretti: fcIllumNFaretti, illumWatt: fcIllumWatt,
+      vendita: fcVendita, prezzo: fcPrezzo, visMarcia: fcVisMarcia,
+    };
+    if (faceEditId) {
+      setFacce(prev => prev.map(f => {
+        if (f.id === faceEditId) return { ...f, ...data };
+        // Modificando l'anteriore, ri-sincronizza i campi condivisi della posteriore collegata
+        if (f.pairOf === faceEditId) return { ...f, ...syncedFromAnteriore({ ...f, ...data }) };
+        return f;
+      }));
+      antdMsg.success('Faccia aggiornata');
+    } else {
+      setFacce(prev => [...prev, { id: 'face-' + (prev.length + 1) + '-' + prev.reduce((m, f) => Math.max(m, +String(f.id).split('-')[1] || 0), 0), ...data }]);
+      antdMsg.success('Faccia aggiunta');
+    }
+    closeFaceDrawer();
+  };
+  const removeFace = (id) => {
+    // Eliminando l'anteriore si elimina anche la posteriore collegata
+    setFacce(prev => prev.filter(f => f.id !== id && f.pairOf !== id));
+    antdMsg.success('Faccia rimossa');
+  };
+  // Faccia posteriore collegata: campi fisici condivisi, orientamento speculare (+180°)
+  const createPosteriore = (f) => {
+    if (facce.some(x => x.pairOf === f.id)) { antdMsg.warning('Questa faccia ha già una posteriore collegata'); return; }
+    setFacce(prev => [...prev, {
+      ...f, id: 'face-post-' + f.id, tipo: 'Posteriore', pairOf: f.id,
+      ...syncedFromAnteriore(f),
+    }]);
+    antdMsg.success('Faccia posteriore creata e collegata (speculare)');
+  };
+  // Pre-crea le facce previste dalla tipologia (tipo + slot progressivo, coordinate ereditate)
+  const buildFacceForTipo = (tipo) => (FACCE_PER_TIPO[tipo] || ['Anteriore']).map((t, i) => ({
+    id: 'face-auto-' + (i + 1), tipo: t, slot: i + 1,
+    lat: lat || '', lng: lng || '', coordLock: true,
+    orient: 0, cono: null, formL: null, formH: null,
+    illumStato: null, illumMezzo: null, illumNFaretti: null, illumWatt: null,
+    vendita: null, prezzo: null, visMarcia: t === 'Anteriore',
+  }));
+  const faceAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openNewFace }, 'Aggiungi Faccia');
+  // Popover informativo per "Tipo faccia": schema corsie/auto + descrizioni (come da design)
+  const faceTypeHelp = React.createElement('div', { style: { maxWidth: 360 } },
+    React.createElement('div', { style: { display: 'flex', gap: 16 } },
+      // Schema: vista dall'alto dell'impianto con i 4 lati colorati per tipo
+      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, auto)', alignItems: 'center', justifyItems: 'center', gap: 4, flexShrink: 0, paddingTop: 2 } },
+        React.createElement('span'),
+        React.createElement('div', { style: { width: 26, height: 4, borderRadius: 2, backgroundColor: FACE_TIPO_STYLE['Anteriore'].color } }),
+        React.createElement('span'),
+        React.createElement('div', { style: { width: 4, height: 26, borderRadius: 2, backgroundColor: FACE_TIPO_STYLE['Sinistra'].color } }),
+        React.createElement('div', { style: { width: 30, height: 30, borderRadius: 4, border: '1.5px solid rgba(0,0,0,0.2)', background: '#fafafa' } }),
+        React.createElement('div', { style: { width: 4, height: 26, borderRadius: 2, backgroundColor: FACE_TIPO_STYLE['Destra'].color } }),
+        React.createElement('span'),
+        React.createElement('div', { style: { width: 26, height: 4, borderRadius: 2, backgroundColor: FACE_TIPO_STYLE['Posteriore'].color } }),
+        React.createElement('span'),
+      ),
+      React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)', lineHeight: 1.5 } },
+        React.createElement('div', { style: { marginBottom: 5 } },
+          React.createElement('span', { style: { fontWeight: 600, color: FACE_TIPO_STYLE['Anteriore'].color } }, 'Anteriore: '),
+          'faccia frontale dell’impianto.'),
+        React.createElement('div', { style: { marginBottom: 5 } },
+          React.createElement('span', { style: { fontWeight: 600, color: FACE_TIPO_STYLE['Posteriore'].color } }, 'Posteriore: '),
+          'faccia opposta alla frontale (retro).'),
+        React.createElement('div', { style: { marginBottom: 5 } },
+          React.createElement('span', { style: { fontWeight: 600, color: FACE_TIPO_STYLE['Sinistra'].color } }, 'Sinistra: '),
+          'faccia sul lato sinistro.'),
+        React.createElement('div', null,
+          React.createElement('span', { style: { fontWeight: 600, color: FACE_TIPO_STYLE['Destra'].color } }, 'Destra: '),
+          'faccia sul lato destro.'),
+      ),
+    ),
+    // Nota: la visibilità rispetto al traffico è un attributo a parte (switch)
+    React.createElement('div', { style: { marginTop: 10, paddingTop: 10, borderTop: '1px solid #f0f0f0', fontSize: 12, color: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-start', gap: 6 } },
+      React.createElement(icons.InfoCircleOutlined, { style: { fontSize: 12, marginTop: 2, flexShrink: 0 } }),
+      React.createElement('span', null, 'Il tipo indica la posizione del pannello sulla struttura. La visibilità rispetto al senso di marcia si imposta con lo switch dedicato.'),
+    ),
+  );
+  const tipoFacciaLabel = React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+    'Tipo faccia',
+    React.createElement(Popover, { title: 'Tipo Faccia', content: faceTypeHelp, placement: 'topLeft' },
+      React.createElement(icons.QuestionCircleOutlined, { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', cursor: 'help' } })),
+  );
+  // Stiamo modificando una posteriore collegata? In tal caso i campi fisici sono guidati dall'anteriore
+  const fcIsLinkedPost = !!(facce.find(f => f.id === faceEditId) || {}).pairOf;
+
+  // ── Cespiti e Dispositivi — drawer unico: la select "Tipo" elenca tutti i tipi
+  // (cespiti + dispositivi) e i campi mostrati cambiano in base alla scelta (ASSET_TYPES).
+  // Ogni elemento è { id, tipo, vals: {…} } e diventa una card nella stessa lista.
+  const [assets,         setAssets]         = useState([]);
+  const [assetDrawerOpen,setAssetDrawerOpen]= useState(false);
+  const [assetEditId,    setAssetEditId]    = useState(null);
+  const [acTipo,         setAcTipo]         = useState(null);   // tipo selezionato
+  const [acVals,         setAcVals]         = useState({});     // valori dei campi del tipo
+  const setAcVal = (key, nv) => setAcVals(prev => ({ ...prev, [key]: nv }));
+  const openNewAsset = () => { setAssetEditId(null); setAcTipo(null); setAcVals({}); setAssetDrawerOpen(true); };
+  const openEditAsset = (a) => { setAssetEditId(a.id); setAcTipo(a.tipo); setAcVals({ ...(a.vals || {}) }); setAssetDrawerOpen(true); };
+  const closeAssetDrawer = () => { setAssetDrawerOpen(false); setAssetEditId(null); };
+  const saveAsset = () => {
+    if (!acTipo) { antdMsg.warning('Seleziona il tipo di cespite o dispositivo'); return; }
+    const def = getAssetType(acTipo);
+    const nameField = (def.fields || []).find(f => f.key === 'nome');
+    if (nameField && nameField.required && !String(acVals.nome || '').trim()) { antdMsg.warning('Inserisci il nome del dispositivo'); return; }
+    const data = { tipo: acTipo, vals: { ...acVals } };
+    if (assetEditId) {
+      setAssets(prev => prev.map(a => a.id === assetEditId ? { ...a, ...data } : a));
+      antdMsg.success('Elemento aggiornato');
+    } else {
+      setAssets(prev => [...prev, { id: 'asset-' + (prev.length + 1) + '-' + prev.length, ...data }]);
+      antdMsg.success('Elemento aggiunto');
+    }
+    closeAssetDrawer();
+  };
+  const removeAsset = (id) => { setAssets(prev => prev.filter(a => a.id !== id)); antdMsg.success('Elemento rimosso'); };
+  const assetAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openNewAsset }, 'Aggiungi');
 
   // ── Commerciale
   const [proprieta,      setProprieta]      = useState(null);
@@ -3459,10 +3545,15 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [cimasa,         setCimasa]         = useState('');
   const [squadraAff,     setSquadraAff]     = useState('');
   const [codiceSquadra,  setCodiceSquadra]  = useState('');
+  const [tipoAffissione, setTipoAffissione] = useState(null);
+  const [costoAffissione,    setCostoAffissione]    = useState(null);
+  const [costoPreincoll,     setCostoPreincoll]     = useState(null);
 
   // ── Progetto (ex Genio Civile)
   const [progetto,     setProgetto]     = useState('');
   const [numTavola,    setNumTavola]    = useState('');
+  const [progDittaCA,  setProgDittaCA]  = useState('');
+  const [progDataFine, setProgDataFine] = useState(null);
   const [dataCollaudo, setDataCollaudo] = useState(null);
   const [dataVerifica, setDataVerifica] = useState(null);
   const [respVerifica, setRespVerifica] = useState('');
@@ -3477,39 +3568,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [laboratorio,  setLaboratorio]  = useState('');
   const [geologo,      setGeologo]      = useState('');
 
-  // ── Struttura
-  const [tipoFond,       setTipoFond]       = useState(null);
-  const [dimFond,        setDimFond]        = useState('');
-  const [dittaCemento,   setDittaCemento]   = useState('');
-  const [dataLavoriFond, setDataLavoriFond] = useState(null);
-  const [dataFineLav,    setDataFineLav]    = useState(null);
-  const [noteFond,       setNoteFond]       = useState('');
-  const [tipoPali,       setTipoPali]       = useState(null);
-  const [numPali,        setNumPali]        = useState(null);
-  const [diametroPali,   setDiametroPali]   = useState('');
-  const [altezzaPali,    setAltezzaPali]    = useState('');
-  const [dittaPali,      setDittaPali]      = useState('');
-  const [dataMontPali,   setDataMontPali]   = useState(null);
-  const [numPunzPali,    setNumPunzPali]    = useState('');
-  const [notePali,       setNotePali]       = useState('');
-  const [tipoCornice,    setTipoCornice]    = useState(null);
-  const [dittaCornice,   setDittaCornice]   = useState('');
-  const [dataMontCornice,setDataMontCornice]= useState(null);
-  const [noteCornice,    setNoteCornice]    = useState('');
-  const [tipoPannelli,   setTipoPannelli]   = useState(null);
-  const [numPannelli,    setNumPannelli]    = useState(null);
-  const [dimPannelli,    setDimPannelli]    = useState('');
-  const [pesoPannelli,   setPesoPannelli]   = useState('');
-  const [barreAntivento, setBarreAntivento] = useState(null);
-  const [dittaPannelli,  setDittaPannelli]  = useState('');
-  const [dataMontPann,   setDataMontPann]   = useState(null);
-  const [notePannelli,   setNotePannelli]   = useState('');
-  const [numStaffeMuro,  setNumStaffeMuro]  = useState('');
-  const [strutTerrazze,  setStrutTerrazze]  = useState(null);
-  const [numPesiStrutt,  setNumPesiStrutt]  = useState(null);
-  const [kgPesiCadauno,  setKgPesiCadauno]  = useState(null);
-  const [pesoTotale,     setPesoTotale]     = useState('');
-
   // ── Manutenzione
   const [dataMan,    setDataMan]    = useState(null);
   const [squadraMan, setSquadraMan] = useState('');
@@ -3521,8 +3579,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [progettoDocs, setProgettoDocs] = useState([]);
   const [noteVerifica, setNoteVerifica] = useState('');
 
-  // ── Note
-  const [noteRif, setNoteRif] = useState('');
   const [selConcessioni,    setSelConcessioni]    = useState([]);
   const [selAutorizzazioni, setSelAutorizzazioni] = useState([]);
 
@@ -3533,6 +3589,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [permitReplaceMode, setPermitReplaceMode] = useState(false);
   const [permitRowKey,      setPermitRowKey]      = useState(null);
   const [permitAuthKeys,    setPermitAuthKeys]    = useState([]);
+  const [permitSciaUploads, setPermitSciaUploads] = useState({}); // { urbanistica: file, commerciale: file }
+  const [permitSciaReplaceId, setPermitSciaReplaceId] = useState(null); // 'urbanistica' | 'commerciale' in sostituzione
 
   const tipoSuolo = React.useMemo(() => {
     if (!selConcessioni || selConcessioni.length === 0) return null;
@@ -3547,11 +3605,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     { id: 'identita',        label: 'Generali' },
     { id: 'dati-amministrativi',   label: 'Dati amministrativi' },
     { id: 'caratteristiche', label: 'Dati Tecnici' },
-    { id: 'commerciale',     label: 'Commerciale' },
-    { id: 'struttura',       label: 'Struttura' },
+    { id: 'struttura',       label: 'Cespiti e Dispositivi' },
     { id: 'manutenzione',    label: 'Manutenzione' },
+    { id: 'affissione',      label: 'Affissione' },
+    { id: 'commerciale',     label: 'Commerciale' },
     { id: 'galleria',        label: 'Galleria' },
-    { id: 'note',            label: 'Note' },
   ];
 
 
@@ -3571,21 +3629,16 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     canale, nome, tipologia, formato, moduli, dimModuli, stato,
     via, civico, cap, citta, provincia, regione, nazione, lat, lng,
     tipoSuolo, catSuolo, utenza, zona: zn,
-    largImp, altImp, tipoFaccia, slot, orientamento, conoVis,
-    altTerra, altTotale, illuminato, riparato,
+    largImp, altImp, profImp, altTerra, areaEspositiva, riparato, facce,
     proprieta, vendita,
     prezzoNetto, prezzoLordo, cimasa,
-    squadraAff, codiceSquadra,
-    progetto, numTavola, dataCollaudo, dataVerifica, respVerifica,
+    squadraAff, codiceSquadra, tipoAffissione, costoAffissione, costoPreincoll,
+    progetto, numTavola, progDittaCA, progDataFine, dataCollaudo, dataVerifica, respVerifica,
     calcestruzzo, acciaioCarp, acciaioArm, tecnicheGc,
     progettista, ddl, rsc, collaudatore, laboratorio, geologo,
-    tipoFond, dimFond, dittaCemento, dataLavoriFond, dataFineLav, noteFond,
-    tipoPali, numPali, diametroPali, altezzaPali, dittaPali, dataMontPali, numPunzPali, notePali,
-    tipoCornice, dittaCornice, dataMontCornice, noteCornice,
-    tipoPannelli, numPannelli, dimPannelli, pesoPannelli, barreAntivento, dittaPannelli, dataMontPann, notePannelli,
-    numStaffeMuro, strutTerrazze, numPesiStrutt, kgPesiCadauno, pesoTotale,
     dataMan, squadraMan, tipoMan, oggettoMan,
     noteVerifica,
+    assets,
     concessioni: selConcessioni, autorizzazioni: selAutorizzazioni, permessi: addedPermits,
   });
 
@@ -3607,17 +3660,58 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   }, [canale, tipologia, formato, provincia]);
 
   // Permessi — handlers (stessa logica del dettaglio impianto)
-  const closePermitDrawer = () => { setPermitDrawerOpen(false); setPermitRowKey(null); setPermitAuthKeys([]); setPermitReplaceMode(false); };
+  const closePermitDrawer = () => { setPermitDrawerOpen(false); setPermitRowKey(null); setPermitAuthKeys([]); setPermitSciaUploads({}); setPermitSciaReplaceId(null); setPermitReplaceMode(false); };
 
   const handleAddPermit = () => {
+    if (permitDrawerType === 'autocertificazione') {
+      const uploaded = SCIA_TYPES.filter(s => permitSciaUploads[s.id]);
+      if (!uploaded.length) { antdMsg.warning('Carica almeno una SCIA'); return; }
+      const newPerms = uploaded.map(rawScia => {
+        const s = permitSciaReplaceId === rawScia.id ? { ...rawScia, ...rawScia.voltura } : rawScia;
+        return {
+          id: 'scia-' + s.id, permitType: 'autocertificazione',
+          title: s.title, docId: s.protocollo, ente: s.ente,
+          presentata: s.presentata, scadenza: s.termineVerifica,
+          fileName: permitSciaUploads[s.id].name,
+          state: 'Efficace', isActive: true,
+        };
+      });
+      setAddedPermits(prev => [...prev.filter(p => !newPerms.some(n => n.id === p.id)), ...newPerms]);
+      const wasReplace = !!permitSciaReplaceId;
+      closePermitDrawer();
+      antdMsg.success(wasReplace ? 'Autocertificazione sostituita' : (newPerms.length > 1 ? newPerms.length + ' autocertificazioni aggiunte' : '1 autocertificazione aggiunta'));
+      return;
+    }
     if (permitDrawerType === 'autorizzazione') {
       if (!permitAuthKeys.length) { antdMsg.warning("Seleziona almeno un'autorizzazione"); return; }
       const newPerms = permitAuthKeys.map(k => {
         const a = AUTHORIZATIONS_DATA.find(x => x.key === k);
-        return a ? { id: k, permitType: 'autorizzazione', title: a.authorizationCategory, docId: a.protocolNumber, ente: a.issuingAuthority, scadenza: a.expirationDate, state: a.status, isActive: a.isActive } : null;
+        return a ? { id: k, permitType: 'autorizzazione', title: a.authorizationCategory, docId: a.protocolNumber, ente: a.issuingAuthority, scadenza: a.expirationDate, presentata: a.depositDate || a.stipulationDate, collaudata: a.collaudoDate, state: a.status, isActive: a.isActive } : null;
       }).filter(Boolean);
       setAddedPermits(prev => [...prev.filter(p => !newPerms.some(n => n.id === p.id)), ...newPerms]);
       setSelAutorizzazioni(prev => [...new Set([...prev, ...permitAuthKeys])]);
+      // La pratica Genio Civile trasporta i dati di progetto: compila i campi vuoti
+      // del Progetto tecnico in base alla fase della pratica (la più avanzata se più d'una)
+      const GC_ORDER = ['Da presentare', 'Presentata', 'Collaudata'];
+      const gcSel = permitAuthKeys.map(k => AUTHORIZATIONS_DATA.find(x => x.key === k))
+        .filter(a => a && a.progettoDati)
+        .sort((a, b) => GC_ORDER.indexOf(a.status) - GC_ORDER.indexOf(b.status));
+      if (gcSel.length) {
+        const d = gcSel[gcSel.length - 1].progettoDati;
+        if (d.progetto)     setProgetto(prev => prev || d.progetto);
+        if (d.numTavola)    setNumTavola(prev => prev || d.numTavola);
+        if (d.progettista)  setProgettista(prev => prev || d.progettista);
+        if (d.geologo)      setGeologo(prev => prev || d.geologo);
+        if (d.ddl)          setDdl(prev => prev || d.ddl);
+        if (d.collaudatore) setCollaudatore(prev => prev || d.collaudatore);
+        if (d.laboratorio)  setLaboratorio(prev => prev || d.laboratorio);
+        if (d.calcestruzzo) setCalcestruzzo(prev => prev || d.calcestruzzo);
+        if (d.acciaioCarp)  setAcciaioCarp(prev => prev || d.acciaioCarp);
+        if (d.acciaioArm)   setAcciaioArm(prev => prev || d.acciaioArm);
+        if (d.tecnicheGc)   setTecnicheGc(prev => prev || d.tecnicheGc);
+        if (d.dataCollaudo) setDataCollaudo(prev => prev || dayjs(d.dataCollaudo, 'DD/MM/YYYY'));
+        antdMsg.success('Dati di progetto compilati dalla pratica Genio Civile');
+      }
       closePermitDrawer();
       antdMsg.success(newPerms.length + (newPerms.length > 1 ? ' autorizzazioni aggiunte' : ' autorizzazione aggiunta'));
       return;
@@ -3629,7 +3723,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
       if (u) { sg = g; su = u; break; }
     }
     if (!sg) return;
-    const np = { id: permitRowKey, permitType: 'concessione', title: sg.documentType, docId: sg.documentId, ente: sg.issuingAuthority, scadenza: su.expirationDate || sg.expirationDate, state: sg.status || 'Attiva', isActive: sg.isActive !== false };
+    const np = { id: permitRowKey, permitType: 'concessione', title: sg.documentType, docId: sg.documentId, tipo: sg.grantType, ente: sg.issuingAuthority, scadenza: su.expirationDate || sg.expirationDate, presentata: sg.issueDate, state: sg.status || 'Attiva', isActive: sg.isActive !== false };
     setAddedPermits(prev => [...prev.filter(p => p.permitType !== 'concessione'), np]);
     setSelConcessioni([sg.key]);
     setUtenza(su.utilityNumber);
@@ -3643,16 +3737,27 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     if (!p) return;
     setAddedPermits(prev => prev.filter(x => x.id !== id));
     if (p.permitType === 'concessione') { setSelConcessioni([]); setUtenza(''); setCimasa(''); }
-    else setSelAutorizzazioni(prev => prev.filter(k => k !== id));
+    else if (p.permitType === 'autorizzazione') {
+      setSelAutorizzazioni(prev => prev.filter(k => k !== id));
+      // Scollegata l'ultima pratica Genio Civile → svuota i dati di progetto che trasportava (il RSC resta)
+      if (p.title === 'Genio Civile' && !addedPermits.some(x => x.id !== id && x.title === 'Genio Civile')) {
+        setProgetto(''); setNumTavola(''); setProgettista(''); setGeologo('');
+        setDdl(''); setCollaudatore(''); setLaboratorio('');
+        setCalcestruzzo(''); setAcciaioCarp(''); setAcciaioArm(''); setTecnicheGc('');
+        setDataCollaudo(null);
+      }
+    }
     antdMsg.success('Permesso scollegato');
   };
 
   const hasConcessione = addedPermits.some(p => p.permitType === 'concessione');
+  const hasTutteLeScia = SCIA_TYPES.every(s => addedPermits.some(p => p.id === 'scia-' + s.id));
 
   const permitDropdown = React.createElement(Dropdown, {
     menu: { items: [
       { key: 'concessione', label: 'Aggiungi Concessione', disabled: hasConcessione, onClick: () => { setPermitDrawerType('concessione'); setPermitDrawerOpen(true); } },
       { key: 'autorizzazione', label: 'Aggiungi Autorizzazione', onClick: () => { setPermitDrawerType('autorizzazione'); setPermitDrawerOpen(true); } },
+      { key: 'autocertificazione', label: 'Collega Autocertificazione', disabled: hasTutteLeScia, onClick: () => { setPermitDrawerType('autocertificazione'); setPermitDrawerOpen(true); } },
     ]},
   }, React.createElement(Button, { icon: React.createElement(PlusOutlined) }, 'Collega Permesso'));
   const handleViaSearch = (val) => {
@@ -3706,8 +3811,16 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 
   // Grid helpers
   const g2 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-2' }, ...f);
+  // Riga flex: i campi stanno affiancati alla loro larghezza naturale, separati da un gap (non stirati su colonne)
+  const gapRow = (...f) => React.createElement('div', { style: { display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 16 } }, ...f);
   const g3 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-3' }, ...f);
   const g4 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-4' }, ...f);
+  // Sotto-intestazione dentro un box (per raggruppare più sottosezioni in un'unica card)
+  const subH = (t, first) => React.createElement('div', {
+    style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.75)',
+      margin: first ? '0 0 14px' : '24px 0 14px',
+      paddingTop: first ? 0 : 18, borderTop: first ? 'none' : '1px solid #F0F0F0' },
+  }, t);
 
   // Field helpers
   const inp = (val, set, ph='—', extra={}) =>
@@ -3716,12 +3829,53 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     React.createElement(InputNumber, { value: val, onChange: set, style: { width: '100%' }, placeholder: '—', ...props });
   const sel = (val, set, opts, ph='Seleziona', props={}) =>
     React.createElement(Select, { value: val, onChange: set, options: opts, style: { width: '100%' }, placeholder: ph, ...props });
+  // Campo a sola lettura compilato in automatico: stesso look di "Nome impianto" (borderless, allineato a sinistra)
+  const autoText = (val, ph='Compilato in automatico', extra={}) =>
+    React.createElement(Input, {
+      value: val, readOnly: true, variant: 'borderless', className: 'readonly-input',
+      tabIndex: -1, style: { cursor: 'default', paddingLeft: 0 }, placeholder: ph, ...extra,
+    });
   const dp = (val, set) =>
     React.createElement(DatePicker, { value: val, onChange: set, style: { width: '100%' }, placeholder: 'Seleziona data', format: 'DD/MM/YYYY' });
   const sw = (val, set) =>
     React.createElement('div', { style: { paddingTop: 5 } },
       React.createElement(Switch, { checked: val, onChange: set, checkedChildren: 'Sì', unCheckedChildren: 'No' }),
     );
+  // Input multi-valore: digita e premi Invio (o virgola) per aggiungere più ID / numeri
+  const tagsInput = (val, set, ph='Aggiungi e premi Invio') =>
+    React.createElement(Select, {
+      mode: 'tags', value: val || [], onChange: set, style: { width: '100%' },
+      placeholder: ph, open: false, suffixIcon: null, tokenSeparators: [','],
+    });
+
+  // ── Drawer Cespiti/Dispositivi: rende un campo a partire dalla sua definizione (ASSET_TYPES)
+  const renderAssetField = (f) => {
+    const set = (nv) => setAcVal(f.key, nv);
+    const val = acVals[f.key];
+    switch (f.kind) {
+      case 'select':   return sel(val == null ? null : val, set, f.opts, f.ph || 'Seleziona');
+      case 'number':   return num(val == null ? null : val, set, f.props || {});
+      case 'date':     return dp(val == null ? null : val, set);
+      case 'tags':      return tagsInput(val || [], set, f.ph);
+      case 'textarea': return React.createElement(Input.TextArea, { value: val || '', onChange: e => set(e.target.value), placeholder: f.ph || '', autoSize: { minRows: 2, maxRows: 3 } });
+      case 'segmented':return React.createElement(Segmented, { block: true, value: val || f.default, onChange: set, options: f.opts });
+      default:         return inp(val || '', set, f.ph || '—');
+    }
+  };
+  // Impagina i campi del tipo: campi "full" su riga intera, gli altri a coppie (g2)
+  const renderAssetFields = (tipo) => {
+    const def = getAssetType(tipo);
+    if (!def) return null;
+    const nodes = []; let pair = [];
+    const flush = () => { if (pair.length) { nodes.push(g2(...pair, ...(pair.length === 1 ? [React.createElement('div')] : []))); pair = []; } };
+    def.fields.forEach((f, i) => {
+      const field = cs(f.label, !!f.required, renderAssetField(f));
+      if (f.full) { flush(); nodes.push(React.createElement('div', { key: 'af' + i }, field)); }
+      else { pair.push(field); if (pair.length === 2) flush(); }
+    });
+    flush();
+    return nodes;
+  };
 
   const viaAutocomplete = React.createElement(AutoComplete, {
     style: { width: '100%' }, value: via,
@@ -3813,7 +3967,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                   { status: showErrors && !canale ? 'error' : undefined })
               ),
               cs('Tipologia', true,
-                sel(tipologia, v => { setTipologia(v); setFormato(null); }, tipologieOpts,
+                sel(tipologia, v => { setTipologia(v); setFormato(null); setFacce(buildFacceForTipo(v)); }, tipologieOpts,
                   canale ? 'Es. Pensilina, Palina…' : 'Prima seleziona il canale',
                   { disabled: !canale, showSearch: true, status: showErrors && !tipologia ? 'error' : undefined })
               ),
@@ -3881,16 +4035,25 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 
         // ── Dati amministrativi
         sec('dati-amministrativi', 'Dati amministrativi', 'Classificazione del suolo, riferimenti catastali, permessi e progetto tecnico dell\'impianto.',
-          boxX('Permessi', 'Concessioni e autorizzazioni amministrative associate all\'impianto.',
+          boxX('Permessi', 'Concessioni, autorizzazioni e autocertificazioni (SCIA) associate all\'impianto.',
             addedPermits.length > 0 ? permitDropdown : null,
             addedPermits.length > 0
               ? React.createElement(Row, { gutter: [16, 16] },
                   addedPermits.map(p => React.createElement(Col, { span: 12, key: p.id },
                     React.createElement(FormPermitCard, {
-                      permitType: p.permitType, title: p.title, docId: p.docId,
-                      ente: p.ente, scadenza: p.scadenza,
+                      permitType: p.permitType, title: p.title, docId: p.docId, tipo: p.tipo,
+                      ente: p.ente, scadenza: p.scadenza, presentata: p.presentata, collaudata: p.collaudata,
                       state: p.state, isActive: p.isActive,
-                      onReplace: () => { setPermitDrawerType('concessione'); setPermitReplaceMode(true); setPermitDrawerOpen(true); },
+                      onReplace: () => {
+                        if (p.permitType === 'autocertificazione') {
+                          setPermitDrawerType('autocertificazione');
+                          setPermitSciaReplaceId(p.id.replace('scia-', ''));
+                        } else {
+                          setPermitDrawerType('concessione');
+                          setPermitReplaceMode(true);
+                        }
+                        setPermitDrawerOpen(true);
+                      },
                       onRemove: () => handleRemovePermit(p.id),
                     }),
                   )),
@@ -3917,7 +4080,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               cs('Cimasa', false, inp(cimasa, setCimasa, 'Es. CIM-2024-001')),
             ),
           ),
-          boxX('Progetto tecnico', 'Carica il documento di progetto: tavola, progettista, figure professionali e materiali si compilano in automatico.',
+          boxX('Progetto tecnico', 'Collega la pratica Genio Civile o carica il documento di progetto: i dati si compilano in automatico in base alla fase della pratica (redazione, deposito, collaudo).',
             React.createElement(Upload, {
               fileList: progettoDocs,
               showUploadList: false,
@@ -3960,11 +4123,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               ),
             ),
             g3(
-              cs('Progetto', false, inp(progetto, setProgetto, 'Es. 1305')),
-              cs('N. tavola cartografica', false, inp(numTavola, setNumTavola, 'Es. TAV-07/A')),
               cs('Progettista', false,
                 sel(progettista || undefined, setProgettista, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })
               ),
+              cs('Progetto', false, inp(progetto, setProgetto, 'Es. 1305')),
+              cs('N. tavola cartografica', false, inp(numTavola, setNumTavola, 'Es. TAV-07/A')),
             ),
             g3(
               cs('D.D.L. (Direttore dei Lavori)', false,
@@ -3986,12 +4149,100 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               cs('Acciaio carpenteria',false, inp(acciaioCarp,  setAcciaioCarp,  'Es. FE 360 B')),
               cs('Acciaio armature',   false, inp(acciaioArm,   setAcciaioArm,   'Es. FEB 44 K')),
             ),
+            g3(
+              cs('Ditta cemento armato', false, inp(progDittaCA, setProgDittaCA, '—')),
+              cs('Data fine lavori',     false, dp(progDataFine, setProgDataFine)),
+              React.createElement('div'),
+            ),
             cs('Tecniche utilizzate', false,
               React.createElement(Input.TextArea, {
                 value: tecnicheGc, onChange: e => setTecnicheGc(e.target.value),
                 placeholder: 'Es. Saldature con elettrodi basici E 44 L 4 B e con cordoni d\'angolo 8×8 mm',
                 autoSize: { minRows: 2, maxRows: 4 },
               })
+            ),
+          ),
+        ),
+
+        // ── 3. Caratteristiche
+        sec('caratteristiche', 'Dati Tecnici', 'Specifiche fisiche e strutturali del pannello espositivo.',
+          box('Dimensioni ed esposizione', 'Misure e ingombro dell\'impianto, esposizione del sito e area espositiva (calcolata da larghezza × altezza).',
+            g4(
+              cs('Larghezza (cm)',  false, num(largImp, setLargImp, { min: 0 })),
+              cs('Altezza (cm)',    false, num(altImp,  setAltImp,  { min: 0 })),
+              cs('Profondità (cm)', false, num(profImp, setProfImp, { min: 0 })),
+              cs('Alt. da terra (cm)', false, num(altTerra, setAltTerra, { min: 0 })),
+            ),
+            g4(
+              cs('Numero moduli',            false, num(moduli,    setModuli,    { min: 1 })),
+              cs('Dimensione singolo modulo',false, inp(dimModuli, setDimModuli, 'Es. 120×180 cm')),
+              cs('Area espositiva', false,
+                React.createElement(InputNumber, {
+                  value: areaEspositiva, readOnly: true, controls: false, precision: 2,
+                  variant: 'borderless', className: 'readonly-input', tabIndex: -1,
+                  style: { width: '100%', cursor: 'default', paddingLeft: 0 },
+                  formatter: v => (v === '' || v === null || v === undefined) ? '' : v + ' m²',
+                  placeholder: 'Calcolata in automatico',
+                })),
+              cs('Esposizione', false, sel(riparato, setRiparato, RIPARATO_OPTS)),
+            ),
+          ),
+          boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+              'Facce',
+              facce.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, facce.length) : null,
+            ), 'Numero e caratteristiche delle facce espositive. Per ogni faccia anteriore puoi creare la posteriore corrispondente (speculare).',
+            facce.length > 0 ? faceAddBtn : null,
+            facce.length > 0
+              ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 } },
+                  facce.map((f, i) => {
+                    const hasPost = facce.some(x => x.pairOf === f.id);
+                    const ordinal = facce.slice(0, i + 1).filter(x => x.tipo === f.tipo).length;
+                    return React.createElement(FormFaceCard, {
+                      key: f.id,
+                      name: f.tipo + '-' + ordinal, face: { ...f, _hasPosteriore: hasPost },
+                      onEdit: () => openEditFace(f),
+                      onRemove: () => removeFace(f.id),
+                      onCreatePosteriore: (f.tipo === 'Anteriore' && !hasPost) ? () => createPosteriore(f) : null,
+                    });
+                  }),
+                )
+              : React.createElement(Empty, { description: "Aggiungi le facce espositive dell'impianto", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+                  faceAddBtn,
+                ),
+          ),
+        ),
+
+        // ── 7. Cespiti e Dispositivi
+        sec('struttura', 'Cespiti e Dispositivi', 'Componenti strutturali (cespiti) e dispositivi connessi installati sull\'impianto.',
+          boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+              'Cespiti e Dispositivi',
+              assets.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, assets.length) : null,
+            ), 'Aggiungi un elemento e scegli il tipo: fondazioni, pali, cornice, pannelli, extra struttura o un dispositivo connesso. I campi cambiano in base al tipo scelto.',
+            assets.length > 0 ? assetAddBtn : null,
+            assets.length > 0
+              ? React.createElement(Row, { gutter: [16, 16] },
+                  assets.map(a => React.createElement(Col, { span: 12, key: a.id },
+                    React.createElement(FormAssetCard, {
+                      asset: a,
+                      onEdit: () => openEditAsset(a),
+                      onRemove: () => removeAsset(a.id),
+                    }),
+                  )),
+                )
+              : React.createElement(Empty, { description: "Aggiungi un cespite o un dispositivo dell'impianto", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+                  assetAddBtn,
+                ),
+          ),
+        ),
+
+        // ── 8. Manutenzione
+        sec('manutenzione', 'Manutenzione', 'Registrazione degli interventi di manutenzione effettuati sull\'impianto.',
+          box('Ultimo intervento', 'Data, squadra e tipo dell\'ultimo intervento di manutenzione registrato.',
+            g4(
+              cs('Data ultima man.', false, dp(dataMan,     setDataMan)),
+              cs('Squadra',          false, inp(squadraMan, setSquadraMan, '—')),
+              cs('Tipo intervento',  false, sel(tipoMan,    setTipoMan,   TIPO_MAN_OPTS)),
+              cs('Componente interessato', false, inp(oggettoMan, setOggettoMan,'Es. pannello frontale, illuminazione…')),
             ),
           ),
           box('Verifica', 'Verifiche periodiche dell\'impianto.',
@@ -4010,34 +4261,29 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
           ),
         ),
 
-        // ── 3. Caratteristiche
-        sec('caratteristiche', 'Dati Tecnici', 'Specifiche fisiche e strutturali del pannello espositivo.',
-          box('Dimensioni pannello', 'Misure fisiche del pannello: larghezza, altezza, moduli e dimensioni.',
-            g4(
-              cs('Larghezza (cm)', false, num(largImp,   setLargImp,   { min: 0 })),
-              cs('Altezza (cm)',   false, num(altImp,    setAltImp,    { min: 0 })),
-              cs('Moduli',         false, num(moduli,    setModuli,    { min: 1 })),
-              cs('Dim. moduli',    false, inp(dimModuli, setDimModuli, 'Es. 120×180 cm')),
+        // ── Affissione
+        sec('affissione', 'Affissione', 'Squadra incaricata, modalità e costi delle operazioni di affissione.',
+          box('Squadra, modalità e costi', 'Squadra incaricata (codice incluso), tipo di affissione e relativi costi.',
+            g2(
+              cs('Squadra affissione', false,
+                sel(squadraAff || undefined, (v) => {
+                  setSquadraAff(v || '');
+                  const f = SQUADRE_AFF.find(s => s.nome === v);
+                  setCodiceSquadra(f ? f.codice : '');
+                }, SQUADRE_AFF_OPTS, 'Cerca per codice o nome…', {
+                  showSearch: true, allowClear: true, optionFilterProp: 'label',
+                })),
+              cs('Tipo affissione', false, sel(tipoAffissione, setTipoAffissione, TIPO_AFFISSIONE_OPTS)),
             ),
-          ),
-          box('Esposizione e visibilità', 'Orientamento, cono di visibilità e condizioni ambientali del sito.',
-            g4(
-              cs('Tipo faccia',    false, sel(tipoFaccia,   setTipoFaccia,   TIPO_FACCIA_OPTS)),
-              cs('Slot',           false, num(slot,          setSlot,          { min: 1 })),
-              cs('Orientamento',   false, sel(orientamento,  setOrientamento,  ORIENTAMENTO_OPTS)),
-              cs('Cono visibilità',false, inp(conoVis,       setConoVis,       'Es. 180°')),
-            ),
-            g4(
-              cs('Alt. da terra (cm)', false, num(altTerra,  setAltTerra,  { min: 0 })),
-              cs('Alt. totale (cm)',   false, num(altTotale, setAltTotale, { min: 0 })),
-              cs('Esposizione',        false, sel(riparato,  setRiparato,  RIPARATO_OPTS)),
-              cs('Illuminato',         false, sw(illuminato, setIlluminato)),
+            g2(
+              cs('Costo affissione (€)',     false, num(costoAffissione, setCostoAffissione, { min: 0, precision: 2 })),
+              cs('Costo preincollaggio (€)', false, num(costoPreincoll,  setCostoPreincoll,  { min: 0, precision: 2 })),
             ),
           ),
         ),
 
-        // ── 4. Commerciale
-        sec('commerciale', 'Commerciale', 'Modello di vendita, prezzi e squadra di affissione.',
+        // ── Commerciale
+        sec('commerciale', 'Commerciale', 'Modello di vendita e prezzi.',
           box('Modello commerciale', 'Struttura di vendita e listino prezzi associati all\'impianto.',
             g2(
               cs('Modello di vendita', false,
@@ -4048,84 +4294,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               ),
               React.createElement('div'),
             ),
-            g4(
+            g2(
               cs('Prezzo netto (€)',  false, num(prezzoNetto,   setPrezzoNetto,   { min: 0, precision: 2 })),
               cs('Prezzo lordo (€)',  false, num(prezzoLordo,   setPrezzoLordo,   { min: 0, precision: 2 })),
-              cs('Squadra Affissione',false, inp(squadraAff,    setSquadraAff,    '—')),
-              cs('Codice Squadra',    false, inp(codiceSquadra, setCodiceSquadra, '—')),
-            ),
-          ),
-        ),
-
-        // ── 7. Struttura
-        sec('struttura', 'Struttura', 'Fondazioni, pali, cornice, pannelli e componenti strutturali dell\'impianto.',
-          box('Fondazioni', 'Tipo di fondazione, dimensioni e dati relativi alla posa in opera.',
-            g3(
-              cs('Tipo fondazione',      false, sel(tipoFond,    setTipoFond,    TIPO_FONDAZIONE_OPTS)),
-              cs('Dimensione fondazione',false, inp(dimFond,      setDimFond,     'Es. 5,50 × 3,20 × 0,80 m')),
-              cs('Ditta cemento',        false, inp(dittaCemento, setDittaCemento,'—')),
-            ),
-            g2(
-              cs('Data inizio lavori', false, dp(dataLavoriFond, setDataLavoriFond)),
-              cs('Data fine lavori',   false, dp(dataFineLav,    setDataFineLav)),
-            ),
-            cs('Note', false, inp(noteFond, setNoteFond, '—')),
-          ),
-          box('Pali', 'Caratteristiche strutturali dei pali di sostegno e dati di montaggio.',
-            g4(
-              cs('Tipo pali',     false, sel(tipoPali,     setTipoPali,     TIPO_PALI_OPTS)),
-              cs('Numero pali',   false, num(numPali,      setNumPali,      { min: 0 })),
-              cs('Diametro (mm)', false, inp(diametroPali, setDiametroPali, '—')),
-              cs('Altezza (cm)',  false, inp(altezzaPali,  setAltezzaPali,  '—')),
-            ),
-            g3(
-              cs('Ditta pali',          false, inp(dittaPali,   setDittaPali,   '—')),
-              cs('Data montaggio',      false, dp(dataMontPali, setDataMontPali)),
-              cs('N. punzonatura pali', false, inp(numPunzPali, setNumPunzPali, 'Es. 013201 - 014001')),
-            ),
-            cs('Note pali', false, inp(notePali, setNotePali, '—')),
-          ),
-          box('Cornice', 'Telaio perimetrale del pannello espositivo e dati di montaggio.',
-            g3(
-              cs('Tipo cornice',   false, sel(tipoCornice,    setTipoCornice,    TIPO_CORNICE_OPTS)),
-              cs('Ditta cornice',  false, inp(dittaCornice,   setDittaCornice,   '—')),
-              cs('Data montaggio', false, dp(dataMontCornice, setDataMontCornice)),
-            ),
-            cs('Note cornice', false, inp(noteCornice, setNoteCornice, '—')),
-          ),
-          box('Pannelli', 'Pannelli espositivi: tipo, numero, dimensioni e peso complessivo.',
-            g4(
-              cs('Tipo pannelli', false, sel(tipoPannelli, setTipoPannelli, TIPO_PANNELLI_OPTS)),
-              cs('Numero',        false, num(numPannelli,  setNumPannelli,  { min: 0 })),
-              cs('Dimensioni',    false, inp(dimPannelli,  setDimPannelli,  'Es. 120×180 cm')),
-              cs('Peso (kg)',      false, inp(pesoPannelli, setPesoPannelli, '—')),
-            ),
-            g4(
-              cs('Barre antivento', false, num(barreAntivento, setBarreAntivento, { min: 0 })),
-              cs('Ditta pannelli',  false, inp(dittaPannelli,  setDittaPannelli,  '—')),
-              cs('Data montaggio',  false, dp(dataMontPann,    setDataMontPann)),
-              cs('Peso totale (kg)',false, inp(pesoTotale,     setPesoTotale,     '—')),
-            ),
-            cs('Note pannelli', false, inp(notePannelli, setNotePannelli, '—')),
-          ),
-          box('Extra struttura', 'Elementi aggiuntivi: staffe, terrazze e pesi strutturali.',
-            g4(
-              cs('N. staffe muro',     false, inp(numStaffeMuro, setNumStaffeMuro, 'Es. 12 tassellate + 4')),
-              cs('Strutture terrazze', false, num(strutTerrazze, setStrutTerrazze, { min: 0 })),
-              cs('N. pesi struttura',  false, num(numPesiStrutt, setNumPesiStrutt, { min: 0 })),
-              cs('Kg pesi cadauno',    false, num(kgPesiCadauno, setKgPesiCadauno, { min: 0 })),
-            ),
-          ),
-        ),
-
-        // ── 8. Manutenzione
-        sec('manutenzione', 'Manutenzione', 'Registrazione degli interventi di manutenzione effettuati sull\'impianto.',
-          box('Ultimo intervento', 'Data, squadra e tipo dell\'ultimo intervento di manutenzione registrato.',
-            g4(
-              cs('Data ultima man.', false, dp(dataMan,     setDataMan)),
-              cs('Squadra',          false, inp(squadraMan, setSquadraMan, '—')),
-              cs('Tipo intervento',  false, sel(tipoMan,    setTipoMan,   TIPO_MAN_OPTS)),
-              cs('Oggetto',          false, inp(oggettoMan, setOggettoMan,'—')),
             ),
           ),
         ),
@@ -4149,38 +4320,136 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
           ),
         ),
 
-        // ── 10. Note
-        sec('note', 'Note', 'Annotazioni aggiuntive, osservazioni libere e riferimenti topografici.',
-          box('Note aggiuntive', 'Informazioni non strutturate: riferimenti di posizione, contesto urbano, osservazioni.',
-            cs('Note', false,
-              React.createElement(Input.TextArea, { value: noteRif, onChange: e => setNoteRif(e.target.value), placeholder: 'Es. angolo con Via Bandiera, fronte semaforo…', autoSize: { minRows: 4, maxRows: 8 } })
-            ),
-          ),
-        ),
-
         ) // create-content
       ) // create-scroll
     ), // create-body
 
     // Permits drawer — stessa UX del dettaglio impianto
     React.createElement(Drawer, {
-      title: permitDrawerType === 'concessione' ? (permitReplaceMode ? 'Sostituisci Concessione' : 'Aggiungi Concessione') : 'Aggiungi Autorizzazione',
+      title: permitDrawerType === 'concessione' ? (permitReplaceMode ? 'Sostituisci Concessione' : 'Aggiungi Concessione')
+        : permitDrawerType === 'autocertificazione' ? (permitSciaReplaceId ? 'Sostituisci Autocertificazione' : 'Collega Autocertificazione')
+        : 'Aggiungi Autorizzazione',
       placement: 'right',
       styles: { wrapper: { width: '70%' }, body: { padding: 24 } },
       onClose: closePermitDrawer, open: permitDrawerOpen,
       extra: React.createElement(Space, null,
         React.createElement(Button, { onClick: closePermitDrawer }, 'Annulla'),
         React.createElement(Button, {
-          type: ((permitDrawerType === 'concessione' && permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length > 0)) ? 'primary' : 'default',
+          type: ((permitDrawerType === 'concessione' && permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length > 0) || (permitDrawerType === 'autocertificazione' && Object.values(permitSciaUploads).some(Boolean))) ? 'primary' : 'default',
           icon: React.createElement(PlusOutlined),
-          disabled: (permitDrawerType === 'concessione' && !permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length === 0),
+          disabled: (permitDrawerType === 'concessione' && !permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length === 0) || (permitDrawerType === 'autocertificazione' && !Object.values(permitSciaUploads).some(Boolean)),
           onClick: handleAddPermit,
         }, 'Aggiungi'),
       ),
     },
       permitDrawerType === 'concessione'
         ? React.createElement(GrantsAccordion, { data: GRANTS_DATA, selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
+        : permitDrawerType === 'autocertificazione'
+        ? React.createElement(SciaUploadPanel, {
+            uploads: permitSciaUploads,
+            replaceId: permitSciaReplaceId,
+            onUpload: (id, file) => { setPermitSciaUploads(prev => ({ ...prev, [id]: file })); antdMsg.success('Dati estratti dalla SCIA'); },
+            onRemove: (id) => setPermitSciaUploads(prev => ({ ...prev, [id]: null })),
+          })
         : React.createElement(AuthorizationsList, { data: AUTHORIZATIONS_DATA, selectedKeys: permitAuthKeys, onSelectionChange: setPermitAuthKeys }),
+    ),
+
+    // Face creation drawer — creazione/modifica della singola faccia
+    React.createElement(Drawer, {
+      title: faceEditId ? 'Modifica Faccia' : 'Aggiungi Faccia',
+      placement: 'right', width: 720,
+      styles: { body: { padding: 24 } },
+      onClose: closeFaceDrawer, open: faceDrawerOpen,
+      extra: React.createElement(Space, null,
+        React.createElement(Button, { onClick: closeFaceDrawer }, 'Annulla'),
+        React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: saveFace }, faceEditId ? 'Salva' : 'Aggiungi'),
+      ),
+    },
+      fcIsLinkedPost ? React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginBottom: 16, background: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
+        React.createElement(InfoCircleOutlined, { style: { fontSize: 14, color: '#3E00FB', marginTop: 2 } }),
+        React.createElement('span', null, 'Faccia posteriore collegata: posizione, dimensioni, slot e orientamento sono guidati dalla faccia anteriore. Qui puoi modificare illuminazione, modello di vendita e prezzo.'),
+      ) : null,
+      cs(tipoFacciaLabel, true,
+        React.createElement(Radio.Group, { optionType: 'button', value: fcTipo, onChange: e => setFcTipo(e.target.value), disabled: fcIsLinkedPost,
+          options: [{ label: 'Anteriore', value: 'Anteriore' }, { label: 'Posteriore', value: 'Posteriore' }, { label: 'Sinistra', value: 'Sinistra' }, { label: 'Destra', value: 'Destra' }] })),
+      React.createElement('div', { className: 'ni-field', style: { display: 'flex', alignItems: 'center', gap: 12 } },
+        React.createElement('div', { className: 'ni-label', style: { marginBottom: 0 } }, 'Visibile nel senso di marcia'),
+        React.createElement(Switch, { checked: fcVisMarcia, onChange: setFcVisMarcia, checkedChildren: 'Sì', unCheckedChildren: 'No' }),
+      ),
+      cs('Numero slot', false, num(fcSlot, setFcSlot, { min: 1, disabled: fcIsLinkedPost, style: { width: 160 } })),
+      cs(fcCoordLock ? 'Coordinate (ereditate dall\'impianto)' : 'Coordinate', false,
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+          React.createElement(Input, { value: fcLat, onChange: e => setFcLat(e.target.value), placeholder: 'Latitudine', disabled: fcCoordLock || fcIsLinkedPost, style: { flex: 1 } }),
+          React.createElement(Input, { value: fcLng, onChange: e => setFcLng(e.target.value), placeholder: 'Longitudine', disabled: fcCoordLock || fcIsLinkedPost, style: { flex: 1 } }),
+          React.createElement(Tooltip, { title: fcCoordLock ? 'Coordinate ereditate dall\'impianto — sblocca per modificarle' : 'Blocca e reimposta le coordinate dell\'impianto' },
+            React.createElement(Button, {
+              icon: React.createElement(fcCoordLock ? LockOutlined : UnlockOutlined),
+              type: fcCoordLock ? 'primary' : 'default', disabled: fcIsLinkedPost,
+              onClick: toggleFcCoordLock,
+            })),
+        )),
+      cs('Orientamento — ' + (fcOrient || 0) + '°' + (fcIsLinkedPost ? ' (speculare all\'anteriore)' : ''), false,
+        React.createElement('div', { style: { padding: '0 8px' } },
+          React.createElement(Slider, {
+            min: 0, max: 360, value: fcOrient || 0, onChange: setFcOrient, disabled: fcIsLinkedPost,
+            marks: { 0: '0', 90: '90', 180: '180', 270: '270', 360: '360' },
+            tooltip: { formatter: v => v + '°' },
+          }))),
+      cs('Cono di visibilità', false,
+        React.createElement(InputNumber, { value: fcCono, onChange: setFcCono, min: 0, disabled: fcIsLinkedPost, addonBefore: 'r', addonAfter: 'cm', placeholder: '0', style: { width: 200 } })),
+      cs('Formato', false,
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+          React.createElement(InputNumber, { value: fcFormL, onChange: setFcFormL, min: 0, disabled: fcIsLinkedPost, addonAfter: 'cm', placeholder: 'l', style: { flex: 1 } }),
+          React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)' } }, '×'),
+          React.createElement(InputNumber, { value: fcFormH, onChange: setFcFormH, min: 0, disabled: fcIsLinkedPost, addonAfter: 'cm', placeholder: 'h', style: { flex: 1 } }),
+        )),
+      React.createElement('div', { className: 'ni-section-title', style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '8px 0 12px' } }, 'Illuminazione'),
+      gapRow(
+        cs('Stato illuminazione', false,
+          React.createElement(Radio.Group, { optionType: 'button', value: fcIllumStato || 'Spento', onChange: e => onFcIllumStato(e.target.value),
+            options: [{ label: 'Spento', value: 'Spento' }, { label: 'Illuminato', value: 'Illuminato' }, { label: 'Luminoso', value: 'Luminoso' }] })),
+        (fcIllumStato && fcIllumStato !== 'Spento')
+          ? cs('Mezzo di illuminazione', false,
+              sel(fcIllumMezzo, onFcIllumMezzo,
+                (ILLUM_MEZZO_BY_STATO[fcIllumStato] || []).map(v => ({ value: v, label: v })), 'Seleziona', { style: { width: 240 } }))
+          : null,
+      ),
+      fcIllumMezzo === 'Faretti' ? gapRow(
+        cs('Numero faretti', false, num(fcIllumNFaretti, setFcIllumNFaretti, { min: 0, style: { width: 160 } })),
+        cs('Watt per faretto', false, num(fcIllumWatt, setFcIllumWatt, { min: 0, addonAfter: 'W', style: { width: 160 } })),
+      ) : null,
+      React.createElement('div', { className: 'ni-section-title', style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '8px 0 12px' } }, 'Commerciale'),
+      gapRow(
+        cs('Modello di vendita', false,
+          React.createElement(Radio.Group, { optionType: 'button', value: fcVendita || 'Standard', onChange: e => setFcVendita(e.target.value),
+            options: [{ label: 'Standard', value: 'Standard' }, { label: 'Long term', value: 'Long term' }] })),
+        cs('Prezzo faccia (€)', false, num(fcPrezzo, setFcPrezzo, { min: 0, precision: 2, style: { width: 200 } })),
+      ),
+    ),
+
+    // Drawer unico Cespiti/Dispositivi — la select Tipo determina i campi mostrati
+    React.createElement(Drawer, {
+      title: assetEditId ? 'Modifica elemento' : 'Aggiungi cespite o dispositivo',
+      placement: 'right', width: 600,
+      styles: { body: { padding: 24 } },
+      onClose: closeAssetDrawer, open: assetDrawerOpen,
+      extra: React.createElement(Space, null,
+        React.createElement(Button, { onClick: closeAssetDrawer }, 'Annulla'),
+        React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: saveAsset }, assetEditId ? 'Salva' : 'Aggiungi'),
+      ),
+    },
+      cs('Tipo cespite o dispositivo', true,
+        React.createElement(Select, {
+          value: acTipo, onChange: setAcTipo, options: ASSET_TIPO_OPTS,
+          style: { width: '100%' }, placeholder: 'Seleziona il tipo',
+          showSearch: true, optionFilterProp: 'label',
+        })),
+      acTipo
+        ? renderAssetFields(acTipo)
+        : React.createElement(Empty, {
+            description: 'Seleziona un tipo per vedere i campi da compilare',
+            image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '16px 0', margin: '8px 0' },
+          }),
     )
   );
 }
@@ -4190,7 +4459,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 // ─────────────────────────────────────────────────────────
 function App() {
   const [page, setPage] = useState('map'); // 'map' | 'detail'
-  const [modalOpen,      setModalOpen]      = useState(false);
   const [fullFormOpen,   setFullFormOpen]   = useState(false);
   const [prefillData,    setPrefillData]    = useState({});
   const [savedFormData,  setSavedFormData]  = useState(null);
@@ -4836,19 +5104,6 @@ function App() {
       })
     ),
 
-    React.createElement(NewImpiantoModal, {
-      open: modalOpen,
-      onClose: () => setModalOpen(false),
-      onCrea: (imp) => {
-        setDetailImpianto(imp);
-        setPage('detail');
-      },
-      onContinua: (data) => {
-        setPrefillData(data);
-        setModalOpen(false);
-        setFullFormOpen(true);
-      },
-    }),
     React.createElement(NewImpiantoFullDrawer, {
       open: fullFormOpen,
       onClose: () => setFullFormOpen(false),
