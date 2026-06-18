@@ -10,7 +10,7 @@
  *   3. Nel render, usare: React.createElement(window.GravityNavbar, null)
  *
  * Sezioni e voci disponibili (dal DS Figma):
- *   Overview   → Dashboard finance | Dashboard analytics
+ *   Overview   → Per te | Dashboard finance | Dashboard analytics   (sempre presente per ogni ruolo)
  *   Inventory  → Systems | Licenses | Supplier
  *   Commercial → Wallet | Activities | Negotiations | Orders
  *   Delivery   → Campaigns | Plannings
@@ -44,7 +44,7 @@
 
   // Voci di navigazione e link ai prototipi (Figma node 3261-3147)
   var NAV = {
-    Overview:   { items: ['Dashboard finance', 'Dashboard analytics'], links: {} },
+    Overview:   { items: ['Per te', 'Dashboard finance', 'Dashboard analytics'], links: {} },
     Inventory:  { items: ['Systems', 'Licenses', 'Supplier'],
                   links: { Systems: '../prototipo%20approvato/inventory-systems/index.html' } },
     Commercial: { items: ['Wallet', 'Activities', 'Negotiations', 'Orders'],
@@ -64,6 +64,7 @@
   };
 
   var ITEM_LABEL = {
+    'Per te':              'Per te',
     'Dashboard finance':   'Dashboard Finance',
     'Dashboard analytics': 'Dashboard Analytics',
     'Systems':             'Impianti',
@@ -234,7 +235,10 @@
     var user     = ROLE_USER[cur] || { nome: 'U', cognome: '' };
     var abbr     = (user.nome[0] + (user.cognome[0] || '')).toUpperCase();
     var palette  = nameColor(user.nome + ' ' + user.cognome);
-    var sections = ROLE_NAV[cur];
+    // "Panoramica" (con "Per te") è l'area personale: sempre disponibile per ogni
+    // ruolo, anche dove ROLE_NAV non la elenca (es. Sales). La forziamo come prima sezione.
+    var roleSections = ROLE_NAV[cur] || [];
+    var sections = ['Overview'].concat(roleSections.filter(function (s) { return s !== 'Overview'; }));
 
     // Voci Menu antd
     var menuItems = sections.map(function (sec) {
@@ -244,6 +248,8 @@
         label: SECTION_LABEL[sec] || sec,
         children: conf.items.map(function (item) {
           var link   = cfgLinks[item] !== undefined ? cfgLinks[item] : conf.links[item];
+          // "Per te" punta sempre alla pagina profilo (percorso relativo per-pagina via appHref)
+          if (item === 'Per te') link = appHref;
           var isAct  = item === activeItem;
           var lbl    = ITEM_LABEL[item] || item;
           return {
