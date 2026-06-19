@@ -3594,16 +3594,7 @@ function PlanningsList({ onSelect, stateOverrides, planningsList, setPlanningsLi
             React.createElement(icons.ExportOutlined, { style: { fontSize: 11 } }),
             trat,
           );
-          return camp
-            ? React.createElement(Popover, {
-                trigger: 'hover',
-                placement: 'top',
-                content: React.createElement('div', { style: { fontSize: 12 } },
-                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', marginRight: 4 } }, 'Campagna:'),
-                  React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, camp),
-                ),
-              }, link)
-            : link;
+          return link;
         }
         const tratOptions = TRATTATIVE.map(t => ({ value: t.name, label: t.name, advertiser: t.advertiser }));
         const selectedTrat = TRATTATIVE.find(t => t.name === collegaListSelected);
@@ -3754,7 +3745,23 @@ function PlanningsList({ onSelect, stateOverrides, planningsList, setPlanningsLi
     },
     // 8. Tipo vendita — derivato da categoria + durata
     {
-      title: 'Tipo vendita',
+      title: React.createElement(Tooltip, {
+        placement: 'top',
+        title: React.createElement('div', { style: { fontSize: 12, lineHeight: 1.55, maxWidth: 300 } },
+          React.createElement('div', { style: { fontWeight: 600, marginBottom: 4 } }, 'Nota interna · stato del design'),
+          React.createElement('div', { style: { marginBottom: 6 } },
+            'Modello di vendita già configurato: ',
+            React.createElement('b', null, 'Standard'), ' 7gg · ',
+            React.createElement('b', null, 'Quattordicina'), ' 14gg · ',
+            React.createElement('b', null, 'LT'), ' da 1 mese in su · ',
+            React.createElement('b', null, 'Custom'), ' libero.'),
+          React.createElement('div', { style: { marginBottom: 6 } },
+            'La somma di più quattordicine è oggi solo una valutazione di design e potrebbe richiedere un ripensamento delle trattative.'),
+          React.createElement('div', null,
+            'Per questo, al momento ', React.createElement('b', null, 'ogni campagna ha una sola quattordicina'),
+            ' assegnata e ogni pianificazione è ', React.createElement('b', null, 'limitata a una sola'), '.'),
+        ),
+      }, React.createElement('span', { style: { cursor: 'help', borderBottom: '1px dotted rgba(0,0,0,0.3)' } }, 'Tipo vendita')),
       key: 'saleType',
       width: 120,
       render: (_, record) => {
@@ -4653,16 +4660,7 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
                 React.createElement(icons.ExportOutlined, { style: { fontSize: 11 } }),
                 React.createElement('span', { style: { fontSize: 13, fontWeight: 500 } }, trattativaName),
               );
-              return campagnaName
-                ? React.createElement(Popover, {
-                    trigger: 'hover',
-                    placement: 'top',
-                    content: React.createElement('div', { style: { fontSize: 12 } },
-                      React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', marginRight: 4 } }, 'Campagna:'),
-                      React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, campagnaName),
-                    ),
-                  }, link)
-                : link;
+              return link;
             })()
           : isMine && planning.state !== 'Completata'
             ? React.createElement(Popover, {

@@ -26,6 +26,9 @@
   var META       = window.HANDOFF_META || {};
   var COMPONENTS = window.HANDOFF_COMPONENTS || [];
   var DEPS       = window.HANDOFF_DEPENDENCIES || [];
+  var NOTES      = window.HANDOFF_NOTES || [];
+  var RELATIONS  = window.HANDOFF_RELATIONS || [];
+  var SCENARIOS  = window.HANDOFF_SCENARIOS || [];
 
   var ROLE_COLOR = {
     'Tenant Admin':       'purple',
@@ -61,7 +64,21 @@
     });
   }
 
-  // Rendering schematico: **grassetto** + righe che iniziano con "- " → lista puntata.
+  // Inline: **grassetto** + ==evidenziato giallo== (testo scuro, leggibile ovunque).
+  function parseInline(text) {
+    if (text == null || (String(text).indexOf('==') === -1 && String(text).indexOf('**') === -1)) return text;
+    var out = [];
+    String(text).split('==').forEach(function (seg, i) {
+      if (i % 2 === 1) {
+        out.push(h('mark', { key: 'hl' + i, style: { background: '#FFE58F', color: 'rgba(0,0,0,0.85)', padding: '0 3px', borderRadius: 3, fontWeight: 600 } }, parseBold(seg)));
+      } else if (seg !== '') {
+        out.push(h('span', { key: 'tx' + i }, parseBold(seg)));
+      }
+    });
+    return out;
+  }
+
+  // Rendering schematico: inline (**grassetto** / ==giallo==) + righe "- " → lista puntata.
   function renderRich(text) {
     if (text == null) return null;
     var lines = String(text).split('\n');
@@ -73,7 +90,7 @@
         style: bullet ? { paddingLeft: 12, position: 'relative', marginTop: 2 } : (i > 0 ? { marginTop: 3 } : null),
       },
         bullet ? h('span', { style: { position: 'absolute', left: 2 } }, '•') : null,
-        parseBold(content)
+        parseInline(content)
       );
     });
   }
@@ -272,8 +289,32 @@
     if (!el) return null;
     var cs; try { cs = window.getComputedStyle(el); } catch (e) { return null; }
     var txtHex = rgbToHex(cs.color), bgHex = rgbToHex(cs.backgroundColor), bdHex = rgbToHex(cs.borderTopColor);
-    var preset = (txtHex && ANTD_PRESET[txtHex]) || (bgHex && ANTD_PRESET[bgHex]) || (bdHex && ANTD_PRESET[bdHex]) || null;
-    return { txt: cs.color, txtHex: txtHex, bg: cs.backgroundColor, bgHex: bgHex, border: cs.borderTopColor, borderHex: bdHex, preset: preset };
+    // dot di status interno (Badge status / chip col pallino): primo figlio con background
+    var dotHex = null;
+    try {
+      var kids = el.querySelectorAll('*');
+      for (var i = 0; i < kids.length; i++) {
+        var kh = rgbToHex(window.getComputedStyle(kids[i]).backgroundColor);
+        if (kh) { dotHex = kh; break; }
+      }
+    } catch (e2) {}
+    var preset = (txtHex && ANTD_PRESET[txtHex]) || (bgHex && ANTD_PRESET[bgHex]) || (dotHex && ANTD_PRESET[dotHex]) || (bdHex && ANTD_PRESET[bdHex]) || null;
+    return { txt: cs.color, txtHex: txtHex, bg: cs.backgroundColor, bgHex: bgHex, border: cs.borderTopColor, borderHex: bdHex, dotHex: dotHex, preset: preset };
+  }
+
+  // Info icona: nome dal class anticon-* + libreria (Ant Design vs custom).
+  function iconInfo(el) {
+    if (!el) return null;
+    var ic = (el.classList && el.classList.contains('anticon')) ? el
+           : (el.querySelector ? el.querySelector('.anticon') : null);
+    if (ic) {
+      var name = null;
+      Array.prototype.forEach.call(ic.classList, function (c) { if (c.indexOf('anticon-') === 0) name = c.slice(8); });
+      return { lib: 'Ant Design', name: name };
+    }
+    var tag = (el.tagName || '').toLowerCase();
+    if (tag === 'svg' || tag === 'img') return { lib: 'custom', name: null };
+    return null;
   }
 
   function DevInspector() {
@@ -320,25 +361,30 @@
     }, []);
 
     if (!target) return null;
-    var anchorEl = target.el || target.textEl;
+    var entry = target.entry;
+    // info tipografiche dal testo sotto il cursore
+    var typo = typographyInfo(target.textEl);
+    // Atomo testo: hover su un testo DENTRO un contenitore (molecola/organismo/pagina)
+    // → mostra l'atomo Text/Title invece del contenitore (divisione in atomi).
+    var asTextAtom = !!(typo && entry && target.el && target.textEl &&
+      target.el !== target.textEl && target.el.contains(target.textEl) &&
+      !(target.el.matches && target.el.matches('button, a, .ant-btn')) &&
+      (entry.level === 'Molecola' || entry.level === 'Organismo' || entry.level === 'Pagina'));
+    var anchorEl = asTextAtom ? target.textEl : (target.el || target.textEl);
     if (!anchorEl || !anchorEl.isConnected) return null;
 
-    var entry = target.entry;
     var rect  = anchorEl.getBoundingClientRect();
     var vw = window.innerWidth;
     var vh = window.innerHeight;
 
-    // variante AntD: solo per componenti registrati
+    // variante AntD: solo per componenti registrati (non in modalità atomo-testo)
     var variant = null;
-    if (entry) {
+    if (entry && !asTextAtom) {
       try {
         variant = typeof entry.variant === 'function' ? entry.variant(anchorEl)
                 : entry.variant || detectVariant(anchorEl);
       } catch (e) {}
     }
-
-    // info tipografiche dal testo sotto il cursore
-    var typo = typographyInfo(target.textEl);
 
     // card sotto al target, sopra se non c'è spazio
     var CARD_W = 320;
@@ -376,7 +422,7 @@
       // card info
       h('div', { className: 'ghf-inspector-card', style: cardStyle },
         // ── Header ──
-        entry
+        (entry && !asTextAtom)
           ? h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' } },
               h('span', { style: { fontSize: 13, fontWeight: 700, color: '#fff' } }, entry.name),
               h('span', {
@@ -393,20 +439,21 @@
                 },
               }, 'CUSTOM') : null
             )
-          : h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 } },
+          : h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' } },
               h('span', { style: { fontSize: 13, fontWeight: 700, color: '#fff' } }, typo ? typo.role : 'Testo'),
               h('span', {
                 style: {
                   fontSize: 9, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase',
-                  color: '#C586C0', border: '1px solid #C586C0', borderRadius: 4, padding: '1px 6px',
+                  color: levelColor('Atomo'), border: '1px solid ' + levelColor('Atomo'), borderRadius: 4, padding: '1px 6px',
                 },
-              }, 'Tipografia')
+              }, 'Atomo'),
+              asTextAtom ? h('span', { style: { fontSize: 10, color: 'rgba(255,255,255,0.4)' } }, 'in ' + entry.name) : null
             ),
-        entry && entry.funzione ? h('div', {
+        (entry && !asTextAtom && entry.funzione) ? h('div', {
           style: { fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, marginBottom: 8 },
         }, renderRich(entry.funzione)) : null,
-        // ── Meta componente (solo se registrato) ──
-        entry ? h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
+        // ── Meta componente (solo se registrato, non in modalità atomo-testo) ──
+        (entry && !asTextAtom) ? h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
           entry.custom
             ? h(React.Fragment, null,
                 entry.composizione ? metaLine('composto da', entry.composizione, '#B5CEA8') : null,
@@ -420,20 +467,30 @@
               )
         ) : null,
         // ── Colore (per i tag: preset Ant Design + valori effettivi) ──
-        entry && entry.tag ? (function () {
+        (entry && entry.tag && !asTextAtom) ? (function () {
           var ci = colorInfo(anchorEl);
           return ci ? h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 8, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
             h('div', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 2 } }, 'Colore'),
-            ci.preset ? metaLine('preset', ci.preset, '#9CDCFE') : null,
+            ci.preset ? metaLine('status / preset', ci.preset, '#9CDCFE') : null,
+            ci.dotHex ? metaLine('dot', ci.dotHex, '#DCDCAA') : null,
             metaLine('testo', ci.txtHex ? (ci.txtHex + ' · ' + ci.txt) : ci.txt, '#DCDCAA'),
             ci.bgHex ? metaLine('sfondo', ci.bgHex + ' · ' + ci.bg, '#DCDCAA')
               : (ci.bg && ci.bg !== 'rgba(0, 0, 0, 0)' ? metaLine('sfondo', ci.bg, '#DCDCAA') : null),
             ci.borderHex ? metaLine('bordo', ci.borderHex, '#DCDCAA') : null
           ) : null;
         })() : null,
+        // ── Icona (Ant Design o custom) ──
+        (entry && entry.icon && !asTextAtom) ? (function () {
+          var ii = iconInfo(anchorEl);
+          return ii ? h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: 8, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
+            h('div', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 2 } }, 'Icona'),
+            metaLine('libreria', ii.lib === 'Ant Design' ? 'Ant Design' : '⚠ custom (non Ant Design)', ii.lib === 'Ant Design' ? '#9CDCFE' : '#FFB454'),
+            ii.name ? metaLine('icona', 'Icon / ' + ii.name, '#DCDCAA') : null
+          ) : null;
+        })() : null,
         // ── Tipografia (token ufficiali Ant Design) ──
-        typo ? h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: entry ? 8 : 0, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
-          entry ? h('div', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 2 } }, 'Testo') : null,
+        typo ? h('div', { style: { borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: (entry && !asTextAtom) ? 8 : 0, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
+          (entry && !asTextAtom) ? h('div', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 2 } }, 'Testo') : null,
           metaLine('tipo', typo.role, '#C586C0'),
           metaLine('dimensione', typo.sizePx + 'px · ' + typo.sizeToken, '#9CDCFE'),
           metaLine('peso', typo.weight + ' · ' + typo.weightName, '#CE9178'),
@@ -550,16 +607,15 @@
   // ── TourBalloon ───────────────────────────────────────────────────────────
   // Balloon posizionato accanto al target. Unico elemento interagibile durante il tour.
 
-  function TourBalloon({ step, index, total, steps, screenLabel, role, roleColor, onPrev, onNext, onGoTo, onExit }) {
+  function TourBalloon({ step, index, total, steps, screenLabel, role, roleColor, usTitle, onPrev, onNext, onGoTo, onExit }) {
     var BALLOON_W = 440;
     var GAP       = 18;
     var _p = useState({ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' });
     var pos = _p[0]; var setPos = _p[1];
     var balloonRef = useRef(null);
-    var _dv  = useState(false); var devOpen   = _dv[0];  var setDevOpen   = _dv[1];
     var _idx = useState(false); var indexOpen = _idx[0]; var setIndexOpen = _idx[1];
-    // Reset sezioni collassabili ad ogni cambio step
-    useEffect(function () { setDevOpen(false); setIndexOpen(false); }, [step]);
+    // Reset indice collassabile ad ogni cambio step
+    useEffect(function () { setIndexOpen(false); }, [step]);
 
     useEffect(function () {
       function calc() {
@@ -622,6 +678,10 @@
         zIndex: 9100,
         fontFamily: FONT,
         overflow: 'hidden',
+        // Mai oltre la viewport: header + footer fissi, body scrollabile
+        display: 'flex',
+        flexDirection: 'column',
+        maxHeight: 'calc(100vh - ' + (GAP * 2) + 'px)',
       }),
     },
       // Barra progress
@@ -631,6 +691,7 @@
           background: 'rgba(0,0,0,0.06)',
           borderRadius: '12px 12px 0 0',
           overflow: 'hidden',
+          flexShrink: 0,
         },
       },
         h('div', {
@@ -644,18 +705,21 @@
       ),
       // Header schermata + ruolo
       h('div', {
-        style: { padding: '12px 18px 10px', borderBottom: '1px solid rgba(0,0,0,.06)' },
+        style: { padding: '12px 18px 10px', borderBottom: '1px solid rgba(0,0,0,.06)', flexShrink: 0 },
       },
         h('div', {
           style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)', marginBottom: 5 },
-        }, screenLabel || '—'),
-        h(antd.Tag, {
-          color: roleColor || 'default',
-          style: { margin: 0, fontSize: 11, fontWeight: 600 },
-        }, role || '—')
+        }, usTitle || screenLabel || '—'),
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' } },
+          h(antd.Tag, {
+            color: roleColor || 'default',
+            style: { margin: 0, fontSize: 11, fontWeight: 600 },
+          }, role || '—'),
+          screenLabel ? h('span', { style: { fontSize: 11, color: 'rgba(0,0,0,.4)' } }, screenLabel) : null
+        )
       ),
-      // Body
-      h('div', { style: { padding: '12px 18px 12px' } },
+      // Body — unica area scrollabile (tutto il resto resta fisso e a schermo)
+      h('div', { style: { padding: '12px 18px 12px', flex: 1, overflowY: 'auto', minHeight: 0 } },
         // Counter + toggle indice
         h('div', {
           style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
@@ -715,39 +779,29 @@
         }, renderRich(step.description)),
         // ── Tabella (opzionale, sempre visibile) ─────────────────────────
         step.table ? h('div', { style: { marginTop: 10 } }, renderMatrix(step.table)) : null,
-        // ── Sezione dev (opzionale) ──────────────────────────────────────
-        step.dev ? h(React.Fragment, null,
-          h('button', {
-            onClick: function () { setDevOpen(function (v) { return !v; }); },
-            style: {
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              marginTop: 10, padding: '2px 8px',
-              background: devOpen ? '#1a1a1a' : 'rgba(0,0,0,.05)',
-              color: devOpen ? '#9CDCFE' : 'rgba(0,0,0,.3)',
-              border: 'none', borderRadius: 4, cursor: 'pointer',
-              fontSize: 11, fontFamily: MONO, fontWeight: 600,
-            },
-          }, '{ } dev'),
-          devOpen ? h('div', {
-            style: {
-              marginTop: 6, background: '#0f0f0f', borderRadius: 6,
-              padding: '10px 12px', overflowY: 'auto', maxHeight: 360,
-            },
+        // ── Sezione dev (sempre visibile) ────────────────────────────────
+        step.dev ? h('div', {
+          style: {
+            marginTop: 10, background: '#0f0f0f', borderRadius: 6,
+            padding: '10px 12px',
           },
-            (typeof step.dev === 'string'
-              ? [{ label: null, value: step.dev }]
-              : step.dev
-            ).map(function (item, i, arr) {
-              return h('div', { key: i, style: { marginBottom: i < arr.length - 1 ? 12 : 0 } },
-                item.label ? h('div', {
-                  style: { fontSize: 9, color: 'rgba(255,255,255,.3)', marginBottom: 3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' },
-                }, item.label) : null,
-                h('pre', {
-                  style: { margin: 0, fontSize: 11, color: '#9CDCFE', fontFamily: MONO, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.55 },
-                }, item.value)
-              );
-            })
-          ) : null
+        },
+          h('div', {
+            style: { fontSize: 9, color: 'rgba(255,255,255,.35)', marginBottom: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', fontFamily: MONO },
+          }, '{ } dev'),
+          (typeof step.dev === 'string'
+            ? [{ label: null, value: step.dev }]
+            : step.dev
+          ).map(function (item, i, arr) {
+            return h('div', { key: i, style: { marginBottom: i < arr.length - 1 ? 12 : 0 } },
+              item.label ? h('div', {
+                style: { fontSize: 9, color: 'rgba(255,255,255,.3)', marginBottom: 3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' },
+              }, item.label) : null,
+              h('pre', {
+                style: { margin: 0, fontSize: 11, color: '#9CDCFE', fontFamily: MONO, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.55 },
+              }, item.value)
+            );
+          })
         ) : null
       ),
       // Footer navigazione
@@ -756,6 +810,7 @@
           padding: '10px 14px',
           borderTop: '1px solid rgba(0,0,0,.06)',
           display: 'flex', alignItems: 'center', gap: 8,
+          flexShrink: 0,
         },
       },
         h(antd.Button, {
@@ -780,15 +835,40 @@
   // ── Pannello user story (contenuto del dropdown in navbar) ────────────────
 
   function UsPanel({ tours, screen, role, roleColor, onStart }) {
-    var curScreenLabel = screen ? screenLabel(screen) : null;
-    // Mostra solo le US della schermata corrente (più quelle senza schermata vincolata)
-    var visibleTours = tours.filter(function (tour) {
-      return !tour.startScreen || !screen || tour.startScreen === screen;
+    tours = (tours || []).slice().sort(function (a, b) {
+      function n(t) { var m = (t.title || '').match(/US#?\s*([\d.]+)/i); return m ? m[1].split('.').map(Number) : [Infinity]; }
+      var na = n(a), nb = n(b);
+      for (var i = 0; i < Math.max(na.length, nb.length); i++) {
+        var x = na[i] == null ? -1 : na[i], y = nb[i] == null ? -1 : nb[i];
+        if (x !== y) return x - y;
+      }
+      return 0;
     });
-    var items = visibleTours.length === 0
+    // Filtro per tipo di schermata (template)
+    var _f = useState('all'); var scrFilter = _f[0]; var setScrFilter = _f[1];
+    var screens = [];
+    tours.forEach(function (t) { if (t.startScreen && screens.indexOf(t.startScreen) === -1) screens.push(t.startScreen); });
+    var shown = scrFilter === 'all' ? tours : tours.filter(function (t) { return t.startScreen === scrFilter; });
+
+    function filterChip(label, active, onClick) {
+      return h('button', {
+        key: label, onClick: onClick,
+        style: {
+          fontSize: 11, fontWeight: 600, cursor: 'pointer', lineHeight: '18px',
+          padding: '1px 10px', borderRadius: 12, fontFamily: FONT,
+          border: '1px solid ' + (active ? '#3E00FB' : 'rgba(0,0,0,0.12)'),
+          background: active ? '#3E00FB' : '#fff',
+          color: active ? '#fff' : 'rgba(0,0,0,0.6)',
+        },
+      }, label);
+    }
+
+    // Mostra TUTTE le US del ruolo (filtrabili per schermata): il tag "template"
+    // esplicita il flusso e il tour porta l'utente nei punti giusti.
+    var items = (shown.length === 0)
       ? h('div', { style: { padding: '24px 16px', textAlign: 'center', fontSize: 12, color: 'rgba(0,0,0,.3)' } },
-          'Nessuna user story per questa schermata.')
-      : visibleTours.map(function (tour) {
+          'Nessuna user story per questo filtro.')
+      : shown.map(function (tour) {
           return h('div', {
             key: tour.id,
             onClick: function () { onStart(tour); },
@@ -797,9 +877,9 @@
             onMouseLeave: function (e) { e.currentTarget.style.background = ''; },
           },
             h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' } },
+              screenChip(tour.startScreen ? screenLabel(tour.startScreen) : null),
               h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,.88)' } }, tour.title),
-              tour.novita ? h(antd.Tag, { color: '#FF4A1C', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px', fontWeight: 600 } }, 'Novità') : null,
-              tour.roles  ? h(antd.Tag, { color: ROLE_COLOR[tour.roles[0]] || 'default', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px' } }, tour.roles.join(', ')) : null
+              tour.novita ? h(antd.Tag, { color: '#FF4A1C', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px', fontWeight: 600 } }, 'Novità') : null
             ),
             h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.45)', marginBottom: 0, lineHeight: 1.5 } }, renderRich(tour.description)),
             h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.25)', marginTop: 4 } }, tour.steps.length + ' step')
@@ -809,45 +889,59 @@
     return h('div', {
       className: 'ghf-us-panel',
       style: {
-        width: 300, background: '#fff', borderRadius: 12,
+        width: 440, background: '#fff', borderRadius: 12,
         boxShadow: '0 8px 32px rgba(0,0,0,.15)',
         maxHeight: 480, overflow: 'hidden', display: 'flex', flexDirection: 'column',
         fontFamily: FONT,
       },
     },
       h('div', { style: { padding: '12px 16px 10px', borderBottom: '1px solid rgba(0,0,0,.06)' } },
-        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 } },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
           h('span', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'User story'),
-          screenChip(curScreenLabel)
-        ),
-        h(antd.Tag, { color: roleColor, style: { margin: 0, fontSize: 11, fontWeight: 600 } }, role)
+          h(antd.Tag, { color: roleColor, style: { margin: 0, fontSize: 11, fontWeight: 600 } }, role)
+        )
       ),
+      screens.length > 1 ? h('div', { style: { padding: '8px 12px', borderBottom: '1px solid rgba(0,0,0,.06)', display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center', whiteSpace: 'nowrap' } },
+        h('span', { style: { fontSize: 9, color: 'rgba(0,0,0,.35)', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 700, marginRight: 2 } }, 'Schermata'),
+        filterChip('Tutte', scrFilter === 'all', function () { setScrFilter('all'); }),
+        screens.map(function (s) { return filterChip(screenLabel(s), scrFilter === s, function () { setScrFilter(s); }); })
+      ) : null,
       h('div', { style: { flex: 1, overflowY: 'auto' } }, items)
     );
   }
 
-  // ── Pannello dipendenze (contenuto del dropdown in navbar) ────────────────
+  // ── Pannello modello: Relazioni tra entità + Dipendenze (regole) ──────────
 
-  function DepPanel({ deps }) {
-    var items = (!deps || deps.length === 0)
+  function ModelPanel({ relations, deps, scenarios }) {
+    var _t = useState('scenari'); var tab = _t[0]; var setTab = _t[1];
+    var data = tab === 'relazioni' ? (relations || []) : tab === 'dipendenze' ? (deps || []) : (scenarios || []);
+
+    function tabBtn(label, key) {
+      var active = tab === key;
+      return h('button', {
+        key: key, onClick: function () { setTab(key); },
+        style: {
+          fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: FONT,
+          padding: '5px 12px', border: 'none', background: 'transparent',
+          color: active ? '#3E00FB' : 'rgba(0,0,0,0.5)',
+          borderBottom: '2px solid ' + (active ? '#3E00FB' : 'transparent'),
+        },
+      }, label);
+    }
+
+    var items = (data.length === 0)
       ? h('div', { style: { padding: '24px 16px', textAlign: 'center', fontSize: 12, color: 'rgba(0,0,0,.3)' } },
-          'Nessuna dipendenza documentata.')
-      : deps.map(function (d) {
-          return h('div', {
-            key: d.id,
-            style: { padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,.05)' },
-          },
-            h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: d.description ? 4 : 8 } },
-              h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,.88)' } }, d.title),
-              screenChip(d.screen)
-            ),
+          'Nessun elemento.')
+      : data.map(function (d) {
+          return h('div', { key: d.id, style: { padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,.05)' } },
+            h('div', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,.88)', marginBottom: d.description ? 4 : 8 } }, d.title),
             d.description ? h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.45)', lineHeight: 1.5, marginBottom: 8 } }, renderRich(d.description)) : null,
             d.table ? renderMatrix(d.table) : null
           );
         });
 
     return h('div', {
-      className: 'ghf-dep-panel',
+      className: 'ghf-model-panel',
       style: {
         width: 460, background: '#fff', borderRadius: 12,
         boxShadow: '0 8px 32px rgba(0,0,0,.15)',
@@ -855,9 +949,43 @@
         fontFamily: FONT,
       },
     },
+      h('div', { style: { padding: '12px 16px 0', borderBottom: '1px solid rgba(0,0,0,.06)' } },
+        h('div', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'Modello di dominio'),
+        h('div', { style: { display: 'flex', gap: 4, marginTop: 6 } },
+          tabBtn('Scenari', 'scenari'),
+          tabBtn('Relazioni', 'relazioni'),
+          tabBtn('Dipendenze', 'dipendenze')
+        )
+      ),
+      h('div', { style: { flex: 1, overflowY: 'auto' } }, items)
+    );
+  }
+
+  // ── Pannello note interne (contenuto del dropdown in navbar) ──────────────
+
+  function NotesPanel({ notes }) {
+    var items = (!notes || notes.length === 0)
+      ? h('div', { style: { padding: '24px 16px', textAlign: 'center', fontSize: 12, color: 'rgba(0,0,0,.3)' } },
+          'Nessuna nota.')
+      : notes.map(function (n) {
+          return h('div', { key: n.id, style: { padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,.05)' } },
+            h('div', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,.88)', marginBottom: 6 } }, n.title),
+            h('div', { style: { fontSize: 12, color: 'rgba(0,0,0,.6)', lineHeight: 1.55 } }, renderRich(n.body))
+          );
+        });
+
+    return h('div', {
+      className: 'ghf-notes-panel',
+      style: {
+        width: 360, background: '#fff', borderRadius: 12,
+        boxShadow: '0 8px 32px rgba(0,0,0,.15)',
+        maxHeight: 520, overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        fontFamily: FONT,
+      },
+    },
       h('div', { style: { padding: '12px 16px 10px', borderBottom: '1px solid rgba(0,0,0,.06)' } },
-        h('div', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'Dipendenze tra entità'),
-        h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.4)', marginTop: 2 } }, 'Regole e combinazioni del prototipo')
+        h('div', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'Note interne'),
+        h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.4)', marginTop: 2 } }, 'Appunti di design per lo sviluppo')
       ),
       h('div', { style: { flex: 1, overflowY: 'auto' } }, items)
     );
@@ -865,9 +993,10 @@
 
   // ── Controlli in navbar (portal accanto alla campanella) ─────────────────
 
-  function NavControls({ devMode, onDevToggle, tours, onStart, screen, role, roleColor, novitaCount, deps }) {
+  function NavControls({ devMode, onDevToggle, tours, onStart, screen, role, roleColor, novitaCount, deps, notes, relations, scenarios }) {
     var _us = useState(false); var usOpen = _us[0]; var setUsOpen = _us[1];
     var _dep = useState(false); var depOpen = _dep[0]; var setDepOpen = _dep[1];
+    var _nt = useState(false); var notesOpen = _nt[0]; var setNotesOpen = _nt[1];
     return h('span', {
       // Area unica che raggruppa toggle dev + user story
       style: {
@@ -928,10 +1057,10 @@
         open: depOpen,
         onOpenChange: setDepOpen,
         placement: 'bottomRight',
-        dropdownRender: function () { return h(DepPanel, { deps: deps }); },
+        dropdownRender: function () { return h(ModelPanel, { scenarios: scenarios, relations: relations, deps: deps }); },
       },
         h('span', {
-          title: 'Dipendenze tra entità',
+          title: 'Modello di dominio (relazioni + dipendenze)',
           style: {
             display: 'inline-flex', alignItems: 'center', gap: 6,
             height: 24, padding: '0 10px',
@@ -944,7 +1073,34 @@
           onMouseLeave: function (e) { e.currentTarget.style.color = 'rgba(0,0,0,0.75)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.15)'; },
         },
           h(icons.ApartmentOutlined, { style: { fontSize: 13 } }),
-          h('span', null, 'Dipendenze')
+          h('span', null, 'Modello')
+        )
+      ),
+      // Divider interno
+      h('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }),
+      // Note interne — trigger con estetica button (icona + label)
+      h(antd.Dropdown, {
+        trigger: ['click'],
+        open: notesOpen,
+        onOpenChange: setNotesOpen,
+        placement: 'bottomRight',
+        dropdownRender: function () { return h(NotesPanel, { notes: notes }); },
+      },
+        h('span', {
+          title: 'Note interne',
+          style: {
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            height: 24, padding: '0 10px',
+            background: '#fff', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 6,
+            color: 'rgba(0,0,0,0.75)', cursor: 'pointer',
+            fontFamily: FONT, fontSize: 12, fontWeight: 600, lineHeight: '22px',
+            transition: 'color .15s, border-color .15s',
+          },
+          onMouseEnter: function (e) { e.currentTarget.style.color = '#3E00FB'; e.currentTarget.style.borderColor = '#3E00FB'; },
+          onMouseLeave: function (e) { e.currentTarget.style.color = 'rgba(0,0,0,0.75)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.15)'; },
+        },
+          h(icons.FileTextOutlined, { style: { fontSize: 13 } }),
+          h('span', null, 'Note')
         )
       )
     );
@@ -1026,9 +1182,44 @@
     }
 
     function startTour(tour) {
-      setActiveTour(tour);
-      setTourOpen(true);
-      goToStep(tour, 0);
+      var target = tour.startScreen;
+      var begin = function () { setActiveTour(tour); setTourOpen(true); goToStep(tour, 0); };
+      if (!target || !SCREENS) { begin(); return; }
+
+      function waitFor(scr, cb) {
+        var n = 0;
+        var iv = setInterval(function () {
+          n++;
+          if (detectScreen() === scr || n > 50) { clearInterval(iv); cb(); }
+        }, 100);
+      }
+
+      // Dettaglio: apre sempre dalla lista la pianificazione adatta alla casistica
+      if (target === 'selezione-spazi') {
+        var open = (typeof tour.goTo === 'function') ? tour.goTo
+                 : (SCREENS[target] && SCREENS[target].goTo);
+        var doOpen = function () {
+          if (typeof open === 'function') { try { open(); } catch (e) {} }
+          waitFor('selezione-spazi', begin);
+        };
+        if (detectScreen() === 'lista') { doOpen(); }
+        else {
+          // già su un dettaglio (magari sbagliato) → torna alla lista, poi apri quello giusto
+          if (SCREENS.lista && SCREENS.lista.goTo) { try { SCREENS.lista.goTo(); } catch (e) {} }
+          waitFor('lista', doOpen);
+        }
+        return;
+      }
+
+      // Lista: assicura di essere sulla lista
+      if (target === 'lista') {
+        if (detectScreen() === 'lista') { begin(); return; }
+        if (SCREENS.lista && SCREENS.lista.goTo) { try { SCREENS.lista.goTo(); } catch (e) {} }
+        waitFor('lista', begin);
+        return;
+      }
+
+      begin();
     }
 
     function exitTour() {
@@ -1054,6 +1245,9 @@
         roleColor:   roleColor,
         novitaCount: novitaCount,
         deps:        DEPS,
+        notes:       NOTES,
+        relations:   RELATIONS,
+        scenarios:   SCENARIOS,
       }),
       slotEl
     ) : null;
@@ -1072,6 +1266,7 @@
         screenLabel: curScreenLabel || '—',
         role:        role,
         roleColor:   roleColor,
+        usTitle:     activeTour.title,
         onPrev:      function () { goToStep(activeTour, tourCur - 1); },
         onNext:      function () { goToStep(activeTour, tourCur + 1); },
         onGoTo:      function (i) { goToStep(activeTour, i); },
