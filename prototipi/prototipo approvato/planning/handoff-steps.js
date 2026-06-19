@@ -8,6 +8,30 @@
  * Il matching usa closest(selector): vince l'elemento più profondo.
  */
 
+// Helper di navigazione: aprono dalla lista la pianificazione adatta alla casistica.
+function _ghfOpenRow(row) { if (!row) return; var c = row.querySelector('.ant-table-cell'); (c || row).click(); }
+function ghfOpenMinePlanning() {
+  // pianificazione già presa in carico (mia): riga con "(tu)" nel pianificatore
+  var rows = document.querySelectorAll('.ant-table-tbody .ant-table-row');
+  for (var i = 0; i < rows.length; i++) { if (/\(tu\)/i.test(rows[i].textContent || '')) { _ghfOpenRow(rows[i]); return; } }
+  _ghfOpenRow(rows[0]);
+}
+function ghfOpenUnassignedPlanning() {
+  // pianificazione NON assegnata: riga col pulsante "Prendi in carico"
+  var btn = document.querySelector('.ant-table-tbody .ant-btn-dashed');
+  if (btn && btn.closest) { _ghfOpenRow(btn.closest('.ant-table-row')); return; }
+  _ghfOpenRow(document.querySelector('.ant-table-tbody .ant-table-row'));
+}
+function ghfOpenMineDraft() {
+  // pianificazione mia (Bozza) SENZA trattativa: riga "(tu)" con "Collega Trattativa"
+  var rows = document.querySelectorAll('.ant-table-tbody .ant-table-row');
+  for (var i = 0; i < rows.length; i++) {
+    var t = rows[i].textContent || '';
+    if (/\(tu\)/i.test(t) && /Collega Trattativa/i.test(t)) { _ghfOpenRow(rows[i]); return; }
+  }
+  ghfOpenMinePlanning();
+}
+
 window.HANDOFF_META = {
   title:   'Planning',
   version: '1.0',
@@ -21,10 +45,17 @@ window.HANDOFF_SCREENS = {
     detect: function () {
       return !!document.querySelector('.page-content') && !document.querySelector('.ss-card-map');
     },
+    // Torna alla lista dal dettaglio
+    goTo: function () {
+      var back = document.querySelector('.plh-back');
+      if (back) back.click();
+    },
   },
   'selezione-spazi': {
     label:  'Selezione spazi',
     detect: function () { return !!document.querySelector('.ss-card-map'); },
+    // Apre una pianificazione già presa in carico (mia) per entrare nella selezione spazi
+    goTo: ghfOpenMinePlanning,
   },
 };
 
@@ -42,12 +73,11 @@ window.HANDOFF_TOURS = [
     steps: [
       {
         title:       'Panoramica carichi di lavoro',
-        description: 'Tre card in cima alla pagina riassumono il carico di lavoro: **pianificazioni non assegnate**, **mie bozze** e **mie pianificazioni in trattativa**. I counter si aggiornano in tempo reale.',
+        description: 'Tre card in cima alla pagina riassumono il carico di lavoro: **pianificazioni non assegnate**, **mie bozze** e **mie pianificazioni in trattativa**. I counter si aggiornano in tempo reale.\n- ==⚠ Le card e i conteggi cambiano in base al ruolo== (Planner / Operations Manager)',
         selector:    '.gv-kpi-cards',
         placement:   'bottom',
         dev: [
           { label: 'Componente', value: 'DataCard ×3 (System Card DS)' },
-          { label: 'Counter', value: 'libere / mie bozze / mie in trattativa\n(derivati dal dataset)' },
         ],
       },
       {
@@ -65,9 +95,7 @@ window.HANDOFF_TOURS = [
         selector:    '.ant-table-wrapper',
         placement:   'top',
         dev: [
-          { label: 'Componente', value: '<Table dataSource={pianificazioni}\n  columns={columns} rowKey="id" />' },
-          { label: 'Filtri', value: 'column filter: canale, inserzionista,\nplanner, stato + search inline "nome"' },
-          { label: 'Riga → dettaglio', value: 'onRow.onClick → US#2' },
+          { label: 'Componente', value: 'Table (AntD)' },
         ],
       },
       {
@@ -75,11 +103,6 @@ window.HANDOFF_TOURS = [
         description: 'Le pianificazioni **assegnate a me** mostrano il mio nome con **"(tu)"**. Quelle **non assegnate** espongono l\'azione inline **"Prendi in carico"** (→ US#1.1).',
         colIndex:    4,
         placement:   'left',
-        dev: [
-          { label: 'Render cella', value: 'planner===me → nome + "(tu)"\n!planner → "Prendi in carico"\naltro → nome planner' },
-          { label: 'Ruoli', value: 'Planner e Operations Manager\n(assegna a me / ad altri)' },
-          { label: 'Stati', value: 'Bozza · In trattativa · Completata\n(3° stato "In trattativa" nuovo)' },
-        ],
       },
     ],
   },
@@ -103,8 +126,7 @@ window.HANDOFF_TOURS = [
         selector:    '.ant-table-wrapper',
         placement:   'top',
         dev: [
-          { label: 'Componente', value: '<Table\n  dataSource={pianificazioni}\n  columns={columns}\n  rowKey="id"\n/>' },
-          { label: 'Tipo dato', value: 'Pianificazione {\n  id: string\n  nome: string\n  canale: string\n  inserzionista: string\n  planner: User | null\n}' },
+          { label: 'Componente', value: 'Table (AntD)' },
         ],
       },
 
@@ -113,10 +135,6 @@ window.HANDOFF_TOURS = [
         description: 'La colonna mostra **tre stati possibili**: il nome del planner assegnato (se già presa in carico), il bottone **"Prendi in carico"** (se non assegnata e il ruolo è **Planner**), oppure **"—"** (se non assegnata ma il ruolo non è Planner).',
         colIndex:    4,
         placement:   'left',
-        dev: [
-          { label: 'Logica render cella', value: 'if (record.planner)\n  → <Avatar /> + nome\nelse if (role === "Planner")\n  → <Button type="dashed" />\nelse\n  → "—"' },
-          { label: 'Definizione colonna', value: '{\n  key: "planner",\n  title: "Pianificatore",\n  render: (_, record) => ...\n}' },
-        ],
       },
 
       {
@@ -125,8 +143,7 @@ window.HANDOFF_TOURS = [
         selector:    '.ant-table-tbody .ant-btn-dashed',
         placement:   'left',
         dev: [
-          { label: 'Componente', value: '<Button\n  type="dashed"\n  icon={<UserAddOutlined />}\n>\n  Prendi in carico\n</Button>' },
-          { label: 'Condizione render', value: '!record.planner\n&& currentUser.role === "Planner"' },
+          { label: 'Componente', value: 'Button — Type=Dashed, icona UserAdd' },
         ],
       },
 
@@ -141,10 +158,7 @@ window.HANDOFF_TOURS = [
         },
         delay: 180,
         dev: [
-          { label: 'Componente', value: '<Popconfirm\n  title="Prendere in carico\n         la pianificazione?"\n  okText="Prendi in carico"\n  cancelText="Annulla"\n  onConfirm={handleAssign}\n>' },
-          { label: 'API', value: 'PATCH /api/pianificazioni/:id\n{ planner: { id: currentUser.id } }' },
-          { label: 'On success', value: 'message.success("Pianificazione\npresa in carico")\n+ aggiorna record in state' },
-          { label: 'On error', value: 'message.error("Errore...")\n+ nessun aggiornamento UI' },
+          { label: 'Componente', value: 'Popconfirm — okText "Prendi in carico", cancelText "Annulla"' },
         ],
       },
 
@@ -159,9 +173,7 @@ window.HANDOFF_TOURS = [
         },
         delay: 220,
         dev: [
-          { label: 'Chiamata', value: 'message.success(\n  "Pianificazione presa in carico"\n)' },
-          { label: 'Durata default', value: '3 secondi (antd default)\nSe serve più tempo: message.success(testo, 6)' },
-          { label: 'Posizione', value: 'Fixed, top center — gestito\nautomaticamente da antd' },
+          { label: 'Componente', value: 'Message — Type=Success' },
         ],
       },
 
@@ -170,11 +182,6 @@ window.HANDOFF_TOURS = [
         description: 'La colonna Pianificatore si aggiorna con **avatar + nome** del planner assegnato. Aggiornamento **in-memory** — non persiste tra navigazioni nel prototipo.',
         colIndex:    4,
         placement:   'left',
-        dev: [
-          { label: 'Stato aggiornato', value: 'record.planner = {\n  id: currentUser.id,\n  nome: currentUser.nome,\n  avatar: currentUser.avatarUrl\n}' },
-          { label: 'Rollback su errore', value: 'Ripristina planner: null\nmessage.error("Operazione\nnon riuscita")' },
-          { label: 'Nota prototipo', value: 'L\'aggiornamento è in-memory.\nNon persiste tra navigazioni.' },
-        ],
       },
 
     ],
@@ -189,34 +196,44 @@ window.HANDOFF_TOURS = [
     description: '(GRP-432) Come **pianificatore** voglio prendere in carico una pianificazione non assegnata **dal suo dettaglio**, così da poter lavorare sulla selezione degli spazi.',
     roles:       ['Planner', 'Operations Manager'],
     startScreen: 'selezione-spazi',
+    goTo:        ghfOpenUnassignedPlanning,
     steps: [
       {
         title:       'Sola lettura + box informativo',
         description: 'Finché non è presa in carico, il dettaglio è in **sola lettura**: non si possono selezionare impianti. Un **box informativo** invita a prenderla in carico per lavorare sulla selezione.',
         selector:    '.ant-alert',
         placement:   'bottom',
-        dev: [
-          { label: 'Stato', value: 'readOnly = !isMine ||\n  state === "Completata"' },
-        ],
       },
       {
         title:       'Bottone "Prendi in carico"',
-        description: 'Nell\'**header** del dettaglio il bottone **"Prendi in carico"** appare se la pianificazione non ha un planner. Il click apre una **popconfirm** di conferma.',
+        description: 'Nell\'**header** del dettaglio il bottone **"Prendi in carico"** appare se la pianificazione non ha un planner.',
         selector:    '.gv-btn-takecharge',
         placement:   'bottom',
         dev: [
-          { label: 'Componente', value: 'PlanningHeaderNR → onTakeInCharge' },
-          { label: 'API', value: 'PATCH /api/pianificazioni/:id\n{ planner: currentUser }' },
+          { label: 'Componente', value: 'Button "Prendi in carico" (header dettaglio)' },
         ],
       },
       {
-        title:       'Conferma e aggiornamento',
-        description: 'Dopo la conferma: il **nome compare nell\'header**, il pulsante scompare, un **toast** conferma l\'operazione e la card **"Da prendere in carico"** nella lista aggiorna il counter.',
+        title:       'Popconfirm di conferma',
+        description: 'Il click apre una **popconfirm**: "Prendere in carico la pianificazione?" con le azioni **"Prendi in carico"** e "Annulla".',
+        selector:    '.ant-popover.ant-popconfirm',
+        placement:   'bottom',
+        onEnter: function () { var b = document.querySelector('.gv-btn-takecharge'); if (b) b.click(); },
+        delay: 200,
+      },
+      {
+        title:       'Feedback: toast',
+        description: 'Alla conferma un **toast** comunica l\'avvenuta presa in carico.',
+        selector:    '.ant-message-notice',
+        placement:   'bottom',
+        onEnter: function () { var ok = document.querySelector('.ant-popconfirm .ant-btn-primary'); if (ok) ok.click(); },
+        delay: 240,
+      },
+      {
+        title:       'Risultato: dettaglio editabile',
+        description: 'Il **nome del planner compare nell\'header**, il pulsante scompare e la pianificazione diventa **editabile** (selezione impianti attiva). In lista la card "Da prendere in carico" aggiorna il counter.',
         selector:    '.gv-detail-header',
         placement:   'bottom',
-        dev: [
-          { label: 'On success', value: 'message.success(...)\n+ header avatar+nome\n+ counter card −1' },
-        ],
       },
     ],
   },
@@ -230,6 +247,7 @@ window.HANDOFF_TOURS = [
     description: '(GRP-460) Come **pianificatore** voglio far avanzare lo stato di una pianificazione, così da coordinare il lavoro con il commerciale in modo trasparente.',
     roles:       ['Planner', 'Operations Manager'],
     startScreen: 'selezione-spazi',
+    goTo:        ghfOpenMineDraft,
     steps: [
       {
         title:       'Collega a una trattativa',
@@ -241,9 +259,6 @@ window.HANDOFF_TOURS = [
           if (b) b.click();
         },
         delay: 220,
-        dev: [
-          { label: 'Naming', value: '"Allega a trattativa" → "Collega trattativa"' },
-        ],
       },
       {
         title:       'Trattativa collegata',
@@ -256,23 +271,17 @@ window.HANDOFF_TOURS = [
         description: 'Con trattativa collegata e **almeno uno spazio** selezionato, **"Consegna in trattativa"** è attivo. Una **popconfirm** chiede conferma; alla conferma lo stato passa da **Bozza → In trattativa**, viene registrata la **data di consegna** e appare un **toast**.',
         selector:    '.gv-btn-consegna',
         placement:   'bottom',
-        dev: [
-          { label: 'Transizione', value: 'Bozza → In trattativa\n+ deliveredAt = now' },
-        ],
       },
       {
         title:       'Aggiorna consegna',
         description: 'Se dopo la consegna gli spazi cambiano, il pulsante diventa **"Aggiorna consegna"**. Prima di aggiornare una **modale** mostra le **differenze**: facce aggiunte, rimosse e con cambio di stato di disponibilità.',
         selector:    '.gv-btn-consegna',
         placement:   'bottom',
-        dev: [
-          { label: 'Diff', value: 'added / removed / statusChanged' },
-        ],
       },
       {
-        title:       'Sola lettura',
-        description: 'Le pianificazioni **Confermata** o **assegnate ad altri** sono visibili ma non modificabili: un **banner** segnala la modalità sola lettura.',
-        selector:    '.ant-alert',
+        title:       'Sola lettura (altri stati)',
+        description: 'Quando la pianificazione è **Completata** o **assegnata ad altri**, il dettaglio è in **sola lettura**: un **banner** lo segnala e le azioni di modifica/consegna sono disattivate. (Qui sei su una tua bozza, quindi editabile.)',
+        selector:    '.gv-detail-header',
         placement:   'bottom',
       },
     ],
@@ -300,7 +309,7 @@ window.HANDOFF_TOURS = [
       {
         title:       'Pannello brief',
         description: 'Il pannello laterale mostra **inserzionista, budget, calendario** col periodo di esposizione evidenziato. Il **box informativo** appare solo se la pianificazione non è ancora presa in carico.',
-        selector:    '.ss-brief-bar',
+        selector:    '.bpn',
         placement:   'right',
         dev: [
           { label: 'Fuori scope', value: 'la card "Obiettivo" NON va implementata' },
@@ -315,12 +324,12 @@ window.HANDOFF_TOURS = [
       {
         title:       'Search bar',
         description: 'Sopra la mappa una **search bar** sempre visibile supporta due modalità: **zona/indirizzo** (→ US#2.1) e **punti di interesse**. Il pulsante **"Filtri"** apre i filtri avanzati (→ US#2.2). Le ricerche compaiono come **tag closable** nella barra; filtri e zone attive come **chip rimovibili** sotto la barra. Funziona anche in fullscreen.',
-        selector:    '.ss-search-pill',
+        selector:    '.ss-searchbar-wrap',
         placement:   'bottom',
       },
       {
         title:       'Risultati e budget',
-        description: 'Il **totale** degli spazi trovati è aggiornato in tempo reale; si **switcha** tra "Risultati" e "Selezionati" (→ US#3). Se il costo dei selezionati supera il budget, il valore appare in **rosso** nella card "Budget". Ogni impianto selezionato può ricevere **etichette colorate** cliccando l\'icona accanto al nome.',
+        description: 'Il **totale** degli spazi trovati è aggiornato in tempo reale; si **switcha** tra "Risultati" e "Selezionati" (→ US#3).\n- ==Fuori MVP== se il costo dei selezionati supera il budget, il valore appare in **rosso** nella card "Budget"\n- ==Fuori MVP== ogni impianto selezionato può ricevere **etichette colorate** cliccando l\'icona accanto al nome',
         selector:    '.ss-panel-tab',
         placement:   'left',
       },
@@ -359,9 +368,14 @@ window.HANDOFF_TOURS = [
       },
       {
         title:       'Chip filtri attivi',
-        description: 'I filtri attivi generano **chip rimovibili** sotto la search bar, visibili senza riaprire il drawer.',
-        selector:    '.filter-active-chip',
+        description: 'Chiuso il drawer, i filtri applicati restano visibili come **chip rimovibili** subito **sotto la search bar**, senza doverlo riaprire.',
+        selector:    '.ss-search-area',
         placement:   'bottom',
+        onEnter: function () {
+          var c = document.querySelector('.ant-drawer-close');
+          if (c) c.click();
+        },
+        delay: 240,
       },
       {
         title:       'Risultati in tempo reale',
@@ -387,9 +401,6 @@ window.HANDOFF_TOURS = [
         description: 'Il pannello ha due tab: **"Risultati"** e **"Selezionati"**. In **Bozza** e **In trattativa** si apre su "Risultati"; in **Confermata** mostra **solo "Selezionati"**. Il **badge** sulla tab Selezionati mostra il numero di impianti inclusi.',
         selector:    '.ss-panel-tab',
         placement:   'left',
-        dev: [
-          { label: 'Stato', value: 'Confermata → solo tab Selezionati\n(.ss-panel--completata)' },
-        ],
       },
       {
         title:       'Toggle e toolbar',
@@ -405,8 +416,8 @@ window.HANDOFF_TOURS = [
       },
       {
         title:       'Aggiunta alla proposta',
-        description: 'Al click sulla **checkbox** del record o sul **button** del dropdown, l\'impianto viene **aggiunto** alla pianificazione e compare nella tab "Selezionati".',
-        selector:    '.ss-panel-toolbar-action',
+        description: 'Al click sulla **checkbox** del record (o sul button **"Aggiungi alla pianificazione"** nel dropdown del marker) l\'impianto viene **aggiunto** alla pianificazione e compare nella tab "Selezionati".',
+        selector:    '.ss-sys-head',
         placement:   'left',
       },
     ],
@@ -428,8 +439,7 @@ window.HANDOFF_TOURS = [
         colIndex:    14,
         placement:   'left',
         dev: [
-          { label: 'Componente', value: 'StateBadge — Bozza /\nIn trattativa / Completata' },
-          { label: 'Filtro', value: 'column filter su effectiveState(record)' },
+          { label: 'Componente', value: 'StateBadge — Bozza / In trattativa / Completata' },
         ],
       },
       {
@@ -451,12 +461,12 @@ window.HANDOFF_TOURS = [
         table: {
           headers: ['Stato', 'Vis.', 'Mod.', 'Dup.', 'Elim.'],
           rows: [
-            ['Bozza · no trat.', '✓', '✓', '◐', '✓'],
-            ['Bozza · trat.',    '✓', '✓', '◐', '✗'],
-            ['In trattativa',    '✓', '✗', '✓', '✗'],
-            ['Completata',       '✓', '✗', '◐', '✗'],
+            ['Bozza · senza trattativa',     '✓', '✓', '◐', '✓'],
+            ['Bozza · trattativa collegata', '✓', '✓', '◐', '✗'],
+            ['In trattativa',                '✓', '✗', '✓', '✗'],
+            ['Completata',                   '✓', '✗', '✓', '✗'],
           ],
-          note: '◐ = solo se facce > 0 · Visualizza sempre attiva',
+          note: '◐ = solo se facce > 0 · Visualizza sempre attiva · Duplica sempre attiva in Completata',
         },
       },
     ],
@@ -471,6 +481,8 @@ window.HANDOFF_TOURS = [
 window.HANDOFF_COMPONENTS = [
 
   // ── Atomi Ant Design (senza descrizione: variante/colore rilevati a runtime) ─
+  { selector: '.ant-btn-link', name: 'Link button', level: 'Molecola', figma: '*Button* Type=Link',
+    composizione: 'Icon (opz.) + Text' },
   { selector: '.ant-btn', name: 'Button', level: 'Atomo', figma: '*Button*' },
   { selector: '.ant-select', name: 'Select', level: 'Atomo', figma: '*Select*' },
   { selector: '.ant-input-affix-wrapper, .ant-input', name: 'Input', level: 'Atomo', figma: '*Input*' },
@@ -486,6 +498,7 @@ window.HANDOFF_COMPONENTS = [
   { selector: '.ant-progress', name: 'Progress', level: 'Atomo', figma: '*Progress* Type=Line ShowInfo=False' },
   { selector: '.ant-divider', name: 'Divider', level: 'Atomo', figma: '*Divider Horizontal*' },
   { selector: '.ant-empty', name: 'Empty', level: 'Atomo', figma: '*Empty* Type=Simple' },
+  { selector: '.anticon', name: 'Icon', level: 'Atomo', icon: true },
 
   // ── Molecole Ant Design ────────────────────────────────────────────────────
   { selector: '.ant-form-item', name: 'Form Item', level: 'Molecola',
@@ -536,9 +549,8 @@ window.HANDOFF_COMPONENTS = [
     variant: function (el) { return el.textContent.trim(); } },
   { selector: '.filter-active-chip', name: 'Tag', level: 'Atomo', tag: true,
     figma: '*Tag* Closable=True' },
-  { selector: '.gv-state-badge', name: 'StateBadge', level: 'Atomo', custom: true,
-    figma: '*Badge* Type=Dot — Status=Warning/Processing/Success',
-    composizione: 'dot 7px + Text',
+  { selector: '.gv-state-badge', name: 'Badge', level: 'Atomo', tag: true,
+    figma: '*Badge* status — Bozza=warning · In trattativa=processing · Completata=success',
     variant: function (el) { return el.textContent.trim(); } },
   { selector: '.gv-agent-avatar', name: 'AgentAvatar', level: 'Atomo', custom: true,
     figma: '*Avatar* Shape=Circle Type=Text',
@@ -560,7 +572,7 @@ window.HANDOFF_COMPONENTS = [
     funzione: 'Calendario compatto con il **periodo di esposizione** evidenziato.',
     figma: 'Componente nuovo *Mini Calendar* (default, in-range, today, outside-month)',
     composizione: 'Button (navigazione mese) + Text (giorni) + Text (date footer)' },
-  { selector: '.ss-search-pill', name: 'Pill di ricerca luogo', level: 'Molecola', custom: true,
+  { selector: '.ss-searchbar-wrap', name: 'Pill di ricerca luogo', level: 'Molecola', custom: true,
     funzione: 'Ricerca geografica:\n- **suggerimenti** zona/indirizzo\n- accesso alle **collezioni POI**',
     figma: 'Frame pill custom con *Input* interno',
     composizione: 'Input + Divider + Button (POI)' },
@@ -602,6 +614,10 @@ window.HANDOFF_COMPONENTS = [
     funzione: 'Card titolo sotto la navbar (contesto schermata).\n- **titolo · area di competenza/canali · CTA**\n- componente DS con varianti **Lista · Detail · avatar**\n- qui: variante **Lista**',
     figma: '*Header* (DS, node 91-35550) — Variant=Lista',
     composizione: 'Title + Text (Area) + Tag (province/canali) + Button (CTA primary)' },
+  { selector: '.gv-detail-header', name: 'Header', level: 'Organismo', custom: true,
+    funzione: 'Card titolo del dettaglio (sotto la navbar, schermata Selezione spazi).\n- **back · titolo + categoria · azioni** (Collega / Consegna / Condividi)\n- componente DS con varianti **Lista · Detail · avatar**\n- qui: variante **Detail**',
+    figma: '*Header* (DS, node 91-35550) — Variant=Detail',
+    composizione: 'Link (back) + Title + Tag (categoria) + Button (azioni)' },
   { selector: '#gravity-navbar', name: 'Navbar', level: 'Organismo', custom: true,
     funzione: 'Header globale sticky (condivisa tra moduli):\n- **logo** · **navigazione moduli**\n- **notifiche** · **cambio ruolo**',
     figma: '*Navbar* (vedi components/navbar.md)',
@@ -627,25 +643,23 @@ window.HANDOFF_COMPONENTS = [
 window.HANDOFF_DEPENDENCIES = [
   {
     id:    'stato-azioni',
-    screen: 'Lista',
     title: 'Stato pianificazione × Azioni di riga',
     description: 'Quali azioni del menu di riga (lista) sono attive in base allo stato, alla trattativa e alle facce.',
     table: {
       headers: ['Stato', 'Vis.', 'Mod.', 'Dup.', 'Elim.'],
       rows: [
-        ['Bozza · no trat.', '✓', '✓', '◐', '✓'],
-        ['Bozza · trat.',    '✓', '✓', '◐', '✗'],
-        ['In trattativa',    '✓', '✗', '✓', '✗'],
-        ['Completata',       '✓', '✗', '◐', '✗'],
+        ['Bozza · senza trattativa',     '✓', '✓', '◐', '✓'],
+        ['Bozza · trattativa collegata', '✓', '✓', '◐', '✗'],
+        ['In trattativa',                '✓', '✗', '✓', '✗'],
+        ['Completata',                   '✓', '✗', '✓', '✗'],
       ],
-      note: '◐ = solo se facce > 0 · Visualizza sempre attiva',
+      note: '◐ = solo se facce > 0 · Visualizza sempre attiva · Duplica sempre attiva in Completata',
     },
   },
   {
     id:    'stato-modificabilita',
-    screen: 'Dettaglio',
-    title: 'Stato × Modificabilità (dettaglio)',
-    description: 'Cosa è modificabile nel dettaglio in base a stato e assegnatario.',
+    title: 'Stato × Modificabilità pianificazione',
+    description: 'Cosa è modificabile in base a stato e assegnatario.',
     table: {
       headers: ['Stato', 'Modifica form', 'Seleziona spazi'],
       rows: [
@@ -659,8 +673,7 @@ window.HANDOFF_DEPENDENCIES = [
   },
   {
     id:    'trattativa-consegna',
-    screen: 'Dettaglio',
-    title: 'Trattativa × Consegna',
+    title: 'Consegna Pianificazione',
     description: 'Stato del pulsante di consegna in base a trattativa collegata e spazi selezionati.',
     table: {
       headers: ['Condizione', 'Pulsante consegna'],
@@ -675,17 +688,110 @@ window.HANDOFF_DEPENDENCIES = [
   },
   {
     id:    'stato-disponibilita',
-    screen: 'Dettaglio (mappa)',
-    title: 'Stato pianificazione × Stati disponibilità visibili',
+    title: 'Stati impianto visibili in base a stato pianificazione',
     description: 'Quali stati di disponibilità degli impianti sono mostrati/selezionabili sulla mappa.',
     table: {
       headers: ['Stato', 'Disponibile', 'In Opzione', 'Riservato'],
       rows: [
         ['Bozza',         '✓', '✗', '✗'],
         ['In trattativa', '✓', '✓', '✗'],
-        ['Completata',    '✗', '✗', '✗'],
+        ['Completata',    '✓', '✓', '✓'],
       ],
-      note: 'Completata: sola lettura, nessuna selezione',
+      note: 'Completata: sola lettura, nessun filtro, tutti gli stati visibili',
+    },
+  },
+];
+
+// ════════════════════════════════════════════════════════════════════════════
+// Note interne (pannello "Note" in navbar) — appunti di design per lo sviluppo.
+// body supporta **grassetto**, righe "- " (lista) e ==evidenziato==.
+// ════════════════════════════════════════════════════════════════════════════
+
+window.HANDOFF_NOTES = [
+  {
+    id: 'tipo-vendita',
+    title: 'Tipo vendita · modello & quattordicine',
+    body: 'In questa fase il **modello di vendita** è già configurato:\n- **Standard** — 7 giorni\n- **Quattordicina** — 14 giorni\n- **LT (long term)** — da 1 mese in su (illimitato)\n- **Custom** — libero, da 1 giorno in su\n\nLa somma di più quattordicine è oggi solo una **valutazione di design** e potrebbe richiedere un ripensamento delle trattative.\n- ==Per ora ogni campagna ha una sola quattordicina assegnata e ogni pianificazione è limitata a una sola==',
+  },
+  {
+    id: 'card-ruolo',
+    title: 'Card KPI per ruolo',
+    body: 'Le card in cima alla lista (e i relativi conteggi) **cambiano in base al ruolo**.\n- ==Per i ruoli diversi dal Planner il design delle card è ancora da definire==',
+  },
+  {
+    id: 'assegnazione-futura',
+    title: 'Assegnazione pianificazioni (sprint futuri)',
+    body: 'In sprint successivi si valuterà l\'**assegnazione delle pianificazioni ai Planner da parte degli Operation Manager**. Oggi non è prevista.',
+  },
+  {
+    id: 'campagna-senza-trattativa',
+    title: 'Pianificazione ↔ campagna senza trattativa (sprint futuri)',
+    body: 'Il flusso in cui una pianificazione viene collegata a una **campagna senza trattativa** sarà progettato in sprint successivi, dopo un **redesign della funzionalità Campagne**.',
+  },
+];
+
+// ════════════════════════════════════════════════════════════════════════════
+// Relazioni tra entità del dominio (tab "Relazioni" nel pannello Modello).
+// ════════════════════════════════════════════════════════════════════════════
+
+window.HANDOFF_RELATIONS = [
+  {
+    id: 'entita',
+    title: 'Relazioni tra entità',
+    description: 'Cardinalità principali del dominio Planning.',
+    table: {
+      headers: ['Da', '', 'A', 'Cardinalità'],
+      rows: [
+        ['Trattativa',     '→', 'Inserzionista',  'N : 1'],
+        ['Trattativa',     '→', 'Campagna',       '1 : N'],
+        ['Campagna',       '→', 'Pianificazione', '1 : 1'],
+        ['Campagna',       '→', 'Quattordicina',  '1 : 1'],
+        ['Pianificazione', '→', 'Planner',        'N : 1'],
+        ['Pianificazione', '→', 'Impianto',       '1 : N'],
+        ['Impianto',       '→', 'Faccia',         '1 : N'],
+      ],
+      note: 'Cardinalità a livello di design, da confermare in fase backend.',
+    },
+  },
+];
+
+// ════════════════════════════════════════════════════════════════════════════
+// Scenari Pianificazione (tab "Scenari" nel pannello Modello):
+// combinazioni valide tra stato, trattativa, entità collegate e impianti.
+// ════════════════════════════════════════════════════════════════════════════
+
+window.HANDOFF_SCENARIOS = [
+  {
+    id: 'dati-trattativa',
+    title: 'Dati che arrivano dalla trattativa',
+    description: 'Se la pianificazione è collegata a una trattativa, questi campi sono **ereditati e read-only**. Senza trattativa non esistono inserzionista/campagna e gli altri si impostano a mano.',
+    table: {
+      headers: ['Campo', 'Da trattativa', 'Senza trattativa'],
+      rows: [
+        ['Inserzionista',     '✓', '✗'],
+        ['Campagna',          '✓', '✗'],
+        ['Canale (OOH/DOOH)', '✓', 'manuale'],
+        ['Periodo',           '✓', 'manuale'],
+        ['Tipo vendita',      '✓', 'manuale'],
+      ],
+      note: '✓ = ereditato e read-only · "manuale" = impostato a mano · ✗ = non esiste',
+    },
+  },
+  {
+    id: 'scenari',
+    title: 'Scenari (stato × collegamenti)',
+    description: 'Una **Bozza** può non avere trattativa (quindi né inserzionista né campagna) e avere comunque impianti selezionati.',
+    table: {
+      headers: ['Scenario', 'Tratt.', 'Inserz./Camp.', 'Impianti', 'Azione chiave'],
+      rows: [
+        ['Bozza libera · mia',                 '✗', '✗', '◐', 'Seleziona · Collega'],
+        ['Bozza da trattativa · non assegnata','✓', '✓', '✗', 'Prendi in carico'],
+        ['Bozza da trattativa · mia',          '✓', '✓', '◐', 'Seleziona · Consegna'],
+        ['In trattativa',                      '✓', '✓', '✓', 'Aggiorna consegna'],
+        ['Completata',                         '✓', '✓', '✓', 'Sola lettura'],
+        ['Assegnata ad altri',                 '◐', '◐', '◐', 'Sola lettura'],
+      ],
+      note: '✓ presente · ✗ assente · ◐ opzionale/variabile · "Bozza libera non assegnata" non è un caso possibile (nemmeno via Operation Manager) · Prendi in carico solo su Bozza da trattativa non assegnata · Completata e "di altri" = sola lettura',
     },
   },
 ];
