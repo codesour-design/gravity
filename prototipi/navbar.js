@@ -50,7 +50,7 @@
     Commercial: { items: ['Wallet', 'Activities', 'Negotiations', 'Orders'],
                   links: { Negotiations: '../test/trattative/index.html' } },
     Delivery:   { items: ['Campaigns', 'Plannings', 'Collections'],
-                  links: { Plannings: '../prototipo%20approvato/planning/index.html', Collections: '../prototipo%20approvato/poi-collections/index.html' } },
+                  links: { Plannings: '../prototipo%20approvato/planning/index--handoff.html', Collections: '../prototipo%20approvato/poi-collections/index.html' } },
     Settings:   { items: ['Users', 'Tenants'], links: {} },
   };
 

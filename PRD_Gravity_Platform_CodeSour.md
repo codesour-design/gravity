@@ -396,6 +396,94 @@ Il flusso operation campaign gestisce l'intero ciclo di vita commerciale e opera
 
 ---
 
+##### Stato di implementazione — Prototipo Planning (handoff)
+
+Il modulo Planning è il più maturo: prototipo navigabile con tour di handoff. Quanto segue riflette ciò che il prototipo implementa effettivamente.
+
+**Ruoli**: **Planner** (utente principale, opera sul proprio perimetro = area geografica + province + canali OOH/DOOH abilitati) e **Operations Manager** (visualizza/opera sul dettaglio). L'assegnazione delle pianificazioni ai Planner da parte degli OM è **rinviata a sprint futuri**.
+
+**Due schermate**: **Lista pianificazioni** (header + 3 KPI card + tabella) e **Selezione spazi / Dettaglio** (header dettaglio + pannello brief + mappa impianti + search bar + pannello risultati/selezionati, espandibile in fullscreen).
+
+**User stories coperte:**
+
+| US | GRP | Titolo | Schermata |
+|---|---|---|---|
+| US#1 | GRP-417 | Lista Pianificazioni | Lista |
+| US#1.1 | GRP-432 | Assegnazione / Presa in carico (da lista e da dettaglio) | Lista / Dettaglio |
+| US#1.2 | GRP-460 | Stato «In trattativa» e cambio stato | Dettaglio / Lista |
+| US#2 | GRP-467 | Dettaglio Pianificazione (brief + mappa) | Dettaglio |
+| US#2.1 | — | Ricerca per zona/indirizzo | Dettaglio |
+| US#2.2 | GRP-419 | Ricerca avanzata (drawer filtri) | Dettaglio |
+| US#3 | GRP-459 | Sidebar risultati e spazi selezionati | Dettaglio |
+
+**Modello di dominio** (cardinalità a livello di design, da confermare in fase backend):
+
+| Da | → | A | Cardinalità |
+|---|---|---|---|
+| Trattativa | → | Inserzionista | N : 1 |
+| Trattativa | → | Campagna | 1 : N |
+| Campagna | → | Pianificazione | 1 : 1 |
+| Campagna | → | Quattordicina | 1 : 1 |
+| Pianificazione | → | Planner | N : 1 |
+| Pianificazione | → | Impianto | 1 : N |
+| Impianto | → | Faccia | 1 : N |
+
+**Tipi di vendita** (derivati da canale + durata): **Standard** (DOOH, multipli di 7 gg) · **Quattordicina** (OOH, multipli di 14 gg) · **Long term / LT** (OOH, oltre soglia, «da 1 mese in su») · **Custom** (DOOH, libero).
+
+**Stati pianificazione**: **Bozza**, **In trattativa**, **Completata**. Transizione chiave Bozza → In trattativa alla «Consegna in trattativa» (richiede trattativa collegata + ≥1 spazio; registra `deliveredAt`).
+
+**Regole di dominio** (autorevoli dal codice del prototipo):
+
+*Stato × Azioni di riga* (✓ attivo · ✗ no · ◐ solo se facce > 0; Visualizza sempre attiva; Duplica sempre attiva in Completata):
+
+| Stato | Vis. | Mod. | Dup. | Elim. |
+|---|---|---|---|---|
+| Bozza · senza trattativa | ✓ | ✓ | ◐ | ✓ |
+| Bozza · trattativa collegata | ✓ | ✓ | ◐ | ✗ |
+| In trattativa | ✓ | ✗ | ✓ | ✗ |
+| Completata | ✓ | ✗ | ✓ | ✗ |
+
+*Stato × Modificabilità (dettaglio)*: Modifica form (metadati) solo in **Bozza propria**; selezione spazi possibile in Bozza e In trattativa proprie; sola lettura se Completata o assegnata ad altri (`readOnly = !isMine || state === 'Completata'`).
+
+*Consegna pianificazione*: pulsante disabilitato senza trattativa o con 0 spazi; «Consegna in trattativa» con trattativa + ≥1 spazio; «Aggiorna consegna» (con modale differenze: facce aggiunte/rimosse/cambio stato) se gli spazi cambiano dopo la consegna.
+
+*Stati impianto visibili sulla mappa in base allo stato pianificazione*: Bozza → solo **Disponibile**; In trattativa → **Disponibile + In Opzione**; Completata → sola lettura, nessuna selezione. Gli spazi «Riservato» non sono mai selezionabili.
+
+*Dati ereditati dalla trattativa* (read-only se collegata, manuali altrimenti): inserzionista e campagna (esistono solo con trattativa), canale, periodo, tipo vendita.
+
+**Funzionalità chiave:**
+- **Lista**: 3 KPI card live e dipendenti dal ruolo (Da prendere in carico · Le mie bozze · In trattativa); tabella con ~12 colonne (Pianificazione, Canale, Inserzionista, Pianificatore, Trattativa, Campagna, Impianti, Facce, date, Tipo vendita, Stato, Azioni), filtri per canale/inserzionista/pianificatore/stato, search inline sul nome, clic riga → dettaglio.
+- **Presa in carico** (US#1.1): da lista (bottone «Prendi in carico» visibile solo a Planner su pianificazioni non assegnate) o da dettaglio, con Popconfirm + toast; aggiorna assegnatario e counter.
+- **Collega trattativa** (US#1.2): cascade Trattativa → Campagna (campagne già usate disabilitate); eredita i dati. Senza trattativa la consegna è bloccata.
+- **Dettaglio**: pannello brief (inserzionista + settore, budget con barra e alert sforamento, mini-calendario periodo), modali KPI/Audience. Mappa impianti (marker per stato, cluster, infobox, fullscreen).
+- **Ricerca** (US#2.1): zona/indirizzo e POI con suggerimenti raggruppati (regione/provincia/città/POI), tag closable e chip rimovibili, controllo raggio attorno ai POI.
+- **Filtri avanzati** (US#2.2): drawer condiviso Planning+Inventory (stato disponibilità, tipologia, n° min facce, illuminazione, formato, modello vendita, prezzo max per faccia).
+- **Pannello risultati/selezionati** (US#3): due tab con counter; in Completata solo «Selezionati» (sola lettura); dettaglio impianto con aggiunta via checkbox/bottone.
+- **Duplica**: copia i soli spazi selezionati come nuova **Bozza** (`fromTrattativa: false`, nome editabile, assegnata all'utente). **Elimina**: solo Bozza senza trattativa collegata.
+
+**Requisiti confermati dal prototipo:**
+
+| ID | Requisito | Priorità |
+|---|---|---|
+| OP-PLAN-06 | Lista pianificazioni con KPI card per ruolo, filtri (canale/inserzionista/planner/stato) e search inline | Must Have |
+| OP-PLAN-07 | Tre stati pianificazione (Bozza / In trattativa / Completata) con regole di modificabilità ed eliminazione per stato | Must Have |
+| OP-PLAN-08 | Presa in carico di pianificazione non assegnata (lista e dettaglio), riservata al Planner | Must Have |
+| OP-PLAN-09 | Collegamento trattativa→campagna con ereditarietà read-only di inserzionista/canale/periodo/tipo vendita | Must Have |
+| OP-PLAN-10 | Consegna in trattativa / Aggiorna consegna con modale differenze facce | Must Have |
+| OP-PLAN-11 | Selezione spazi su mappa con stati di disponibilità filtrati per stato pianificazione | Must Have |
+| OP-PLAN-12 | Ricerca geografica (zona/indirizzo) e per POI con raggio configurabile | Must Have |
+| OP-PLAN-13 | Pannello risultati/selezionati a due tab con dettaglio impianto | Must Have |
+
+**Questioni aperte / decisioni di design:**
+- **Quattordicine**: oggi ogni campagna ha **una sola quattordicina** e ogni pianificazione è limitata a una; la somma di più quattordicine è solo valutazione di design (potrebbe richiedere ripensamento delle trattative).
+- **KPI card per ruolo**: per i ruoli diversi dal Planner il design delle card è ancora da definire.
+- **Assegnazione da OM**: l'assegnazione delle pianificazioni ai Planner da parte degli Operations Manager è rinviata a sprint futuri (oggi non prevista).
+- **Pianificazione ↔ campagna senza trattativa**: da progettare dopo il redesign della funzionalità Campagne.
+- **Esclusive del prototipo** (non nel prodotto): cambio ruolo (role switcher), aggiunta/rimozione colonne tabella.
+- Da normalizzare: terminologia stato **Completata** vs «Confermata» usata in alcuni materiali.
+
+---
+
 #### 6.2.8 Gestione Campagne Pubblicitarie
 
 **Descrizione**: il progetto campagna aggrega tutte le pianificazioni, i materiali creativi e i task operativi necessari all'esecuzione.
@@ -502,6 +590,75 @@ La reportistica è un modulo **a pagamento** che offre funzionalità avanzate di
 | TRANS-WL-02 | Dominio custom (subdomain o dominio completo) per tenant | Must Have |
 | TRANS-WL-03 | Email transazionali con branding del tenant | Should Have |
 | TRANS-WL-04 | Documenti generati (preventivi, contratti) con branding del tenant | Must Have |
+
+#### 6.4.5 Home / Dashboard «Per Te» (per ruolo)
+
+**Descrizione**: schermata di atterraggio del prodotto (voce navbar *Panoramica → Per te*, sempre disponibile per ogni ruolo). Presenta all'utente, in funzione del proprio ruolo, una sintesi del lavoro da svolgere e l'accesso alle app. È composta da: **header** (benvenuto, ruolo, area di competenza, email), **riga KPI**, sezione **«Le tue attività»**, sezione **«Le tue app»**.
+
+**Fonte di ricerca**: la vista del ruolo **Operation Manager** è l'unica modellata su ricerca UX reale (intervista a *Bianca* — segreteria commerciale/operations, Sicilia occidentale, 4 giugno 2026). Gli altri ruoli sono placeholder in attesa di studio dedicato.
+
+##### A. Area di competenza
+Coerente con il modulo Planning: territorio = **Sicilia Occidentale**, province **Palermo, Trapani, Agrigento, Caltanissetta** (mostrate come tag). È proprietà del tenant/utente, non del ruolo.
+
+##### B. KPI come code di lavoro (work queues)
+Le card KPI **non sono metriche generiche**: ogni card è il **conteggio di una coda di record che richiedono l'intervento del ruolo** («N elementi in stato X da gestire»). Il valore della card è derivato dalla lunghezza della coda, non hard-coded. Code dell'Operation Manager:
+
+| Card KPI | Conteggio (mock) | Azione | Stato MVP |
+|---|---|---|---|
+| Anagrafiche da verificare | 23 | Vai a Portafoglio commerciale | attiva |
+| Inserzionisti da assegnare | 11 | Assegna inserzionista | disabilitata — *Wizard da definire* |
+| Pagamenti scaduti | 7 | Vai a ordini | attiva |
+| Preventivi da approvare | 14 | Vai a preventivi | disabilitata — *Work in progress, sprint imminenti* |
+| Contratti da preparare | 9 | Vai a contratti | disabilitata — *No MVP* |
+
+##### C. «Le tue attività» (sola lettura + deep-link)
+Le attività sono la **conseguenza diretta della realizzazione dei flussi descritti dalle card KPI**: ogni attività è un singolo record di una coda (granularità: *card = conteggio, attività = record*). Comportamento:
+- **Sola lettura + deep-link**: il clic apre il modulo filtrato sullo stato; nessuna azione inline. L'attività esce dalla coda quando il dato cambia stato (nessuno stato «task» da persistere).
+- Dashboard: **feed delle più urgenti** (priorità come chiave d'ordinamento, non come elemento visivo); attività di categorie diverse alternate (no clustering).
+- **«Vedi tutte»** apre un **Drawer** (DS, Placement=Right) con la coda completa, filtrabile per categoria.
+- Card attività: una sola codifica cromatica (icona categoria) + label categoria + titolo + dettaglio di dominio + tempo in coda; nessun indicatore ridondante.
+
+| ID | Requisito | Priorità |
+|---|---|---|
+| HOME-01 | Dashboard «Per te» per ruolo con header, KPI, attività, app | Must Have |
+| HOME-02 | KPI come conteggio di code di lavoro derivate dallo stato dei dati | Must Have |
+| HOME-03 | Lista attività sola lettura con deep-link al modulo filtrato | Must Have |
+| HOME-04 | «Vedi tutte» → drawer con coda completa filtrabile per categoria | Must Have |
+| HOME-05 | Placeholder per ruoli non ancora studiati (card/attività vuote + nota) | Should Have |
+
+##### D. «Le tue app» (area esplorativa)
+Spazio **esplorativo** che anticipa una futura **architettura del brand Gravity strutturata in sottoprodotti tematici**. Introdurla comporta la **revisione della navigazione e delle voci di navbar** all'atterraggio. Nel prototipo è nascondibile (button) per valutare il layout a fattibilità attuale. Sottoprodotti e **mappatura app per ruolo** (assegnazione indicativa, da validare):
+
+| App | Dominio | Ruoli con accesso |
+|---|---|---|
+| Atlas | Inventory OOH/DOOH | Tenant Admin, Inventory Manager, Operation Manager, Planner |
+| Quasar | Inventory Web | Tenant Admin, Inventory Manager |
+| Vega | CRM | Tenant Admin, Operation Manager, Sales |
+| Orbit | Pianificazione OOH/DOOH | Tenant Admin, Operation Manager, Planner, Sales |
+| Pulsar | Pianificazione Web | Tenant Admin, Planner |
+| Comet | Espletamento Campagne | Tenant Admin, Operation Manager, Planner, Sales |
+| Aurora | Advertorial | Tenant Admin, Sales |
+| Polaris | ERP & Contabilità | Tenant Admin, Operation Manager |
+
+Ogni ruolo vede **solo le app coerenti** con le proprie responsabilità; le altre sono nascoste. Il Tenant Admin vede tutte le app (governance).
+
+##### E. Stato di studio dei ruoli
+| Ruolo | Stato | Dati |
+|---|---|---|
+| Operation Manager | Studiato (intervista Bianca) | Card e attività reali |
+| Tenant Admin · Inventory Manager · Planner · Sales | Da studiare | Placeholder + nota «studio del ruolo in corso» |
+
+##### F. Note di design / questioni aperte (dal prototipo)
+Annotazioni emerse durante la prototipazione, da indirizzare nei rispettivi flussi:
+
+| Ambito | Questione aperta | Impatta |
+|---|---|---|
+| Pagamenti scaduti | Necessario redesign del flusso Ordini con **plausibile integrazione ERP** per lo stato pagamenti e **ampliamento del modello dati** attuale | §6.2.6 Ordini |
+| Anagrafiche da verificare | App e flusso commerciale **propedeutici** a questa card | §6.2.2 Portafoglio |
+| Inserzionisti da assegnare | Casistica: lead in entrata da **sito / media monitor** → anagrafiche inserzionisti **senza agente commerciale assegnato**. Necessaria **review del modello dati Inserzionisti** | §6.2.2 Portafoglio |
+| Preventivi da approvare | Necessario **rivedere il flusso Preventivi** come conseguenza del redesign del flusso Trattative (work in progress, sprint imminenti) | §6.2.1 / §6.2.4 |
+| Contratti da preparare | **Flusso Contratti da progettare**, attualmente non esistente | §6.2.5 Contratti |
+| Architettura brand | L'introduzione dei sottoprodotti tematici richiede la **revisione di navigazione e voci navbar** | §5 / §6.4 |
 
 ---
 
