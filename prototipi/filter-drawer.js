@@ -101,7 +101,6 @@
   const TYPE_ICON_NAMES = {
     'stendardo':        'ColumnHeightOutlined',
     'plancia':          'AppstoreOutlined',
-    'poster':           'PictureOutlined',
     'telo':             'PictureOutlined',
     'rotor':            'SyncOutlined',
     'speciale':         'StarOutlined',
@@ -229,25 +228,24 @@
         })
       ),
 
-      // Nota per il team: tooltip promemoria, sezione comunque attiva
-      tipologia: () => e(Tooltip, {
-        key: 'tipologia',
-        title: 'Chiedere icone degli impianti a reparto design',
-        placement: 'left',
-      },
-        section('tipologia', 'Tipologia impianto',
+      // Icone custom per tipo (assets/systemstype-icons) via GravityMap; il
+      // canale (macro OOH/DOOH) serve a distinguere lo "Speciale". Fallback
+      // all'icona AntD per eventuali tipi senza asset.
+      tipologia: () => section('tipologia', 'Tipologia impianto',
         Object.entries(options.allTypes || {}).map(([macro, tipi]) =>
           e(React.Fragment, { key: macro },
             e('div', { className: 'filter-macro-label' }, macro),
             chipRow(tipi.map(t => {
+              const iconSrc = (window.GravityMap && window.GravityMap.systypeIconSrc)
+                ? window.GravityMap.systypeIconSrc(t, macro) : null;
               const IconComp = typeIcon(t);
-              return chip('tipologia', t, [
-                IconComp && e(IconComp, { key: 'i', style: { fontSize: 12 } }),
-                t,
-              ]);
+              const iconNode = iconSrc
+                ? e('img', { key: 'i', src: iconSrc, style: { width: 12, height: 12, display: 'inline-block', verticalAlign: 'middle' } })
+                : (IconComp && e(IconComp, { key: 'i', style: { fontSize: 12 } }));
+              return chip('tipologia', t, [ iconNode, t ]);
             }))
           )
-        ))
+        )
       ),
 
       numeroFacce: () => section('numeroFacce', 'Numero facce',

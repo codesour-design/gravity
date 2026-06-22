@@ -1455,24 +1455,8 @@ const TYPE_ICON = {
 };
 
 
-const TYPE_ICONS_FILTER = {
-  'Pensilina':        icons.HomeOutlined,
-  'Telo':             icons.PictureOutlined,
-  'Poster':           icons.TagOutlined,
-  'Fioriera':         icons.HeartOutlined,
-  'Fermata bus':      icons.CarOutlined,
-  'Palo luce':        icons.BulbOutlined,
-  'Stendardo':        icons.ColumnHeightOutlined,
-  'Speciale':         icons.StarOutlined,
-  'Palina butterfly': icons.BranchesOutlined,
-  'Cassonetto':       icons.InboxOutlined,
-  'Parapedonale':     icons.CarOutlined,
-  'Palina':           icons.PushpinOutlined,
-  'Plancia':          icons.AppstoreOutlined,
-  'Rotor':            icons.SyncOutlined,
-  'Insegna':          icons.ShopOutlined,
-};
-
+// TYPE_ICONS_FILTER (icone AntD per i chip filtri) rimosso: il drawer filtri usa
+// le icone custom via GravityMap.systypeIconSrc (vedi filter-drawer.js).
 
 // ── Marker SVG assets (da Elena — prototipi/assets/) ───────────────────────
 const MARKER_FOLDER = {
@@ -1505,16 +1489,9 @@ function markerSrc(type, state) {
   const file   = MARKER_STATE_FILE[state] || 'available';
   return `../../assets/marker/${folder}/${file}.svg`;
 }
-// Cache SVG content preloaded at runtime (keyed by URL)
-const _assetSvgCache = {};
-function getMarkerSize(zoom) {
-  if (zoom <= 11) return [10, 15];
-  if (zoom <= 12) return [12, 18];
-  if (zoom <= 13) return [16, 24];
-  if (zoom <= 14) return [20, 30];
-  if (zoom <= 15) return [26, 38];
-  return [32, 48];
-}
+// markerSrc/getMarkerSize/clusterColor/makeClusterSvg: ora forniti dal modulo
+// condiviso GravityMap (prototipi/map-interactions.js). Qui resta solo il
+// mapping di dominio tipo→cartella e stato→file (markerSrc, sopra).
 
 // ── Label system (Gmail-style) ─────────────────────────
 const LABEL_COLORS = ['#FF4A1C','#FAAD14','#52C41A','#1677FF','#722ED1','#EB2F96','#13C2C2','#595959'];
@@ -1701,7 +1678,7 @@ const PLANNINGS = [
   { id:'0109', name:'PLN — Lancio Estivo Agrigento', fromTrattativa:true,     category:'OOH',  state:'Bozza', start:'15/07/2026', end:'28/07/2026', advertiser:'Cantine Firriato',  goal:'consapevolezza del brand', budget:'€ 12.000', faces:0,  hasSystems:false, createdAt:'12/03/2025', assignee:null,
     briefZones:[{ label:'Agrigento', city:'Agrigento', lat:37.3104, lng:13.5765, zoom:13 },{ label:'Sciacca', city:'Sciacca', lat:37.5076, lng:13.0783, zoom:13 }],
     briefPois:[{ type:'single', id:'brief-s-3' },{ type:'collection', id:'trasporti-palermo' }],
-    requestedTypes:['Poster', 'Cassonetto'], trattativaName:'TRT-Firriato-2026-Estate', campagnaName:'Lancio Estivo Agrigento', deliveredAt:null },
+    requestedTypes:['Cartello', 'Cassonetto'], trattativaName:'TRT-Firriato-2026-Estate', campagnaName:'Lancio Estivo Agrigento', deliveredAt:null },
   { id:'0104', name:'PLN — Palermo Primavera', fromTrattativa:true,          category:'OOH',  state:'Completata', start:'10/04/2025', end:'25/04/2025', advertiser:'SushiLab Palermo',  goal:'fidelizzazione dei clienti', budget:'€ 15.000', faces:6,  hasSystems:true,  createdAt:'15/02/2025', assignee:'marco',  briefZones:[], briefPois:[{ type:'collection', id:'trasporti-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:[], trattativaName:'TRT-SushiLab-2025-P', campagnaName:'Palermo Primavera', selectedFaces: Array.from({length:6},(_,i)=>`f-0104-${i+1}`), deliveredAt:'07/04/2025', updatedAt:'07/04/2025' },
   { id:'0112', name:'WindTre — Brand Summer 2026',      category:'DOOH', state:'Bozza', start:'01/06/2026', end:'31/08/2026', advertiser:'WindTre',           goal:'consapevolezza del brand', budget:'€ 85.000', faces:0,  hasSystems:false, createdAt:'10/02/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:13 }],
@@ -1713,7 +1690,7 @@ const PLANNINGS = [
     briefPois:[{ type:'collection', id:'scuole-palermo' },{ type:'collection', id:'universita-palermo' }],
     requestedTypes:['Pensilina', 'Palina'] },
   { id:'0110', name:'PLN — Sicilia Occidentale Q3', fromTrattativa:true, category:'OOH',  state:'Bozza', start:'01/09/2026', end:'28/09/2026', advertiser:'MediaWorld',        goal:'traffico', budget:'€ 70.000', faces:0,  hasSystems:false, createdAt:'18/03/2025', assignee:null,
-    briefZones:[], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-5' }], requestedTypes:['Poster', 'Palina', 'Pensilina'], trattativaName:'TRT-MediaWorld-2026-Q3', campagnaName:'Sicilia Occidentale Q3', deliveredAt:null },
+    briefZones:[], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-5' }], requestedTypes:['Cartello', 'Palina', 'Pensilina'], trattativaName:'TRT-MediaWorld-2026-Q3', campagnaName:'Sicilia Occidentale Q3', deliveredAt:null },
   { id:'0103', name:'Moving Retail — Digital Q3 2026',  category:'DOOH', state:'Bozza', start:'01/09/2026', end:'07/09/2026', advertiser:null,                goal:'conversione', budget:'€ 35.000', faces:0, hasSystems:false, createdAt:'05/03/2025', assignee:'marco',
     briefZones:[{ label:'Palermo Notarbartolo', city:'Palermo', lat:38.1310, lng:13.3478, zoom:14 },{ label:'Palermo Oreto', city:'Palermo', lat:38.0980, lng:13.3460, zoom:14 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-5' }],
@@ -1725,7 +1702,7 @@ const PLANNINGS = [
   { id:'0106', name:'PLN — Arredo Urbano Q4', fromTrattativa:true,         category:'OOH',  state:'Bozza', start:'01/10/2026', end:'31/12/2026', advertiser:'Comune di Palermo', goal:'coinvolgimento', budget:'€ 90.000', faces:0,  hasSystems:false, createdAt:'22/01/2025', assignee:null,
     briefZones:[], briefPois:[{ type:'collection', id:'parchi-palermo' },{ type:'collection', id:'trasporti-palermo' }], requestedTypes:['Pensilina', 'Cassonetto', 'Palina'], trattativaName:'TRT-ComunePa-2026-Q4', campagnaName:'Arredo Urbano Q4', deliveredAt:null },
   { id:'0116', name:'PLN — Apertura Centro Storico', fromTrattativa:true,    category:'OOH',  state:'Bozza', start:'15/05/2026', end:'28/05/2026', advertiser:'La Rinascente',     goal:'consapevolezza del brand', budget:'€ 18.000', faces:0,  hasSystems:false, createdAt:'22/04/2026', assignee:null,
-    briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 }], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:['Billboard', 'Poster', 'Pensilina'], trattativaName:'TRT-Rinascente-2026-PA', campagnaName:'Apertura Centro Storico', deliveredAt:null },
+    briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 }], briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-1' }], requestedTypes:['Billboard', 'Cartello', 'Pensilina'], trattativaName:'TRT-Rinascente-2026-PA', campagnaName:'Apertura Centro Storico', deliveredAt:null },
   // ── Pianificazioni confermate recenti (visibili in prima pagina) ────────────
   { id:'0117', name:'PLN — Q1 Brand Awareness', fromTrattativa:true,            category:'DOOH', state:'Completata', start:'01/03/2026', end:'07/03/2026', advertiser:'ENI',            goal:'consapevolezza del brand', budget:'€ 38.000', faces:16, hasSystems:true,  createdAt:'25/02/2026', assignee:'marco',
     briefZones:[{ label:'Palermo Centro', city:'Palermo', lat:38.1157, lng:13.3615, zoom:14 }],
@@ -1734,7 +1711,7 @@ const PLANNINGS = [
   { id:'0118', name:'PLN — Promo Primavera', fromTrattativa:true,    category:'OOH',  state:'Completata', start:'01/03/2026', end:'28/03/2026', advertiser:'Conad',          goal:'traffico', budget:'€ 27.000', faces:11, hasSystems:true,  createdAt:'12/02/2026', assignee:'giulia',
     briefZones:[{ label:'Palermo Nord', city:'Palermo', lat:38.1500, lng:13.3400, zoom:13 },{ label:'Mondello', city:'Palermo', lat:38.2200, lng:13.3300, zoom:14 }],
     briefPois:[{ type:'collection', id:'cc-palermo' },{ type:'single', id:'brief-s-4' }],
-    requestedTypes:['Pensilina', 'Palina', 'Poster'], trattativaName:'TRT-Conad-2026-P', campagnaName:'Promo Primavera', selectedFaces: Array.from({length:11},(_,i)=>`f-0118-${i+1}`), deliveredAt:'08/02/2026', updatedAt:'08/02/2026' },
+    requestedTypes:['Pensilina', 'Palina', 'Cartello'], trattativaName:'TRT-Conad-2026-P', campagnaName:'Promo Primavera', selectedFaces: Array.from({length:11},(_,i)=>`f-0118-${i+1}`), deliveredAt:'08/02/2026', updatedAt:'08/02/2026' },
 ];
 
 // Trattative aperte (mock) — usate nella select "Collega a una trattativa".
@@ -2646,63 +2623,7 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// ── Cluster SVG ─────────────────────────────────────────
-
-// Scala cromatica derivata dal primary Gravity (#3E00FB): tinte chiare per
-// cluster piccoli (testo primary), primary e shade scuro per cluster grandi
-// (testo bianco). Contrasto testo/sfondo verificato WCAG (>= 4.2).
-// `halo` = stessa tinta della bolla in trasparenza, usata come alone esterno.
-// Tutti i livelli restano abbastanza saturi da essere visibili sulla mappa
-// chiara (#f5f5f5); testo bianco ovunque, contrasto verificato WCAG (>= 4.2).
-const clusterColor = (n) => {
-  if (n <= 2)  return { bg: '#A47CFF', fg: '#ffffff', halo: 'rgba(164,124,255,0.40)' };
-  if (n <= 5)  return { bg: '#976AFF', fg: '#ffffff', halo: 'rgba(151,106,255,0.40)' };
-  if (n <= 10) return { bg: '#8A52FF', fg: '#ffffff', halo: 'rgba(138,82,255,0.40)' };
-  if (n <= 20) return { bg: '#7838FB', fg: '#ffffff', halo: 'rgba(120,56,251,0.40)' };
-  if (n <= 50) return { bg: '#3E00FB', fg: '#ffffff', halo: 'rgba(62,0,251,0.40)' };
-  return               { bg: '#2900A0', fg: '#ffffff', halo: 'rgba(41,0,160,0.40)' };
-};
-
-const makeClusterSvg = (count) => {
-  const { bg, fg, halo } = clusterColor(count);
-  const core = count <= 5 ? 32 : count <= 20 ? 36 : 40;  // diametro bolla solida
-  const ring = 6;                                         // spessore alone trasparente
-  const s = core + ring * 2 + 2;                          // box: lascia spazio all'alone
-  const c = s / 2;
-  const rCore = core / 2;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}">
-    <circle cx="${c}" cy="${c}" r="${rCore + ring}" fill="${halo}"/>
-    <circle cx="${c}" cy="${c}" r="${rCore}" fill="${bg}"/>
-    <text x="${c}" y="${c + 4.5}" text-anchor="middle" fill="${fg}" font-size="12" font-weight="700" font-family="sans-serif">${count}</text>
-  </svg>`;
-  const url = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
-  return { url, scaledSize: new google.maps.Size(s, s), anchor: new google.maps.Point(c, c) };
-};
-
 // ── Cached icon renderer ─────────────────────────────────
-
-const _tipoIconCache = {};
-function tipoIconSvg(tipo, color) {
-  const key = `${tipo}-${color}`;
-  if (_tipoIconCache[key]) return _tipoIconCache[key];
-  const IconComp = TYPE_ICONS_FILTER[tipo];
-  if (!IconComp) return '';
-  const div = document.createElement('div');
-  ReactDOM.flushSync(() => {
-    ReactDOM.createRoot(div).render(
-      React.createElement(IconComp, { style: { fontSize: 12, color, display: 'block' } })
-    );
-  });
-  const svg = div.querySelector('svg');
-  if (svg) {
-    svg.setAttribute('width','12');
-    svg.setAttribute('height','12');
-    _tipoIconCache[key] = svg.outerHTML;
-  } else {
-    _tipoIconCache[key] = '';
-  }
-  return _tipoIconCache[key];
-}
 
 // Builds an SVG string: colored circle with an AntD icon inside (white).
 // Used for POI markers on the map.
@@ -5867,7 +5788,7 @@ out geom;`;
       new google.maps.LatLng(bounds.getNorthEast().lat(), bounds.getSouthWest().lng())
     );
     const pt = proj.fromLatLngToPoint(new google.maps.LatLng(sys.lat, sys.lng));
-    const [, baseH] = getMarkerSize(map.getZoom());
+    const [, baseH] = GravityMap.getMarkerSize(map.getZoom());
     const markerH = Math.round(baseH * 1.4); // focused marker è 1.4×
     setFocusCardPos({
       x: Math.floor((pt.x - nw.x) * scale),
@@ -5889,7 +5810,7 @@ out geom;`;
   // Array filtri attivi — guida badge bottone/drawer e strip sotto searchbar
   const activeFilterChips = React.useMemo(() => {
     const chips = [];
-    selectedTypes.forEach(t => chips.push({ key: `tipo:${t}`, label: t }));
+    selectedTypes.forEach(t => chips.push({ key: `tipo:${t}`, label: t, icon: GravityMap.systypeIconSrc(t) }));
     selectedIllumination.forEach(i => chips.push({ key: `ill:${i}`, label: i === 'Illuminate' ? 'Illuminato' : i === 'Retroilluminate' ? 'Retroilluminato' : 'Non illuminato' }));
     selectedFormats.forEach(f => chips.push({ key: `fmt:${f}`, label: f, mono: true }));
     selectedFaceCounts.forEach(c => chips.push({ key: `facce:${c}`, label: c === '1' ? '1 faccia' : `${c} facce` }));
@@ -6022,55 +5943,16 @@ out geom;`;
     }
   };
 
+  // Rendering marker delegato al modulo condiviso GravityMap. La logica di
+  // DOMINIO resta qui: quando la pianificazione è consegnata, lo spazio
+  // selezionato mostra l'asset "In Option" al posto dello stato base.
   const makeIcon = (sys, isSelected, isHovered, isFocused, hasFocus) => {
-    const zoom = mapRef.current ? mapRef.current.getZoom() : 14;
-    let [w, h] = getMarkerSize(zoom);
-    if (isFocused)      { w = Math.round(w * 1.4); h = Math.round(h * 1.4); }
-    else if (isHovered) { w = Math.round(w * 1.12); h = Math.round(h * 1.12); }
-
-    const dimOpacity = (hasFocus && !isFocused && !isSelected) ? 0.2 : 1;
     const src = (isSelected && isDelivered) ? markerSrc(sys.type, 'In Option') : markerSrc(sys.type, sys.state);
-    const svgContent = _assetSvgCache[src];
-
-    if (svgContent) {
-      // Estrae il contenuto interno dell'SVG (senza il tag <svg> esterno)
-      const inner = svgContent
-        .replace(/<\?xml[^>]*\?>\s*/i, '')
-        .replace(/<svg[^>]*>/i, '')
-        .replace(/<\/svg>\s*$/i, '');
-
-      // Drop shadow per focused
-      const focusDefs = isFocused
-        ? `<defs><filter id="fs" x="-50%" y="-50%" width="200%" height="200%">
-             <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#3E00FB" flood-opacity="0.5"/>
-           </filter></defs>`
-        : '';
-      const focusFilter = isFocused ? 'filter="url(#fs)"' : '';
-
-      // Anello di selezione al centro del pallino (y≈33 nel viewBox 78×120)
-      const selRing = isSelected && !isFocused
-        ? `<circle cx="39.75" cy="46" r="22" fill="none" stroke="#3E00FB" stroke-width="4" stroke-opacity="0.9"/>`
-        : '';
-
-      const wrapped = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 78 120" opacity="${dimOpacity}">
-        ${focusDefs}
-        <g ${focusFilter}>${inner}</g>
-        ${selRing}
-      </svg>`;
-
-      return {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(wrapped),
-        scaledSize: new google.maps.Size(w, h),
-        anchor: new google.maps.Point(w / 2, Math.round(h * 0.92)),
-      };
-    }
-
-    // Fallback URL (prima che gli SVG siano caricati)
-    return {
-      url: src,
-      scaledSize: new google.maps.Size(w, h),
-      anchor: new google.maps.Point(w / 2, Math.round(h * 0.92)),
-    };
+    return GravityMap.makeMarkerIcon({
+      src,
+      zoom: mapRef.current ? mapRef.current.getZoom() : 14,
+      flags: { isHovered, isFocused, isSelected, hasFocus },
+    });
   };
 
   // Init Google Maps
@@ -6235,18 +6117,16 @@ out geom;`;
     });
   }, [activePois, filteredPoiPoints, poiRadiusM]);
 
-  // ── Preload asset SVG markers ──────────────────────────────────────────────
+  // ── Preload asset SVG markers (cache del modulo condiviso GravityMap) ──────
+  // Oltre allo stato base, precarica la variante "In Option": serve a mostrare
+  // il badge di selezione quando la pianificazione è consegnata.
   React.useEffect(() => {
-    const needed = new Set(
-      SEARCH_RESULTS.map(s => markerSrc(s.type, s.state))
-    );
-    Promise.all([...needed].map(async url => {
-      if (_assetSvgCache[url]) return;
-      try {
-        const r = await fetch(url);
-        if (r.ok) _assetSvgCache[url] = await r.text();
-      } catch(e) {}
-    })).then(() => setGeocodeReady(v => !v));
+    const needed = new Set();
+    SEARCH_RESULTS.forEach(s => {
+      needed.add(markerSrc(s.type, s.state));
+      needed.add(markerSrc(s.type, 'In Option'));
+    });
+    GravityMap.preloadAll([...needed]).then(() => setGeocodeReady(v => !v));
   }, []); // eslint-disable-line
 
   // ── Geocoding preciso: address + numero civico → punto sulla carreggiata ──
@@ -6314,60 +6194,48 @@ out geom;`;
   applyClusteringRef.current = () => {
     const map = mapRef.current;
     if (!map) return;
-    const zoom = map.getZoom() || 10;
 
     // Rimuovi vecchi cluster circles
     clusterMarkersRef.current.forEach(m => m.setMap(null));
     clusterMarkersRef.current = [];
 
-    if (zoom > 15) {
-      // Zoom alto: mostra tutti i marker individuali
+    // Motore di clustering condiviso (griglia manuale): porta con sé l'entry
+    // per poter riaccendere/spegnere i marker e contare i selezionati.
+    const items = markersRef.current.map(entry => ({
+      id: entry.sysId,
+      position: { lat: entry.marker.getPosition().lat(), lng: entry.marker.getPosition().lng() },
+      entry,
+    }));
+    const res = GravityMap.computeGridClusters(map, items);
+
+    if (res.mode === 'individual') {
       markersRef.current.forEach(({ marker }) => marker.setMap(map));
       return;
     }
 
-    // Zoom basso: clustering a griglia
-    const proj = map.getProjection();
-    if (!proj) {
-      markersRef.current.forEach(({ marker }) => marker.setMap(map));
-      return;
-    }
-
-    const GRID = 60;
-    const scale = Math.pow(2, zoom);
-    const groups = {};
-    markersRef.current.forEach(entry => {
-      const pos = entry.marker.getPosition();
-      const wp  = proj.fromLatLngToPoint(pos);
-      const key = `${Math.floor(wp.x * scale / GRID)}_${Math.floor(wp.y * scale / GRID)}`;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(entry);
-    });
-
-    Object.values(groups).forEach(group => {
-      if (group.length === 1) {
-        group[0].marker.setMap(map);
-      } else {
-        group.forEach(({ marker }) => marker.setMap(null));
-        const lats = group.map(e => e.marker.getPosition().lat());
-        const lngs = group.map(e => e.marker.getPosition().lng());
-        const center = {
-          lat: lats.reduce((a, b) => a + b, 0) / lats.length,
-          lng: lngs.reduce((a, b) => a + b, 0) / lngs.length,
-        };
-        const cm = new google.maps.Marker({
-          position: center,
-          icon: makeClusterSvg(group.length),
-          map,
-          zIndex: Number(google.maps.Marker.MAX_ZINDEX) + group.length,
-          label: { text: ' ', color: 'transparent' },
-        });
-        cm.addListener('click', () => {
-          map.setZoom(Math.min((map.getZoom() || 10) + 3, 20));
-          map.panTo(center);
-        });
-        clusterMarkersRef.current.push(cm);
-      }
+    // Singoli fuori cluster: visibili. Membri di cluster: nascosti.
+    res.members.forEach(it => it.entry.marker.setMap(map));
+    res.clusters.forEach(cl => {
+      cl.members.forEach(it => it.entry.marker.setMap(null));
+      // Quanti impianti del cluster sono selezionati → anello viola + label "N/totale"
+      const selectedCount = cl.members.filter(it => selectedSystemIds.has(it.id)).length;
+      const toIcon = (hovered) => {
+        const { url, size } = GravityMap.makeClusterSvg(cl.members.length, { selectedCount, hovered });
+        return { url, scaledSize: new google.maps.Size(size, size), anchor: new google.maps.Point(size / 2, size / 2) };
+      };
+      const cm = new google.maps.Marker({
+        position: cl.center,
+        icon: toIcon(false),
+        map,
+        zIndex: Number(google.maps.Marker.MAX_ZINDEX) + cl.members.length,
+        label: { text: ' ', color: 'transparent' },
+        title: `${cl.members.length} impianti${selectedCount ? ` · ${selectedCount} selezionati` : ''}`,
+      });
+      // Click: zoom-to-bounds preciso sugli impianti del cluster (no +3 fisso)
+      cm.addListener('click', () => GravityMap.fitBoundsToMembers(map, cl.members));
+      cm.addListener('mouseover', () => cm.setIcon(toIcon(true)));
+      cm.addListener('mouseout',  () => cm.setIcon(toIcon(false)));
+      clusterMarkersRef.current.push(cm);
     });
   };
 
@@ -6484,7 +6352,8 @@ out geom;`;
                         : cs === 'all'   ? 'ss-face-badge ss-face-badge-all'
                         : 'ss-face-badge ss-face-badge-part';
     const headCls = ['ss-sys-head', cs!=='none'?'ss-sys-selected':'', isHov?'ss-sys-hovered':''].filter(Boolean).join(' ');
-    const TypeIconFn = TYPE_ICON[sys.type];
+    const TypeIconFn = TYPE_ICON[sys.type];          // fallback AntD (Cartello/Insegna)
+    const typeIconUrl = GravityMap.systypeIconSrc(sys.type);
     const isLtOnly      = sys.saleModel === 'long_term_only';
     const isIncompatible = isLtOnly && planningDays < LONG_TERM_THRESHOLD;
 
@@ -6543,7 +6412,10 @@ out geom;`;
           React.createElement('div', { className: 'ss-sys-addr' }, `${sys.address} — ${sys.city}`),
           // Tipo + formato
           React.createElement('div', { className: 'ss-sys-meta' },
-            TypeIconFn && React.createElement('span', { className: 'ss-sys-meta-icon' }, TypeIconFn()),
+            (typeIconUrl || TypeIconFn) && React.createElement('span', { className: 'ss-sys-meta-icon' },
+              typeIconUrl
+                ? React.createElement('img', { src: typeIconUrl, style: { width: 12, height: 12, display: 'inline-block', verticalAlign: 'middle' } })
+                : TypeIconFn()),
             React.createElement('span', { className: 'ss-sys-meta-type' }, sys.type),
             sysFmt && React.createElement('span', { className: 'ss-sys-meta-sep' }, '·'),
             sysFmt && React.createElement('span', { className: 'ss-sys-meta-fmt' }, sysFmt),
@@ -6975,6 +6847,7 @@ out geom;`;
           React.createElement('div', { className: 'ss-active-filters' },
             activeFilterChips.map(chip =>
               React.createElement('div', { key: chip.key, className: `filter-active-chip${chip.mono ? ' mono' : ''}` },
+                chip.icon && React.createElement('img', { src: chip.icon, style: { width: 12, height: 12, marginRight: 4, verticalAlign: 'middle', display: 'inline-block', flexShrink: 0 } }),
                 chip.label,
                 React.createElement('span', { className: 'clear-btn', onClick: () => removeFilterChip(chip.key) }, '×')
               )
@@ -7015,12 +6888,13 @@ out geom;`;
           const stateLabel = STATE_LABELS[sys.state] || sys.state;
           const stateDot   = AVAIL_COLOR[sys.state] || '#BFBFBF';
           const statoRight = (isSel && !isDelivered)
-            ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
-                React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
-                'Disponibile',
-                React.createElement('span', { style: { color: 'rgba(0,0,0,0.3)' } }, '–'),
-                React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: '#EB2F96', flexShrink: 0 } }),
-                'In Opzione')
+            ? React.createElement(Tooltip, { title: 'Una volta consegnata la pianificazione in trattativa, questo spazio passerà da Disponibile a In Opzione.' },
+                React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'help' } },
+                  React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
+                  'Disponibile',
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)', margin: '0 1px' } }, '→'),
+                  React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: '#EB2F96', flexShrink: 0 } }),
+                  'In Opzione'))
             : React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
                 React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
                 stateLabel);

@@ -36,7 +36,6 @@
     'Speciale': 'OOH/speciale',
     'Stendardo': 'OOH/stendardo',
     'Telo': 'OOH/telo',
-    'Poster': 'OOH/plancia',
     'Billboard': 'DOOH/billboard',
     'Alux': 'DOOH/alux',
     'Totem': 'DOOH/totem',
@@ -58,6 +57,47 @@
   // solo il path; il mapping label→file resta nell'app (è dominio).
   function markerSrc(type, stateFile) {
     return ASSET_BASE + '/' + folderForType(type) + '/' + (stateFile || 'available') + '.svg';
+  }
+
+  // ── Icone glifo per tipo impianto (UI: tabella, chip filtri, card) ────────
+  // Asset custom 16×16 in assets/systemstype-icons/{OOH,DOOH}/<File>.svg.
+  // Indipendenti dai marker mappa: qui è il glifo neutro del tipo.
+  var SYSTYPE_BASE = '../../assets/systemstype-icons';
+  // tipo normalizzato (lowercase, spazi singoli) → { ch: cartella, file: nome }
+  var SYSTYPE_ICON = {
+    'palina':           { ch: 'OOH',  file: 'Palina' },
+    'palina butterfly': { ch: 'OOH',  file: 'Butterfly' },
+    'cassonetto':       { ch: 'OOH',  file: 'Cassonetto' },
+    'fermata bus':      { ch: 'OOH',  file: 'Autobus' },
+    'fioriera':         { ch: 'OOH',  file: 'Fioriera' },
+    'insegna':          { ch: 'OOH',  file: 'Insegna' },
+    'palo luce':        { ch: 'OOH',  file: 'Paloluce' },
+    'parapedonale':     { ch: 'OOH',  file: 'Parapedonale' },
+    'pensilina':        { ch: 'OOH',  file: 'Pensilina' },
+    'plancia':          { ch: 'OOH',  file: 'Plancia' },
+    'cartello':         { ch: 'OOH',  file: 'Cartello' },
+    'rotor':            { ch: 'OOH',  file: 'Rotor' },
+    'stendardo':        { ch: 'OOH',  file: 'Stendardo' },
+    'telo':             { ch: 'OOH',  file: 'Telo' },
+    'billboard':        { ch: 'DOOH', file: 'Billboard' },
+    'alux':             { ch: 'DOOH', file: 'Alux' },
+    'totem':            { ch: 'DOOH', file: 'Totem' },
+    // 'speciale' → canale-dipendente (gestito sotto)
+    // 'cartello' / 'insegna' → asset non ancora forniti dal design → null
+  };
+  function _normType(t) { return String(t || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+
+  // Ritorna il path dell'icona glifo per il tipo, o null se l'asset non esiste
+  // (Cartello/Insegna → il chiamante usa il proprio fallback). `channel` serve
+  // solo a "Speciale" (OOH→SpecialOOH, DOOH→SpecialDOOH); default OOH.
+  function systypeIconSrc(type, channel) {
+    var t = _normType(type);
+    if (t === 'speciale') {
+      var dooh = String(channel || '').toUpperCase() === 'DOOH';
+      return SYSTYPE_BASE + '/' + (dooh ? 'DOOH/SpecialDOOH' : 'OOH/Special') + '.svg';
+    }
+    var e = SYSTYPE_ICON[t];
+    return e ? (SYSTYPE_BASE + '/' + e.ch + '/' + e.file + '.svg') : null;
   }
 
   // ── Zoom → dimensione marker (scala con lo zoom in entrambe le app) ───────
@@ -92,28 +132,22 @@
     var c = s / 2;
     var rCore = core / 2;
 
-    // Anello viola quando il cluster contiene marker selezionati (solo planning)
-    var selRing = (opts.selectedCount > 0)
+    // Quando il cluster contiene marker selezionati (planning): anello viola +
+    // testo centrale in formato "selezionati/totale" (es. 2/5).
+    var hasSel  = opts.selectedCount > 0;
+    var label   = hasSel ? (opts.selectedCount + '/' + count) : String(count);
+    var fontSize = label.length >= 5 ? 9 : label.length === 4 ? 10 : 12;
+    var selRing = hasSel
       ? '<circle cx="' + c + '" cy="' + c + '" r="' + (rCore + ring / 2) +
         '" fill="none" stroke="' + ACCENT + '" stroke-width="3"/>'
       : '';
-
-    // Badge contatore selezionati in basso a destra (solo planning)
-    var badge = '';
-    if (opts.selectedCount > 0) {
-      var bx = s - 7, by = s - 7;
-      badge = '<circle cx="' + bx + '" cy="' + by + '" r="7" fill="' + ACCENT + '"/>' +
-              '<text x="' + bx + '" y="' + (by + 3) + '" text-anchor="middle" fill="#fff"' +
-              ' font-size="9" font-weight="700" font-family="sans-serif">' + opts.selectedCount + '</text>';
-    }
 
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + s + '" height="' + s + '">' +
       '<circle cx="' + c + '" cy="' + c + '" r="' + (rCore + ring) + '" fill="' + col.halo + '"/>' +
       '<circle cx="' + c + '" cy="' + c + '" r="' + rCore + '" fill="' + col.bg + '"/>' +
       selRing +
-      '<text x="' + c + '" y="' + (c + 4.5) + '" text-anchor="middle" fill="' + col.fg +
-        '" font-size="12" font-weight="700" font-family="sans-serif">' + count + '</text>' +
-      badge +
+      '<text x="' + c + '" y="' + (c + fontSize * 0.36) + '" text-anchor="middle" fill="' + col.fg +
+        '" font-size="' + fontSize + '" font-weight="700" font-family="sans-serif">' + label + '</text>' +
       '</svg>';
 
     return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), size: s };
@@ -169,9 +203,11 @@
         : '';
       var focusFilter = f.isFocused ? 'filter="url(#fs)"' : '';
 
-      // Anello di selezione attorno al pallino (centro ~y46 nel viewBox 78×120)
-      var selRing = (f.isSelected && !f.isFocused)
-        ? '<circle cx="39.75" cy="46" r="22" fill="none" stroke="' + ACCENT + '" stroke-width="4" stroke-opacity="0.9"/>'
+      // Badge di selezione (CheckCircleFilled) in basso a destra (viewBox ~78×120)
+      var selRing = f.isSelected
+        ? '<circle cx="58" cy="85" r="13" fill="#ffffff"/>' +
+          '<circle cx="58" cy="85" r="11.5" fill="' + ACCENT + '"/>' +
+          '<path d="M52.8 85.2 L56.6 89 L63.4 80.6" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'
         : '';
 
       var wrapped = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h +
@@ -254,6 +290,8 @@
     TIPO_TO_FOLDER: TIPO_TO_FOLDER,
     folderForType: folderForType,
     markerSrc: markerSrc,
+    SYSTYPE_ICON: SYSTYPE_ICON,
+    systypeIconSrc: systypeIconSrc,
     getMarkerSize: getMarkerSize,
     clusterColor: clusterColor,
     makeClusterSvg: makeClusterSvg,

@@ -26,8 +26,8 @@
 | **default** | nessuna interazione | icona base, scala da zoom | ✓ | ✓ |
 | **hover** | mouse sopra | ×1.12 + card preview | ✓ | ✓ |
 | **focused** | click (apre dettaglio) | ×1.4 + drop-shadow viola + outline | ✓ | ✓ |
-| **selected** | checkbox attivo | anello viola al centro | — (solo planning) | ✓ |
-| **selected + hover** | sel + mouse sopra | anello + ×1.12 | — | ✓ |
+| **selected** | checkbox attivo | badge check (CheckCircleFilled viola) in basso a destra | — (solo planning) | ✓ |
+| **selected + hover** | sel + mouse sopra | badge check + ×1.12 | — | ✓ |
 | **dimmed** | esiste un focus altrove | opacity 0.2 | ✓ | ✓ |
 
 Colore accento stati: Gravity primary `#3E00FB`.
