@@ -42,10 +42,15 @@
   };
 
   // Risolve la cartella tollerando differenze di case/spazi tra le due app.
-  function folderForType(type) {
+  // "Speciale" è canale-dipendente: lo Speciale DOOH è un marker diverso
+  // dall'OOH (cartelle OOH/speciale e DOOH/speciale).
+  function folderForType(type, channel) {
+    var norm = String(type || '').trim().toLowerCase();
+    if (norm === 'speciale') {
+      return (String(channel || '').toUpperCase() === 'DOOH') ? 'DOOH/speciale' : 'OOH/speciale';
+    }
     if (!type) return 'OOH/palina';
     if (TIPO_TO_FOLDER[type]) return TIPO_TO_FOLDER[type];
-    var norm = String(type).trim().toLowerCase();
     for (var k in TIPO_TO_FOLDER) {
       if (k.toLowerCase() === norm) return TIPO_TO_FOLDER[k];
     }
@@ -55,8 +60,8 @@
   // Stati: l'app passa già il nome del file ('available'|'inOption'|'reserved'|
   // 'active'|'maintenance'|'removed'|'initialized'). Questa funzione costruisce
   // solo il path; il mapping label→file resta nell'app (è dominio).
-  function markerSrc(type, stateFile) {
-    return ASSET_BASE + '/' + folderForType(type) + '/' + (stateFile || 'available') + '.svg';
+  function markerSrc(type, stateFile, channel) {
+    return ASSET_BASE + '/' + folderForType(type, channel) + '/' + (stateFile || 'available') + '.svg';
   }
 
   // ── Icone glifo per tipo impianto (UI: tabella, chip filtri, card) ────────

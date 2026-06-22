@@ -1020,7 +1020,7 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   // Inventory non ha selezione visiva (decisione Fase 0): isSelected sempre false.
   // Il dimming è gestito da applyDim via setOpacity → hasFocus resta false qui.
   const markerSrcFor = (imp) => GravityMap.markerSrc(
-    imp.tipo, (STATO_AMM_CONFIG[imp.stato_amm] || STATO_AMM_CONFIG['Attivo']).file);
+    imp.tipo, (STATO_AMM_CONFIG[imp.stato_amm] || STATO_AMM_CONFIG['Attivo']).file, imp.canale);
   const flagsFor = (id) => ({
     isHovered:  id === hoveredMarkerIdRef.current,
     isFocused:  id === highlightedIdRef.current,
