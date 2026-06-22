@@ -858,7 +858,7 @@ function MetricCard({ label, value, icon, action, href, disabled, popover, desig
       },
         React.createElement('span', {
           style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'help', color: '#FF4A1C' },
-        }, React.createElement(icons.BulbOutlined, { style: { fontSize: 15 } }))
+        }, React.createElement(icons.CoffeeOutlined, { style: { fontSize: 15 } }))
       )
     ),
     // Livello 2 — Value: numero (28/700/lineHeight 1, come la vista lista del planning)
@@ -927,7 +927,7 @@ function ProductCard({ name, desc, color, icon }) {
   );
 }
 
-// Nota di design dell'area app (riusa la lampadina rossa delle KPI).
+// Nota di design dell'area app (riusa l'icona Coffee rossa delle KPI).
 // Il popover contiene la spiegazione + il button che nasconde l'area.
 function AppsDesignNote({ onHide }) {
   return React.createElement(Popover, {
@@ -965,7 +965,7 @@ function AppsDesignNote({ onHide }) {
   },
     React.createElement('span', {
       style: { display: 'inline-flex', alignItems: 'center', cursor: 'help', color: '#FF4A1C' },
-    }, React.createElement(icons.BulbOutlined, { style: { fontSize: 16 } }))
+    }, React.createElement(icons.CoffeeOutlined, { style: { fontSize: 16 } }))
   );
 }
 
@@ -1106,7 +1106,7 @@ function TaskColumn({ tasks, label }) {
 
 const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
 
-// Marker nota di design (lampadina rossa) — popover in hover. Riusato in più punti.
+// Marker nota di design (icona Coffee rossa) — popover in hover. Riusato in più punti.
 function DesignNoteBulb({ note, placement }) {
   return React.createElement(Popover, {
     trigger: 'hover', placement: placement || 'top',
@@ -1116,7 +1116,7 @@ function DesignNoteBulb({ note, placement }) {
     ),
   },
     React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', cursor: 'help', color: '#FF4A1C' } },
-      React.createElement(icons.BulbOutlined, { style: { fontSize: 15 } }))
+      React.createElement(icons.CoffeeOutlined, { style: { fontSize: 15 } }))
   );
 }
 
@@ -1304,7 +1304,7 @@ function AppRoot() {
                 React.createElement('div', { style: { flex: '1 1 0', minWidth: 320 } },
                   React.createElement(ActivitiesSection, { role, onOpenHistory: openHistory })
                 ),
-                // Area app esplorativa: nota + nascondi sulla lampadina del titolo
+                // Area app esplorativa: nota + nascondi sull'icona Coffee del titolo
                 React.createElement('div', { style: { flex: '0 1 500px', minWidth: 320 } },
                   React.createElement(ProductsSection, { role, onHide: () => setAppsHidden(true) })
                 )

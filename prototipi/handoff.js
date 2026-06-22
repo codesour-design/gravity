@@ -1076,33 +1076,8 @@
           h('span', null, 'Modello')
         )
       ),
-      // Divider interno
-      h('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }),
-      // Note interne — trigger con estetica button (icona + label)
-      h(antd.Dropdown, {
-        trigger: ['click'],
-        open: notesOpen,
-        onOpenChange: setNotesOpen,
-        placement: 'bottomRight',
-        dropdownRender: function () { return h(NotesPanel, { notes: notes }); },
-      },
-        h('span', {
-          title: 'Note interne',
-          style: {
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            height: 24, padding: '0 10px',
-            background: '#fff', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 6,
-            color: 'rgba(0,0,0,0.75)', cursor: 'pointer',
-            fontFamily: FONT, fontSize: 12, fontWeight: 600, lineHeight: '22px',
-            transition: 'color .15s, border-color .15s',
-          },
-          onMouseEnter: function (e) { e.currentTarget.style.color = '#3E00FB'; e.currentTarget.style.borderColor = '#3E00FB'; },
-          onMouseLeave: function (e) { e.currentTarget.style.color = 'rgba(0,0,0,0.75)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.15)'; },
-        },
-          h(icons.FileTextOutlined, { style: { fontSize: 13 } }),
-          h('span', null, 'Note')
-        )
-      )
+      // Le note interne sono ora marker inline contestuali (CoffeeOutlined rosso)
+      // ancorati alle aree UI di riferimento — vedi HandoffDesignNote nel prototipo.
     );
   }
 
