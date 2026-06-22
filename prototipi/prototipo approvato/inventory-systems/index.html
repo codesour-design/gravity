@@ -27,6 +27,8 @@
   <!-- Google Maps + MarkerClusterer -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeN8PAeuZkOtG8uyRzvXP2rOzP37HMBdI&libraries=places"></script>
   <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+  <script src="../../map-interactions.js"></script>
+  <script src="../../map-popover.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; }
@@ -1055,12 +1057,14 @@ const makeClusterSvg = (count) => {
 function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect, onMarkerClick, cardImp, onCardClose, onDetail, flyToTarget }) {
   const containerRef  = useRef(null);
   const mapRef        = useRef(null);
-  const clustererRef  = useRef(null);
-  const markersRef    = useRef({});   // id → { marker, imp, infoWindow }
-  const openInfoRef   = useRef(null); // InfoWindow aperta
+  const clusterMarkersRef = useRef([]);  // bolle cluster (griglia condivisa)
+  const markersRef    = useRef({});   // id → { marker, imp }
   const cardImpRef         = useRef(null);
-  const highlightMarkerRef = useRef(null);
+  const highlightedIdRef   = useRef(null);
+  const hoveredMarkerIdRef = useRef(null);
+  const filteredIdsRef     = useRef(null);
   const [cardPx, setCardPx] = useState(null);
+  const [cardReady, setCardReady] = useState(false); // popover visibile solo a fine zoom
 
   const recalcCardPx = React.useCallback(() => {
     const imp = cardImpRef.current;
@@ -1075,19 +1079,114 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
     const lat = entry ? entry.imp.lat : imp.lat;
     const lng = entry ? entry.imp.lng : imp.lng;
     const pt = proj.fromLatLngToPoint(new google.maps.LatLng(lat, lng));
-    setCardPx({ x: Math.floor((pt.x - nw.x) * scale), y: Math.floor((pt.y - nw.y) * scale) });
+    // Ancora il popover sopra il marker focalizzato (icona ×1.4) + 8px di gap
+    const [, baseH] = GravityMap.getMarkerSize(map.getZoom());
+    const markerH = Math.round(baseH * 1.4);
+    setCardPx({
+      x: Math.floor((pt.x - nw.x) * scale),
+      y: Math.floor((pt.y - nw.y) * scale) - markerH - 8,
+    });
   }, []);
 
+  // ── Helper icona marker (stati di interazione, modulo condiviso) ──────────
+  // Inventory non ha selezione visiva (decisione Fase 0): isSelected sempre false.
+  // Il dimming è gestito da applyDim via setOpacity → hasFocus resta false qui.
+  const markerSrcFor = (imp) => GravityMap.markerSrc(
+    imp.tipo, (STATO_AMM_CONFIG[imp.stato_amm] || STATO_AMM_CONFIG['Attivo']).file);
+  const flagsFor = (id) => ({
+    isHovered:  id === hoveredMarkerIdRef.current,
+    isFocused:  id === highlightedIdRef.current,
+    isSelected: false,
+    hasFocus:   false,
+  });
+  const iconFor = (imp) => GravityMap.makeMarkerIcon({
+    src:   markerSrcFor(imp),
+    zoom:  mapRef.current ? mapRef.current.getZoom() : 13,
+    flags: flagsFor(imp.id),
+  });
+  const zIndexFor = (id) => {
+    const f = flagsFor(id);
+    return f.isFocused ? 2000 : f.isHovered ? 500 : 1;
+  };
+
+  const refreshAllIconsRef = useRef(null);
+  refreshAllIconsRef.current = () => {
+    Object.values(markersRef.current).forEach(({ marker, imp }) => {
+      marker.setIcon(iconFor(imp));
+      marker.setZIndex(zIndexFor(imp.id));
+    });
+  };
+  const refreshIcon = (id) => {
+    const entry = markersRef.current[id];
+    if (!entry) return;
+    entry.marker.setIcon(iconFor(entry.imp));
+    entry.marker.setZIndex(zIndexFor(id));
+  };
+
+  // ── Dim: opacità ridotta sugli altri quando c'è un focus / card aperta ────
+  const applyDimRef = useRef(null);
+  applyDimRef.current = () => {
+    const hasFocus = !!highlightedIdRef.current || !!cardImpRef.current;
+    Object.values(markersRef.current).forEach(({ marker, imp }) => {
+      if (!marker.getMap()) return;
+      const isFocused = imp.id === highlightedIdRef.current;
+      marker.setOpacity(hasFocus && !isFocused ? 0.3 : 1);
+    });
+  };
+
+  // ── Clustering a griglia (motore condiviso GravityMap) ────────────────────
+  const applyClusteringRef = useRef(null);
+  applyClusteringRef.current = () => {
+    const map = mapRef.current;
+    if (!map) return;
+    clusterMarkersRef.current.forEach(m => m.setMap(null));
+    clusterMarkersRef.current = [];
+
+    const byId = markersRef.current;
+    // Marker fuori dal filtro: nascosti e fuori dal clustering
+    const active = [];
+    Object.values(byId).forEach(({ marker, imp }) => {
+      const inFilter = !filteredIdsRef.current || filteredIdsRef.current.has(imp.id);
+      if (inFilter) active.push({ marker, imp });
+      else marker.setMap(null);
+    });
+
+    const items = active.map(({ marker, imp }) => ({
+      id: imp.id,
+      position: { lat: marker.getPosition().lat(), lng: marker.getPosition().lng() },
+    }));
+    const res = GravityMap.computeGridClusters(map, items);
+
+    // Ridimensiona le icone dei marker VISIBILI allo zoom corrente (getMarkerSize)
+    if (res.mode === 'individual') {
+      active.forEach(({ marker, imp }) => { marker.setIcon(iconFor(imp)); marker.setMap(map); });
+    } else {
+      res.members.forEach(it => { const e = byId[it.id]; e.marker.setIcon(iconFor(e.imp)); e.marker.setMap(map); });
+      res.clusters.forEach(cl => {
+        cl.members.forEach(it => byId[it.id].marker.setMap(null));
+        const draw = (hovered) => {
+          const { url, size } = GravityMap.makeClusterSvg(cl.members.length, { hovered });
+          return { url, scaledSize: new google.maps.Size(size, size), anchor: new google.maps.Point(size / 2, size / 2) };
+        };
+        const cm = new google.maps.Marker({
+          position: cl.center, icon: draw(false), map,
+          zIndex: 10000 + cl.members.length,
+        });
+        cm.addListener('click',     () => GravityMap.fitBoundsToMembers(map, cl.members));
+        cm.addListener('mouseover', () => cm.setIcon(draw(true)));
+        cm.addListener('mouseout',  () => cm.setIcon(draw(false)));
+        clusterMarkersRef.current.push(cm);
+      });
+    }
+    applyDimRef.current();
+  };
+
+  // ── Preload SVG marker (path corretto via modulo) ─────
   useEffect(() => {
-    const seen = new Set();
-    impianti.forEach(imp => {
-      const folder = TIPO_TO_FOLDER[imp.tipo] || 'OOH/palina';
-      const file = (STATO_AMM_CONFIG[imp.stato_amm] || STATO_AMM_CONFIG['Attivo']).file;
-      const key = `${folder}/${file}`;
-      if (!seen.has(key) && !_svgCache.has(key)) {
-        seen.add(key);
-        fetch(`../../assets/${key}.svg`).then(r => r.text()).then(text => _svgCache.set(key, text)).catch(() => {});
-      }
+    const srcs = new Set();
+    impianti.forEach(imp => srcs.add(markerSrcFor(imp)));
+    GravityMap.preloadAll([...srcs]).then(() => {
+      if (refreshAllIconsRef.current) refreshAllIconsRef.current();
     });
   }, []);
 
@@ -1104,72 +1203,42 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
       zoomControlOptions: { position: google.maps.ControlPosition.LEFT_TOP },
       gestureHandling: 'greedy',
     });
+    // Imposta subito il ref: iconFor() legge lo zoom reale già alla creazione
+    // (evita il fallback a zoom 13 e marker sottodimensionati al primo paint).
+    mapRef.current = map;
 
-    const allMarkers = impianti.map(imp => {
+    impianti.forEach(imp => {
       const marker = new google.maps.Marker({
         position: { lat: imp.lat, lng: imp.lng },
-        icon: makeMarkerIcon(imp.tipo, imp.stato_amm, false, false),
+        icon: iconFor(imp),
       });
 
-      const infoWindow = new google.maps.InfoWindow({
-        content: `<div style="padding:6px 2px;font-family:-apple-system,sans-serif">
-          <div style="font-size:12px;font-weight:600;color:rgba(0,0,0,0.88);margin-bottom:2px">${imp.indirizzo}</div>
-          <div style="font-size:11px;color:rgba(0,0,0,0.45)">${imp.tipo} · ${imp.zona}</div>
-        </div>`,
-        disableAutoPan: true,
-        pixelOffset: new google.maps.Size(0, -4),
-      });
-
+      // Hover: solo marker ingrandito (nessun popover). Il popover è al click.
       marker.addListener('mouseover', () => {
-        if (openInfoRef.current) openInfoRef.current.close();
-        infoWindow.open(map, marker);
-        openInfoRef.current = infoWindow;
+        hoveredMarkerIdRef.current = imp.id;
+        refreshIcon(imp.id);
       });
       marker.addListener('mouseout', () => {
-        infoWindow.close();
-        openInfoRef.current = null;
+        hoveredMarkerIdRef.current = null;
+        refreshIcon(imp.id);
       });
       marker.addListener('click', () => { if (onMarkerClick) onMarkerClick(imp); else onSelect(imp.id); });
 
-      markersRef.current[imp.id] = { marker, imp, infoWindow };
-      return marker;
+      markersRef.current[imp.id] = { marker, imp };
     });
 
-    // Clusterer con renderer custom
-    // Algoritmo con raggio piu' ampio (default 60px) e clustering esteso ai
-    // livelli di zoom alti: aggrega di piu' e mostra cluster piu' a lungo.
-    const clusterer = new markerClusterer.MarkerClusterer({
-      map,
-      markers: allMarkers,
-      algorithm: new markerClusterer.SuperClusterAlgorithm({ radius: 160, maxZoom: 19 }),
-      renderer: {
-        render: ({ count, position }) => {
-          const { size: s } = makeClusterSvg(count);
-          const { url } = makeClusterSvg(count);
-          return new google.maps.Marker({
-            position,
-            icon: {
-              url,
-              scaledSize: new google.maps.Size(s, s),
-              anchor:     new google.maps.Point(s / 2, s / 2),
-            },
-            zIndex: 10000 + count,
-          });
-        },
-      },
-    });
-
+    // Clustering a griglia (motore condiviso): riapplica a ogni zoom e all'idle
+    // iniziale (la proiezione è disponibile solo dopo il primo idle).
+    map.addListener('zoom_changed', () => { if (applyClusteringRef.current) applyClusteringRef.current(); });
+    google.maps.event.addListenerOnce(map, 'idle', () => { if (applyClusteringRef.current) applyClusteringRef.current(); });
     google.maps.event.addListener(map, 'bounds_changed', recalcCardPx);
 
-    mapRef.current   = map;
-    clustererRef.current = clusterer;
-
-    return () => { mapRef.current = null; clustererRef.current = null; };
+    return () => { mapRef.current = null; };
   }, []);
 
   // ── Aggiorna posizioni marker quando cambiano le coordinate (geocoding) ──
   useEffect(() => {
-    if (!mapRef.current || !clustererRef.current) return;
+    if (!mapRef.current) return;
     let changed = false;
     impianti.forEach(imp => {
       const entry = markersRef.current[imp.id];
@@ -1183,33 +1252,21 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
         changed = true;
       }
     });
-    if (changed) clustererRef.current.render();
+    if (changed && applyClusteringRef.current) applyClusteringRef.current();
   }, [impianti]);
 
-  // ── Aggiorna stile e visibilità marker ────────────────
+  // ── Filtro + highlight: aggiorna icone, riclusterizza, centra ─────────────
+  // L'highlight non usa più un overlay separato: il marker focalizzato riceve
+  // lo stato `isFocused` dal modulo (×1.4 + drop-shadow + outline viola) e, se
+  // serve, lo zoom porta sopra la soglia di decluster così è sempre individuale.
   useEffect(() => {
-    if (!clustererRef.current) return;
+    if (!mapRef.current) return;
+    filteredIdsRef.current   = filteredIds;
+    highlightedIdRef.current = highlightedId;
+    cardImpRef.current       = cardImp;
 
-    const visibleMarkers = [];
-    Object.entries(markersRef.current).forEach(([id, { marker, imp }]) => {
-      const isHighlighted = id === highlightedId;
-      const isSelected    = selectedIds.has(id);
-      const inFilter      = !filteredIds || filteredIds.has(id);
-
-      if (!inFilter) {
-        // Nasconde esplicitamente dalla mappa i marker fuori dal filtro
-        marker.setMap(null);
-        return;
-      }
-
-      marker.setIcon(makeMarkerIcon(imp.tipo, imp.stato_amm, false, isSelected));
-      marker.setZIndex(isHighlighted ? 9999 : isSelected ? 500 : 1);
-      marker.setOpacity(isHighlighted ? 0 : (cardImp ? 0.3 : 1));
-      visibleMarkers.push(marker);
-    });
-
-    clustererRef.current.clearMarkers(true);
-    clustererRef.current.addMarkers(visibleMarkers);
+    refreshAllIconsRef.current();
+    applyClusteringRef.current();
 
     if (highlightedId && markersRef.current[highlightedId]) {
       const { imp } = markersRef.current[highlightedId];
@@ -1218,53 +1275,24 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
     }
   }, [highlightedId, selectedIds, filteredIds, cardImp]);
 
-  // ── Overlay marker highlighted (bypass clusterer) ────────
-  useEffect(() => {
-    if (highlightMarkerRef.current) {
-      highlightMarkerRef.current.setMap(null);
-      highlightMarkerRef.current = null;
-    }
-    if (!highlightedId || !mapRef.current) return;
-    const entry = markersRef.current[highlightedId];
-    if (!entry) return;
-    const { imp } = entry;
-    const folder = TIPO_TO_FOLDER[imp.tipo] || 'OOH/palina';
-    const file   = (STATO_AMM_CONFIG[imp.stato_amm] || STATO_AMM_CONFIG['Attivo']).file;
-    const key    = `${folder}/${file}`;
-    const w = Math.round(78 * 0.46), h = Math.round(119 * 0.46);
-    let alive = true;
-
-    // Crea subito l'overlay con l'icona normale — così il marker è sempre visibile
-    highlightMarkerRef.current = new google.maps.Marker({
-      position: { lat: imp.lat, lng: imp.lng },
-      icon: { url: `../../assets/${folder}/${file}.svg`, scaledSize: new google.maps.Size(w, h), anchor: new google.maps.Point(w / 2, h) },
-      map: mapRef.current,
-      zIndex: 10000,
-      clickable: false,
-    });
-
-    // Poi aggiorna a outlined non appena il testo SVG è disponibile
-    const applyOutline = (text) => {
-      if (!alive || !highlightMarkerRef.current) return;
-      _svgCache.set(key, text);
-      highlightMarkerRef.current.setIcon({
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(_addOutline(text, w, h)),
-        scaledSize: new google.maps.Size(w, h),
-        anchor: new google.maps.Point(w / 2, h),
-      });
-    };
-
-    if (_svgCache.has(key)) applyOutline(_svgCache.get(key));
-    else fetch(`../../assets/${folder}/${file}.svg`).then(r => r.text()).then(applyOutline).catch(() => {});
-
-    return () => { alive = false; };
-  }, [highlightedId]);
-
   // ── Posizione card sul marker ────────────────────────
   useEffect(() => {
     cardImpRef.current = cardImp;
     setCardPx(null);
   }, [cardImp]);
+
+  // ── Popover: appare alla fine dell'animazione di zoom sul marker ─────────
+  // Il click avvia pan+zoom (effect highlight); attendiamo l'idle della mappa
+  // prima di mostrare il popover, con fallback se non c'è movimento.
+  useEffect(() => {
+    if (!cardImp || !mapRef.current) { setCardReady(false); return; }
+    const map = mapRef.current;
+    setCardReady(false);
+    const show = () => { recalcCardPx(); setCardReady(true); };
+    const l = google.maps.event.addListenerOnce(map, 'idle', show);
+    const t = setTimeout(show, 600);
+    return () => { google.maps.event.removeListener(l); clearTimeout(t); };
+  }, [cardImp, recalcCardPx]);
 
   // ── Fly to zona cercata ───────────────────────────────
   useEffect(() => {
@@ -1276,9 +1304,40 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
 
   return React.createElement('div', { id: 'ooh-map', style: { position: 'relative' } },
     React.createElement('div', { ref: containerRef, style: { width: '100%', height: '100%' } }),
-    cardImp && React.createElement('div', {
-      style: { position: 'absolute', left: cardPx ? cardPx.x - 125 : 'calc(50% - 125px)', top: cardPx ? cardPx.y + 8 : 'calc(50% + 8px)', zIndex: 500, width: 250, pointerEvents: 'auto' }
-    }, React.createElement(ImpiantoMapCard, { key: cardImp.id, imp: cardImp, onClose: onCardClose, onDetail: onDetail || null }))
+    cardImp && cardReady && React.createElement(GravityMapPopover, {
+      key: cardImp.id,
+      position: cardPx,
+      onClose: onCardClose,
+      title: cardImp.nome || cardImp.code || '—',
+      subtitle: [cardImp.tipo, cardImp.formato].filter(Boolean).join(' · '),
+      action: { label: 'Vai al dettaglio', variant: 'default', onClick: () => onDetail && onDetail(cardImp) },
+    },
+      cardImp.indirizzo && GravityMapPopover.Row({ key: 'addr', icon: 'EnvironmentOutlined', label: cardImp.indirizzo }),
+      // Facce + illuminazione (riferita alle facce) come icona minimal a destra.
+      // Dato booleano: tra gli illuminati, 1 su 3 (per id) è retroilluminato — come nei filtri.
+      (() => {
+        const lit   = !!cardImp.illuminato;
+        const retro = lit && parseInt(cardImp.id.slice(1), 10) % 3 === 0;
+        const n     = cardImp.faces; // illuminazione a livello impianto → tutte le facce
+        const one   = n === 1;
+        // Retroilluminato = lampadina piena · Illuminato = lampadina vuota · Spento = nessuna icona
+        const cfg = !lit
+          ? null
+          : retro
+            ? { Icon: 'BulbFilled',   label: `${n} ${one ? 'faccia retroilluminata' : 'facce retroilluminate'}` }
+            : { Icon: 'BulbOutlined', label: `${n} ${one ? 'faccia illuminata' : 'facce illuminate'}` };
+        return GravityMapPopover.Row({ key: 'faces', divider: true, icon: 'AppstoreOutlined', label: 'Facce',
+          right: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
+            `${cardImp.faces} ${cardImp.faces === 1 ? 'faccia' : 'facce'}`,
+            cfg && React.createElement(antd.Tooltip, { title: cfg.label },
+              React.createElement(icons[cfg.Icon], { style: { fontSize: 13, color: '#FAAD14' } }))) });
+      })(),
+      GravityMapPopover.Row({ key: 'stato', icon: 'AimOutlined', label: 'Stato',
+        right: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5 } },
+          React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+            background: (STATO_AMM_CONFIG[cardImp.stato_amm] || STATO_AMM_CONFIG['Attivo']).dot } }),
+          cardImp.stato_amm || 'Attivo') })
+    )
   );
 }
 

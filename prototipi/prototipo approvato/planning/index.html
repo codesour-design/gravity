@@ -30,6 +30,8 @@
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeN8PAeuZkOtG8uyRzvXP2rOzP37HMBdI&libraries=places"></script>
   <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
   <script src="https://unpkg.com/osmtogeojson@3.0.0-beta.5/osmtogeojson.js"></script>
+  <script src="../../map-interactions.js"></script>
+  <script src="../../map-popover.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; }
@@ -5834,12 +5836,20 @@ out geom;`;
   }, [activePois]); // eslint-disable-line
 
   // Pan centrato sul sistema in focus (click su record o marker)
-  // Zoom minimo 16 per garantire l'uscita dai cluster
+  // Zoom minimo 16 per garantire l'uscita dai cluster.
+  // Il popover appare alla fine dell'animazione (idle), con fallback.
+  const [focusReady, setFocusReady] = useState(false);
   React.useEffect(() => {
-    if (!focusedId) return;
+    if (!focusedId) { setFocusReady(false); return; }
     const sys = SEARCH_RESULTS.find(s => s.id === focusedId);
     if (!sys?.lat || !sys?.lng) return;
+    setFocusReady(false);
     flyTo(sys.lat, sys.lng, 16);
+    const map = mapRef.current;
+    if (!map) { setFocusReady(true); return; }
+    const l = google.maps.event.addListenerOnce(map, 'idle', () => setFocusReady(true));
+    const t = setTimeout(() => setFocusReady(true), 600);
+    return () => { google.maps.event.removeListener(l); clearTimeout(t); };
   }, [focusedId]); // eslint-disable-line
 
   // Posizione pixel della card vicino al marker — aggiornata ad ogni pan/zoom
@@ -6994,9 +7004,9 @@ out geom;`;
         // Google Maps container
         React.createElement('div', { ref: mapContainerRef, className: 'ss-gmap' }),
 
-        // ── Floating info card (focus su marker o record) ────
+        // ── Floating info card (focus su marker) — popover condiviso ─────────
         (() => {
-          if (!focusedId) return null;
+          if (!focusedId || !focusReady) return null;
           const sys = SEARCH_RESULTS.find(s => s.id === focusedId);
           if (!sys) return null;
           const isSel    = selectedSystemIds.has(sys.id);
@@ -7004,58 +7014,32 @@ out geom;`;
           const fmt      = faceObjs[0]?.format || '';
           const stateLabel = STATE_LABELS[sys.state] || sys.state;
           const stateDot   = AVAIL_COLOR[sys.state] || '#BFBFBF';
-          const price = computeFacePrice(faceObjs[0], planning);
-          const cardStyle = focusCardPos
-            ? { left: focusCardPos.x, top: focusCardPos.y, transform: 'translate(-50%, -100%)' }
-            : { left: '50%', bottom: 24, transform: 'translateX(-50%)' };
-          return React.createElement('div', { className: 'ss-focus-card', style: cardStyle, onClick: e => e.stopPropagation() },
-            React.createElement('button', {
-              className: 'ss-focus-card-close',
-              onClick: e => { e.stopPropagation(); setFocusedId(null); },
-            }, React.createElement(icons.CloseOutlined)),
-            React.createElement('div', { className: 'ss-focus-card-title' },
-              sys.label ? `★ ${sys.label}` : sys.code
-            ),
-            React.createElement('div', { className: 'ss-focus-card-sub' },
-              [sys.type, fmt].filter(Boolean).join(' · ')
-            ),
-            sys.address && React.createElement('div', { className: 'ss-focus-card-row' },
-              React.createElement(icons.EnvironmentOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.4)' } }),
-              sys.address + (sys.city ? `, ${sys.city.split(' ')[0]}` : '')
-            ),
-            React.createElement('div', { className: 'ss-focus-card-row', style: { borderTop: '1px solid #f0f0f0', paddingTop: 6, marginTop: 2 } },
-              React.createElement(icons.AppstoreOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.4)' } }),
-              'Facce',
-              React.createElement('span', { style: { marginLeft: 'auto', fontWeight: 600 } },
-                `${faceObjs.length} ${faceObjs.length === 1 ? 'faccia' : 'facce'}`
-              )
-            ),
-            React.createElement('div', { className: 'ss-focus-card-row' },
-              React.createElement(icons.AimOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.4)' } }),
-              'Stato',
-              isSel && !isDelivered
-                ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' } },
-                    React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
-                    'Disponibile',
-                    React.createElement('span', { style: { color: 'rgba(0,0,0,0.3)' } }, '–'),
-                    React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: '#EB2F96', flexShrink: 0 } }),
-                    'In Opzione',
-                  )
-                : React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' } },
-                    React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
-                    stateLabel,
-                  ),
-            ),
-            !readOnly && React.createElement('button', {
-              onClick: e => { e.stopPropagation(); toggleSys(sys); },
-              style: {
-                marginTop: 4, border: 'none', borderRadius: 6, padding: '6px 0',
-                background: isSel ? '#FFF0F0' : '#3E00FB',
-                color: isSel ? '#FF4D4F' : '#fff',
-                fontSize: 12, fontWeight: 600, cursor: 'pointer', width: '100%',
-                fontFamily: 'var(--gravity-font-body)',
-              },
-            }, isSel ? 'Rimuovi dalla pianificazione' : 'Aggiungi alla pianificazione')
+          const statoRight = (isSel && !isDelivered)
+            ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+                React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
+                'Disponibile',
+                React.createElement('span', { style: { color: 'rgba(0,0,0,0.3)' } }, '–'),
+                React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: '#EB2F96', flexShrink: 0 } }),
+                'In Opzione')
+            : React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+                React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
+                stateLabel);
+          return React.createElement(GravityMapPopover, {
+            position: focusCardPos,
+            onClose: () => setFocusedId(null),
+            title: sys.label ? `★ ${sys.label}` : sys.code,
+            subtitle: [sys.type, fmt].filter(Boolean).join(' · '),
+            action: readOnly ? null : {
+              label: isSel ? 'Rimuovi dalla pianificazione' : 'Aggiungi alla pianificazione',
+              danger: isSel,
+              onClick: () => toggleSys(sys),
+            },
+          },
+            sys.address && GravityMapPopover.Row({ key: 'addr', icon: 'EnvironmentOutlined',
+              label: sys.address + (sys.city ? `, ${sys.city.split(' ')[0]}` : '') }),
+            GravityMapPopover.Row({ key: 'faces', divider: true, icon: 'AppstoreOutlined', label: 'Facce',
+              right: `${faceObjs.length} ${faceObjs.length === 1 ? 'faccia' : 'facce'}` }),
+            GravityMapPopover.Row({ key: 'stato', icon: 'AimOutlined', label: 'Stato', right: statoRight })
           );
         })(),
 
