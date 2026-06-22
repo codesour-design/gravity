@@ -2187,6 +2187,9 @@ const MOCK_EVENTS = [
   { date: '01/09/2024', time: '09:30', title: 'Stato cambiato in', desc: "L'impianto è stato registrato e inizializzato nel sistema.", badge: { label: 'Inizializzato', status: 'processing' }, agent: 'System Admin', agentInitial: 'SA' },
   { date: '01/09/2024', time: '09:00', title: 'Sistema creato', desc: 'Nuovo impianto registrato nella piattaforma.', agent: 'System Admin', agentInitial: 'SA' },
 ];
+// Stati selezionabili nel modale "Nuovo evento": ogni opzione mostra il pallino colorato
+// dello stato (vedi STATO_COLORS). "In Manutenzione" sblocca i campi di dettaglio dell'intervento.
+const NEW_EVENT_STATI = ['Inizializzato', 'Attivo', 'In Manutenzione', 'Rimosso'];
 
 const COVER_STRIPS = [
   { flex: 2.5, bg: 'linear-gradient(160deg,#2d3e1e 0%,#3d5228 100%)' },
@@ -2703,6 +2706,15 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
   const [filterType,        setFilterType]        = useState(null);
   const [filterAgent,       setFilterAgent]       = useState(null);
   const [filterSearch,      setFilterSearch]      = useState('');
+  // Nuovo evento — modale + eventi aggiunti dall'utente (prependati alla timeline)
+  const [newEventOpen,      setNewEventOpen]      = useState(false);
+  const [extraEvents,       setExtraEvents]       = useState([]);
+  const [neTipo,            setNeTipo]            = useState(null);   // tipo evento / stato
+  const [neNote,            setNeNote]            = useState('');
+  const [neData,            setNeData]            = useState(null);
+  const [neSquadra,         setNeSquadra]         = useState('');
+  const [neTipoInt,         setNeTipoInt]         = useState(null);
+  const [neComponente,      setNeComponente]      = useState('');
   const [isEditingIdentityCard, setIsEditingIdentityCard] = useState(false);
   const [isEditingProject,      setIsEditingProject]      = useState(false);
   const [galleryOpen,       setGalleryOpen]       = useState(false);
@@ -2844,6 +2856,32 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
     antdMsg.success('Permesso scollegato');
   };
 
+  const openNewEvent = () => { setNeTipo(null); setNeNote(''); setNeData(null); setNeSquadra(''); setNeTipoInt(null); setNeComponente(''); setNewEventOpen(true); };
+  const saveNewEvent = () => {
+    if (!neTipo) { antdMsg.warning('Seleziona lo stato'); return; }
+    let desc = neNote || '';
+    if (neTipo === 'In Manutenzione') {
+      const parts = [];
+      if (neSquadra) parts.push('Squadra: ' + neSquadra);
+      if (neTipoInt) parts.push('Intervento: ' + neTipoInt);
+      if (neComponente) parts.push('Componente: ' + neComponente);
+      if (parts.length) desc = (desc ? desc + ' · ' : '') + parts.join(' · ');
+    }
+    const base = neData || dayjs();
+    const ev = {
+      date: base.format('DD/MM/YYYY'),
+      time: dayjs().format('HH:mm'),
+      title: 'Stato cambiato in',
+      desc: desc || '—',
+      badge: { label: neTipo, color: STATO_COLORS[neTipo] || '#d9d9d9' },
+      agent: 'Elena Faraci', agentInitial: 'EF',
+    };
+    setExtraEvents(prev => [ev, ...prev]);
+    setVisibleCount(c => c + 1);
+    setNewEventOpen(false);
+    antdMsg.success('Evento aggiunto alla timeline');
+  };
+
   const tabEvents = (() => {
     const isDateFuture = dateStr => { const [d,m,y] = dateStr.split('/').map(Number); return new Date(y,m-1,d) > new Date(); };
     const parseDate = dateStr => { const [d,m,y] = dateStr.split('/').map(Number); return new Date(y,m-1,d); };
@@ -2856,7 +2894,8 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
       return true;
     };
     const agentMap = { marco: 'Marco Picceri', admin: 'System Admin', gloria: 'Gloria Russo' };
-    const filtered = MOCK_EVENTS.filter(ev => {
+    const allEvents = [...extraEvents, ...MOCK_EVENTS];
+    const filtered = allEvents.filter(ev => {
       if (filterDateRange && filterDateRange[0] && filterDateRange[1]) {
         const evDate = parseDate(ev.date);
         const start = filterDateRange[0].toDate(); start.setHours(0,0,0,0);
@@ -2887,6 +2926,7 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
           { value: 'admin', label: 'System Admin' },
         ]}),
         React.createElement(Input, { placeholder: 'Cerca evento…', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.3)' } }), style: { width: 180 }, allowClear: true, value: filterSearch, onChange: e => { setFilterSearch(e.target.value); setVisibleCount(5); } }),
+        React.createElement(Button, { icon: React.createElement(PlusOutlined), style: { marginLeft: 'auto' }, onClick: openNewEvent }, 'Nuovo evento'),
       ),
       React.createElement('div', null,
         items.map((ev, i) =>
@@ -2912,7 +2952,7 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
             React.createElement('div', { style: { flex: 1, paddingBottom: 24 } },
               React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' } },
                 React.createElement(Text, { strong: true, style: { fontSize: 14, lineHeight: '22px', color: 'rgba(0,0,0,0.88)' } }, ev.title),
-                ev.badge ? React.createElement(Badge, { status: ev.badge.status, text: ev.badge.label }) : null,
+                ev.badge ? React.createElement(Badge, ev.badge.color ? { color: ev.badge.color, text: ev.badge.label } : { status: ev.badge.status, text: ev.badge.label }) : null,
               ),
               React.createElement(Text, { style: { fontSize: 13, display: 'block', marginBottom: 16, lineHeight: '20px', color: 'rgba(0,0,0,0.88)' } }, ev.desc),
               React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
@@ -3223,6 +3263,40 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
           )
         )
       ),
+    ),
+
+    // Nuovo evento modal — aggiunge un evento alla timeline
+    React.createElement(Modal, {
+      title: 'Nuovo evento', open: newEventOpen, width: 520,
+      onCancel: () => setNewEventOpen(false), onOk: saveNewEvent,
+      okText: 'Aggiungi', cancelText: 'Annulla', okButtonProps: { disabled: !neTipo },
+    },
+      (() => {
+        const row = (label, control) => React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 } },
+          React.createElement('div', { style: { width: 140, textAlign: 'right', paddingTop: 5, fontSize: 14, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label),
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } }, control),
+        );
+        const isMan = neTipo === 'In Manutenzione';
+        return React.createElement('div', { style: { paddingTop: 8 } },
+          row('Tipo evento', React.createElement(Select, {
+            value: neTipo, onChange: setNeTipo, placeholder: 'Seleziona lo stato', style: { width: '100%' },
+            options: NEW_EVENT_STATI.map(s => ({
+              value: s,
+              label: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+                React.createElement('span', { style: { width: 8, height: 8, borderRadius: '50%', backgroundColor: STATO_COLORS[s] || '#d9d9d9', flexShrink: 0 } }),
+                s),
+            })),
+          })),
+          row('Note', React.createElement(Input.TextArea, { value: neNote, onChange: e => setNeNote(e.target.value), placeholder: 'Descrizione dell\'evento', autoSize: { minRows: 2, maxRows: 4 } })),
+          row('Data', React.createElement(DatePicker, { value: neData, onChange: setNeData, style: { width: '100%' }, placeholder: 'Seleziona data', format: 'DD/MM/YYYY' })),
+          isMan ? React.createElement('div', { style: { marginTop: 4, paddingTop: 16, borderTop: '1px solid #f0f0f0' } },
+            React.createElement('div', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12 } }, 'Dettagli intervento'),
+            row('Squadra', React.createElement(Input, { value: neSquadra, onChange: e => setNeSquadra(e.target.value), placeholder: '—' })),
+            row('Tipo intervento', React.createElement(Select, { value: neTipoInt, onChange: setNeTipoInt, options: TIPO_MAN_OPTS, placeholder: 'Seleziona', style: { width: '100%' } })),
+            row('Componente interessato', React.createElement(Input, { value: neComponente, onChange: e => setNeComponente(e.target.value), placeholder: 'Es. pannello frontale, illuminazione…' })),
+          ) : null,
+        );
+      })(),
     ),
 
     // Map modal
@@ -3710,12 +3784,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [laboratorio,  setLaboratorio]  = useState('');
   const [geologo,      setGeologo]      = useState('');
 
-  // ── Manutenzione
-  const [dataMan,    setDataMan]    = useState(null);
-  const [squadraMan, setSquadraMan] = useState('');
-  const [tipoMan,    setTipoMan]    = useState(null);
-  const [oggettoMan, setOggettoMan] = useState('');
-
   // ── Galleria
   const [fileList, setFileList] = useState([]);
   const [progettoDocs, setProgettoDocs] = useState([]);
@@ -3791,7 +3859,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     { id: 'dati-amministrativi',   label: 'Iter autorizzativo' },
     { id: 'caratteristiche', label: 'Dati tecnici' },
     { id: 'struttura',       label: 'Cespiti e dispositivi' },
-    { id: 'manutenzione',    label: 'Verifiche e manutenzione' },
     { id: 'affissione',      label: 'Affissione' },
     { id: 'commerciale',     label: 'Commerciale' },
   ];
@@ -3821,7 +3888,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     progetto, progDittaCA, progDataFine, dataCollaudo, dataVerifica, respVerifica,
     calcestruzzo, acciaioCarp, acciaioArm, tecnicheGc,
     progettista, ddl, rsc, collaudatore, laboratorio, geologo,
-    dataMan, squadraMan, tipoMan, oggettoMan,
     noteVerifica,
     assets,
     concessioni: selConcessioni, autorizzazioni: selAutorizzazioni, permessi: addedPermits,
@@ -4430,6 +4496,20 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                   faceAddBtn,
                 ),
           ),
+          box('Verifica', 'Verifiche periodiche dell\'impianto.',
+            g2(
+              cs('Data ultima verifica',  false, dp(dataVerifica,  setDataVerifica)),
+              cs('Resp. ultima verifica', false,
+                sel(respVerifica || undefined, setRespVerifica, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+            ),
+            cs('Note', false,
+              React.createElement(Input.TextArea, {
+                value: noteVerifica, onChange: e => setNoteVerifica(e.target.value),
+                placeholder: 'Es. Verifica strutturale superata, prossimo controllo previsto a settembre…',
+                autoSize: { minRows: 2, maxRows: 4 },
+              })
+            ),
+          ),
         ),
 
         // ── 7. Cespiti e Dispositivi
@@ -4473,32 +4553,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               : React.createElement(Empty, { description: "Aggiungi un dispositivo connesso", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
                   dispositivoAddBtn,
                 ),
-          ),
-        ),
-
-        // ── 8. Manutenzione
-        sec('manutenzione', 'Verifiche e manutenzione', 'A impianto realizzato: collaudo statico, verifiche periodiche e interventi di manutenzione registrati nel tempo.',
-          box('Ultimo intervento', 'Data, squadra e tipo dell\'ultimo intervento di manutenzione registrato.',
-            g4(
-              cs('Data ultima man.', false, dp(dataMan,     setDataMan)),
-              cs('Squadra',          false, inp(squadraMan, setSquadraMan, '—')),
-              cs('Tipo intervento',  false, sel(tipoMan,    setTipoMan,   TIPO_MAN_OPTS)),
-              cs('Componente interessato', false, inp(oggettoMan, setOggettoMan,'Es. pannello frontale, illuminazione…')),
-            ),
-          ),
-          box('Verifica', 'Verifiche periodiche dell\'impianto.',
-            g2(
-              cs('Data ultima verifica',  false, dp(dataVerifica,  setDataVerifica)),
-              cs('Resp. ultima verifica', false,
-                sel(respVerifica || undefined, setRespVerifica, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
-            ),
-            cs('Note', false,
-              React.createElement(Input.TextArea, {
-                value: noteVerifica, onChange: e => setNoteVerifica(e.target.value),
-                placeholder: 'Es. Verifica strutturale superata, prossimo controllo previsto a settembre…',
-                autoSize: { minRows: 2, maxRows: 4 },
-              })
-            ),
           ),
         ),
 
