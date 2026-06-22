@@ -1506,6 +1506,53 @@ const INITIAL_LABELS = [
 
 const { Title, Text, Paragraph } = Typography;
 
+// ── Note di design handoff (marker inline contestuale) ─────────────────────
+// Icona CoffeeOutlined rossa + popover. Renderizzata SOLO nel file di handoff,
+// dove window.HANDOFF_NOTES è definito (in index.html ritorna null → invisibile).
+// Iconografia standard delle note di design per gli handoff Gravity.
+function _ghfRenderNoteBody(body) {
+  // supporta **grassetto**, ==evidenziato== e righe "- " (lista)
+  const inline = (txt, kp) => {
+    const out = []; let k = 0, last = 0, m;
+    const re = /(\*\*([^*]+)\*\*|==([^=]+)==)/g;
+    while ((m = re.exec(txt))) {
+      if (m.index > last) out.push(txt.slice(last, m.index));
+      if (m[2] != null) out.push(React.createElement('strong', { key: kp+'b'+(k++), style: { color: 'rgba(0,0,0,0.88)' } }, m[2]));
+      else out.push(React.createElement('mark', { key: kp+'h'+(k++), style: { background: '#FFF1E8', color: '#FF4A1C', padding: '0 2px', borderRadius: 2 } }, m[3]));
+      last = m.index + m[0].length;
+    }
+    if (last < txt.length) out.push(txt.slice(last));
+    return out;
+  };
+  const lines = String(body || '').split('\n');
+  const nodes = []; let list = null;
+  lines.forEach((ln, i) => {
+    if (/^- /.test(ln)) { (list = list || []).push(React.createElement('li', { key: 'li'+i, style: { marginBottom: 2 } }, inline(ln.slice(2), 'li'+i))); }
+    else {
+      if (list) { nodes.push(React.createElement('ul', { key: 'ul'+i, style: { margin: '4px 0', paddingLeft: 18 } }, list)); list = null; }
+      if (ln.trim()) nodes.push(React.createElement('div', { key: 'p'+i, style: { marginBottom: 4 } }, inline(ln, 'p'+i)));
+    }
+  });
+  if (list) nodes.push(React.createElement('ul', { key: 'ulE', style: { margin: '4px 0', paddingLeft: 18 } }, list));
+  return nodes;
+}
+function HandoffDesignNote({ id, placement }) {
+  const notes = window.HANDOFF_NOTES;
+  if (!notes) return null;
+  const note = notes.find(n => n.id === id);
+  if (!note) return null;
+  return React.createElement(antd.Popover, {
+    trigger: 'hover', placement: placement || 'right',
+    content: React.createElement('div', { style: { maxWidth: 340 } },
+      React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FF4A1C', marginBottom: 6 } }, note.title || 'Nota di design'),
+      React.createElement('div', { style: { fontSize: 13, lineHeight: 1.55, color: 'rgba(0,0,0,0.65)' } }, _ghfRenderNoteBody(note.body))
+    ),
+  }, React.createElement('span', {
+    style: { display: 'inline-flex', alignItems: 'center', cursor: 'help', color: '#FF4A1C', marginLeft: 6 },
+    onClick: (e) => { e.stopPropagation(); e.preventDefault(); },
+  }, React.createElement(icons.CoffeeOutlined, { style: { fontSize: 14 } })));
+}
+
 // ══════════════════════════════════════════════════════
 // DATA
 // ══════════════════════════════════════════════════════
@@ -3449,7 +3496,8 @@ function PlanningsList({ onSelect, stateOverrides, planningsList, setPlanningsLi
     },
     // 4. Pianificatore — chi ci lavora, con filtro per agente
     {
-      title: 'Pianificatore',
+      title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center' } },
+        'Pianificatore', React.createElement(HandoffDesignNote, { id: 'assegnazione-futura', placement: 'bottom' })),
       key: 'agente',
       width: 192,
       filters: Object.entries(AGENTS).map(([k, a]) => ({
@@ -3591,7 +3639,8 @@ function PlanningsList({ onSelect, stateOverrides, planningsList, setPlanningsLi
     },
     // 6. Campagna — display read-only, sempre allineato a Trattativa
     {
-      title: 'Campagna',
+      title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center' } },
+        'Campagna', React.createElement(HandoffDesignNote, { id: 'campagna-senza-trattativa', placement: 'bottom' })),
       key: 'campagna',
       width: 180,
       render: (_, row) => {
@@ -3668,23 +3717,8 @@ function PlanningsList({ onSelect, stateOverrides, planningsList, setPlanningsLi
     },
     // 8. Tipo vendita — derivato da categoria + durata
     {
-      title: React.createElement(Tooltip, {
-        placement: 'top',
-        title: React.createElement('div', { style: { fontSize: 12, lineHeight: 1.55, maxWidth: 300 } },
-          React.createElement('div', { style: { fontWeight: 600, marginBottom: 4 } }, 'Nota interna · stato del design'),
-          React.createElement('div', { style: { marginBottom: 6 } },
-            'Modello di vendita già configurato: ',
-            React.createElement('b', null, 'Standard'), ' 7gg · ',
-            React.createElement('b', null, 'Quattordicina'), ' 14gg · ',
-            React.createElement('b', null, 'LT'), ' da 1 mese in su · ',
-            React.createElement('b', null, 'Custom'), ' libero.'),
-          React.createElement('div', { style: { marginBottom: 6 } },
-            'La somma di più quattordicine è oggi solo una valutazione di design e potrebbe richiedere un ripensamento delle trattative.'),
-          React.createElement('div', null,
-            'Per questo, al momento ', React.createElement('b', null, 'ogni campagna ha una sola quattordicina'),
-            ' assegnata e ogni pianificazione è ', React.createElement('b', null, 'limitata a una sola'), '.'),
-        ),
-      }, React.createElement('span', { style: { cursor: 'help', borderBottom: '1px dotted rgba(0,0,0,0.3)' } }, 'Tipo vendita')),
+      title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center' } },
+        'Tipo vendita', React.createElement(HandoffDesignNote, { id: 'tipo-vendita', placement: 'bottom' })),
       key: 'saleType',
       width: 120,
       render: (_, record) => {
@@ -3859,7 +3893,8 @@ function PlanningsList({ onSelect, stateOverrides, planningsList, setPlanningsLi
         React.createElement(DataCard, {
           key: i,
           icon: c.icon,
-          label: c.label,
+          label: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center' } },
+            c.label, React.createElement(HandoffDesignNote, { id: 'card-ruolo', placement: 'bottom' })),
           value: c.value,
         })
       )
