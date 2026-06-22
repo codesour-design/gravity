@@ -51,13 +51,13 @@ const { useState, useEffect, useRef } = React;
 const {
   ConfigProvider, App, Layout, Space, Typography,
   Button, Avatar, Upload, Modal, Form, Input, Select, Card, Tag,
-  Dropdown, Skeleton, Alert, Divider, Checkbox, Popover,
+  Dropdown, Skeleton, Alert, Divider, Checkbox, Popover, Drawer, Result,
 } = antd;
 const {
   UserOutlined, LockOutlined, BellOutlined,
   CheckOutlined, InfoCircleOutlined, SettingOutlined, DownOutlined,
   EditOutlined, SwapOutlined, CameraOutlined, HistoryOutlined,
-  ArrowLeftOutlined, FilterOutlined, LoadingOutlined, CheckCircleOutlined,
+  ArrowLeftOutlined, FilterOutlined, LoadingOutlined,
 } = icons;
 const { Title, Text } = Typography;
 
@@ -140,12 +140,10 @@ const TENANTS = {
 };
 
 // Area di competenza per ruolo — coerente con il planning (Giulia Romano · Sicilia Occidentale)
-const ROLE_AREA = {
-  'Tenant Admin':      'Gestione piattaforma — Sicilia Occidentale',
-  'Inventory Manager': 'Inventory — Sicilia Occidentale',
-  'Operation Manager': 'Operations & Delivery — Sicilia Occidentale',
-  'Planner':           'Pianificazione — Sicilia Occidentale',
-  'Sales':             'Commerciale — Sicilia Occidentale',
+// Area di competenza — coerente col prototipo Planning (PLANNER.area/provinces)
+const COMPETENCY = {
+  area:      'Sicilia Occidentale',
+  provinces: ['Palermo', 'Trapani', 'Agrigento', 'Caltanissetta'],
 };
 
 // Email aziendale derivata dall'utente effettivamente visualizzato + dominio del tenant
@@ -168,6 +166,23 @@ const PRODUCTS = [
   { name: 'Aurora',  desc: 'Advertorial',            color: '#8B5CF6', icon: 'ReadOutlined' },
   { name: 'Polaris', desc: 'ERP & Contabilità',      color: '#0D9488', icon: 'CalculatorOutlined' },
 ];
+
+// ── Mappatura app per ruolo ────────────────────────────────────────────────────
+// Ogni ruolo vede solo le app coerenti con le sue responsabilità (allineate ai
+// domini delle sezioni che già vede in navbar). Area esplorativa: assegnazione
+// indicativa, da validare con lo studio dei ruoli.
+//  · Tenant Admin      → tutte (governance di piattaforma)
+//  · Inventory Manager → inventario OOH/DOOH + web
+//  · Operation Manager → disponibilità, CRM, pianif. OOH, espletamento, ERP/pagamenti (OOH-focused, da intervista)
+//  · Planner           → inventario + pianificazione OOH/web + espletamento
+//  · Sales             → CRM, proposte, advertorial, delivery
+const ROLE_APPS = {
+  'Tenant Admin':      ['Atlas', 'Quasar', 'Vega', 'Orbit', 'Pulsar', 'Comet', 'Aurora', 'Polaris'],
+  'Inventory Manager': ['Atlas', 'Quasar'],
+  'Operation Manager': ['Atlas', 'Vega', 'Orbit', 'Comet', 'Polaris'],
+  'Planner':           ['Atlas', 'Orbit', 'Pulsar', 'Comet'],
+  'Sales':             ['Vega', 'Orbit', 'Aurora', 'Comet'],
+};
 
 // ── Categorie attività (stile + icona condivisi tra ruoli) ─────────────────────
 
@@ -210,6 +225,86 @@ function catIcon(cat, size) {
 
 // ── Dati per ruolo ────────────────────────────────────────────────────────────
 
+// ── Mock attività Operation Manager ───────────────────────────────────────────
+// Mondo Media Hub / Alessi — Sicilia occidentale (dall'intervista a Bianca).
+// Granularità card↔attività: ogni KPI = numero di record della sua coda; questi
+// record alimentano sia il conteggio nella card sia la lista "Le tue attività".
+// Categorie non-MVP (Assegnazioni, Contratti) → record sola lettura (disabled+nota).
+const _omAgents  = ['Roberto Vinci', 'Margherita Lo Cascio', 'Giorgio Focarini', 'Alessandro Nicoletti', 'Lia Greco'];
+const _omComuni  = ['Palermo', 'Monreale', 'Bagheria', 'Carini', 'Partinico', 'Trapani', 'Erice', 'Marsala', 'Mazara del Vallo', 'Alcamo', 'Castelvetrano', 'Sciacca'];
+const _omClienti = ['Fagone S.r.l.', 'Ottica Rinaldi S.r.l.', 'Panificio Sciarrino', 'Cantine Florio', 'Caseificio Belicino', 'Mobilificio Saporito', 'Autoscuola Vittoria', 'Farmacia San Giovanni', 'Vivai Mediterraneo', 'Clinica Sorriso', 'Hotel Crystal', 'Pasticceria Oscar', 'Calzature Damiani', 'Ferramenta Lo Bue', 'Centro Estetico Aura', 'Ristorante Al Saraceno', 'Supermercati Iblea', 'Carrozzeria Maggiore', 'Tipografia Eolo', 'Enoteca Solunto', 'Palestra Olympia', 'Lavanderia Smeralda', 'Profumeria Lux'];
+const _omSoggetti = ['Saldi estate', 'Apertura punto vendita', 'Promo stagionale', 'Campagna istituzionale', 'Lancio menù estivo', 'Open day', 'Black week', 'Festa del cliente', 'Promo occhiali da sole'];
+const _pick = (arr, i) => arr[((i % arr.length) + arr.length) % arr.length];
+const _omBuild = (n, fn) => Array.from({ length: n }, (_, k) => fn(k));
+
+// Pagamenti scaduti (7) — solleciti via PEC, controllo scaduto cliente.
+// time = da quanto è in coda (recency); il ritardo vive solo nel dettaglio.
+const OM_PAGAMENTI = [
+  { title: 'Sollecito pagamento — AutoMove S.p.A.', desc: 'Fattura #2024-318 · €4.820 · 18 gg di ritardo · 2° sollecito', time: '2 ore fa', priority: 'high', category: 'Pagamenti' },
+  ..._omBuild(6, (k) => {
+    const gg  = [31, 14, 9, 5, 22, 7][k];
+    const imp = ['€3.150', '€2.090', '€1.240', '€560', '€2.460', '€890'][k];
+    const lvl = gg >= 20 ? 'prelegale' : gg >= 10 ? '2° sollecito' : '1° sollecito';
+    const rec = ['1 ora fa', '3 ore fa', 'ieri', '2 gg fa', 'oggi', '3 gg fa'][k];
+    return { title: 'Sollecito pagamento — ' + _pick(_omClienti, k * 2 + 3), desc: 'Fattura #2024-' + (291 + k) + ' · ' + imp + ' · ' + gg + ' gg di ritardo · ' + lvl, time: rec, priority: gg >= 15 ? 'high' : 'medium', category: 'Pagamenti' };
+  }),
+];
+
+// Preventivi da approvare (14) — gatekeeping sconto: "se non passa da qui non esce".
+// Nome = trattativa collegata (soggetto + area). Dettaglio = cliente · totale ·
+// commerciale · n° campagne nel preventivo (un preventivo può contenere più
+// campagne). Lo sconto resta come driver (invisibile) della priorità.
+const _prevSconto = [23, 18, 25, 12, 20, 28, 15, 10, 30, 17, 22, 14, 26, 8];
+const _prevTotale = ['€3.200', '€8.450', '€12.400', '€2.100', '€5.600', '€18.900', '€4.300', '€1.850', '€24.000', '€6.700', '€9.100', '€3.950', '€14.200', '€2.480'];
+const _prevCamp   = [1, 2, 1, 1, 3, 2, 1, 1, 4, 2, 1, 1, 3, 1];
+const _prevTime   = ['1 ora fa', '2 ore fa', '3 ore fa', 'ieri', '2 gg fa', '3 gg fa', '4 gg fa'];
+const _campLabel  = (n) => n + (n === 1 ? ' campagna' : ' campagne');
+const OM_PREVENTIVI = _omBuild(14, (k) => {
+  const sc = _prevSconto[k];
+  const trattativa = _pick(_omSoggetti, k) + ' ' + _pick(_omComuni, k);
+  return {
+    title: 'Approva preventivo — ' + trattativa,
+    desc: _pick(_omClienti, k) + ' · ' + _prevTotale[k] + ' · ' + _pick(_omAgents, k) + ' · ' + _campLabel(_prevCamp[k]),
+    time: _pick(_prevTime, k),
+    priority: sc >= 22 ? 'high' : sc >= 15 ? 'medium' : 'low',
+    category: 'Preventivi',
+  };
+});
+
+// Anagrafiche da verificare (23) — dati incompleti (spesso solo nome insegna)
+const _anaMiss = ['P.IVA mancante', 'PEC e codice univoco assenti', 'sede legale incompleta', 'codice fiscale da inserire', 'solo recapito telefonico — ragione sociale da verificare', 'IBAN e condizioni di pagamento assenti'];
+const _anaTime = ['1 ora fa', '2 ore fa', '3 ore fa', 'oggi', 'ieri', '2 gg fa', '3 gg fa', '4 gg fa', '5 gg fa'];
+const OM_ANAGRAFICHE = [
+  { title: 'Completa anagrafica — BrandX S.r.l.', desc: 'P.IVA e sede legale incomplete', time: '2 ore fa', priority: 'high', category: 'Anagrafiche' },
+  ..._omBuild(22, (k) => ({ title: 'Completa anagrafica — ' + _pick(_omClienti, k), desc: _pick(_anaMiss, k), time: _pick(_anaTime, k), priority: k < 3 ? 'high' : k < 13 ? 'medium' : 'low', category: 'Anagrafiche' })),
+];
+
+// Inserzionisti/lead da assegnare (11) — NON-MVP (wizard da definire): sola lettura
+const _leadFonti   = ['sito', 'media monitor'];
+const _leadInsegne = ['Gelateria Campiano', 'Bar Centrale', 'Ottica Visione', 'Pizzeria Da Nino', 'Centro Gomme Sud', 'Boutique Mirò', 'Macelleria Lo Verde', 'Caffè Letterario', 'Idea Casa Arredi', 'Studio Dentistico Bianco', 'Garden Flora'];
+const OM_ASSEGNAZIONI = _omBuild(11, (k) => ({ title: 'Assegna inserzionista — ' + _leadInsegne[k], desc: 'da ' + _pick(_leadFonti, k) + ' · zona ' + _pick(_omComuni, k + 2) + ' → ' + _pick(_omAgents, k), time: _pick(['30 min fa', '1 ora fa', '2 ore fa', '3 ore fa', 'ieri', '2 gg fa'], k), priority: k < 3 ? 'medium' : 'low', category: 'Assegnazioni', disabled: true, popover: 'Wizard da definire' }));
+
+// Contratti da preparare (9) — NON-MVP: sola lettura
+const OM_CONTRATTI = [
+  { title: 'Prepara contratto #PR-4790', desc: 'BrandX S.r.l. · preventivo approvato dal cliente — invio firma', time: 'ieri', priority: 'medium', category: 'Contratti', disabled: true, popover: 'No MVP' },
+  ..._omBuild(8, (k) => ({ title: 'Prepara contratto #PR-' + (4791 + k), desc: _pick(_omClienti, k + 9) + ' · preventivo approvato — invio firma', time: _pick(['oggi', 'ieri', '2 gg fa', '3 gg fa'], k), priority: k < 3 ? 'medium' : 'low', category: 'Contratti', disabled: true, popover: 'No MVP' })),
+];
+
+// Round-robin tra le code → le attività si alternano per categoria invece di
+// comparire tutte insieme (Pag, Prev, Ana, Ass, Contr, Pag, Prev, …).
+const _interleave = (...lists) => {
+  const out = [];
+  const max = Math.max.apply(null, lists.map((l) => l.length));
+  for (let i = 0; i < max; i++) lists.forEach((l) => { if (i < l.length) out.push(l[i]); });
+  return out;
+};
+const OM_ACTIVITIES = _interleave(OM_PAGAMENTI, OM_PREVENTIVI, OM_ANAGRAFICHE, OM_ASSEGNAZIONI, OM_CONTRATTI);
+const _omCount = (cat) => String(OM_ACTIVITIES.filter((t) => t.category === cat).length);
+
+// Solo l'Operation Manager ha dati validati con la UX research. Gli altri ruoli
+// mostrano card e attività placeholder: lo studio del ruolo è ancora da effettuare.
+const STUDIED_ROLES = ['Operation Manager'];
+
 // Ogni metrica: icon = icona pertinente (header) · action = link button del footer
 const ROLE_METRICS = {
   'Tenant Admin': [
@@ -226,11 +321,11 @@ const ROLE_METRICS = {
   ],
   // Vista di riferimento — dati esatti da Figma Make (5 metriche operative)
   'Operation Manager': [
-    { label: 'Anagrafiche da verificare',  value: '23', trend: 'da completare',        trendUp: false, icon: 'IdcardOutlined',       action: 'Vai a Portafoglio commerciale' },
-    { label: 'Inserzionisti da assegnare', value: '11', trend: '+4 oggi',              trendUp: false, icon: 'UsergroupAddOutlined', action: 'Assegna Inserzionista', disabled: true, popover: 'Wizard da definire' },
-    { label: 'Pagamenti scaduti',          value: '7',  trend: 'azione richiesta',     trendUp: false, icon: 'CreditCardOutlined',   action: 'Vai a ordini' },
-    { label: 'Preventivi da approvare',    value: '14', trend: 'intervento operation', trendUp: false, icon: 'FileTextOutlined',     action: 'Vai a preventivi' },
-    { label: 'Contratti da preparare',     value: '9',  trend: 'approvati da cliente', trendUp: true,  icon: 'SolutionOutlined',     action: 'Vai a contratti', disabled: true, popover: 'No MVP' },
+    { label: 'Anagrafiche da verificare',  value: _omCount('Anagrafiche'),  trend: 'da completare',        trendUp: false, icon: 'IdcardOutlined',       action: 'Vai a Portafoglio commerciale', designNote: 'App e flusso commerciale propedeutici per questa card.' },
+    { label: 'Inserzionisti da assegnare', value: _omCount('Assegnazioni'), trend: 'lead da smistare',     trendUp: false, icon: 'UsergroupAddOutlined', action: 'Assegna Inserzionista', disabled: true, popover: 'Wizard da definire', designNote: 'App e flusso commerciale propedeutici per questa card. Casistica: accade quando arrivano lead da sito, media monitor o altre situazioni in cui si verifica il caso di anagrafiche inserzionisti che non hanno agenti commerciali assegnati. Necessaria review modello dati Inserzionisti.' },
+    { label: 'Pagamenti scaduti',          value: _omCount('Pagamenti'),    trend: 'azione richiesta',     trendUp: false, icon: 'CreditCardOutlined',   action: 'Vai a ordini', designNote: 'Necessario redesign ordini con plausibile integrazione ERP per stato pagamenti e ampliamento modello dati attuale. Nuova funzionalità necessaria: recupero crediti.' },
+    { label: 'Preventivi da approvare',    value: _omCount('Preventivi'),   trend: 'intervento operation', trendUp: false, icon: 'FileTextOutlined',     action: 'Vai a preventivi', disabled: true, popover: 'Work in progress, sprint imminenti', designNote: 'Necessario rivedere flusso preventivi come conseguenza del redesign del flusso trattative.' },
+    { label: 'Contratti da preparare',     value: _omCount('Contratti'),    trend: 'approvati da cliente', trendUp: true,  icon: 'SolutionOutlined',     action: 'Vai a contratti', disabled: true, popover: 'No MVP', designNote: 'Va progettato flusso contratti, attualmente non esistente.' },
   ],
   'Planner': [
     { label: 'Ordini pianificati',  value: '34',  trend: '+5 vs sett.', trendUp: true,  icon: 'ScheduleOutlined', action: 'Vedi pianificazioni' },
@@ -261,14 +356,9 @@ const ROLE_PENDING = {
     { title: 'Aggiornamento coordinate', desc: '4 impianti con GPS da correggere',      time: '2 gg fa',       priority: 'medium', category: 'Impianti'  },
     { title: 'Aggiornamento listino',    desc: 'DOOH Bologna Fiera Q3',                 time: '4 gg fa',       priority: 'low',    category: 'Listini'   },
   ],
-  // Vista di riferimento — dati esatti da Figma Make
-  'Operation Manager': [
-    { title: 'Sollecito pagamento scaduto', desc: 'Fattura #2024-318 · AutoMove S.p.A. — 18 gg di ritardo', time: 'scaduto', priority: 'high',   category: 'Pagamenti'   },
-    { title: 'Approva preventivo #PR-4821', desc: 'Campagna Estate Milano · BrandX Srl',                    time: '1 ora fa', priority: 'high',   category: 'Preventivi'  },
-    { title: 'Verifica anagrafica BrandX Srl', desc: 'P.IVA e sede legale incomplete',                      time: '2 ore fa', priority: 'high',   category: 'Anagrafiche' },
-    { title: 'Assegna 3 nuovi nominativi',  desc: 'Lead Nord Ovest da smistare al team',                    time: '3 ore fa', priority: 'medium', category: 'Assegnazioni' },
-    { title: 'Prepara contratto #PR-4790',  desc: 'Preventivo approvato dal cliente — invio firma',         time: 'ieri',     priority: 'medium', category: 'Contratti'   },
-  ],
+  // Coda completa Operation Manager (64 record) — alimenta sia i conteggi delle
+  // KPI sia la lista attività. Granularità: card = conteggio coda, attività = record.
+  'Operation Manager': OM_ACTIVITIES,
   'Planner': [
     { title: 'Conflitto slot MI-DUO-014',   desc: 'Ordine #4821 sovrapposto al #4855',  time: '2 ore fa', priority: 'high',   category: 'Conflitti'      },
     { title: 'Capacità esaurita VR-AR-022', desc: 'Nessuna disponibilità luglio',        time: '4 ore fa', priority: 'high',   category: 'Disponibilità'  },
@@ -381,8 +471,6 @@ const ROLE_HISTORY = {
     { title: 'Referral MediaGroup acquisito',   desc: 'Introdotto da BrandX',                 category: 'Clienti',    status: 'completed',   date: '14 giu 2026', time: '09:50', user: 'Sara Galli'      },
   ],
 };
-
-const PRIORITY_DOT = { high: '#ff4d4f', medium: '#fa8c16', low: '#52c41a' };
 
 const HISTORY_STATUS = {
   completed:   { label: 'Completata', color: '#16A34A' },
@@ -585,6 +673,7 @@ function GravityNavbarTenant({ role, onRoleChange, tenantKey, onTenantChange, te
 function PasswordModal({ open, onClose }) {
   const [form] = Form.useForm();
   const [success, setSuccess] = useState(false);
+  const { token } = antd.theme.useToken();
 
   const onFinish = (values) => {
     if (values.newPassword !== values.confirm) {
@@ -601,21 +690,23 @@ function PasswordModal({ open, onClose }) {
     open, onCancel: handleCancel, footer: null, width: 440,
     title: React.createElement(Space, { align: 'center', size: 12 },
       React.createElement('div', {
-        style: { width: 36, height: 36, borderRadius: 8, background: 'rgba(62,0,251,0.1)', flexShrink: 0,
+        style: { width: 36, height: 36, borderRadius: token.borderRadius, background: token.colorPrimaryBg, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center' },
-      }, React.createElement(LockOutlined, { style: { color: '#3E00FB', fontSize: 18 } })),
+      }, React.createElement(LockOutlined, { style: { color: token.colorPrimary, fontSize: 18 } })),
       React.createElement('div', null,
         React.createElement(Text, { strong: true }, 'Cambia password'),
         React.createElement('br'),
-        React.createElement(Text, { type: 'secondary', style: { fontSize: 12 } }, 'Aggiorna le tue credenziali di accesso')
+        React.createElement(Text, { type: 'secondary', style: { fontSize: token.fontSizeSM } }, 'Aggiorna le tue credenziali di accesso')
       )
     ),
   },
     success
-      ? React.createElement('div', { style: { textAlign: 'center', padding: '32px 0' } },
-          React.createElement(CheckCircleOutlined, { style: { fontSize: 36, color: '#52c41a' } }),
-          React.createElement('div', { style: { marginTop: 12, fontWeight: 600 } }, 'Password aggiornata')
-        )
+      ? React.createElement(Result, {
+          status: 'success',
+          title: 'Password aggiornata',
+          subTitle: 'Le tue credenziali di accesso sono state modificate.',
+          style: { padding: '24px 0' },
+        })
       : React.createElement(Form, { form, layout: 'vertical', onFinish },
           React.createElement(Alert, {
             type: 'info', showIcon: true, style: { marginBottom: 16 },
@@ -652,7 +743,9 @@ function HeaderCard({ role, tenant, avatarSrc, onAvatarChange }) {
 
   const gestisciItems = [
     { key: 'password', icon: React.createElement(LockOutlined), label: 'Password', onClick: () => setPwOpen(true) },
-    { key: 'notifiche', icon: React.createElement(BellOutlined), label: 'Notifiche' },
+    { key: 'notifiche', icon: React.createElement(BellOutlined), disabled: true,
+      label: React.createElement(Popover, { content: 'No MVP', placement: 'left' },
+        React.createElement('span', { style: { pointerEvents: 'auto' } }, 'Notifiche')) },
   ];
 
   const uploadProps = {
@@ -704,15 +797,26 @@ function HeaderCard({ role, tenant, avatarSrc, onAvatarChange }) {
               'Benvenuto, ' + roleUser.nome + ' ' + roleUser.cognome),
             React.createElement(Tag, { style: { margin: 0, fontSize: 12, fontWeight: 600 } }, role)
           ),
-          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, minWidth: 0, overflow: 'hidden' } },
-            ...[
-              { label: 'Area di competenza', value: ROLE_AREA[role] || '—', maxW: 280 },
-              { label: 'Email aziendale',   value: userEmail(role, tenant), maxW: 280 },
-            ].map(({ label, value, maxW }) =>
-              React.createElement('div', { key: label, style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, maxWidth: maxW, flexShrink: 1 } },
-                React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, label + ':'),
-                React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, value)
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', minWidth: 0 } },
+            // Area di competenza — area + tag province (stile Planning)
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+              React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, 'Area di competenza:'),
+              React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)' } }, COMPETENCY.area),
+              React.createElement('div', { style: { display: 'flex', gap: 4 } },
+                ...COMPETENCY.provinces.map((p) => React.createElement('span', {
+                  key: p,
+                  style: {
+                    fontSize: 11, lineHeight: '18px', padding: '0 6px',
+                    background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.1)',
+                    borderRadius: 4, color: 'rgba(0,0,0,0.55)', fontWeight: 500,
+                  },
+                }, p))
               )
+            ),
+            // Email aziendale
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, maxWidth: 280, flexShrink: 1 } },
+              React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, 'Email aziendale:'),
+              React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, userEmail(role, tenant))
             )
           )
         ),
@@ -730,8 +834,9 @@ function HeaderCard({ role, tenant, avatarSrc, onAvatarChange }) {
 }
 
 // ── Metric Cards ──────────────────────────────────────────────────────────────
-// Card KPI a 3 livelli (Head / Value / Extra) — icona pertinente + link button nel footer
-function MetricCard({ label, value, icon, action, href, disabled, popover }) {
+// Card KPI a 3 livelli (Head / Value / Extra) — icona pertinente + link button nel footer.
+// designNote (opzionale) → marker di nota di design in alto a dx, popover in hover.
+function MetricCard({ label, value, icon, action, href, disabled, popover, designNote }) {
   const Ico = icons[icon] || icons.BarChartOutlined;
   const btnIcon = React.createElement(Ico, { style: { fontSize: 13 } });
 
@@ -740,10 +845,21 @@ function MetricCard({ label, value, icon, action, href, disabled, popover }) {
     style: { flex: '1 1 0', minWidth: 180, borderRadius: 8, border: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column' },
     styles: { body: { padding: 0, flex: 1, display: 'flex', flexDirection: 'column', width: '100%' } },
   },
-    // Livello 1 — Head: icona pertinente + label
+    // Livello 1 — Head: icona pertinente + label (+ nota di design, se presente)
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 8px' } },
       React.createElement(Ico, { style: { color: 'rgba(0,0,0,0.88)', fontSize: 16, flexShrink: 0 } }),
-      React.createElement(Text, { strong: true, ellipsis: true, style: { fontSize: 14 } }, label)
+      React.createElement(Text, { strong: true, ellipsis: true, style: { fontSize: 14, flex: 1 } }, label),
+      designNote && React.createElement(Popover, {
+        trigger: 'hover', placement: 'top',
+        content: React.createElement('div', { style: { maxWidth: 280 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FF4A1C', marginBottom: 6 } }, 'Nota di design'),
+          React.createElement('div', { style: { fontSize: 13, lineHeight: 1.55, color: 'rgba(0,0,0,0.65)' } }, designNote)
+        ),
+      },
+        React.createElement('span', {
+          style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'help', color: '#FF4A1C' },
+        }, React.createElement(icons.BulbOutlined, { style: { fontSize: 15 } }))
+      )
     ),
     // Livello 2 — Value: numero (28/700/lineHeight 1, come la vista lista del planning)
     React.createElement('div', { style: { padding: '0 16px 16px' } },
@@ -767,7 +883,23 @@ function MetricCard({ label, value, icon, action, href, disabled, popover }) {
 }
 
 function MetricRow({ role }) {
-  const metrics = ROLE_METRICS[role] || ROLE_METRICS['Tenant Admin'];
+  const metrics = ROLE_METRICS[role];
+  // Ruolo non ancora studiato → card KPI placeholder (vuote)
+  if (!STUDIED_ROLES.includes(role) || !metrics || !metrics.length) {
+    return React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 10, width: '100%' } },
+      [0, 1, 2, 3].map((i) => React.createElement(Card, {
+        key: i, bordered: false,
+        style: { flex: '1 1 0', minWidth: 180, borderRadius: 8, border: '1px dashed #d9d9d9', background: '#fafafa' },
+        styles: { body: { padding: '16px' } },
+      },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 } },
+          React.createElement(icons.BarChartOutlined, { style: { color: 'rgba(0,0,0,0.18)', fontSize: 16 } }),
+          React.createElement(Text, { style: { fontSize: 13, color: 'rgba(0,0,0,0.30)' } }, 'Da definire')
+        ),
+        React.createElement('div', { style: { fontSize: 28, fontWeight: 700, lineHeight: 1, color: 'rgba(0,0,0,0.15)' } }, '—')
+      ))
+    );
+  }
   return React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 10, width: '100%' } },
     metrics.map((m) => React.createElement(MetricCard, { key: m.label, ...m }))
   );
@@ -795,49 +927,119 @@ function ProductCard({ name, desc, color, icon }) {
   );
 }
 
-function ProductsSection() {
+// Nota di design dell'area app (riusa la lampadina rossa delle KPI).
+// Il popover contiene la spiegazione + il button che nasconde l'area.
+function AppsDesignNote({ onHide }) {
+  return React.createElement(Popover, {
+    trigger: 'hover', placement: 'bottomLeft',
+    content: React.createElement('div', { style: { maxWidth: 340 } },
+      React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FF4A1C', marginBottom: 6 } }, 'Nota di design'),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 7, fontSize: 13, lineHeight: 1.55, color: 'rgba(0,0,0,0.65)' } },
+        React.createElement('div', null,
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'Cos’è — '),
+          'base progettuale per la futura ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'architettura del brand Gravity'),
+          ', strutturato in ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'sottoprodotti tematici'),
+          '.'),
+        React.createElement('div', null,
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'Impatto — '),
+          'introdurla richiede di rivedere ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'navigazione'),
+          ' e ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'voci in navbar'),
+          ' all’atterraggio sul prodotto.'),
+        React.createElement('div', null,
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'Nota — '),
+          'spazio ricavato ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'a fini di test'),
+          ': usa il button per nascondere l’area e valutare il layout nella ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'fattibilità attuale'),
+          '.')
+      ),
+      React.createElement(Button, {
+        type: 'primary', size: 'small', block: true, style: { marginTop: 12 },
+        onClick: onHide,
+      }, 'Nascondi area app')
+    ),
+  },
+    React.createElement('span', {
+      style: { display: 'inline-flex', alignItems: 'center', cursor: 'help', color: '#FF4A1C' },
+    }, React.createElement(icons.BulbOutlined, { style: { fontSize: 16 } }))
+  );
+}
+
+function ProductsSection({ role, onHide }) {
+  const allowed = ROLE_APPS[role] || [];
+  const apps = PRODUCTS.filter((p) => allowed.includes(p.name));
   return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
-    React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue app'),
-    // Card app a griglia (2 colonne)
-    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, width: '100%' } },
-      PRODUCTS.map((p) => React.createElement(ProductCard, { key: p.name, ...p }))
-    )
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+      React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue app'),
+      React.createElement(AppsDesignNote, { onHide })
+    ),
+    // Card app a griglia (2 colonne) — solo le app del ruolo
+    apps.length === 0
+      ? React.createElement('div', { style: { padding: '24px 0', fontSize: 13, color: 'rgba(0,0,0,0.35)' } }, 'Nessuna app assegnata a questo ruolo')
+      : React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, width: '100%' } },
+          apps.map((p) => React.createElement(ProductCard, { key: p.name, ...p }))
+        )
   );
 }
 
 // ── Task Cards ────────────────────────────────────────────────────────────────
-function TaskCard({ title, desc, time, priority, category }) {
+// Card attività — SOLA LETTURA + deep-link al modulo (nessuna azione inline).
+// Clic → apre il modulo filtrato sullo stato (href). I target non ancora
+// disponibili (non-MVP) restano leggibili ma non navigabili, con nota al hover.
+//
+// Principio: ogni informazione una sola volta, ogni elemento con un significato
+// leggibile senza legenda.
+//  · categoria → codificata UNA volta (box icona colorato) + label neutra che
+//    disambigua l'icona; niente più pill colorata ridondante.
+//  · priorità  → non mostrata sulla card: ordina soltanto il feed.
+//  · tempo     → da quanto l'attività è in coda (recency), distinto dal detail.
+function TaskCard({ title, desc, time, category, href, disabled, popover }) {
   const s = catStyle(category);
-  return React.createElement(Card, {
+  const clickable = !disabled;
+
+  const card = React.createElement(Card, {
     bordered: false,
-    style: { width: '100%', borderRadius: 8, border: '1px solid #f0f0f0' },
+    hoverable: clickable,
+    onClick: clickable && href ? () => { window.location.href = href; } : undefined,
+    style: { width: '100%', borderRadius: 8, border: '1px solid #f0f0f0', cursor: clickable ? 'pointer' : 'default' },
     styles: { body: { padding: '12px 16px' } },
   },
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 } },
-        React.createElement('div', {
-          style: { width: 32, height: 32, borderRadius: 6, flexShrink: 0, background: s.color + '1F',
-            display: 'flex', alignItems: 'center', justifyContent: 'center' },
-        }, catIcon(category, 16)),
-        React.createElement('div', { style: { minWidth: 0 } },
-          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-            React.createElement(Text, { strong: true, ellipsis: true, style: { fontSize: 14, lineHeight: '22px' } }, title),
-            priority && React.createElement('span', {
-              style: { width: 6, height: 6, borderRadius: '50%', background: PRIORITY_DOT[priority], display: 'inline-block', flexShrink: 0 },
-            })
-          ),
-          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 } },
-            React.createElement('span', {
-              style: { fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 3, flexShrink: 0,
-                color: s.color, background: s.color + '1A' },
-            }, category),
-            React.createElement(Text, { type: 'secondary', ellipsis: true, style: { fontSize: 12, lineHeight: '18px' } }, desc)
-          )
-        )
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+      // Icona categoria — unica codifica cromatica della categoria
+      React.createElement('div', {
+        style: { width: 36, height: 36, borderRadius: 8, flexShrink: 0, background: s.color + '1F',
+          display: 'flex', alignItems: 'center', justifyContent: 'center' },
+      }, catIcon(category, 18)),
+      // Corpo
+      React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+        // Riga 1: categoria (label neutra)
+        React.createElement(Text, {
+          style: { display: 'block', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(0,0,0,0.45)', marginBottom: 1 },
+        }, category),
+        // Riga 2: titolo
+        React.createElement(Text, { strong: true, ellipsis: true, style: { display: 'block', fontSize: 14, lineHeight: '20px' } }, title),
+        // Riga 3: dettaglio di dominio
+        React.createElement(Text, { type: 'secondary', ellipsis: true, style: { display: 'block', fontSize: 12, lineHeight: '18px' } }, desc)
       ),
-      React.createElement(Text, { type: 'secondary', style: { fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 } }, time)
+      // Destra: da quanto è in coda + affordance deep-link (chevron). Nessuna azione inline.
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 } },
+        React.createElement(Text, { type: 'secondary', style: { fontSize: 12, whiteSpace: 'nowrap' } }, time),
+        clickable
+          ? React.createElement(icons.RightOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.25)' } })
+          : null
+      )
     )
   );
+
+  return disabled
+    ? React.createElement(Popover, { content: popover, trigger: 'hover', placement: 'top' },
+        React.createElement('div', { style: { cursor: 'not-allowed', width: '100%' } }, card)
+      )
+    : card;
 }
 
 // ── Filtro categorie (multi-selezione) ─────────────────────────────────────────
@@ -902,53 +1104,96 @@ function TaskColumn({ tasks, label }) {
   );
 }
 
+const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
+
+// Marker nota di design (lampadina rossa) — popover in hover. Riusato in più punti.
+function DesignNoteBulb({ note, placement }) {
+  return React.createElement(Popover, {
+    trigger: 'hover', placement: placement || 'top',
+    content: React.createElement('div', { style: { maxWidth: 300 } },
+      React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FF4A1C', marginBottom: 6 } }, 'Nota di design'),
+      React.createElement('div', { style: { fontSize: 13, lineHeight: 1.55, color: 'rgba(0,0,0,0.65)' } }, note)
+    ),
+  },
+    React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', cursor: 'help', color: '#FF4A1C' } },
+      React.createElement(icons.BulbOutlined, { style: { fontSize: 15 } }))
+  );
+}
+
 function ActivitiesSection({ role, onOpenHistory }) {
-  const pending = ROLE_PENDING[role] || ROLE_PENDING['Operation Manager'];
+  const all = ROLE_PENDING[role] || [];
+  const studied = STUDIED_ROLES.includes(role) && all.length > 0;
+
+  // Ruolo non ancora studiato → attività placeholder (vuote) + nota
+  if (!studied) {
+    return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
+      React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
+      React.createElement('div', { style: { border: '1px dashed #d9d9d9', borderRadius: 8, background: '#fafafa', padding: '36px 24px' } },
+        React.createElement(antd.Empty, {
+          image: antd.Empty.PRESENTED_IMAGE_SIMPLE,
+          description: React.createElement('div', { style: { maxWidth: 440, margin: '0 auto', lineHeight: 1.6 } },
+            React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.65)', marginBottom: 4 } }, 'Studio del ruolo in corso'),
+            React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } },
+              'Card e attività per il ruolo ',
+              React.createElement('strong', null, role),
+              ' non sono ancora definite: lo studio del ruolo per questi dati va ancora effettuato con la UX research.'
+            )
+          ),
+        })
+      )
+    );
+  }
+
+  // Feed dashboard: le più urgenti (priorità, ordine stabile), prime 6.
+  // Il totale resta nel "Vedi tutte (N)" → cronologia completa filtrabile.
+  const feed = all.slice()
+    .sort((a, b) => (PRIORITY_RANK[a.priority] == null ? 3 : PRIORITY_RANK[a.priority]) - (PRIORITY_RANK[b.priority] == null ? 3 : PRIORITY_RANK[b.priority]))
+    .slice(0, 6);
 
   return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
-    // Header: titolo a sinistra, "Vedi tutte (N)" all'estrema destra
+    // Header: titolo (+ nota di design) a sinistra, "Vedi tutte (N)" all'estrema destra
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%' } },
-      React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
-      React.createElement(Button, { type: 'link', onClick: onOpenHistory, style: { padding: 0, height: 'auto' } },
-        'Vedi tutte (' + pending.length + ')', React.createElement(icons.ArrowRightOutlined, { style: { fontSize: 12, marginLeft: 6 } })
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+        React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
+        React.createElement(DesignNoteBulb, { placement: 'bottomLeft', note: 'Le attività sono conseguenza della realizzazione dei flussi descritti dalle card delle metriche.' })
+      ),
+      React.createElement(Button, { type: 'link', onClick: onOpenHistory, icon: React.createElement(icons.ArrowRightOutlined, { style: { fontSize: 12 } }), iconPosition: 'end', style: { padding: 0, height: 'auto' } },
+        'Vedi tutte (' + all.length + ')'
       )
     ),
-    // Card delle attività da fare (Da gestire)
-    pending.length === 0
+    // Card delle attività più urgenti
+    feed.length === 0
       ? React.createElement('div', { style: { padding: '24px 0', textAlign: 'center', fontSize: 13, color: 'rgba(0,0,0,0.35)' } },
           'Nessuna attività')
       : React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
-          pending.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
+          feed.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
         )
   );
 }
 
-// ── Schermata Cronologia ────────────────────────────────────────────────────────
-// Pagina dedicata "Vedi tutte" — SOLO attività da fare (Da gestire), no in corso/completate
-function HistoryScreen({ role, onBack }) {
+// ── Corpo del drawer "Vedi tutte" ───────────────────────────────────────────────
+// Lista completa delle attività da fare (Da gestire), filtrabile per categoria.
+// Titolo e chiusura sono forniti dal Drawer contenitore.
+function ActivitiesDrawerBody({ role }) {
   const [filter, setFilter] = useState([]);
-  const pendingAll = ROLE_PENDING[role] || ROLE_PENDING['Operation Manager'];
+  const pendingAll = ROLE_PENDING[role] || [];
   const categories = Array.from(new Set(pendingAll.map((t) => t.category)));
   const toggle = (c) => setFilter((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
   const apply = (tasks) => filter.length === 0 ? tasks : tasks.filter((t) => filter.includes(t.category));
   const pending = apply(pendingAll);
 
-  return React.createElement(Space, { direction: 'vertical', size: 24, style: { width: '100%' } },
+  return React.createElement(Space, { direction: 'vertical', size: 16, style: { width: '100%' } },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%' } },
-      React.createElement(Space, { size: 12, align: 'center' },
-        React.createElement(Button, { icon: React.createElement(ArrowLeftOutlined), onClick: onBack, 'aria-label': 'Torna indietro' }),
-        React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Attività da fare')
-      ),
+      React.createElement(Text, { type: 'secondary', style: { fontSize: 13 } },
+        pending.length + (pending.length === 1 ? ' attività' : ' attività')),
       React.createElement(ActivityFilter, { categories, selected: filter, onToggle: toggle, onClear: () => setFilter([]) })
     ),
-    React.createElement('div', { style: { maxWidth: 800, width: '100%' } },
-      pending.length === 0
-        ? React.createElement('div', { style: { padding: '40px 0', textAlign: 'center', fontSize: 14, color: 'rgba(0,0,0,0.35)' } },
-            'Nessuna attività per i filtri selezionati')
-        : React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
-            pending.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
-          )
-    )
+    pending.length === 0
+      ? React.createElement('div', { style: { padding: '40px 0', textAlign: 'center', fontSize: 14, color: 'rgba(0,0,0,0.35)' } },
+          'Nessuna attività per i filtri selezionati')
+      : React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+          pending.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
+        )
   );
 }
 
@@ -1005,31 +1250,6 @@ function ContentSkeleton() {
   );
 }
 
-function HistorySkeleton() {
-  return React.createElement(Space, { direction: 'vertical', size: 24, style: { width: '100%' } },
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
-      React.createElement(Space, { size: 12 },
-        React.createElement(Skeleton.Avatar, { active: true, shape: 'square', size: 32 }),
-        React.createElement(Skeleton.Button, { active: true, style: { width: 200, height: 28 } })
-      ),
-      React.createElement(Skeleton.Button, { active: true, style: { width: 150, height: 32 } })
-    ),
-    React.createElement(Card, { bordered: false, style: { border: '1px solid #f0f0f0' }, styles: { body: { padding: 16 } } },
-      ...[0,1,2].map((g) =>
-        React.createElement('div', { key: g, style: { marginBottom: 16 } },
-          React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 90, height: 14, marginBottom: 12 } }),
-          ...[0,1,2].map((i) =>
-            React.createElement('div', { key: i, style: { display: 'flex', gap: 14, padding: '10px 0', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none' } },
-              React.createElement(Skeleton.Avatar, { active: true, shape: 'square', size: 32 }),
-              React.createElement('div', { style: { flex: 1 } }, React.createElement(Skeleton, { active: true, paragraph: { rows: 1 } }))
-            )
-          )
-        )
-      )
-    )
-  );
-}
-
 // ── App Root ──────────────────────────────────────────────────────────────────
 function AppRoot() {
   const [role, setRole] = useState(localStorage.getItem('gravity_proto_role') || 'Operation Manager');
@@ -1037,7 +1257,10 @@ function AppRoot() {
   const [loading, setLoading] = useState(true);
   const [tenantLoading, setTenantLoading] = useState(false);
   const [avatarSrc, setAvatarSrc] = useState(null);
-  const [view, setView] = useState('dashboard');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  // Area app esplorativa: nascondibile per test layout. Stato in memoria →
+  // si ripristina (le app riappaiono) al reload della pagina.
+  const [appsHidden, setAppsHidden] = useState(false);
 
   const tenant = TENANTS[tenantKey];
 
@@ -1048,7 +1271,7 @@ function AppRoot() {
 
   const handleRoleChange = (r) => {
     localStorage.setItem('gravity_proto_role', r);
-    setView('dashboard');
+    setHistoryOpen(false);
     setLoading(true);
     setTimeout(() => { setRole(r); setLoading(false); }, 600);
   };
@@ -1060,39 +1283,33 @@ function AppRoot() {
       window.location.href = '../../prototipo%20approvato/single-signon/index.html?tenant=' + tenantParam;
       return;
     }
-    setView('dashboard');
+    setHistoryOpen(false);
     setLoading(true);
     setTimeout(() => { setTenantKey(k); setLoading(false); }, 200);
   };
 
-  const openHistory = () => {
-    setView('history');
-    setLoading(true);
-    setTimeout(() => setLoading(false), 500);
-  };
+  const openHistory = () => setHistoryOpen(true);
 
-  let content;
-  if (view === 'history') {
-    content = loading
-      ? React.createElement(HistorySkeleton)
-      : React.createElement(HistoryScreen, { role, onBack: () => setView('dashboard') });
-  } else {
-    content = loading
+  let content = loading
       ? React.createElement(ContentSkeleton)
       : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 32, width: '100%' } },
           React.createElement(HeaderCard, { role, tenant, avatarSrc, onAvatarChange: setAvatarSrc }),
           React.createElement(MetricRow, { role }),
-          // Due colonne: sinistra "Le tue attività", destra "Le tue app"
-          React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start', width: '100%' } },
-            React.createElement('div', { style: { flex: '1 1 0', minWidth: 320 } },
-              React.createElement(ActivitiesSection, { role, onOpenHistory: openHistory })
-            ),
-            React.createElement('div', { style: { flex: '0 1 500px', minWidth: 320 } },
-              React.createElement(ProductsSection)
-            )
-          )
+          // Due colonne: sinistra "Le tue attività", destra "Le tue app".
+          // Area app esplorativa: hover → spiegazione + button per nasconderla.
+          // Nascosta → attività full width (si ripristina al reload).
+          appsHidden
+            ? React.createElement(ActivitiesSection, { role, onOpenHistory: openHistory })
+            : React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start', width: '100%' } },
+                React.createElement('div', { style: { flex: '1 1 0', minWidth: 320 } },
+                  React.createElement(ActivitiesSection, { role, onOpenHistory: openHistory })
+                ),
+                // Area app esplorativa: nota + nascondi sulla lampadina del titolo
+                React.createElement('div', { style: { flex: '0 1 500px', minWidth: 320 } },
+                  React.createElement(ProductsSection, { role, onHide: () => setAppsHidden(true) })
+                )
+              )
         );
-  }
 
   return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
     React.createElement(App, null,
@@ -1107,6 +1324,17 @@ function AppRoot() {
         },
           content,
           React.createElement('div', { style: { height: 24 } })
+        ),
+        // Drawer "Vedi tutte" — lista completa attività (DS: *Drawer* Placement=Right)
+        React.createElement(Drawer, {
+          title: 'Attività da fare',
+          placement: 'right',
+          width: 480,
+          open: historyOpen,
+          onClose: () => setHistoryOpen(false),
+          styles: { body: { padding: '16px 20px' } },
+        },
+          historyOpen ? React.createElement(ActivitiesDrawerBody, { role }) : null
         )
       )
     )
