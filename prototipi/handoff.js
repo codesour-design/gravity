@@ -131,7 +131,8 @@
               key: ci,
               style: {
                 textAlign: ci === 0 ? 'left' : 'center', padding: '5px 8px',
-                fontSize: 12, fontWeight: ci === 0 ? 500 : 700, whiteSpace: 'nowrap',
+                fontSize: 12, fontWeight: ci === 0 ? 500 : 700,
+                whiteSpace: ci === 0 ? 'normal' : 'nowrap',
                 color: mark || (ci === 0 ? 'rgba(0,0,0,.8)' : 'rgba(0,0,0,.65)'),
                 borderBottom: ri < tbl.rows.length - 1 ? '1px solid rgba(0,0,0,.05)' : 'none',
               },
@@ -943,7 +944,7 @@
     return h('div', {
       className: 'ghf-model-panel',
       style: {
-        width: 460, background: '#fff', borderRadius: 12,
+        width: 560, background: '#fff', borderRadius: 12,
         boxShadow: '0 8px 32px rgba(0,0,0,.15)',
         maxHeight: 540, overflow: 'hidden', display: 'flex', flexDirection: 'column',
         fontFamily: FONT,
@@ -953,8 +954,8 @@
         h('div', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'Modello di dominio'),
         h('div', { style: { display: 'flex', gap: 4, marginTop: 6 } },
           tabBtn('Scenari', 'scenari'),
-          tabBtn('Relazioni', 'relazioni'),
-          tabBtn('Dipendenze', 'dipendenze')
+          tabBtn('Dipendenze', 'dipendenze'),
+          tabBtn('Relazioni', 'relazioni')
         )
       ),
       h('div', { style: { flex: 1, overflowY: 'auto' } }, items)

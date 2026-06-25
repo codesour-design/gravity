@@ -644,7 +644,7 @@ window.HANDOFF_DEPENDENCIES = [
   {
     id:    'stato-azioni',
     title: 'Stato pianificazione × Azioni di riga',
-    description: 'Quali azioni del menu di riga (lista) sono attive in base allo stato, alla trattativa e alle facce.',
+    description: 'Azioni del menu di riga in lista, per stato della pianificazione.',
     table: {
       headers: ['Stato', 'Vis.', 'Mod.', 'Dup.', 'Elim.'],
       rows: [
@@ -653,37 +653,39 @@ window.HANDOFF_DEPENDENCIES = [
         ['In trattativa',                '✓', '✗', '✓', '✗'],
         ['Completata',                   '✓', '✗', '✓', '✗'],
       ],
-      note: '◐ = solo se facce > 0 · Visualizza sempre attiva · Duplica sempre attiva in Completata',
+      note: '✓ attiva · ✗ non attiva · ◐ Duplica solo se facce > 0',
     },
   },
   {
     id:    'stato-modificabilita',
     title: 'Stato × Modificabilità pianificazione',
-    description: 'Cosa è modificabile in base a stato e assegnatario.',
+    description: 'Modifica del form (metadati) e selezione spazi, per stato e presa in carico.',
     table: {
       headers: ['Stato', 'Modifica form', 'Seleziona spazi'],
       rows: [
-        ['Bozza (mia)',         '✓', '✓'],
-        ['In trattativa (mia)', '✗', '✓'],
-        ['Completata',          '✗', '✗'],
-        ['Assegnata ad altri',  '✗', '✗'],
+        ['Bozza da trattativa · non presa in carico', '✗', '✗'],
+        ['Bozza · in carico',         '✓', '✓'],
+        ['In trattativa · in carico', '✗', '✓'],
+        ['Completata',                '✗', '✗'],
+        ['In carico ad altri',        '✗', '✗'],
       ],
-      note: 'Modifica form (metadati) solo in Bozza · sola lettura se Completata o di altri',
+      note: '✓ consentito · ✗ sola lettura · Presa in carico = precondizione per modificare e selezionare',
     },
   },
   {
     id:    'trattativa-consegna',
     title: 'Consegna Pianificazione',
-    description: 'Stato del pulsante di consegna in base a trattativa collegata e spazi selezionati.',
+    description: 'Stato del pulsante di consegna della pianificazione.',
     table: {
       headers: ['Condizione', 'Pulsante consegna'],
       rows: [
+        ['Non presa in carico',    'Disabilitato'],
         ['Nessuna trattativa',     'Disabilitato'],
         ['Trattativa · 0 spazi',   'Disabilitato'],
         ['Trattativa · ≥1 spazio', 'Consegna in trattativa'],
         ['Consegnata · modifiche', 'Aggiorna consegna'],
       ],
-      note: 'Senza trattativa collegata la consegna è bloccata',
+      note: 'Consegna attiva solo con: presa in carico + trattativa collegata + ≥1 spazio · "Aggiorna consegna" se già consegnata e poi modificata',
     },
   },
   {
@@ -780,18 +782,18 @@ window.HANDOFF_SCENARIOS = [
   {
     id: 'scenari',
     title: 'Scenari (stato × collegamenti)',
-    description: 'Una **Bozza** può non avere trattativa (quindi né inserzionista né campagna) e avere comunque impianti selezionati.',
+    description: 'Combinazioni valide di stato, trattativa, entità collegate e impianti, con l\'azione chiave di ciascuno.',
     table: {
       headers: ['Scenario', 'Tratt.', 'Inserz./Camp.', 'Impianti', 'Azione chiave'],
       rows: [
-        ['Bozza libera · mia',                 '✗', '✗', '◐', 'Seleziona · Collega'],
-        ['Bozza da trattativa · non assegnata','✓', '✓', '✗', 'Prendi in carico'],
-        ['Bozza da trattativa · mia',          '✓', '✓', '◐', 'Seleziona · Consegna'],
-        ['In trattativa',                      '✓', '✓', '✓', 'Aggiorna consegna'],
-        ['Completata',                         '✓', '✓', '✓', 'Sola lettura'],
-        ['Assegnata ad altri',                 '◐', '◐', '◐', 'Sola lettura'],
+        ['Bozza libera · in carico',                 '✗', '✗', '◐', 'Seleziona · Collega'],
+        ['Bozza da trattativa · non presa in carico','✓', '✓', '✗', 'Prendi in carico'],
+        ['Bozza da trattativa · in carico',          '✓', '✓', '◐', 'Seleziona · Consegna'],
+        ['In trattativa',                            '✓', '✓', '✓', 'Aggiorna consegna'],
+        ['Completata',                               '✓', '✓', '✓', 'Sola lettura'],
+        ['In carico ad altri',                       '◐', '◐', '◐', 'Sola lettura'],
       ],
-      note: '✓ presente · ✗ assente · ◐ opzionale/variabile · "Bozza libera non assegnata" non è un caso possibile (nemmeno via Operation Manager) · Prendi in carico solo su Bozza da trattativa non assegnata · Completata e "di altri" = sola lettura',
+      note: '✓ presente · ✗ assente · ◐ variabile · Una Bozza libera è sempre in carico (la "Bozza libera non presa in carico" non esiste, nemmeno via Operations Manager)',
     },
   },
 ];

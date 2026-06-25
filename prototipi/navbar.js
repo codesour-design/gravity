@@ -269,6 +269,13 @@
     // La sezione corrente è accessibile per il ruolo attivo?
     var accessible = !activeSection || sections.indexOf(activeSection) !== -1;
 
+    // Un dato ruolo ha accesso alla sezione attualmente visualizzata?
+    // "Overview" (area personale) è sempre accessibile a ogni ruolo.
+    function roleHasAccess(r) {
+      if (!activeSection || activeSection === 'Overview') return true;
+      return (ROLE_NAV[r] || []).indexOf(activeSection) !== -1;
+    }
+
     // Dropdown avatar — cambio ruolo
     var avatarMenuItems = [
       { key: '_user', disabled: true, label: h('div', { style: { padding: '4px 0 8px', minWidth: 220 } },
@@ -281,13 +288,19 @@
       { type: 'divider' },
       { key: '_hd', label: h('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Vista ruolo'), disabled: true },
     ].concat(ROLES.map(function (r) {
+      // Ruolo disabilitato se non ha accesso alla sezione visualizzata.
+      // Il ruolo corrente resta sempre selezionabile (e mostra il check).
+      var noAccess = r !== cur && !roleHasAccess(r);
       return {
         key: r,
+        disabled: noAccess,
         label: h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32, minWidth: 200 } },
           h('span', { style: { fontWeight: r === cur ? 600 : 400 } }, r),
-          r === cur ? h(icons.CheckOutlined, { style: { color: '#3e00fb', fontSize: 12 } }) : null
+          r === cur
+            ? h(icons.CheckOutlined, { style: { color: '#3e00fb', fontSize: 12 } })
+            : (noAccess ? h(icons.LockOutlined, { style: { color: 'rgba(0,0,0,0.25)', fontSize: 12 } }) : null)
         ),
-        onClick: function () { setRole(r); },
+        onClick: noAccess ? undefined : function () { setRole(r); },
       };
     }));
 
