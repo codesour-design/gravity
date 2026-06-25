@@ -1,222 +1,237 @@
 ---
-description: Crea un file di handoff Figma per Gravity MVP. Raccoglie user story, lingua e ruoli, esplora il prototipo HTML, identifica le schermate del flusso, costruisce ogni schermata su Figma usando componenti della libreria o template atomici custom.
+description: Crea l'handoff HTML interattivo di un prototipo Gravity (come il prototipo Planning) — barra dev in navbar (Inspector componenti + tour User story + Modello di dominio) e note di design inline. Genera index--handoff.html + handoff-steps.js riusando il motore condiviso handoff.js, poi verifica nel browser.
 ---
 
-# Handoff Gravity — Costruisci Flusso
+# Handoff Gravity (HTML) — Costruisci l'handoff interattivo
 
-Segui questo flusso nell'ordine esatto. Non saltare nessun passo.
+> Questa skill produce l'handoff **HTML interattivo** di un prototipo, nello stile del prototipo **Planning**.
+> Per trasporre il flusso **su Figma** usa invece **/handoff-figma**.
+
+Il risultato è una variante del prototipo (`index--handoff.html`) che, sopra l'app reale, aggiunge:
+
+- una **barra dev nella navbar** (accanto alla campanella) con:
+  - **switch Inspector componenti** → in hover su ogni elemento mostra nome, livello atomico (Atomo/Molecola/Organismo), funzione, mapping Figma, variante, tipografia e colori token;
+  - **dropdown User story** → tour guidati passo-passo con spotlight, uno per ogni US;
+  - **dropdown Modello** → tab Scenari / Dipendenze / Relazioni del dominio (Relazioni in ultima posizione);
+- **note di design inline** (icona caffè rossa `CoffeeOutlined`) ancorate ai punti UI di riferimento.
+
+Tutta la logica vive già nel motore condiviso **`prototipi/handoff.js`** — **NON va riscritto né duplicato**. La skill si limita a:
+1. creare `index--handoff.html` (variante del prototipo) che carica il motore;
+2. scrivere la config `handoff-steps.js` (tour, componenti, note, modello);
+3. piazzare le note inline;
+4. verificare nel browser.
+
+**Riferimento canonico** (leggilo sempre prima di iniziare, è la fonte di verità del formato):
+- `prototipi/handoff.js` — il motore (schema degli oggetti globali, commentato in testa)
+- `prototipi/prototipo approvato/planning/handoff-steps.js` — config completa di esempio
+- `prototipi/prototipo approvato/planning/index--handoff.html` — wiring HTML + `HandoffDesignNote`
+
+Segui le fasi nell'ordine. Non saltare passi.
+
+---
+
+## FASE 0 — Prerequisiti
+
+Verifica prima di iniziare:
+
+- Esiste un **prototipo HTML finito** in `prototipi/<nome>/index.html` (o sottocartella), già funzionante nel browser.
+- Il prototipo usa la **navbar condivisa** `navbar.js`: il motore handoff si aggancia all'elemento `#gravity-bell-btn` (la campanella) per inserire la barra dev. Se la navbar non c'è, la barra dev non comparirà — segnalalo.
+- Il ruolo corrente è in `localStorage['gravity_proto_role']` (default `Tenant Admin`) — usato per filtrare i tour per ruolo.
+- Lavora **sul branch del prototipo**, mai su `main` (vedi CLAUDE.md).
 
 ---
 
 ## FASE 1 — Raccolta informazioni
 
-Prima di toccare Figma, chiedi all'utente tutte le informazioni necessarie in un'unica risposta strutturata:
+Chiedi all'utente in un'unica risposta strutturata:
 
-**Domanda 1 — File di destinazione**
-In quale file Figma devo lavorare? Fornisci l'URL del file (e la pagina specifica, se ce n'è una).
+**1 — Prototipo**
+Quale prototipo? Percorso del file (es. `prototipi/inventory/index.html`).
 
-**Domanda 2 — User Story**
-Elenca le user story da disegnare. Per ognuna fornisci:
-- Numero (es. US#01)
-- Titolo breve
-- Descrizione narrativa del flusso: chi fa cosa, in quale contesto, step per step
-- Ruolo/i coinvolti (vedi lista sotto)
+**2 — User story da documentare**
+Per ogni US (saranno i tour del dropdown "User story"):
+- Codice + titolo (es. `US#2 — Dettaglio Pianificazione (GRP-467)`)
+- Descrizione narrativa ("Come **ruolo** voglio… così da…")
+- Ruoli che la vedono (vedi tabella sotto)
+- Schermata di partenza (una delle `HANDOFF_SCREENS`)
+- Se è una **novità** dell'ultimo sprint (badge "Novità")
 
-**Domanda 3 — Lingua**
-In che lingua vanno scritti tutti i testi del canvas? (italiano / inglese / altra)
+**3 — Lingua** dei testi del canvas (di norma italiano).
 
-**Domanda 4 — Prototipo HTML** *(opzionale ma molto utile)*
-Hai un prototipo HTML che implementa questo flusso? Se sì, fornisci il percorso del file (es. `prototipi/03-inventory/index.html`) oppure aprilo nel browser e condividi l'URL locale. Lo userò per individuare le schermate reali del flusso prima di costruire su Figma.
+**4 — Note di design** (opzionale): appunti per lo sviluppo (fuori scope, scelte aperte, sprint futuri, vincoli) e a quale elemento UI vanno ancorati.
 
-**Domanda 5 — Diagramma di flusso** *(opzionale)*
-Hai un diagramma di flusso (Figma, FigJam, immagine, o testo strutturato) che descrive la logica del flusso con branch, condizioni e percorsi alternativi? Se sì, condividi l'URL o il percorso.
+**5 — Modello di dominio** (opzionale): relazioni tra entità, scenari stato×collegamenti, tabelle di dipendenza (es. stato × azioni abilitate).
 
-**Ruoli supportati da Gravity:**
-| Ruolo | Colore label |
-|-------|-------------|
-| Tenant Admin | blu `#1677FF` |
-| Inventory Manager | cyan `#13C2C2` |
-| Sales | arancione `#FF4A1C` |
-| Operation Manager | verde `#52C41A` |
-| Planner | viola `#722ED1` |
+**Ruoli supportati → colore Tag** (in `handoff.js`, `ROLE_COLOR`):
+
+| Ruolo | Colore Tag AntD |
+|-------|-----------------|
+| Tenant Admin | `purple` |
+| Operations Manager | `geekblue` |
+| Planner | `green` |
+| Sales | `volcano` |
+| Inventory Manager | `cyan` |
 
 Aspetta le risposte prima di procedere.
 
 ---
 
-## FASE 2 — Individuazione schermate del flusso
+## FASE 2 — Esplora il prototipo e mappa il flusso
 
-Carica obbligatoriamente la skill `figma:figma-use` prima di qualsiasi chiamata `use_figma`.
-
-### 2a. Esplora il prototipo HTML (se fornito)
-- Leggi il file con `Read` per capire la struttura dei componenti e gli stati UI implementati
-- Naviga il prototipo via Playwright (`mcp__playwright__browser_navigate` + `browser_snapshot`) percorrendo l'happy path e i percorsi alternativi click by click
-- Prendi screenshot di ogni stato distinto
-
-### 2b. Inventario schermate
-Produce un elenco numerato di tutte le schermate del flusso:
-- Schermate principali (ogni vista che occupa tutto lo schermo)
-- Layer in sovrapposizione: modali, drawer, tooltip, popover, notifiche
-- Stati alternativi della stessa schermata (es. lista vuota vs lista popolata, form vuoto vs form in errore)
-
-Per ogni schermata annota:
-- Nome descrittivo (es. "Lista spazi — popolata")
-- Tipo di layer: `schermata` / `modale` / `drawer` / `overlay`
-- Schermate su cui appare (per modali e drawer)
-
-**Non procedere finché l'inventario non è completo.**
+1. Leggi `index.html` del prototipo con `Read` per capire struttura, componenti e **selettori CSS stabili** (classi `.gv-*`, `.ss-*`, `.ant-*`, id). I tour e l'inspector si ancorano a questi selettori.
+2. Naviga il prototipo nel browser (Playwright: `browser_navigate` + `browser_snapshot`) percorrendo ogni US click-by-click, così identifichi:
+   - le **schermate** distinte (→ `HANDOFF_SCREENS`) e come rilevarle via DOM (`detect`) e come raggiungerle (`goTo`);
+   - per ogni step di tour il **selettore** dell'elemento da evidenziare (o l'indice colonna `colIndex` per le tabelle) e le azioni `onEnter` necessarie ad aprire popover/drawer/modali;
+   - i **componenti** presenti (→ `HANDOFF_COMPONENTS`).
+3. Produci e condividi un breve inventario: schermate + per ogni US la lista degli step (titolo + selettore). **Non procedere finché non è chiaro.**
 
 ---
 
-## FASE 3 — Classificazione layout e assegnazione template
+## FASE 3 — Crea `index--handoff.html`
 
-Per ogni schermata principale (non overlay), classifica il layout e assegna il template di riferimento.
+Crea la variante handoff **a fianco** dell'`index.html` del prototipo, stessa cartella.
 
-**File template:** `WqdTtaemaAOLk8eOfhEV1I` (Shaker UI — Components)
-**Container:** node `2529:56483` (frame "Template Screen")
+> ⚠️ NON modificare l'`index.html` originale: il file di handoff è una variante `--handoff`. Le note inline e i tour esistono solo qui (in `index.html` `window.HANDOFF_NOTES` è `undefined` → i marker ritornano `null` e spariscono).
 
-| Tipo | Node Figma | Caratteristiche | Struttura |
-|------|-----------|----------------|-----------|
-| **Lista** | `2529:56461` | Tabella o lista di item, filtri, paginazione, azioni bulk | Navbar → Header (titolo + azioni CTA) → Tabella/Lista |
-| **Dettaglio** | `2529:68281` | Vista singolo record, sezioni informative, azioni contestuali | Navbar → Header (back + titolo soggetto + CTA) → 4 System Cards → Tabs + slot contenuto |
-| **Ibrida** | `2529:56484` | Lista principale + sidebar contestuale | Navbar → Header (back + titolo + CTA) → Sidebar sinistra 320px (System Cards + Calendar) + area destra flessibile |
-| **Dashboard** | — | KPI, grafici, widget multipli | Template in arrivo — costruire atomicamente fino ad allora |
-
-### Struttura dettagliata dei template
-
-**Type=Detail (`2529:68281`)**
-- `Navbar` — menu orizzontale + avatar + bell
-- `HeaderDetailScreen` — sx: link "Back to list" + titolo "Detail Screen | Subject Name"; dx: Button primary
-- Row di 4 `System Cards` affiancate (1/4 larghezza ciascuna) — KPI con icona, label, valore
-- `*Tabs* / Container` — barra tab (type=card) + slot "Slot component" espandibile
-
-**Type=Hybrid (`2529:56484`)**
-- `Navbar` — identica al Detail
-- `HeaderDetailScreen` — identica al Detail
-- Layout 2 colonne:
-  - Sinistra `Sidebar/Planning` (320px fissi): System Cards verticali + `Calendar` (Exposure Period con range date evidenziato)
-  - Destra `Table Card Wrapper` (flex-1): area bianca per tabella o contenuto principale
-
-**Type=List (`2529:56461`)**
-- Usa `get_design_context` su questo nodo per ispezionare la struttura prima di usarlo
-
-Riporta la classificazione all'utente prima di procedere.
+1. **Parti da una copia** di `index.html`.
+2. **Carica la config PRIMA del mount** dell'app (subito dopo `navbar.js`), così le note inline hanno i dati già al primo render:
+   ```html
+   <script src="../navbar.js"></script>
+   <!-- ...altri script condivisi (filter-drawer.js, ecc.)... -->
+   <script src="./handoff-steps.js"></script>
+   ```
+3. **Carica il motore alla fine del `<body>`** (dopo che React ha montato l'app):
+   ```html
+   <script src="../handoff.js"></script>
+   ```
+   Adatta il numero di `../` alla profondità della cartella: per `prototipi/<nome>/` è `../handoff.js`; per una sottocartella più profonda (`prototipi/.../<nome>/`) aggiungi i livelli necessari fino a `prototipi/handoff.js`. Stesso criterio per `navbar.js`.
+4. **Aggiungi il componente note inline** `HandoffDesignNote` (+ helper `_ghfRenderNoteBody`). Copialo **invariato** da `prototipi/prototipo approvato/planning/index--handoff.html` (icona `CoffeeOutlined` rossa `#FF4A1C`, popover su hover, body con `**grassetto**`, `==evidenziato==`, righe `- ` → lista).
+5. **Piazza le note inline** accanto agli elementi UI di riferimento, passando l'`id` della nota:
+   ```jsx
+   React.createElement('span', null,
+     'Pianificatore',
+     React.createElement(HandoffDesignNote, { id: 'assegnazione-futura', placement: 'bottom' }))
+   ```
+   L'`id` deve corrispondere a un elemento di `HANDOFF_NOTES`.
 
 ---
 
-## FASE 4 — Loop per schermata (ripeti per ogni schermata nell'ordine dell'inventario)
+## FASE 4 — Scrivi `handoff-steps.js`
 
-Per ogni schermata, esegui questi step in sequenza:
+Crea `handoff-steps.js` nella stessa cartella. Definisce gli oggetti globali letti dal motore. **Tutti i testi nella lingua scelta.** Usa come modello la config del Planning.
 
-### Step 1 — Mappatura componenti → libreria Figma
-
-Analizza la schermata (da HTML/screenshot) e produce una lista di tutti i componenti presenti con il loro corrispondente Figma dalla libreria **Ant Design System for Gravity** (`uR6CBOh0Y7dUQvH30SyD0P`).
-
-Formato:
-```
-- [ComponenteReact] → *NomeFigma* (varianti: Prop=Valore, ...)
-  es. <Button type="primary"> → *Button* (Type=Primary, Size=Default, State=Default)
+### `window.HANDOFF_META`
+```js
+window.HANDOFF_META = { title: 'Inventory', version: '1.0', date: 'Giugno 2026', author: 'Gloria Bonanno' };
 ```
 
-Per componenti non presenti in libreria: annota "custom — costruire atomicamente" e specifica da quali particelle (Avatar, Button, Text, ecc.).
-
-Usa la mappa React→Figma in CLAUDE.md come riferimento principale.
-
-### Step 2 — Disegno su Figma
-
-Costruisci la schermata nel file Figma usando `use_figma`:
-- **Prima scelta:** duplica il template corrispondente (vedi FASE 3) dal file `WqdTtaemaAOLk8eOfhEV1I` e adattalo per la schermata corrente
-- **Se nessun template corrisponde:** costruisci un frame custom usando i componenti atomici del design system (Button, Text, Avatar, Icon, ecc.) — mai valori hard-coded, sempre token Gravity
-- Rispetta la struttura di layout classificata al FASE 3 (colonne, spacing, gerarchia)
-- Usa lo spacing del design system: `8px` base unit, multipli di 4/8/16/24/32/48px
-- Dimensioni schermata standard: **1728 × 1117px**, sfondo `#F5F5F5`
-
-### Step 3 — Iterazioni manuali
-
-Dopo aver piazzato la struttura principale, elenca le rifiniture necessarie e applica quelle realizzabili via `use_figma`. Per quelle che richiedono intervento manuale (es. allineamenti complessi, auto layout annidati profondi), segnalale esplicitamente all'utente con descrizione precisa di cosa aggiustare.
-
-### Step 4 — Compilazione con dati mock
-
-Popola tutti i testi e i campi della schermata con dati realistici coerenti con il dominio OOH/DOOH di Gravity:
-- Nomi spazi: "Billboard Palermo Centro", "Schermo LED Via Roma 12", "Pensilina Bus Politeama"
-- Campagne: "Campagna Primavera 2026 — TIM", "Awareness Q2 — Vodafone"
-- Date nel formato `DD/MM/YYYY`
-- Budget in euro (es. `€ 12.400`, `€ 8.750`)
-- Indirizzi siciliani/palermitani quando contestuali
-
-Non lasciare placeholder "Lorem ipsum" o "Label" generici.
-
-### Step 5 — Traduzione
-
-Traduci **tutti** i testi dell'interfaccia nella lingua scelta in FASE 1 (se inglese: label, titoli, voci di menu, placeholder, messaggi di stato). I dati mock (nomi propri, indirizzi) possono rimanere contestuali.
-
-Dopo la traduzione, fai uno screenshot di verifica della schermata completata.
-
----
-
-## FASE 5 — Costruzione overlay (modali e drawer)
-
-Dopo aver completato tutte le schermate principali, disegna i layer in sovrapposizione seguendo gli stessi step 1–5 del FASE 4.
-
-Per ogni overlay:
-- Piazzalo sopra la schermata su cui appare nel flusso reale
-- Usa `*Modal*`, `*Drawer*` dalla libreria con le varianti corrette
-- Se il contenuto dell'overlay è un form o una lista, mappa i suoi componenti separatamente
-
----
-
-## FASE 6 — Struttura canvas e annotazioni
-
-Dopo aver completato tutte le schermate e gli overlay:
-
-### 6a. Disposizione del flusso
-- Disponi le schermate **in sequenza orizzontale** nell'ordine del flusso, con gap 80px
-- Aggiungi frecce `→` tra le schermate con etichetta dell'azione che le collega (es. "Clic su Crea campagna")
-- Posiziona gli overlay sovrapposti (o affianati con freccia tratteggiata) rispetto alla schermata che li attiva
-
-### 6b. Annotazioni
-Aggiungi Post-it gialli (`#FFF7CD`) sopra ogni schermata per:
-- Regole di business ("Solo se ruolo = Sales", "Richiede almeno 1 spazio selezionato")
-- Condizioni di branching
-- Vincoli tecnici da comunicare al developer
-
-### 6c. Panel US + User (facoltativo se richiesto dall'utente)
-Se il file di destinazione usa la struttura handoff con Section e pannello sinistro, aggiungi:
-- Label verticale colorata con il colore del ruolo
-- Nome ruolo + avatar
-- Numero e titolo US
-- Descrizione narrativa
-
-**Mappatura ruolo → colore:**
-```
-Tenant Admin      → #1677FF
-Inventory Manager → #13C2C2
-Sales             → #FF4A1C
-Operation Manager → #52C41A
-Planner           → #722ED1
+### `window.HANDOFF_SCREENS`
+Mappa `chiave → { label, detect(), goTo?() }`. `detect` ritorna `true` se sei su quella schermata (controlla il DOM); `goTo` (opzionale) la apre programmaticamente.
+```js
+window.HANDOFF_SCREENS = {
+  'lista': {
+    label: 'Lista pianificazioni',
+    detect: function () { return !!document.querySelector('.page-content') && !document.querySelector('.ss-card-map'); },
+    goTo:   function () { var b = document.querySelector('.plh-back'); if (b) b.click(); },
+  },
+  // ...
+};
 ```
 
+### `window.HANDOFF_TOURS` — una voce per user story
+```js
+{
+  id:          'dettaglio-pianificazione',
+  title:       'US#2 — Dettaglio Pianificazione',
+  description: '(GRP-467) Come **pianificatore** voglio… così da…',  // **grassetto**, ==giallo==, righe "- "
+  roles:       ['Planner', 'Operations Manager'],   // omesso = visibile a tutti i ruoli
+  startScreen: 'selezione-spazi',                    // chiave di HANDOFF_SCREENS
+  goTo:        ghfOpenMineDraft,                     // opz.: funzione per aprire il caso giusto dalla lista
+  novita:      true,                                 // opz.: badge "Novità"
+  steps: [
+    {
+      title:       'Header del dettaglio',
+      description: 'Testo con **grassetto** e ==evidenziato==.',
+      selector:    '.gv-detail-header',   // elemento da evidenziare (spotlight)
+      // colIndex: 4,                      // in alternativa a selector: evidenzia una colonna tabella
+      placement:   'bottom',              // bottom | top | left | right (default bottom)
+      onEnter:     function () { var b = document.querySelector('.gv-btn-collega'); if (b) b.click(); }, // opz.: apre popover/drawer prima dello step
+      delay:       220,                   // opz.: ms d'attesa dopo onEnter prima di mostrare il balloon
+      mask:        false,                 // opz.: disattiva il padding dello spotlight
+      dev: [ { label: 'Componente', value: 'Header (DS) — Variant=Detail\nnode 91-35550' } ], // opz.: blocco { } dev (stringa o array {label,value})
+      table: { headers: [...], rows: [[...]], note: '...' }, // opz.: matrice (✓ verde · ✗ grigio · ◐ ambra)
+    },
+    // ...
+  ],
+}
+```
+Funzioni di navigazione (`goTo`, `onEnter`) tipiche — aprire una riga, un drawer, una popconfirm — vanno scritte in cima al file (vedi gli helper `ghfOpen*` del Planning). Ordina le US per codice `US#n.m`: il motore le riordina già da solo via il numero nel titolo.
+
+### `window.HANDOFF_COMPONENTS` — registro Inspector dev
+Una voce per ogni componente ispezionabile in hover. Il match usa `closest(selector)`: vince l'elemento più profondo.
+```js
+{
+  selector:     '.gv-detail-header',          // CSS selector
+  name:         'Header',
+  level:        'Organismo',                   // Atomo | Molecola | Organismo | Pagina
+  custom:       true,                          // opz.: badge CUSTOM (componente non standard AntD)
+  funzione:     'Card titolo del dettaglio…',  // opz.: cosa fa (**grassetto**, righe "- ")
+  figma:        '*Header* (DS, node 91-35550) — Variant=Detail',
+  composizione: 'Link (back) + Title + Tag + Button',  // opz.: di cosa è composto
+  tag:          true,    // opz.: per i Tag/Badge → mostra anche il blocco Colore
+  icon:         true,    // opz.: per le icone → mostra libreria + nome icona
+  variant:      function (el) { return el.textContent.trim(); }, // opz.: variante calcolata a runtime
+}
+```
+Per gli atomi AntD standard (`.ant-btn`, `.ant-select`, `.ant-input`, `.ant-tag`, ecc.) basta `{ selector, name, level, figma }`: la variante viene rilevata da sola dalle classi DOM. Tipografia e colori dei testi sono calcolati a runtime in hover.
+
+### `window.HANDOFF_NOTES` — note di design (popover inline + pannello)
+```js
+window.HANDOFF_NOTES = [
+  { id: 'card-ruolo', title: 'Card KPI per ruolo',
+    body: 'Le card **cambiano in base al ruolo**.\n- ==Per ruoli diversi dal Planner il design è da definire==' },
+];
+```
+Ogni `id` va referenziato inline con `<HandoffDesignNote id="card-ruolo" />` nel file HTML (FASE 3.5).
+
+### `window.HANDOFF_DEPENDENCIES` / `HANDOFF_RELATIONS` / `HANDOFF_SCENARIOS` — pannello "Modello"
+Tre tab. Stessa forma: `{ id, title, description, table: { headers, rows, note } }`. Le marche `✓`/`✗`/`◐` sono colorate dal motore.
+```js
+window.HANDOFF_SCENARIOS = [
+  { id: 'dati-trattativa', title: 'Dati che arrivano dalla trattativa',
+    description: 'Se collegata a trattativa, questi campi sono **ereditati e read-only**.',
+    table: { headers: ['Campo', 'Da trattativa', 'Senza'], rows: [['Inserzionista','✓','✗']], note: '✓ = read-only' } },
+];
+```
+Se una sezione non serve, **ometti** la variabile (il tab mostrerà "Nessun elemento").
+
 ---
 
-## FASE 7 — Validazione finale
+## FASE 5 — Verifica nel browser
 
-1. Screenshot panoramico del flusso completo
-2. Verifica:
-   - Tutte le schermate dell'inventario sono presenti
-   - Tutti i testi sono nella lingua corretta
-   - Nessun placeholder generico
-   - I dati mock sono coerenti tra le schermate (stessi nomi, stesse date)
-3. Riporta all'utente:
-   - Elenco schermate costruite (con node ID e URL diretto)
-   - Componenti custom creati (non da libreria)
-   - Rifiniture manuali ancora necessarie (lista precisa)
+1. Apri `index--handoff.html` nel browser (Playwright).
+2. Controlla:
+   - la **barra dev** appare in navbar accanto alla campanella (switch + "User story" + "Modello");
+   - lo **switch Inspector** in hover mostra le card componente corrette;
+   - ogni **tour** parte, passa di step in step con spotlight sull'elemento giusto, e le azioni `onEnter` aprono popover/drawer come previsto;
+   - i **marker caffè** delle note compaiono nei punti giusti e il popover mostra il testo;
+   - il **filtro per ruolo** nasconde le US non pertinenti (cambia ruolo dall'avatar).
+3. Fai screenshot di verifica e correggi selettori/`onEnter`/`delay` finché ogni tour scorre pulito.
 
 ---
 
-## Note operative
+## FASE 6 — Chiusura
 
-- **Token sempre, valori hard-coded mai**: usa sempre i token Gravity (`#3E00FB`, `rgba(0,0,0,0.88)`, ecc.) — non colori arbitrari.
-- **Lingua coerente**: tutti i testi nella lingua scelta — non mescolare.
-- **Dati mock realistici**: OOH/DOOH siciliano, non Lorem ipsum.
-- **Ordine fisso**: completa una schermata per volta (mapping → draw → iterazioni → mock → translate) prima di passare alla successiva.
-- **Overlay dopo le schermate**: disegna modali e drawer solo dopo aver completato tutte le schermate principali.
+- Riepiloga all'utente: file creati (`index--handoff.html`, `handoff-steps.js`), US coperte, note e tabelle di modello aggiunte, eventuali selettori fragili da tenere d'occhio.
+- Ricorda il git workflow: commit sul branch del prototipo, poi PR verso `main` (no commit diretti su `main`).
+
+---
+
+## Regole
+
+- **Riusa il motore**: non duplicare né modificare `prototipi/handoff.js`. Se manca una capacità del motore, segnalalo invece di forkarlo.
+- **Solo nel file `--handoff`**: l'`index.html` originale resta pulito; note e tour vivono solo nella variante.
+- **Selettori stabili**: ancora tour e inspector a classi/id semantici (`.gv-*`, `.ss-*`, id), non a strutture fragili. Se un selettore utile non esiste, aggiungilo nel markup del prototipo.
+- **Token sempre**: nessun colore hard-coded fuori da quelli del brand (`#3E00FB`, `#FF4A1C`, ecc.). La tipografia la gestisce il tema.
+- **Lingua coerente**: tutti i testi nella lingua scelta.
+- **Dati realistici**: dominio OOH/DOOH (impianti, campagne, inserzionisti, indirizzi siciliani), mai Lorem ipsum.
