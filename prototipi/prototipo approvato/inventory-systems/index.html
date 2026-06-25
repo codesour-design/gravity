@@ -5260,6 +5260,16 @@ function App() {
   // Suggerimenti raggruppati per tipo
   const suggestions = useMemo(() => getSuggestions(searchQuery), [searchQuery]);
 
+  // Suggerimenti indirizzo reali (geocoding Photon/OSM) per la ricerca mappa
+  const [addrSugg, setAddrSugg] = useState([]);
+  const addrDebRef = useRef(null);
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (addrDebRef.current) clearTimeout(addrDebRef.current);
+    if (q.length < 3) { setAddrSugg([]); return; }
+    addrDebRef.current = setTimeout(async () => { setAddrSugg(await fetchAddrSuggestions(q)); }, 350);
+  }, [searchQuery]);
+
   // Applica la ricerca zona: aggiorna filtro + naviga la mappa
   const applyZoneSearch = useCallback((query, target) => {
     const q = (query || searchQuery).trim();
@@ -5549,7 +5559,7 @@ function App() {
             ), // ss-unified-bar
 
             // Dropdown suggerimenti
-            showSugg && suggestions.length > 0 && React.createElement('div', { className: 'ss-suggestions-wrap' },
+            showSugg && (suggestions.length > 0 || addrSugg.length > 0) && React.createElement('div', { className: 'ss-suggestions-wrap' },
               suggestions.map(group =>
                 React.createElement(React.Fragment, { key: group.key },
                   React.createElement('div', { className: 'ss-sugg-group-title' }, group.label),
@@ -5580,7 +5590,24 @@ function App() {
                     );
                   })
                 )
-              )
+              ),
+              addrSugg.length > 0 && React.createElement(React.Fragment, { key: 'addr-group' },
+                React.createElement('div', { className: 'ss-sugg-group-title' }, 'Indirizzi'),
+                addrSugg.map(s => React.createElement('div', {
+                  key: s.id, className: 'ss-suggestion-item',
+                  onMouseDown: () => { setSearchQuery(s.display); setShowSugg(false); setFlyToTarget({ lat: s.lat, lng: s.lng, zoom: 16, _ts: Date.now() }); },
+                },
+                  React.createElement('div', { style: { width: 28, height: 28, borderRadius: 6, background: '#F0EEFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
+                    React.createElement(EnvironmentOutlined, { style: { fontSize: 12, color: '#3E00FB' } })
+                  ),
+                  React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                    React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.85)', lineHeight: '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
+                      [s.via, s.civico].filter(Boolean).join(' ') || s.display
+                    ),
+                    React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.38)', lineHeight: '16px', marginTop: 1 } }, s.sub || s.display)
+                  )
+                ))
+              ),
             ),
 
           ), // ss-searchbar-wrap
@@ -5701,7 +5728,27 @@ function App() {
       open: fullFormOpen,
       onClose: () => setFullFormOpen(false),
       initialValues: prefillData,
-      onSave: (data) => { setSavedFormData(data); },
+      onSave: (data) => {
+        setSavedFormData(data);
+        // Aggiungi davvero il nuovo impianto alla mappa/lista (se ha coordinate dal geocoding indirizzo)
+        const lat = parseFloat(data.lat), lng = parseFloat(data.lng);
+        if (isFinite(lat) && isFinite(lng)) {
+          const newImp = {
+            id: 'NEW-' + Date.now(),
+            tipo: data.tipologia || 'Speciale',
+            indirizzo: [data.via, data.civico].filter(Boolean).join(', ') || data.citta || 'Nuovo impianto',
+            zona: data.zona || data.citta || '—',
+            lat: lat, lng: lng,
+            faces: (data.facce && data.facce.length) || 1,
+            formato: data.formato || '',
+            stato: 'Disponibile',
+            illuminato: !!(data.facce && data.facce.some(x => x.illumStato && x.illumStato !== 'Spento')),
+            stato_amm: data.stato || 'Attivo',
+          };
+          setGeocodedImpianti(prev => [...prev, newImp]);
+          setFlyToTarget({ lat: lat, lng: lng, zoom: 16, _ts: Date.now() });
+        }
+      },
     }),
   );
 }
