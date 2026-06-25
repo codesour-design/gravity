@@ -397,6 +397,8 @@
     .ni-grid-2 { grid-template-columns: 1fr 1fr; }
     .ni-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
     .ni-grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    /* Footer documenti: il button (titolo a fianco) sta in un Upload a parte; questo Upload renderizza solo la lista "picture", quindi ne nascondo il trigger vuoto */
+    .box-doc-list .ant-upload.ant-upload-select { display: none; }
 
     /* ── Create page ── */
     .create-page { flex: 1; min-height: 0; display: flex; flex-direction: column; background: #F5F5F5; overflow: hidden; }
@@ -451,7 +453,7 @@ const {
   ExpandOutlined, SaveOutlined, EyeOutlined, PictureOutlined,
   InfoCircleOutlined, CompassOutlined, CheckCircleFilled, MoreOutlined,
   SwapOutlined, DeleteOutlined, TagsOutlined, ThunderboltOutlined, FileTextOutlined,
-  CalendarOutlined, SyncOutlined, AimOutlined, EuroCircleOutlined, UploadOutlined,
+  CalendarOutlined, SyncOutlined, AimOutlined, EuroCircleOutlined, UploadOutlined, DownloadOutlined,
   LockOutlined, UnlockOutlined, CarOutlined, LinkOutlined,
 } = icons;
 
@@ -2151,7 +2153,7 @@ const SCIA_TYPES = [
   {
     id: 'urbanistica',
     title: 'SCIA Urbanistica',
-    desc: 'Installazione della struttura — asseverazione tecnica di conformità urbanistico-edilizia e al Codice della Strada. Si presenta allo Sportello Unico per l\'Edilizia.',
+    desc: 'Titolo per installare la struttura: asseverazione di conformità urbanistico-edilizia e al Codice della Strada.',
     ente: 'SUE — Comune di Palermo',
     protocollo: 'Prot. SUE 48213/2026',
     presentata: '14/04/2026',
@@ -2165,7 +2167,7 @@ const SCIA_TYPES = [
   {
     id: 'commerciale',
     title: 'SCIA Commerciale',
-    desc: 'Esercizio dell\'attività pubblicitaria — si presenta allo Sportello Unico per le Attività Produttive tramite impresainungiorno.gov.it.',
+    desc: 'Titolo per esercitare l\'attività pubblicitaria.',
     ente: 'SUAP — Comune di Palermo',
     protocollo: 'Prot. SUAP 09877/2026',
     presentata: '14/04/2026',
@@ -2173,6 +2175,18 @@ const SCIA_TYPES = [
     termineVerifica: '13/06/2026',
     voltura: { protocollo: 'Prot. SUAP 11342/2026', presentata: '03/06/2026', termineVerifica: '02/08/2026' },
   },
+];
+// Campi compilabili a mano quando non c'è un documento da caricare. Per ogni SCIA si
+// mostrano solo i campi previsti dal tipo (urbanistica include tecnico asseverante e
+// fine lavori, commerciale no): si filtra in base alle chiavi presenti nel tipo.
+const SCIA_FIELD_META = [
+  { key: 'protocollo',      label: 'Numero di protocollo',   type: 'text', ph: 'Es. 48213/2026' },
+  { key: 'presentata',      label: 'Data di presentazione',  type: 'date' },
+  { key: 'ente',            label: 'Ente destinatario',      type: 'text', ph: 'Es. SUE o SUAP del Comune' },
+  { key: 'dichiarante',     label: 'Dichiarante',            type: 'text', ph: 'Es. Gravity Media S.r.l.' },
+  { key: 'tecnico',         label: 'Tecnico asseverante',    type: 'text', ph: 'Es. Ing. Mario Rossi' },
+  { key: 'termineVerifica', label: 'Termine di verifica dell\'ente', type: 'date' },
+  { key: 'fineLavori',      label: 'Termine fine lavori',    type: 'date' },
 ];
 
 const MOCK_EVENTS = [
@@ -2649,49 +2663,41 @@ function AuthorizationsList({ data, selectedKeys, onSelectionChange }) {
   );
 }
 
-// Pannello drawer per le autocertificazioni: una sezione per ogni SCIA,
-// upload del documento e anteprima dei dati estratti (mock).
+// Anteprima documento caricato (mock): apre il file in una nuova scheda se disponibile
+function openDocPreview(file) {
+  const url = file.url || (file.originFileObj ? URL.createObjectURL(file.originFileObj) : null);
+  if (url) window.open(url, '_blank');
+  else antdMsg.info('Anteprima non disponibile');
+}
+
+// Pannello drawer per le autocertificazioni: una sezione per ogni SCIA, con campi
+// compilabili a mano e un footer documenti (titolo + lista upload picture-card).
 // In modalità sostituzione (replaceId) mostra solo la SCIA da sostituire,
 // con i dati della nuova segnalazione che subentra (es. voltura o variante).
-function SciaUploadPanel({ uploads, onUpload, onRemove, replaceId }) {
+function SciaUploadPanel({ manual, onManualChange, replaceId }) {
   const capStyle = { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 2 };
-  const valStyle = { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.85)' };
   const sections = replaceId ? SCIA_TYPES.filter(s => s.id === replaceId) : SCIA_TYPES;
   return React.createElement('div', null,
-    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
-      replaceId
-        ? 'Carica la nuova segnalazione (es. voltura o variante): subentrerà alla SCIA attualmente collegata'
-        : 'Carica le SCIA presentate per questo impianto: i dati della segnalazione vengono estratti automaticamente dal documento'),
     sections.map(rawScia => {
       const scia = replaceId ? { ...rawScia, ...rawScia.voltura } : rawScia;
-      const file = uploads[scia.id];
+      const man = manual[scia.id] || {};
+      // Campi previsti per questo tipo di SCIA (filtra in base alle chiavi presenti nel tipo)
+      const fields = SCIA_FIELD_META.filter(f => f.key in rawScia);
       return React.createElement('div', { key: scia.id, style: { border: '1px solid #d9d9d9', borderRadius: 6, padding: 16, marginBottom: 16 } },
-        React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: file ? 12 : 0 } },
-          React.createElement('div', { style: { flex: 1 } },
-            React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 2 } }, scia.title),
-            React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, scia.desc),
-          ),
-          !file && React.createElement(Upload, {
-            showUploadList: false, beforeUpload: () => false, accept: '.pdf,.p7m',
-            onChange: ({ file: f }) => onUpload(scia.id, f),
-          }, React.createElement(Button, { icon: React.createElement(UploadOutlined) }, 'Carica SCIA')),
+        // Header: titolo + descrizione
+        React.createElement('div', { style: { marginBottom: 14 } },
+          React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 2 } }, scia.title),
+          React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, scia.desc),
         ),
-        file && React.createElement(React.Fragment, null,
-          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.75)', background: '#FAFAFA', marginBottom: 12 } },
-            React.createElement(FileTextOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }),
-            React.createElement('span', { style: { flex: 1 } }, file.name),
-            React.createElement(DeleteOutlined, { style: { color: 'rgba(0,0,0,0.45)', cursor: 'pointer' }, onClick: () => onRemove(scia.id) }),
-          ),
-          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 16px' } },
-            [['Protocollo', scia.protocollo], ['Data presentazione', scia.presentata], ['Ente destinatario', scia.ente],
-             ['Dichiarante', scia.dichiarante], ['Tecnico asseverante', scia.tecnico], ['Termine verifica ente', scia.termineVerifica],
-             ['Fine lavori entro', scia.fineLavori],
-            ].filter(([, v]) => v).map(([label, value]) =>
-              React.createElement('div', { key: label },
-                React.createElement('div', { style: capStyle }, label),
-                React.createElement('div', { style: valStyle }, value),
-              )
-            ),
+        // Campi editabili (2 colonne) — i documenti si caricano nel box "Documenti" dell'iter
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px 16px' } },
+          fields.map(f =>
+            React.createElement('div', { key: f.key },
+              React.createElement('div', { style: capStyle }, f.label),
+              f.type === 'date'
+                ? React.createElement(DatePicker, { value: man[f.key] || null, onChange: v => onManualChange(scia.id, f.key, v), style: { width: '100%' }, format: 'DD/MM/YYYY', placeholder: 'Seleziona data' })
+                : React.createElement(Input, { value: man[f.key] || '', onChange: e => onManualChange(scia.id, f.key, e.target.value), placeholder: f.ph }),
+            )
           ),
         ),
       );
@@ -3169,6 +3175,39 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
     ),
   );
 
+  // Documenti — raccolta di tutti i file caricati nelle varie sezioni (concessioni, SCIA, progetto…)
+  const DOCUMENTI = [
+    { key: 'd1', nome: 'Concessione suolo pubblico 2024.pdf',        categoria: 'Concessione',   data: '01/09/2024', dimensione: '1,2 MB' },
+    { key: 'd2', nome: 'Autorizzazione art. 23 CdS.pdf',             categoria: 'Autorizzazione', data: '15/09/2024', dimensione: '780 KB' },
+    { key: 'd3', nome: 'Pratica Genio Civile — calcolo statico.pdf', categoria: 'Genio Civile',   data: '30/05/2023', dimensione: '4,5 MB' },
+    { key: 'd4', nome: 'SCIA urbanistica (SUE).pdf',                 categoria: 'SCIA',           data: '14/04/2026', dimensione: '950 KB' },
+    { key: 'd5', nome: 'SCIA commerciale (SUAP).pdf',                categoria: 'SCIA',           data: '14/04/2026', dimensione: '880 KB' },
+    { key: 'd6', nome: 'Relazione tecnica di progetto.docx',         categoria: 'Progetto',       data: '20/05/2023', dimensione: '2,1 MB' },
+  ];
+  const DOC_CAT_COLOR = { 'Concessione': 'purple', 'Autorizzazione': 'blue', 'Genio Civile': 'orange', 'SCIA': 'green', 'Progetto': 'cyan' };
+  const tabDocumenti = React.createElement('div', null,
+    React.createElement('div', { className: 'tab-section' },
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 } },
+        React.createElement(Typography.Title, { level: 5, style: { margin: 0 } }, 'Documenti'),
+        React.createElement(Upload, { showUploadList: false, beforeUpload: () => false, multiple: true, onChange: ({ file }) => antdMsg.success('Documento caricato: ' + file.name) },
+          React.createElement(Button, { icon: React.createElement(UploadOutlined) }, 'Carica documento')),
+      ),
+      React.createElement(Table, {
+        dataSource: DOCUMENTI, pagination: false, size: 'middle',
+        columns: [
+          { title: 'Nome', dataIndex: 'nome', key: 'nome', render: (t) => React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } }, React.createElement(FileTextOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), t) },
+          { title: 'Categoria', dataIndex: 'categoria', key: 'categoria', render: (c) => React.createElement(Tag, { color: DOC_CAT_COLOR[c] || 'default' }, c) },
+          { title: 'Data caricamento', dataIndex: 'data', key: 'data' },
+          { title: 'Dimensione', dataIndex: 'dimensione', key: 'dimensione' },
+          { title: '', key: 'azioni', align: 'right', render: () => React.createElement(Space, { size: 4 },
+            React.createElement(Tooltip, { title: 'Scarica' }, React.createElement(Button, { type: 'text', size: 'small', icon: React.createElement(DownloadOutlined), onClick: () => antdMsg.success('Download avviato') })),
+            React.createElement(Tooltip, { title: 'Elimina' }, React.createElement(Button, { type: 'text', size: 'small', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => antdMsg.success('Documento eliminato') })),
+          ) },
+        ],
+      }),
+    ),
+  );
+
   return React.createElement('div', { className: 'imp-detail-page' },
 
     // Cover filmstrip
@@ -3240,6 +3279,7 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
               { key: '4', label: 'Cespiti e Dispositivi' },
               { key: '5', label: 'Assegnazione Squadre' },
               { key: '6', label: 'Profilo Commerciale' },
+              { key: '7', label: 'Documenti' },
               { key: '1', label: 'Storico Eventi' },
             ],
           }),
@@ -3247,6 +3287,7 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
           : activeTab === '2' ? tabAmm
           : activeTab === '3' ? tabTecnici
           : activeTab === '6' ? tabCommerciale
+          : activeTab === '7' ? tabDocumenti
           : React.createElement(Empty, { description: 'Nessun dato disponibile', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { marginTop: 48 } }),
         ),
       ),
@@ -3292,7 +3333,7 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
           isMan ? React.createElement('div', { style: { marginTop: 4, paddingTop: 16, borderTop: '1px solid #f0f0f0' } },
             React.createElement('div', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 12 } }, 'Dettagli intervento'),
             row('Squadra', React.createElement(Input, { value: neSquadra, onChange: e => setNeSquadra(e.target.value), placeholder: '—' })),
-            row('Tipo intervento', React.createElement(Select, { value: neTipoInt, onChange: setNeTipoInt, options: TIPO_MAN_OPTS, placeholder: 'Seleziona', style: { width: '100%' } })),
+            row('Tipo intervento', React.createElement(Select, { value: neTipoInt, onChange: setNeTipoInt, options: TIPO_MAN_OPTS, placeholder: 'Seleziona il tipo di intervento', style: { width: '100%' } })),
             row('Componente interessato', React.createElement(Input, { value: neComponente, onChange: e => setNeComponente(e.target.value), placeholder: 'Es. pannello frontale, illuminazione…' })),
           ) : null,
         );
@@ -3428,13 +3469,13 @@ const DEVICE_FIELDS_BY_TYPE = {
 const ASSET_TYPES = [
   // ── Cespiti
   { value: 'Fondazione', category: 'Cespite', fields: [
-    { key: 'tipoFond', label: 'Tipo fondazione', kind: 'select', opts: TIPO_FONDAZIONE_OPTS },
+    { key: 'tipoFond', label: 'Tipo fondazione', kind: 'select', opts: TIPO_FONDAZIONE_OPTS, ph: 'Seleziona il tipo di fondazione' },
     { key: 'dimFond',  label: 'Dimensione fondazione', kind: 'input', ph: 'Es. 5,50 × 3,20 × 0,80 m' },
     { key: 'dataInizio', label: 'Data inizio lavori', kind: 'date' },
     { key: 'dataFine',   label: 'Data fine lavori',   kind: 'date' },
   ] },
   { value: 'Pali', category: 'Cespite', fields: [
-    { key: 'tipoPali',     label: 'Tipo pali', kind: 'select', opts: TIPO_PALI_OPTS },
+    { key: 'tipoPali',     label: 'Tipo pali', kind: 'select', opts: TIPO_PALI_OPTS, ph: 'Seleziona il tipo di pali' },
     { key: 'numPali',      label: 'Numero pali', kind: 'number', props: { min: 0 } },
     { key: 'diametroPali', label: 'Diametro (mm)', kind: 'input' },
     { key: 'altezzaPali',  label: 'Altezza (cm)', kind: 'input' },
@@ -3444,12 +3485,12 @@ const ASSET_TYPES = [
     { key: 'dataMontPali', label: 'Data montaggio', kind: 'date' },
   ] },
   { value: 'Cornice', category: 'Cespite', fields: [
-    { key: 'tipoCornice',    label: 'Tipo cornice', kind: 'select', opts: TIPO_CORNICE_OPTS },
+    { key: 'tipoCornice',    label: 'Tipo cornice', kind: 'select', opts: TIPO_CORNICE_OPTS, ph: 'Seleziona il tipo di cornice' },
     { key: 'dittaCornice',   label: 'Ditta collocazione cornice', kind: 'input' },
     { key: 'dataMontCornice',label: 'Data montaggio', kind: 'date' },
   ] },
   { value: 'Pannelli', category: 'Cespite', fields: [
-    { key: 'tipoPannelli',  label: 'Tipo pannelli', kind: 'select', opts: TIPO_PANNELLI_OPTS },
+    { key: 'tipoPannelli',  label: 'Tipo pannelli', kind: 'select', opts: TIPO_PANNELLI_OPTS, ph: 'Seleziona il tipo di pannelli' },
     { key: 'barreAntivento',label: 'Numero barre antivento', kind: 'number', props: { min: 0 } },
     { key: 'dittaPannelli', label: 'Ditta montaggio pannelli', kind: 'input' },
     { key: 'dataMontPann',  label: 'Data montaggio', kind: 'date' },
@@ -3457,7 +3498,7 @@ const ASSET_TYPES = [
   { value: 'Extra struttura', category: 'Cespite', fields: [
     { key: 'numStaffeMuro',   label: 'N. staffe muro', kind: 'input', ph: 'Es. 12 tassellate + 4' },
     { key: 'dataCollStaffe',  label: 'Data collocazione staffe', kind: 'date' },
-    { key: 'strutTerrazze',   label: 'Strutture terrazze', kind: 'select', opts: STRUT_TERRAZZE_OPTS },
+    { key: 'strutTerrazze',   label: 'Strutture terrazze', kind: 'select', opts: STRUT_TERRAZZE_OPTS, ph: 'Seleziona la struttura' },
     { key: 'dataMontTerrazze',label: 'Data montaggio terrazze', kind: 'date' },
     { key: 'numPesiStrutt',   label: 'N. pesi struttura', kind: 'number', props: { min: 0 } },
     { key: 'kgPesiCadauno',   label: 'Kg pesi cadauno', kind: 'number', props: { min: 0 } },
@@ -3760,11 +3801,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [prezzoNetto,    setPrezzoNetto]    = useState(null);
   const [prezzoLordo,    setPrezzoLordo]    = useState(null);
   const [cimasa,         setCimasa]         = useState('');
-  const [squadraAff,     setSquadraAff]     = useState('');
-  const [codiceSquadra,  setCodiceSquadra]  = useState('');
-  const [tipoAffissione, setTipoAffissione] = useState([]);
-  const [costoAffissione,    setCostoAffissione]    = useState(null);
-  const [costoPreincoll,     setCostoPreincoll]     = useState(null);
+  // Affissione: una squadra = un gruppo di 4 campi; "Aggiungi squadra" duplica il gruppo
+  const [affissioni, setAffissioni] = useState([{ squadra: null, tipo: [], costo: null, preincoll: null }]);
+  const setAff = (i, key, val) => setAffissioni(prev => prev.map((g, j) => j === i ? { ...g, [key]: val } : g));
 
   // ── Progetto (ex Genio Civile)
   const [progetto,     setProgetto]     = useState('');
@@ -3786,7 +3825,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 
   // ── Galleria
   const [fileList, setFileList] = useState([]);
-  const [progettoDocs, setProgettoDocs] = useState([]);
+  const [iterDocs, setIterDocs] = useState([]);  // documenti unici dell'iter autorizzativo (box "Documenti")
   const [noteVerifica, setNoteVerifica] = useState('');
 
   const [selConcessioni,    setSelConcessioni]    = useState([]);
@@ -3800,7 +3839,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [permitReplaceMode, setPermitReplaceMode] = useState(false);
   const [permitRowKey,      setPermitRowKey]      = useState(null);
   const [permitAuthKeys,    setPermitAuthKeys]    = useState([]);
-  const [permitSciaUploads, setPermitSciaUploads] = useState({}); // { urbanistica: file, commerciale: file }
+  const [permitSciaManual,  setPermitSciaManual]  = useState({}); // { urbanistica: {protocollo, presentata, ...} } — compilazione a mano (i documenti stanno nel box "Documenti")
   const [permitSciaReplaceId, setPermitSciaReplaceId] = useState(null); // 'urbanistica' | 'commerciale' in sostituzione
 
   const tipoSuolo = React.useMemo(() => {
@@ -3884,7 +3923,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     aliasImpianto, circuiti, qualita, moduliCollegati,
     proprieta, vendita,
     prezzoNetto, prezzoLordo, cimasa,
-    squadraAff, codiceSquadra, tipoAffissione, costoAffissione, costoPreincoll,
+    affissioni: affissioni.map(g => ({
+      squadra: g.squadra,
+      codice: (SQUADRE_AFF.find(s => s.nome === g.squadra) || {}).codice || null,
+      tipoAffissione: g.tipo, costoAffissione: g.costo, costoPreincoll: g.preincoll,
+    })),
     progetto, progDittaCA, progDataFine, dataCollaudo, dataVerifica, respVerifica,
     calcestruzzo, acciaioCarp, acciaioArm, tecnicheGc,
     progettista, ddl, rsc, collaudatore, laboratorio, geologo,
@@ -3911,19 +3954,26 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   }, [canale, tipologia, formato, provincia]);
 
   // Permessi — handlers (stessa logica del dettaglio impianto)
-  const closePermitDrawer = () => { setPermitDrawerOpen(false); setPermitRowKey(null); setPermitAuthKeys([]); setPermitSciaUploads({}); setPermitSciaReplaceId(null); setPermitReplaceMode(false); };
+  const closePermitDrawer = () => { setPermitDrawerOpen(false); setPermitRowKey(null); setPermitAuthKeys([]); setPermitSciaManual({}); setPermitSciaReplaceId(null); setPermitReplaceMode(false); };
+  // Almeno una SCIA compilata a mano (protocollo valorizzato)
+  const sciaHasInput = Object.values(permitSciaManual).some(m => m && m.protocollo && m.protocollo.trim());
 
   const handleAddPermit = () => {
     if (permitDrawerType === 'autocertificazione') {
-      const uploaded = SCIA_TYPES.filter(s => permitSciaUploads[s.id]);
-      if (!uploaded.length) { antdMsg.warning('Carica almeno una SCIA'); return; }
-      const newPerms = uploaded.map(rawScia => {
-        const s = permitSciaReplaceId === rawScia.id ? { ...rawScia, ...rawScia.voltura } : rawScia;
+      const fmtDate = (d) => (d && d.format) ? d.format('DD/MM/YYYY') : (d || undefined);
+      // I documenti stanno nel box "Documenti"; qui una SCIA è pronta se ha il protocollo valorizzato.
+      const sciaReady = (id) => {
+        const m = permitSciaManual[id];
+        return m && m.protocollo && String(m.protocollo).trim();
+      };
+      const ready = SCIA_TYPES.filter(s => sciaReady(s.id));
+      if (!ready.length) { antdMsg.warning('Compila i campi della SCIA'); return; }
+      const newPerms = ready.map(rawScia => {
+        const m = permitSciaManual[rawScia.id] || {};
         return {
-          id: 'scia-' + s.id, permitType: 'autocertificazione',
-          title: s.title, docId: s.protocollo, ente: s.ente,
-          presentata: s.presentata, scadenza: s.termineVerifica,
-          fileName: permitSciaUploads[s.id].name,
+          id: 'scia-' + rawScia.id, permitType: 'autocertificazione',
+          title: rawScia.title, docId: m.protocollo, ente: m.ente,
+          presentata: fmtDate(m.presentata), scadenza: fmtDate(m.termineVerifica),
           state: 'Efficace', isActive: true,
         };
       });
@@ -4249,23 +4299,23 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
         React.createElement('div', { className: 'create-content' },
 
         // ── 1. Identità
-        sec('identita', 'Anagrafica e ubicazione', 'Punto di partenza: individuato il sito, si registrano proprietario, attributi fondamentali e posizione geografica dell\'impianto.',
-          box('Informazioni generali', 'Canale, tipologia, formato, stato amministrativo e soggetto proprietario.',
+        sec('identita', 'Anagrafica e ubicazione', 'Dati identificativi e posizione dell\'impianto: canale, tipologia, formato, stato amministrativo e proprietario, insieme a indirizzo e coordinate geografiche.',
+          box('Informazioni generali', 'Registra canale, tipologia, formato, stato amministrativo e proprietario dell\'impianto.',
             g2(
               cs('Canale', true,
-                sel(canale, v => { setCanale(v); setTipologia(null); setFormato(null); }, CANALI_OPTS, 'OOH o DOOH?',
+                sel(canale, v => { setCanale(v); setTipologia(null); setFormato(null); }, CANALI_OPTS, 'Seleziona il canale',
                   { status: showErrors && !canale ? 'error' : undefined })
               ),
               cs('Tipologia', true,
                 sel(tipologia, v => { setTipologia(v); setFormato(null); setFacce(buildFacceForTipo(v)); }, tipologieOpts,
-                  canale ? 'Es. Pensilina, Palina…' : 'Prima seleziona il canale',
+                  canale ? 'Seleziona la tipologia' : 'Prima seleziona il canale',
                   { disabled: !canale, showSearch: true, status: showErrors && !tipologia ? 'error' : undefined })
               ),
             ),
             g2(
               cs('Formato', true,
                 sel(formato, setFormato, formatiOpts,
-                  tipologia ? 'Es. 120×180 cm' : 'Prima seleziona la tipologia',
+                  tipologia ? 'Seleziona il formato' : 'Prima seleziona la tipologia',
                   { disabled: !tipologia, status: showErrors && !formato ? 'error' : undefined })
               ),
               cs('Nome impianto', false,
@@ -4285,7 +4335,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                 React.createElement(Select, {
                   value: proprieta, onChange: setProprieta,
                   style: { width: '100%' }, showSearch: true,
-                  placeholder: 'Ente o soggetto proprietario',
+                  placeholder: 'Seleziona il proprietario',
                   optionFilterProp: 'label',
                   options: [
                     {
@@ -4299,35 +4349,35 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                   ],
                 })
               ),
-              cs('Stato', true, sel(stato, setStato, STATI_AMM_OPTS, 'Seleziona',
+              cs('Stato', true, sel(stato, setStato, STATI_AMM_OPTS, 'Seleziona lo stato',
                 { status: showErrors && !stato ? 'error' : undefined })),
             ),
           ),
-          box('Indirizzo e coordinate', 'Posizione fisica nel territorio e coordinate GPS per la georeferenziazione.',
+          box('Indirizzo e coordinate', 'Cerca l\'indirizzo per compilare in automatico città, CAP, provincia e coordinate.',
             React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 12 } },
               cs('Via', true, viaAutocomplete),
               cs('N. civico', false, inp(civico, setCivico, 'Es. 148')),
             ),
             g4(
-              cs('CAP',      false, inp(cap,      setCap,      '—')),
-              cs('Città',    true,  inp(citta,    setCitta,    '—', { status: showErrors && !citta.trim() ? 'error' : undefined })),
-              cs('Provincia',false, inp(provincia, setProvincia, '—')),
-              cs('Regione',  false, inp(regione,  setRegione,  '—')),
+              cs('CAP',      false, inp(cap,      setCap,      'Es. 90133')),
+              cs('Città',    true,  inp(citta,    setCitta,    'Es. Palermo', { status: showErrors && !citta.trim() ? 'error' : undefined })),
+              cs('Provincia',false, inp(provincia, setProvincia, 'Es. PA')),
+              cs('Regione',  false, inp(regione,  setRegione,  'Es. Sicilia')),
             ),
             g4(
-              cs('Nazione',     false, inp(nazione, setNazione, '—')),
-              cs('Latitudine',  false, inp(lat,     setLat,     '—')),
-              cs('Longitudine', false, inp(lng,     setLng,     '—')),
-              cs('Zona',        false, inp(zn,      setZn,      'Es. Centro Storico')),
+              cs('Nazione',     false, inp(nazione, setNazione, 'Es. Italia')),
+              cs('Latitudine',  false, inp(lat,     setLat,     'Es. 38.115690')),
+              cs('Longitudine', false, inp(lng,     setLng,     'Es. 13.361270')),
+              cs('Zona',        false, inp(zn,      setZn,      'Es. Centro storico')),
             ),
           ),
         ),
 
         // ── Dati amministrativi
-        sec('dati-amministrativi', 'Iter autorizzativo', 'Una volta scelto il sito, il percorso legale in ordine: concessioni e autorizzazioni → progetto strutturale e Genio Civile → titolo per installare (SCIA).',
+        sec('dati-amministrativi', 'Iter autorizzativo', 'Il percorso legale per installare l\'impianto: concessioni e autorizzazioni, progetto strutturale, titolo per installare.',
 
           // ── STEP 1 · Concessioni e autorizzazioni ───────────────────
-          boxX('1 · Concessioni e autorizzazioni', 'Titoli che danno diritto a stare/esporsi sullo spazio: concessione di suolo pubblico, contratto su suolo privato, oppure autorizzazione (esposizione su spazio pubblico da suolo privato ex art. 23 CdS, oppure vincolo storico/paesaggistico della Soprintendenza). Determina il tipo di suolo e il canone unico patrimoniale.',
+          boxX('1 · Concessioni e autorizzazioni', 'Collega i titoli relativi all\'esposizione sullo spazio, come concessioni di suolo pubblico, contratti su suolo privato o autorizzazioni, per determinare il tipo di suolo e il canone unico patrimoniale.',
             permessiConcAut.length > 0 ? concAutDropdown : null,
             permessiConcAut.length > 0
               ? renderPermitCards(permessiConcAut)
@@ -4345,7 +4395,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                   style: { width: '100%' },
                 })
               ),
-              cs('Categoria suolo', false, sel(catSuolo, setCatSuolo, CAT_SUOLO_OPTS)),
+              cs('Categoria suolo', false, sel(catSuolo, setCatSuolo, CAT_SUOLO_OPTS, 'Seleziona la categoria di suolo')),
             ),
             g2(
               cs('Utenza', false, inp(utenza, setUtenza, '—')),
@@ -4353,94 +4403,44 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
             ),
           ),
 
-          // ── STEP 2 · Progetto strutturale (Genio Civile) ────────────
-          boxX('2 · Progetto strutturale (Genio Civile)', 'Per strutture rilevanti o in zona sismica: deposito/denuncia del calcolo statico al Genio Civile (artt. 65, 93–94 DPR 380/2001). Collega la pratica o carica il documento: i dati di progetto si compilano in automatico in base alla fase (redazione, deposito, collaudo).',
+          // ── STEP 2 · Genio Civile e Progetto ────────────
+          boxX('2 · Genio Civile e Progetto', 'Collega la pratica del Genio Civile e compila i campi relativi al progetto.',
             React.createElement(Space, { style: { marginBottom: 16 } },
               React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openGenioCivileDrawer }, 'Collega pratica'),
-            React.createElement(Upload, {
-              fileList: progettoDocs,
-              showUploadList: false,
-              onChange: ({ fileList: newList }) => {
-                const added = newList.length > progettoDocs.length;
-                setProgettoDocs(newList);
-                if (added) {
-                  // Mock: estrazione dati dal documento — compila solo i campi vuoti
-                  setProgetto(prev => prev || '1305');
-                  setProgettista(prev => prev || 'Studio Tecnico Russo & Partners');
-                  setDdl(prev => prev || 'Ing. Paolo Greco');
-                  setRsc(prev => prev || 'Arch. Marta Vitale');
-                  setCollaudatore(prev => prev || 'Ing. Sergio Lombardo');
-                  setLaboratorio(prev => prev || 'LabStrutture Palermo');
-                  setGeologo(prev => prev || 'Dott. Andrea Rizzo');
-                  setCalcestruzzo(prev => prev || 'RCK > 25 MPA');
-                  setAcciaioCarp(prev => prev || 'FE 360 B');
-                  setAcciaioArm(prev => prev || 'FEB 44 K');
-                  setTecnicheGc(prev => prev || 'Saldature con elettrodi basici E 44 L 4 B e cordoni d\'angolo 8×8 mm');
-                  antdMsg.success('Dati estratti dal documento di progetto');
-                }
-              },
-              beforeUpload: () => false,
-              accept: '.pdf,.doc,.docx,.dwg',
-              multiple: true,
-            },
-              React.createElement(Button, { icon: React.createElement(UploadOutlined) }, 'Carica documento'),
-            ),
             ),
             permessiGenioCivile.length > 0 ? React.createElement('div', { style: { marginBottom: 16 } }, renderPermitCards(permessiGenioCivile)) : null,
-            progettoDocs.length > 0 && React.createElement('div', { style: { marginBottom: 16 } },
-              progettoDocs.map(f =>
-                React.createElement('div', { key: f.uid, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.75)', background: '#FAFAFA', marginBottom: 4 } },
-                  React.createElement(FileTextOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }),
-                  React.createElement('span', { style: { flex: 1 } }, f.name),
-                  React.createElement(DeleteOutlined, {
-                    style: { color: 'rgba(0,0,0,0.45)', cursor: 'pointer' },
-                    onClick: () => setProgettoDocs(prev => prev.filter(x => x.uid !== f.uid)),
-                  }),
-                )
-              ),
-            ),
-            g3(
+            g4(
               cs('Progettista', false,
-                sel(progettista || undefined, setProgettista, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })
-              ),
+                sel(progettista || undefined, setProgettista, FORNITORI_OPTS, 'Seleziona il progettista', { showSearch: true })),
               cs('Progetto', false, inp(progetto, setProgetto, 'Es. 1305')),
-            ),
-            g3(
               cs('D.D.L. (Direttore dei Lavori)', false,
-                sel(ddl || undefined, setDdl, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+                sel(ddl || undefined, setDdl, FORNITORI_OPTS, 'Seleziona il direttore dei lavori', { showSearch: true })),
               cs('R.S.C. (Resp. Sicurezza in Cantiere)', false,
-                sel(rsc || undefined, setRsc, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
-              cs('Laboratorio', false,
-                sel(laboratorio || undefined, setLaboratorio, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+                sel(rsc || undefined, setRsc, FORNITORI_OPTS, 'Seleziona il responsabile della sicurezza', { showSearch: true })),
             ),
-            g3(
+            g4(
+              cs('Laboratorio', false,
+                sel(laboratorio || undefined, setLaboratorio, FORNITORI_OPTS, 'Seleziona il laboratorio', { showSearch: true })),
               cs('Geologo', false,
-                sel(geologo || undefined, setGeologo, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+                sel(geologo || undefined, setGeologo, FORNITORI_OPTS, 'Seleziona il geologo', { showSearch: true })),
               cs('Collaudatore', false,
-                sel(collaudatore || undefined, setCollaudatore, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+                sel(collaudatore || undefined, setCollaudatore, FORNITORI_OPTS, 'Seleziona il collaudatore', { showSearch: true })),
               cs('Data collaudo', false, dp(dataCollaudo, setDataCollaudo)),
             ),
-            g3(
+            g4(
               cs('Calcestruzzo',       false, inp(calcestruzzo, setCalcestruzzo, 'Es. RCK > 25 MPA')),
               cs('Acciaio carpenteria',false, inp(acciaioCarp,  setAcciaioCarp,  'Es. FE 360 B')),
               cs('Acciaio armature',   false, inp(acciaioArm,   setAcciaioArm,   'Es. FEB 44 K')),
+              cs('Ditta cemento armato', false, inp(progDittaCA, setProgDittaCA, 'Es. Edil Costruzioni S.r.l.')),
             ),
-            g3(
-              cs('Ditta cemento armato', false, inp(progDittaCA, setProgDittaCA, '—')),
-              cs('Data fine lavori',     false, dp(progDataFine, setProgDataFine)),
-              React.createElement('div'),
-            ),
-            cs('Tecniche utilizzate', false,
-              React.createElement(Input.TextArea, {
-                value: tecnicheGc, onChange: e => setTecnicheGc(e.target.value),
-                placeholder: 'Es. Saldature con elettrodi basici E 44 L 4 B e con cordoni d\'angolo 8×8 mm',
-                autoSize: { minRows: 2, maxRows: 4 },
-              })
+            g4(
+              cs('Tecniche utilizzate', false, inp(tecnicheGc, setTecnicheGc, 'Es. Saldature con elettrodi basici')),
+              cs('Data fine lavori',   false, dp(progDataFine, setProgDataFine)),
             ),
           ),
 
           // ── STEP 3 · Titolo a installare ────────────────────────────
-          boxX('3 · Titolo a installare', 'Regime ordinario (dal 20/02/2026): SCIA al SUAP con asseverazione del tecnico abilitato — si parte subito.',
+          boxX('3 · Titolo a installare', 'Compila o collega la SCIA urbanistica e la SCIA commerciale presentate per l\'impianto.',
             permessiScia.length > 0
               ? React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openSciaDrawer, disabled: hasTutteLeScia }, 'Collega SCIA')
               : null,
@@ -4450,18 +4450,32 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                   React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openSciaDrawer, disabled: hasTutteLeScia }, 'Collega SCIA'),
                 ),
           ),
+
+          // ── STEP 4 · Documenti — unico punto di caricamento dell'iter ─
+          boxX('4 · Documenti', 'Carica i documenti dell\'iter autorizzativo: concessioni, autorizzazioni, progetto e SCIA.',
+            React.createElement(Upload, {
+              fileList: iterDocs, showUploadList: false,
+              onChange: ({ fileList: newList }) => setIterDocs(newList),
+              beforeUpload: () => false, accept: '.pdf,.doc,.docx,.dwg,.p7m', multiple: true,
+            }, React.createElement(Button, { icon: React.createElement(UploadOutlined) }, 'Carica documento')),
+            iterDocs.length > 0
+              ? React.createElement(Upload, {
+                  className: 'box-doc-list',
+                  fileList: iterDocs, listType: 'picture',
+                  onChange: ({ fileList: newList }) => setIterDocs(newList),
+                  onPreview: openDocPreview, beforeUpload: () => false,
+                })
+              : React.createElement(Empty, { description: 'Nessun documento caricato', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } }),
+          ),
         ),
 
         // ── 3. Caratteristiche
-        sec('caratteristiche', 'Dati tecnici', 'Ottenuti i titoli, si realizza l\'impianto: specifiche fisiche del pannello espositivo (dimensioni, esposizione, illuminazione, facce).',
-          box('Dimensioni ed esposizione', 'Misure e ingombro dell\'impianto, esposizione del sito e area espositiva (calcolata da larghezza × altezza).',
+        sec('caratteristiche', 'Dati tecnici', 'Specifiche fisiche del pannello espositivo: dimensioni, esposizione, illuminazione e facce.',
+          box('Dimensioni ed esposizione', 'Inserisci misure e ingombro dell\'impianto, esposizione del sito e area espositiva.',
             g4(
               cs('Larghezza (cm)',  false, num(largImp, setLargImp, { min: 0 })),
               cs('Altezza (cm)',    false, num(altImp,  setAltImp,  { min: 0 })),
               cs('Profondità (cm)', false, num(profImp, setProfImp, { min: 0 })),
-              cs('Alt. da terra (cm)', false, num(altTerra, setAltTerra, { min: 0 })),
-            ),
-            g2(
               cs('Area espositiva', false,
                 React.createElement(InputNumber, {
                   value: areaEspositiva, readOnly: true, controls: false, precision: 2,
@@ -4470,13 +4484,16 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                   formatter: v => (v === '' || v === null || v === undefined) ? '' : v + ' m²',
                   placeholder: 'Calcolata in automatico',
                 })),
-              cs('Esposizione', false, sel(riparato, setRiparato, RIPARATO_OPTS)),
+            ),
+            g4(
+              cs('Alt. da terra (cm)', false, num(altTerra, setAltTerra, { min: 0 })),
+              cs('Esposizione', false, sel(riparato, setRiparato, RIPARATO_OPTS, 'Seleziona l\'esposizione')),
             ),
           ),
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Facce',
               facce.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, facce.length) : null,
-            ), 'Numero e caratteristiche delle facce espositive. Per ogni faccia anteriore puoi creare la posteriore corrispondente (speculare).',
+            ), 'Definisci numero e caratteristiche delle facce espositive. Per ogni faccia anteriore puoi creare la posteriore corrispondente.',
             facce.length > 0 ? faceAddBtn : null,
             facce.length > 0
               ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 } },
@@ -4496,11 +4513,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                   faceAddBtn,
                 ),
           ),
-          box('Verifica', 'Verifiche periodiche dell\'impianto.',
+          box('Verifica', 'Registra le verifiche periodiche dell\'impianto.',
             g2(
               cs('Data ultima verifica',  false, dp(dataVerifica,  setDataVerifica)),
               cs('Resp. ultima verifica', false,
-                sel(respVerifica || undefined, setRespVerifica, FORNITORI_OPTS, 'Cerca fornitore…', { showSearch: true })),
+                sel(respVerifica || undefined, setRespVerifica, FORNITORI_OPTS, 'Seleziona il responsabile della verifica', { showSearch: true })),
             ),
             cs('Note', false,
               React.createElement(Input.TextArea, {
@@ -4513,11 +4530,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
         ),
 
         // ── 7. Cespiti e Dispositivi
-        sec('struttura', 'Cespiti e dispositivi', 'Installazione fisica: componenti strutturali montati (fondazione, pali, cornice, pannelli) e dispositivi connessi, con ditte e date di montaggio.',
+        sec('struttura', 'Cespiti e dispositivi', 'Componenti strutturali montati e dispositivi connessi, con ditte e date di montaggio.',
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Cespiti',
               cespiti.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, cespiti.length) : null,
-            ), 'Componenti strutturali dell\'impianto: fondazione, pali, cornice, pannelli, extra struttura.',
+            ), 'Aggiungi i componenti strutturali dell\'impianto come fondazione, pali, cornice, pannelli, extra struttura.',
             cespiti.length > 0 ? cespiteAddBtn : null,
             cespiti.length > 0
               ? React.createElement(Row, { gutter: [16, 16] },
@@ -4537,7 +4554,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Dispositivi',
               dispositivi.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, dispositivi.length) : null,
-            ), 'Dispositivi connessi installati sull\'impianto: player, modem/router, sensori, telecamere, schermi, centraline.',
+            ), 'Aggiungi i dispositivi connessi installati sull\'impianto come player, modem/router, sensori, telecamere, schermi, centraline.',
             dispositivi.length > 0 ? dispositivoAddBtn : null,
             dispositivi.length > 0
               ? React.createElement(Row, { gutter: [16, 16] },
@@ -4557,29 +4574,41 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
         ),
 
         // ── Affissione
-        sec('affissione', 'Affissione', 'Configurazione operativa: squadra incaricata, modalità e costi delle operazioni di affissione, abilitate quando l\'impianto è attivo.',
-          box('Squadra, modalità e costi', 'Squadra incaricata (codice incluso), tipo di affissione e relativi costi.',
-            g2(
-              cs('Squadra affissione', false,
-                sel(squadraAff || undefined, (v) => {
-                  setSquadraAff(v || '');
-                  const f = SQUADRE_AFF.find(s => s.nome === v);
-                  setCodiceSquadra(f ? f.codice : '');
-                }, SQUADRE_AFF_OPTS, 'Cerca per codice o nome…', {
-                  showSearch: true, allowClear: true, optionFilterProp: 'label',
-                })),
-              cs('Tipo affissione', false, sel(tipoAffissione, setTipoAffissione, TIPO_AFFISSIONE_OPTS, 'Seleziona i tipi', { mode: 'multiple', allowClear: true })),
+        sec('affissione', 'Affissione', 'Squadre incaricate, modalità e costi delle operazioni di affissione, abilitate quando l\'impianto è attivo.',
+          box('Squadre, modalità e costi', 'Assegna le squadre incaricate (codice incluso), il tipo di affissione e i relativi costi.',
+            affissioni.map((g, i) =>
+              React.createElement('div', { key: i },
+                i > 0 ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '8px 0 12px' } },
+                  React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.45)' } }, 'Squadra ' + (i + 1)),
+                  React.createElement(Button, { type: 'text', size: 'small', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => setAffissioni(prev => prev.filter((_, j) => j !== i)) }, 'Rimuovi'),
+                ) : null,
+                g2(
+                  cs('Squadra affissione', false,
+                    React.createElement(Select, {
+                      value: g.squadra || undefined, onChange: (v) => setAff(i, 'squadra', v || null),
+                      options: SQUADRE_AFF_OPTS, style: { width: '100%' },
+                      placeholder: 'Seleziona la squadra', showSearch: true, allowClear: true, optionFilterProp: 'label',
+                    })),
+                  cs('Tipo affissione', false, sel(g.tipo, (v) => setAff(i, 'tipo', v), TIPO_AFFISSIONE_OPTS, 'Seleziona i tipi di affissione', { mode: 'multiple', allowClear: true })),
+                ),
+                g2(
+                  cs('Costo affissione (€)',     false, num(g.costo,     (v) => setAff(i, 'costo', v),     { min: 0, precision: 2 })),
+                  cs('Costo preincollaggio (€)', false, num(g.preincoll, (v) => setAff(i, 'preincoll', v), { min: 0, precision: 2 })),
+                ),
+              )
             ),
-            g2(
-              cs('Costo affissione (€)',     false, num(costoAffissione, setCostoAffissione, { min: 0, precision: 2 })),
-              cs('Costo preincollaggio (€)', false, num(costoPreincoll,  setCostoPreincoll,  { min: 0, precision: 2 })),
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: 20 } },
+              React.createElement(Button, {
+                type: 'dashed', icon: React.createElement(PlusOutlined),
+                onClick: () => setAffissioni(prev => [...prev, { squadra: null, tipo: [], costo: null, preincoll: null }]),
+              }, 'Aggiungi squadra'),
             ),
           ),
         ),
 
         // ── Commerciale
-        sec('commerciale', 'Commerciale', 'Attivazione commerciale: identità commerciale, circuiti, qualità, moduli collegati, modello di vendita e prezzi. L\'audience (AudiOutdoor) arriva dopo l\'attivazione ed è consultabile nel dettaglio impianto.',
-          box('Identità commerciale', 'Alias commerciale, circuiti di vendita e qualità dell\'impianto.',
+        sec('commerciale', 'Commerciale', 'Identità commerciale, circuiti, qualità, moduli collegati, modello di vendita e prezzi. L\'audience (AudiOutdoor) arriva dopo l\'attivazione ed è consultabile nel dettaglio impianto.',
+          box('Identità commerciale', 'Definisci alias commerciale, circuiti di vendita e qualità dell\'impianto.',
             g2(
               cs('Alias impianto', false, inp(aliasImpianto, setAliasImpianto, 'Nome commerciale dell\'impianto')),
               cs('Circuiti', false, sel(circuiti, setCircuiti, CIRCUITI_OPTS, 'Seleziona i circuiti', { mode: 'multiple', allowClear: true })),
@@ -4592,13 +4621,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               ),
             ),
           ),
-          box('Modello commerciale', 'Struttura di vendita e listino prezzi associati all\'impianto.',
+          box('Modello commerciale', 'Imposta la struttura di vendita e il listino prezzi dell\'impianto.',
             g2(
               cs('Modello di vendita', false,
                 sel(vendita, setVendita, [
                   { value: 'Standard',  label: 'Standard' },
                   { value: 'Long term', label: 'Long term' },
-                ])
+                ], 'Seleziona il modello di vendita')
               ),
               React.createElement('div'),
             ),
@@ -4611,7 +4640,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               'Moduli',
               moduliCollegati.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, moduliCollegati.length) : null,
             ),
-            'Impianti dello stesso tipo e formato, vicini tra loro, collegati a questo e venduti insieme come un unico spazio. Puoi collegare solo impianti già esistenti.',
+            'Collega impianti dello stesso tipo e formato, vicini tra loro, venduti insieme come un unico spazio. Puoi collegare solo impianti già esistenti.',
             moduliCollegati.length > 0
               ? React.createElement(Button, { icon: React.createElement(LinkOutlined), onClick: openLinkDrawer }, 'Collega impianto')
               : null,
@@ -4667,14 +4696,14 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
         : authDrawerScope === 'genioCivile' ? 'Collega pratica Genio Civile'
         : 'Collega Autorizzazione',
       placement: 'right',
-      styles: { wrapper: { width: '70%' }, body: { padding: 24 } },
+      styles: { wrapper: { width: '50%' }, body: { padding: 24 } },
       onClose: closePermitDrawer, open: permitDrawerOpen,
       extra: React.createElement(Space, null,
         React.createElement(Button, { onClick: closePermitDrawer }, 'Annulla'),
         React.createElement(Button, {
-          type: ((permitDrawerType === 'concessione' && permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length > 0) || (permitDrawerType === 'autocertificazione' && Object.values(permitSciaUploads).some(Boolean))) ? 'primary' : 'default',
+          type: ((permitDrawerType === 'concessione' && permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length > 0) || (permitDrawerType === 'autocertificazione' && sciaHasInput)) ? 'primary' : 'default',
           icon: React.createElement(PlusOutlined),
-          disabled: (permitDrawerType === 'concessione' && !permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length === 0) || (permitDrawerType === 'autocertificazione' && !Object.values(permitSciaUploads).some(Boolean)),
+          disabled: (permitDrawerType === 'concessione' && !permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length === 0) || (permitDrawerType === 'autocertificazione' && !sciaHasInput),
           onClick: handleAddPermit,
         }, 'Aggiungi'),
       ),
@@ -4683,10 +4712,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
         ? React.createElement(GrantsAccordion, { data: GRANTS_DATA, selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
         : permitDrawerType === 'autocertificazione'
         ? React.createElement(SciaUploadPanel, {
-            uploads: permitSciaUploads,
+            manual: permitSciaManual,
             replaceId: permitSciaReplaceId,
-            onUpload: (id, file) => { setPermitSciaUploads(prev => ({ ...prev, [id]: file })); antdMsg.success('Dati estratti dalla SCIA'); },
-            onRemove: (id) => setPermitSciaUploads(prev => ({ ...prev, [id]: null })),
+            onManualChange: (id, key, value) => setPermitSciaManual(prev => ({ ...prev, [id]: { ...prev[id], [key]: value } })),
           })
         : React.createElement(AuthorizationsList, { data: authDrawerScope === 'genioCivile' ? AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory === 'Genio Civile') : AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory !== 'Genio Civile'), selectedKeys: permitAuthKeys, onSelectionChange: setPermitAuthKeys }),
     ),
@@ -4748,7 +4776,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
         (fcIllumStato && fcIllumStato !== 'Spento')
           ? cs('Mezzo di illuminazione', false,
               sel(fcIllumMezzo, onFcIllumMezzo,
-                (ILLUM_MEZZO_BY_STATO[fcIllumStato] || []).map(v => ({ value: v, label: v })), 'Seleziona', { style: { width: 240 } }))
+                (ILLUM_MEZZO_BY_STATO[fcIllumStato] || []).map(v => ({ value: v, label: v })), 'Seleziona il mezzo di illuminazione', { style: { width: 240 } }))
           : null,
       ),
       fcIllumMezzo === 'Faretti' ? gapRow(
@@ -4786,7 +4814,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
           ? roDisplay('text', acTipo)
           : React.createElement(Select, {
               value: acTipo, onChange: setAcTipo, options: ASSET_TIPO_OPTS_BY_CAT[acCategory] || [],
-              style: { width: '100%' }, placeholder: 'Seleziona il tipo',
+              style: { width: '100%' }, placeholder: 'Seleziona il tipo di ' + (acCategory === 'Dispositivo' ? 'dispositivo' : 'cespite'),
               showSearch: true, optionFilterProp: 'label',
             })),
       acTipo
