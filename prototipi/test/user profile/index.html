@@ -38,6 +38,25 @@
 
     /* Tenant switcher trigger */
     .gv-tenant-trigger:hover { background: rgba(0,0,0,0.04); }
+
+    /* Calendario scadenze (area app) — base ispirata al MiniCalendar di Planning */
+    .gv-cal { font-size: 12px; }
+    .gv-cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 500; }
+    .gv-cal-header button { background: none; border: none; cursor: pointer; color: rgba(0,0,0,0.45); padding: 4px; display: flex; align-items: center; border-radius: 6px; }
+    .gv-cal-header button:hover { background: rgba(0,0,0,0.04); color: #3E00FB; }
+    .gv-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; }
+    .gv-cal-day-label { text-align: center; font-size: 11px; color: rgba(0,0,0,0.45); padding: 3px 0; }
+    .gv-cal-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3px 2px; gap: 3px; }
+    .gv-cal-day { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; color: rgba(0,0,0,0.88); line-height: 1; }
+    .gv-cal-cell.has-deadline .gv-cal-day { font-weight: 600; }
+    .gv-cal-day.today { border: 1px solid #3E00FB; font-weight: 600; }
+    .gv-cal-cell.outside .gv-cal-day { color: rgba(0,0,0,0.25); }
+    .gv-cal-dot { width: 5px; height: 5px; border-radius: 50%; }
+    .gv-cal-dot.empty { background: transparent; }
+    .gv-cal-legend { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0; display: flex; flex-direction: column; gap: 10px; }
+    .gv-cal-legend-item { display: flex; align-items: center; gap: 10px; font-size: 12px; min-width: 0; }
+    .gv-cal-legend-date { flex-shrink: 0; font-weight: 600; color: rgba(0,0,0,0.88); width: 52px; }
+    .gv-cal-legend-title { color: rgba(0,0,0,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   </style>
 </head>
 <body>
@@ -50,8 +69,8 @@ window.applyGravityTokens();
 const { useState, useEffect, useRef } = React;
 const {
   ConfigProvider, App, Layout, Space, Typography,
-  Button, Avatar, Upload, Modal, Form, Input, Select, Card, Tag,
-  Dropdown, Skeleton, Alert, Divider, Checkbox, Popover, Drawer, Result,
+  Button, Avatar, Upload, Modal, Form, Input, Select, Card, Tag, Badge,
+  Dropdown, Skeleton, Alert, Divider, Checkbox, Popover, Drawer, Result, Segmented, Spin,
 } = antd;
 const {
   UserOutlined, LockOutlined, BellOutlined,
@@ -472,6 +491,37 @@ const ROLE_HISTORY = {
   ],
 };
 
+// Scadenze più importanti per ruolo — offset in giorni da OGGI (calendario evergreen).
+// Alimentano il calendario dell'area app (vista alternativa alle "Le tue app").
+const ROLE_DEADLINES = {
+  'Tenant Admin': [
+    { offset: 3,  title: 'Audit accessi piattaforma',     category: 'Compliance' },
+    { offset: 6,  title: 'Revisione permessi utenti',     category: 'Utenti'     },
+    { offset: 12, title: 'Rinnovo contratto Alessi',      category: 'Contratti'  },
+  ],
+  'Inventory Manager': [
+    { offset: 2,  title: 'Scheda tecnica TO-PNZ-031',     category: 'Impianti'   },
+    { offset: 5,  title: 'Verifica fornitore SLA Q2',     category: 'Fornitori'  },
+    { offset: 8,  title: 'Permesso BG-CEN-009',           category: 'Permessi'   },
+  ],
+  'Operation Manager': [
+    { offset: 1,  title: 'Approva preventivo #PR-4821',   category: 'Preventivi'   },
+    { offset: 3,  title: 'Riconciliazione pagamenti',     category: 'Pagamenti'    },
+    { offset: 5,  title: 'Verifica anagrafica BrandX',    category: 'Anagrafiche'  },
+    { offset: 9,  title: 'Invio contratto BeverageCo',    category: 'Contratti'    },
+  ],
+  'Planner': [
+    { offset: 1,  title: 'Conflitto slot MI-DUO-014',     category: 'Conflitti'      },
+    { offset: 2,  title: 'Capacità esaurita VR-AR-022',   category: 'Disponibilità'  },
+    { offset: 7,  title: 'Revisione piano Q3',            category: 'Pianificazione' },
+  ],
+  'Sales': [
+    { offset: 2,  title: 'Follow-up BrandX',              category: 'Follow-up'  },
+    { offset: 4,  title: 'Preventivo MediaGroup',         category: 'Preventivi' },
+    { offset: 5,  title: 'Rinnovo contratto AutoMove',    category: 'Contratti'  },
+  ],
+};
+
 const HISTORY_STATUS = {
   completed:   { label: 'Completata', color: '#16A34A' },
   in_progress: { label: 'In corso',   color: '#3E00FB' },
@@ -566,6 +616,12 @@ function GravityNavbarTenant({ role, onRoleChange, tenantKey, onTenantChange, te
   // anche se non elencata in ROLE_NAV (es. Sales). La forziamo come prima sezione.
   const sections = ['Overview', ...(ROLE_NAV[role] || []).filter((s) => s !== 'Overview')];
 
+  // Sezione attualmente visualizzata: questa pagina è l'area personale (Overview/Per te),
+  // sempre accessibile a ogni ruolo. Un ruolo è disabilitato nel menù se non ha accesso a questa sezione.
+  const activeSection = 'Overview';
+  const roleHasAccess = (r) =>
+    !activeSection || activeSection === 'Overview' || (ROLE_NAV[r] || []).indexOf(activeSection) !== -1;
+
   const menuItems = sections.map((sec) => {
     const conf = NAV[sec];
     return {
@@ -608,14 +664,22 @@ function GravityNavbarTenant({ role, onRoleChange, tenantKey, onTenantChange, te
     { key: '_hd', disabled: true,
       label: h('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Vista ruolo'),
     },
-    ...ROLES.map((r) => ({
-      key: r,
-      label: h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32, minWidth: 200 } },
-        h('span', { style: { fontWeight: r === role ? 600 : 400 } }, r),
-        r === role ? h(CheckOutlined, { style: { color: '#3e00fb', fontSize: 12 } }) : null
-      ),
-      onClick: () => onRoleChange(r),
-    })),
+    ...ROLES.map((r) => {
+      // Ruolo disabilitato se non ha accesso alla sezione visualizzata.
+      // Il ruolo corrente resta sempre selezionabile (e mostra il check).
+      const noAccess = r !== role && !roleHasAccess(r);
+      return {
+        key: r,
+        disabled: noAccess,
+        label: h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32, minWidth: 200 } },
+          h('span', { style: { fontWeight: r === role ? 600 : 400 } }, r),
+          r === role
+            ? h(CheckOutlined, { style: { color: '#3e00fb', fontSize: 12 } })
+            : (noAccess ? h(LockOutlined, { style: { color: 'rgba(0,0,0,0.25)', fontSize: 12 } }) : null)
+        ),
+        onClick: noAccess ? undefined : () => onRoleChange(r),
+      };
+    }),
   ];
 
   return h('nav', {
@@ -929,7 +993,7 @@ function ProductCard({ name, desc, color, icon }) {
 
 // Nota di design dell'area app (riusa l'icona Coffee rossa delle KPI).
 // Il popover contiene la spiegazione + il button che nasconde l'area.
-function AppsDesignNote({ onHide }) {
+function AppsDesignNote({ onHide, appsView, onToggleView }) {
   return React.createElement(Popover, {
     trigger: 'hover', placement: 'bottomLeft',
     content: React.createElement('div', { style: { maxWidth: 340 } },
@@ -959,8 +1023,13 @@ function AppsDesignNote({ onHide }) {
       ),
       React.createElement(Button, {
         type: 'primary', size: 'small', block: true, style: { marginTop: 12 },
+        icon: React.createElement(icons.CalendarOutlined),
+        onClick: onToggleView,
+      }, appsView === 'calendar' ? 'Torna alle app' : 'Mostra calendario scadenze'),
+      React.createElement(Button, {
+        size: 'small', block: true, style: { marginTop: 8 },
         onClick: onHide,
-      }, 'Nascondi area app')
+      }, 'Nascondi area')
     ),
   },
     React.createElement('span', {
@@ -969,20 +1038,98 @@ function AppsDesignNote({ onHide }) {
   );
 }
 
-function ProductsSection({ role, onHide }) {
+// ── Calendario scadenze — vista alternativa di "Le tue app" ──────────────────────
+// Base ispirata al MiniCalendar di Planning; marca i singoli giorni con scadenza
+// (dot colorato per categoria) + elenco scadenze in legenda. Date evergreen: oggi+offset.
+const CAL_MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const CAL_MONTHS_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const CAL_DAY_LABELS = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
+
+function DeadlineCalendar({ role }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadlines = (ROLE_DEADLINES[role] || []).map((d) => {
+    const date = new Date(today);
+    date.setDate(date.getDate() + d.offset);
+    return { ...d, date, color: catStyle(d.category).color };
+  }).sort((a, b) => a.date - b.date);
+
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+  const firstDow = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7; // settimana lun→dom
+
+  const cells = [];
+  for (let i = firstDow - 1; i >= 0; i--) cells.push({ day: daysInPrevMonth - i, outside: true });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, outside: false });
+  let nextDay = 1;
+  while (cells.length % 7 !== 0) cells.push({ day: nextDay++, outside: true });
+
+  const deadlineOn = (cell) => cell.outside ? null
+    : deadlines.find((dl) => dl.date.getDate() === cell.day && dl.date.getMonth() === viewMonth && dl.date.getFullYear() === viewYear) || null;
+  const isToday = (cell) => !cell.outside && cell.day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+
+  const prevMonth = () => { if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); } else setViewMonth((m) => m - 1); };
+  const nextMonth = () => { if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); } else setViewMonth((m) => m + 1); };
+
+  const relLabel = (d) => {
+    const diff = Math.round((d.date - today) / 86400000);
+    return diff <= 0 ? 'oggi' : diff === 1 ? 'domani' : 'tra ' + diff + ' gg';
+  };
+
+  return React.createElement('div', { className: 'gv-cal' },
+    React.createElement('div', { className: 'gv-cal-header' },
+      React.createElement('button', { onClick: prevMonth }, React.createElement(icons.LeftOutlined, { style: { fontSize: 11 } })),
+      React.createElement(Text, { style: { fontSize: 13, fontWeight: 500 } }, CAL_MONTHS[viewMonth] + ' ' + viewYear),
+      React.createElement('button', { onClick: nextMonth }, React.createElement(icons.RightOutlined, { style: { fontSize: 11 } }))
+    ),
+    React.createElement('div', { className: 'gv-cal-grid' },
+      ...CAL_DAY_LABELS.map((d) => React.createElement('div', { key: 'l' + d, className: 'gv-cal-day-label' }, d)),
+      ...cells.map((cell, i) => {
+        const dl = deadlineOn(cell);
+        let cls = 'gv-cal-cell';
+        if (cell.outside) cls += ' outside';
+        if (dl) cls += ' has-deadline';
+        return React.createElement('div', { key: i, className: cls },
+          React.createElement('div', { className: 'gv-cal-day' + (isToday(cell) ? ' today' : '') }, cell.day),
+          React.createElement('div', { className: 'gv-cal-dot' + (dl ? '' : ' empty'), style: dl ? { background: dl.color } : undefined })
+        );
+      })
+    ),
+    // Legenda — prossime scadenze in ordine di data
+    deadlines.length === 0
+      ? React.createElement('div', { style: { marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0', fontSize: 12, color: 'rgba(0,0,0,0.35)', textAlign: 'center' } }, 'Nessuna scadenza imminente')
+      : React.createElement('div', { className: 'gv-cal-legend' },
+          ...deadlines.map((d, i) => React.createElement('div', { key: i, className: 'gv-cal-legend-item' },
+            React.createElement('span', { className: 'gv-cal-legend-date' }, d.date.getDate() + ' ' + CAL_MONTHS_SHORT[d.date.getMonth()]),
+            React.createElement('span', { className: 'gv-cal-dot', style: { background: d.color, flexShrink: 0 } }),
+            React.createElement('span', { className: 'gv-cal-legend-title' }, d.title),
+            React.createElement(Text, { type: 'secondary', style: { fontSize: 11, marginLeft: 'auto', flexShrink: 0, whiteSpace: 'nowrap' } }, relLabel(d))
+          ))
+        )
+  );
+}
+
+function ProductsSection({ role, onHide, appsView, onToggleView }) {
   const allowed = ROLE_APPS[role] || [];
   const apps = PRODUCTS.filter((p) => allowed.includes(p.name));
+  const calendar = appsView === 'calendar';
   return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-      React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue app'),
-      React.createElement(AppsDesignNote, { onHide })
+      React.createElement(Title, { level: 4, style: { margin: 0 } }, calendar ? 'Scadenze' : 'Le tue app'),
+      React.createElement(AppsDesignNote, { onHide, appsView, onToggleView })
     ),
-    // Card app a griglia (2 colonne) — solo le app del ruolo
-    apps.length === 0
-      ? React.createElement('div', { style: { padding: '24px 0', fontSize: 13, color: 'rgba(0,0,0,0.35)' } }, 'Nessuna app assegnata a questo ruolo')
-      : React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, width: '100%' } },
-          apps.map((p) => React.createElement(ProductCard, { key: p.name, ...p }))
-        )
+    calendar
+      ? React.createElement(Card, { bordered: false, style: { border: '1px solid #f0f0f0', borderRadius: 10, background: '#fff' }, styles: { body: { padding: 16 } } },
+          React.createElement(DeadlineCalendar, { role }))
+      // Card app a griglia (2 colonne) — solo le app del ruolo
+      : apps.length === 0
+        ? React.createElement('div', { style: { padding: '24px 0', fontSize: 13, color: 'rgba(0,0,0,0.35)' } }, 'Nessuna app assegnata a questo ruolo')
+        : React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, width: '100%' } },
+            apps.map((p) => React.createElement(ProductCard, { key: p.name, ...p }))
+          )
   );
 }
 
@@ -1120,7 +1267,7 @@ function DesignNoteBulb({ note, placement }) {
   );
 }
 
-function ActivitiesSection({ role, onOpenHistory }) {
+function ActivitiesSection({ role, mode, onSeeAll }) {
   const all = ROLE_PENDING[role] || [];
   const studied = STUDIED_ROLES.includes(role) && all.length > 0;
 
@@ -1144,6 +1291,11 @@ function ActivitiesSection({ role, onOpenHistory }) {
     );
   }
 
+  // Strada 2 — scroll infinito sulla pagina "Per te": l'intera coda nella dashboard.
+  if (mode === 'scroll') {
+    return React.createElement(ActivitiesInfiniteFeed, { role });
+  }
+
   // Feed dashboard: le più urgenti (priorità, ordine stabile), prime 6.
   // Il totale resta nel "Vedi tutte (N)" → cronologia completa filtrabile.
   const feed = all.slice()
@@ -1157,7 +1309,7 @@ function ActivitiesSection({ role, onOpenHistory }) {
         React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
         React.createElement(DesignNoteBulb, { placement: 'bottomLeft', note: 'Le attività sono conseguenza della realizzazione dei flussi descritti dalle card delle metriche.' })
       ),
-      React.createElement(Button, { type: 'link', onClick: onOpenHistory, icon: React.createElement(icons.ArrowRightOutlined, { style: { fontSize: 12 } }), iconPosition: 'end', style: { padding: 0, height: 'auto' } },
+      React.createElement(Button, { type: 'link', onClick: onSeeAll, icon: React.createElement(icons.ArrowRightOutlined, { style: { fontSize: 12 } }), iconPosition: 'end', style: { padding: 0, height: 'auto' } },
         'Vedi tutte (' + all.length + ')'
       )
     ),
@@ -1171,21 +1323,18 @@ function ActivitiesSection({ role, onOpenHistory }) {
   );
 }
 
-// ── Corpo del drawer "Vedi tutte" ───────────────────────────────────────────────
-// Lista completa delle attività da fare (Da gestire), filtrabile per categoria.
-// Titolo e chiusura sono forniti dal Drawer contenitore.
-function ActivitiesDrawerBody({ role }) {
+// ── Lista completa attività — corpo condiviso da Drawer (1) e schermata dedicata (3) ──
+// Riga conteggio + filtro categoria, poi lista completa.
+function ActivitiesFullList({ role }) {
   const [filter, setFilter] = useState([]);
   const pendingAll = ROLE_PENDING[role] || [];
   const categories = Array.from(new Set(pendingAll.map((t) => t.category)));
   const toggle = (c) => setFilter((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
-  const apply = (tasks) => filter.length === 0 ? tasks : tasks.filter((t) => filter.includes(t.category));
-  const pending = apply(pendingAll);
+  const pending = filter.length === 0 ? pendingAll : pendingAll.filter((t) => filter.includes(t.category));
 
   return React.createElement(Space, { direction: 'vertical', size: 16, style: { width: '100%' } },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%' } },
-      React.createElement(Text, { type: 'secondary', style: { fontSize: 13 } },
-        pending.length + (pending.length === 1 ? ' attività' : ' attività')),
+      React.createElement(Text, { type: 'secondary', style: { fontSize: 13 } }, pending.length + ' attività'),
       React.createElement(ActivityFilter, { categories, selected: filter, onToggle: toggle, onClear: () => setFilter([]) })
     ),
     pending.length === 0
@@ -1194,6 +1343,123 @@ function ActivitiesDrawerBody({ role }) {
       : React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
           pending.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
         )
+  );
+}
+
+// ── Strada 2 — scroll infinito sulla pagina "Per te" ─────────────────────────────
+// Titolo + badge conteggio + filtro su un'unica riga; la lista cresce a blocchi
+// mentre si scorre la PAGINA (sentinel + IntersectionObserver), non un'area dedicata.
+function ActivitiesInfiniteFeed({ role }) {
+  const PAGE = 5; // carica 5 record alla volta, con loading a ogni blocco
+  const [filter, setFilter] = useState([]);
+  const [visible, setVisible] = useState(PAGE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef(null);
+  const timerRef = useRef(null);
+  const all = ROLE_PENDING[role] || [];
+  const categories = Array.from(new Set(all.map((t) => t.category)));
+  const toggle = (c) => setFilter((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
+  const pending = filter.length === 0 ? all : all.filter((t) => filter.includes(t.category));
+  const shown = pending.slice(0, visible);
+
+  // Cambio filtro/ruolo → riparti dal primo blocco
+  useEffect(() => { setVisible(PAGE); setLoadingMore(false); }, [filter.join('|'), role]);
+
+  // Infinite scroll di pagina: il sentinel entra nel viewport → loading 600ms → +5 voci
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !loadingMore && visible < pending.length) {
+        setLoadingMore(true);
+        timerRef.current = setTimeout(() => {
+          setVisible((v) => Math.min(v + PAGE, pending.length));
+          setLoadingMore(false);
+        }, 600);
+      }
+    }, { rootMargin: '120px' });
+    io.observe(el);
+    return () => { io.disconnect(); if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [pending.length, filter.join('|'), loadingMore, visible]);
+
+  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
+    // Unica riga: titolo + badge (sinistra) · filtro (destra)
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%' } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+        React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
+        React.createElement(Badge, { count: pending.length, overflowCount: 999, color: '#3E00FB' }),
+        React.createElement(DesignNoteBulb, { placement: 'bottomLeft', note: 'Le attività sono conseguenza della realizzazione dei flussi descritti dalle card delle metriche.' })
+      ),
+      React.createElement(ActivityFilter, { categories, selected: filter, onToggle: toggle, onClear: () => setFilter([]) })
+    ),
+    pending.length === 0
+      ? React.createElement('div', { style: { padding: '40px 0', textAlign: 'center', fontSize: 14, color: 'rgba(0,0,0,0.35)' } },
+          'Nessuna attività per i filtri selezionati')
+      : React.createElement(React.Fragment, null,
+          React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+            shown.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
+          ),
+          shown.length < pending.length
+            ? React.createElement('div', { ref: sentinelRef, style: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px 0', minHeight: 44 } },
+                loadingMore ? React.createElement(Spin, { size: 'small' }) : null)
+            : null
+        )
+  );
+}
+
+// Skeleton lista attività — riga conteggio+filtro + N card placeholder
+function TaskListSkeleton({ count }) {
+  return React.createElement(Space, { direction: 'vertical', size: 16, style: { width: '100%' } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+      React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 90, height: 16 } }),
+      React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 150, height: 32 } })
+    ),
+    React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+      ...Array.from({ length: count || 8 }).map((_, i) =>
+        React.createElement(Card, { key: i, bordered: false, style: { border: '1px solid #f0f0f0' }, styles: { body: { padding: '12px 16px' } } },
+          React.createElement(Skeleton, { active: true, avatar: { size: 36, shape: 'square' }, title: { width: 200 }, paragraph: { rows: 1, width: 260 } })
+        )
+      )
+    )
+  );
+}
+
+// ── Schermata dedicata a tutte le attività (vista a sé, full width) ──────────────
+// Usata dalle strade "Schermata dedicata" (3, lista) e "Triage" (4, raggruppata).
+function ActivitiesScreen({ role, variant, loading, onBack }) {
+  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 20, width: '100%' } },
+    React.createElement(Button, {
+      type: 'text', icon: React.createElement(ArrowLeftOutlined), onClick: onBack,
+      style: { paddingLeft: 0, alignSelf: 'flex-start' },
+    }, 'Torna alla dashboard'),
+    React.createElement(Title, { level: 3, style: { margin: 0 } }, 'Le tue attività'),
+    loading
+      ? React.createElement(TaskListSkeleton, { count: 8 })
+      : React.createElement(ActivitiesFullList, { role })
+  );
+}
+
+// ── Barra di valutazione (strumento di prototipo) ────────────────────────────────
+// Commuta dal vivo il pattern di accesso alla lista completa attività.
+function SeeAllModeLab({ mode, onChange }) {
+  return React.createElement('div', {
+    style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '8px 12px',
+      border: '1px dashed #d9d9d9', borderRadius: 8, background: '#fafafa' },
+  },
+    React.createElement(Text, { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(0,0,0,0.45)' } },
+      'Valutazione · «Vedi tutte»'),
+    React.createElement(Segmented, {
+      value: mode, onChange,
+      options: [
+        { label: 'Drawer full screen', value: 'drawer-full' },
+        { label: 'Scroll infinito', value: 'scroll' },
+        { label: 'Schermata dedicata', value: 'screen' },
+      ],
+    }),
+    React.createElement(DesignNoteBulb, {
+      placement: 'bottomRight',
+      note: 'Controllo di prototipo per confrontare i tre pattern di accesso alla lista completa attività. Valuta soprattutto sul ruolo Operation Manager (coda lunga).',
+    })
   );
 }
 
@@ -1257,10 +1523,17 @@ function AppRoot() {
   const [loading, setLoading] = useState(true);
   const [tenantLoading, setTenantLoading] = useState(false);
   const [avatarSrc, setAvatarSrc] = useState(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [seeAllOpen, setSeeAllOpen] = useState(false);            // drawer full-screen (strada 1)
+  const [seeAllMode, setSeeAllMode] = useState(() => {
+    const saved = localStorage.getItem('gravity_proto_seeall');
+    return ['drawer-full', 'scroll', 'screen'].includes(saved) ? saved : 'drawer-full';
+  });
+  const [view, setView] = useState('dashboard');                  // 'dashboard' | 'activities' (strada 3)
+  const [activitiesLoading, setActivitiesLoading] = useState(false); // skeleton ingresso schermata dedicata
   // Area app esplorativa: nascondibile per test layout. Stato in memoria →
   // si ripristina (le app riappaiono) al reload della pagina.
   const [appsHidden, setAppsHidden] = useState(false);
+  const [appsView, setAppsView] = useState('apps');               // 'apps' | 'calendar'
 
   const tenant = TENANTS[tenantKey];
 
@@ -1271,7 +1544,8 @@ function AppRoot() {
 
   const handleRoleChange = (r) => {
     localStorage.setItem('gravity_proto_role', r);
-    setHistoryOpen(false);
+    setSeeAllOpen(false);
+    setView('dashboard');
     setLoading(true);
     setTimeout(() => { setRole(r); setLoading(false); }, 600);
   };
@@ -1283,32 +1557,59 @@ function AppRoot() {
       window.location.href = '../../prototipo%20approvato/single-signon/index.html?tenant=' + tenantParam;
       return;
     }
-    setHistoryOpen(false);
+    setSeeAllOpen(false);
+    setView('dashboard');
     setLoading(true);
     setTimeout(() => { setTenantKey(k); setLoading(false); }, 200);
   };
 
-  const openHistory = () => setHistoryOpen(true);
+  // "Vedi tutte" → comportamento dipendente dalla strada in valutazione
+  // (scroll infinito non passa di qui: la lista è già inline nella dashboard).
+  const handleSeeAll = () => {
+    if (seeAllMode === 'screen') {
+      setView('activities');
+      window.scrollTo(0, 0);
+      setActivitiesLoading(true);
+      setTimeout(() => setActivitiesLoading(false), 500);
+    } else setSeeAllOpen(true);
+  };
+
+  const changeSeeAllMode = (m) => {
+    setSeeAllMode(m);
+    localStorage.setItem('gravity_proto_seeall', m);
+    setSeeAllOpen(false);
+    setView('dashboard');
+  };
+
+  const dashboard = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 32, width: '100%' } },
+    React.createElement(HeaderCard, { role, tenant, avatarSrc, onAvatarChange: setAvatarSrc }),
+    React.createElement(MetricRow, { role }),
+    // Due colonne: sinistra "Le tue attività", destra "Le tue app".
+    // Area app esplorativa: hover → spiegazione + button per nasconderla.
+    // Nascosta → attività full width (si ripristina al reload).
+    appsHidden
+      ? React.createElement(ActivitiesSection, { role, mode: seeAllMode, onSeeAll: handleSeeAll })
+      : React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start', width: '100%' } },
+          React.createElement('div', { style: { flex: '1 1 0', minWidth: 320 } },
+            React.createElement(ActivitiesSection, { role, mode: seeAllMode, onSeeAll: handleSeeAll })
+          ),
+          // Area app esplorativa: nota + nascondi sull'icona Coffee del titolo
+          React.createElement('div', { style: { flex: '0 1 500px', minWidth: 320 } },
+            React.createElement(ProductsSection, {
+              role, onHide: () => setAppsHidden(true),
+              appsView, onToggleView: () => setAppsView((v) => v === 'apps' ? 'calendar' : 'apps'),
+            })
+          )
+        )
+  );
 
   let content = loading
       ? React.createElement(ContentSkeleton)
-      : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 32, width: '100%' } },
-          React.createElement(HeaderCard, { role, tenant, avatarSrc, onAvatarChange: setAvatarSrc }),
-          React.createElement(MetricRow, { role }),
-          // Due colonne: sinistra "Le tue attività", destra "Le tue app".
-          // Area app esplorativa: hover → spiegazione + button per nasconderla.
-          // Nascosta → attività full width (si ripristina al reload).
-          appsHidden
-            ? React.createElement(ActivitiesSection, { role, onOpenHistory: openHistory })
-            : React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start', width: '100%' } },
-                React.createElement('div', { style: { flex: '1 1 0', minWidth: 320 } },
-                  React.createElement(ActivitiesSection, { role, onOpenHistory: openHistory })
-                ),
-                // Area app esplorativa: nota + nascondi sull'icona Coffee del titolo
-                React.createElement('div', { style: { flex: '0 1 500px', minWidth: 320 } },
-                  React.createElement(ProductsSection, { role, onHide: () => setAppsHidden(true) })
-                )
-              )
+      : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 24, width: '100%' } },
+          React.createElement(SeeAllModeLab, { mode: seeAllMode, onChange: changeSeeAllMode }),
+          view === 'activities'
+            ? React.createElement(ActivitiesScreen, { role, variant: seeAllMode, loading: activitiesLoading, onBack: () => setView('dashboard') })
+            : dashboard
         );
 
   return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
@@ -1325,16 +1626,18 @@ function AppRoot() {
           content,
           React.createElement('div', { style: { height: 24 } })
         ),
-        // Drawer "Vedi tutte" — lista completa attività (DS: *Drawer* Placement=Right)
+        // Strada 1 — Drawer "Vedi tutte" all'80% della schermata (DS: *Drawer* Placement=Right)
         React.createElement(Drawer, {
           title: 'Attività da fare',
           placement: 'right',
-          width: 480,
-          open: historyOpen,
-          onClose: () => setHistoryOpen(false),
-          styles: { body: { padding: '16px 20px' } },
+          width: '80%',
+          open: seeAllOpen,
+          onClose: () => setSeeAllOpen(false),
+          styles: { body: { padding: '24px 20px' } },
         },
-          historyOpen ? React.createElement(ActivitiesDrawerBody, { role }) : null
+          seeAllOpen
+            ? React.createElement(ActivitiesFullList, { role })
+            : null
         )
       )
     )
