@@ -457,7 +457,7 @@
 <div id="root"></div>
 <script>
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
-const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Radio, Rate, Slider } = antd;
+const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Radio, Rate, Slider, Popconfirm } = antd;
 const { Text } = Typography;
 const {
   SearchOutlined, BellOutlined, PlusOutlined, AppstoreOutlined, SendOutlined,
@@ -1814,6 +1814,16 @@ function ListView({ impianti, viewMode, setViewMode, onDetail }) {
 const CANALI_OPTS  = [{ value: 'OOH', label: 'OOH' }, { value: 'DOOH', label: 'DOOH' }];
 const VENDITA_OPTS = ['Flat','CPM','Revenue share','Forfait settimanale','Forfait mensile'].map(v => ({ value: v, label: v }));
 const STATO_COLORS = { 'Attivo': '#1677FF', 'Inizializzato': '#FAAD14', 'In Manutenzione': '#FA8C16', 'Rimosso': 'rgba(0,0,0,0.45)' };
+// Stati selezionabili nel modale "Nuovo evento" + mappatura al Badge della timeline
+const NEW_EVENT_STATI = ['Inizializzato', 'Attivo', 'In Manutenzione', 'Rimosso'];
+const STATO_BADGE = { 'Inizializzato': 'processing', 'Attivo': 'success', 'In Manutenzione': 'warning', 'Rimosso': 'default' };
+// Tipologie di evento del modale "Nuovo evento": ognuna mostra campi diversi
+const EVENT_TIPI = [
+  { value: 'cambio-stato', label: 'Cambio stato' },
+  { value: 'verifica',     label: 'Verifica' },
+  { value: 'manutenzione', label: 'Manutenzione' },
+];
+const VERIFICA_ESITO_OPTS = ['Superata', 'Superata con prescrizioni', 'Non superata'].map(v => ({ value: v, label: v }));
 const STATI_AMM_OPTS = Object.entries(STATO_COLORS).map(([v, color]) => ({
   value: v,
   label: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
@@ -2840,12 +2850,110 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
   const [geologo,           setGeologo]           = useState('Dott. Geol. Giuseppe Marino');
   const [direttoreLavori,   setDirettoreLavori]   = useState('Ing. Alessandro Bianchi');
   const [collaudatore,      setCollaudatore]      = useState('Ing. Stefano Messina');
-  const [larghezzaTotale,   setLarghezzaTotale]   = useState('12.5');
-  const [altezzaTotale,     setAltezzaTotale]     = useState('18.0');
-  const [profonditaTotale,  setProfonditaTotale]  = useState('2.8');
-  const [minimaAltezzaTerra,setMinimaAltezzaTerra]= useState('3.5');
+  const [larghezzaTotale,   setLarghezzaTotale]   = useState('1250');
+  const [altezzaTotale,     setAltezzaTotale]     = useState('1800');
+  const [profonditaTotale,  setProfonditaTotale]  = useState('280');
+  const [minimaAltezzaTerra,setMinimaAltezzaTerra]= useState('350');
   const [areaEspositiva,    setAreaEspositiva]    = useState('225');
+  const [tipoAltezza,       setTipoAltezza]       = useState('Alto');      // Basso | Alto | Altissimo
+  const [copertura,         setCopertura]         = useState('Riparato');  // Riparato | Aperto
   const [modifiedFields,    setModifiedFields]    = useState(new Set());
+  // Cespiti e dispositivi dell'impianto (mock) — stessa forma usata dal form: { id, tipo, vals }
+  const [detailAssets, setDetailAssets] = useState([
+    { id: 'c1', tipo: 'Fondazione', vals: { tipoFond: 'Plinti', dimFond: '5,50 × 3,20 × 0,80 m', dataInizio: dayjs('01/09/2024', 'DD/MM/YYYY'), dataFine: dayjs('10/09/2024', 'DD/MM/YYYY') } },
+    { id: 'c2', tipo: 'Pali', vals: { tipoPali: 'Ipe300', numPali: 4, diametroPali: '300', altezzaPali: '600', dittaPali: 'Edil Costruzioni S.r.l.', dataMontPali: dayjs('15/09/2024', 'DD/MM/YYYY') } },
+    { id: 'c3', tipo: 'Pannelli', vals: { tipoPannelli: 'Alluminio', barreAntivento: 3, dittaPannelli: 'START Affissioni', dataMontPann: dayjs('20/09/2024', 'DD/MM/YYYY') } },
+    { id: 'd1', tipo: 'Player multimediale', vals: { nome: 'Player faccia A', stato: 'Connesso', ip: '192.168.1.20', sw: 'v2.4.1', serial: ['SN-204813'] } },
+    { id: 'd2', tipo: 'Modem / Router', vals: { nome: 'Router principale', stato: 'Connesso', ip: '192.168.1.1', operatore: 'TIM' } },
+  ]);
+  const detailCespiti     = detailAssets.filter(a => (getAssetType(a.tipo) || {}).category === 'Cespite');
+  const detailDispositivi = detailAssets.filter(a => (getAssetType(a.tipo) || {}).category === 'Dispositivo');
+  const removeDetailAsset = (id) => { setDetailAssets(prev => prev.filter(a => a.id !== id)); antdMsg.success('Elemento rimosso'); };
+  // Campi di progetto allineati al form (sezione Progetto · Genio Civile)
+  const [progetto,     setProgetto]     = useState('1305');
+  const [rsc,          setRsc]          = useState('Arch. Marta Vitale');
+  const [dataCollaudo, setDataCollaudo] = useState('02/09/2022');
+  const [progDittaCA,  setProgDittaCA]  = useState('Edil Costruzioni S.r.l.');
+  const [progDataFine, setProgDataFine] = useState('15/10/2024');
+  const [gcModuleOpen, setGcModuleOpen] = useState(false); // modale "Scarica Modulo" Genio Civile
+  // Assegnazione Squadre — liste + modale di assegnazione
+  const [affissioniDet, setAffissioniDet] = useState([
+    { squadra: 'START Affissioni', codice: 'SQ-001', tipo: ['Prebagnato'], costo: 35, preincoll: 15 },
+    { squadra: 'Sicilia Poster',   codice: 'SQ-003', tipo: ['Adesivo'],    costo: 40, preincoll: null },
+  ]);
+  const [manutenzioniDet, setManutenzioniDet] = useState([
+    { squadra: 'Affissioni Palermo', codice: 'SQ-002', tipoInt: 'Ordinaria', oggetto: 'Pulizia pannelli e verifica fissaggi' },
+  ]);
+  const [squadModalOpen, setSquadModalOpen] = useState(false);
+  const [squadKind,   setSquadKind]   = useState('affissione'); // 'affissione' | 'manutenzione'
+  const [sqSquadra,   setSqSquadra]   = useState(null);
+  const [sqTipoAff,   setSqTipoAff]   = useState([]);
+  const [sqCosto,     setSqCosto]     = useState(null);
+  const [sqPreincoll, setSqPreincoll] = useState(null);
+  const [sqTipoInt,   setSqTipoInt]   = useState(null);
+  const [sqOggetto,   setSqOggetto]   = useState('');
+  const openSquadModal = (kind) => { setSquadKind(kind); setSqSquadra(null); setSqTipoAff([]); setSqCosto(null); setSqPreincoll(null); setSqTipoInt(null); setSqOggetto(''); setSquadModalOpen(true); };
+  const saveSquad = () => {
+    if (!sqSquadra) { antdMsg.warning('Seleziona la squadra'); return; }
+    const codice = (SQUADRE_AFF.find(s => s.nome === sqSquadra) || {}).codice || null;
+    if (squadKind === 'affissione') {
+      setAffissioniDet(prev => [...prev, { squadra: sqSquadra, codice, tipo: sqTipoAff, costo: sqCosto, preincoll: sqPreincoll }]);
+    } else {
+      setManutenzioniDet(prev => [...prev, { squadra: sqSquadra, codice, tipoInt: sqTipoInt, oggetto: sqOggetto }]);
+    }
+    setSquadModalOpen(false);
+    antdMsg.success('Squadra assegnata');
+  };
+  // Nuovo evento — modale + eventi aggiunti dall'utente (prependati alla timeline)
+  const [newEventOpen, setNewEventOpen] = useState(false);
+  const [extraEvents,  setExtraEvents]  = useState([]);
+  const [neTipo,       setNeTipo]       = useState(null);  // 'cambio-stato' | 'verifica' | 'manutenzione'
+  const [neStato,      setNeStato]      = useState(null);  // cambio-stato: nuovo stato
+  const [neEsito,      setNeEsito]      = useState(null);  // verifica: esito
+  const [neResponsabile, setNeResponsabile] = useState(''); // verifica: responsabile/squadra
+  const [neNote,       setNeNote]       = useState('');
+  const [neData,       setNeData]       = useState(null);
+  const [neSquadra,    setNeSquadra]    = useState('');
+  const [neTipoInt,    setNeTipoInt]    = useState(null);
+  const [neComponente, setNeComponente] = useState('');
+  const openNewEvent = () => { setNeTipo(null); setNeStato(null); setNeEsito(null); setNeResponsabile(''); setNeNote(''); setNeData(null); setNeSquadra(''); setNeTipoInt(null); setNeComponente(''); setNewEventOpen(true); };
+  const newEventValid = neTipo === 'cambio-stato' ? !!neStato : !!neTipo;
+  const saveNewEvent = () => {
+    if (!neTipo) { antdMsg.warning('Seleziona la tipologia di evento'); return; }
+    const base = neData || dayjs();
+    let title, desc = neNote || '', badge = null;
+    const withParts = (parts) => { const p = parts.filter(Boolean); return p.length ? (desc ? desc + ' · ' : '') + p.join(' · ') : desc; };
+    if (neTipo === 'cambio-stato') {
+      if (!neStato) { antdMsg.warning('Seleziona lo stato'); return; }
+      title = 'Stato cambiato in';
+      badge = { label: neStato, status: STATO_BADGE[neStato] || 'default' };
+    } else if (neTipo === 'verifica') {
+      title = 'Verifica';
+      desc = withParts(['Esito: ' + (neEsito || '—'), neResponsabile && 'Responsabile: ' + neResponsabile]);
+    } else {
+      title = 'Intervento di manutenzione';
+      desc = withParts([neSquadra && 'Squadra: ' + neSquadra, neTipoInt && 'Intervento: ' + neTipoInt, neComponente && 'Componente: ' + neComponente]);
+      badge = { label: 'In Manutenzione', status: 'warning' };
+    }
+    const ev = {
+      date: base.format('DD/MM/YYYY'), time: dayjs().format('HH:mm'),
+      title, desc: desc || '—', badge,
+      agent: 'Elena Faraci', agentInitial: 'EF',
+    };
+    setExtraEvents(prev => [ev, ...prev]);
+    setVisibleCount(c => c + 1);
+    setNewEventOpen(false);
+    antdMsg.success('Evento aggiunto alla timeline');
+  };
+  // Documenti caricabili dal dettaglio (Genio Civile + SCIA) — precaricati con i documenti esistenti (mock)
+  const [gcDocs, setGcDocs] = useState([
+    { uid: 'gc1', name: 'Relazione di calcolo strutturale.pdf', status: 'done' },
+    { uid: 'gc2', name: 'Certificato di collaudo statico.pdf', status: 'done' },
+  ]);
+  const [sciaDocs, setSciaDocs] = useState({
+    urbanistica: [{ uid: 'su1', name: 'SCIA Urbanistica.pdf', status: 'done' }],
+    commerciale: [{ uid: 'sc1', name: 'SCIA Commerciale.pdf', status: 'done' }],
+  });
 
   const origRef = useRef({
     cimasaCode: imp.cimasa || '', tipoSuolo: 'Privato', progettista: 'Studio Tecnico Associato Rossi & Partners',
@@ -2853,8 +2961,11 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
     calcestruzzo: 'C30/37 - Rck 37 N/mm²', dataInstallazione: '20/11/2023', cse: 'Ing. Laura Conti',
     tecnicheUtilizzate: 'Fondazioni profonde, struttura in c.a.', acciaoStrutturale: 'S355JR - IPE 200',
     geologo: 'Dott. Geol. Giuseppe Marino', direttoreLavori: 'Ing. Alessandro Bianchi',
-    collaudatore: 'Ing. Stefano Messina', larghezzaTotale: '12.5', altezzaTotale: '18.0',
-    profonditaTotale: '2.8', minimaAltezzaTerra: '3.5', areaEspositiva: '225',
+    collaudatore: 'Ing. Stefano Messina', larghezzaTotale: '1250', altezzaTotale: '1800',
+    profonditaTotale: '280', minimaAltezzaTerra: '350', areaEspositiva: '225',
+    tipoAltezza: 'Alto', copertura: 'Riparato',
+    progetto: '1305', rsc: 'Arch. Marta Vitale', dataCollaudo: '02/09/2022',
+    progDittaCA: 'Edil Costruzioni S.r.l.', progDataFine: '15/10/2024',
   });
 
   const trackChange = (fieldName, value, setter) => {
@@ -2863,7 +2974,7 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
   };
 
   const IDENT_FIELDS = ['cimasaCode','tipoSuolo'];
-  const PROJ_FIELDS  = ['progettista','acciaoArmatura','laboratorio','calcestruzzo','dataInstallazione','cse','tecnicheUtilizzate','acciaoStrutturale','geologo','direttoreLavori','collaudatore'];
+  const PROJ_FIELDS  = ['progettista','acciaoArmatura','laboratorio','calcestruzzo','dataInstallazione','cse','tecnicheUtilizzate','acciaoStrutturale','geologo','direttoreLavori','collaudatore','progetto','rsc','dataCollaudo','progDittaCA','progDataFine'];
 
   const handleSaveIdentity = () => {
     setIsEditingIdentityCard(false);
@@ -2874,7 +2985,7 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
   const handleSaveProject = () => {
     setIsEditingProject(false);
     setModifiedFields(prev => { const n = new Set(prev); PROJ_FIELDS.forEach(k => n.delete(k)); return n; });
-    origRef.current = { ...origRef.current, progettista, acciaoArmatura, laboratorio, calcestruzzo, dataInstallazione, cse, tecnicheUtilizzate, acciaoStrutturale, geologo, direttoreLavori, collaudatore };
+    origRef.current = { ...origRef.current, progettista, acciaoArmatura, laboratorio, calcestruzzo, dataInstallazione, cse, tecnicheUtilizzate, acciaoStrutturale, geologo, direttoreLavori, collaudatore, progetto, rsc, dataCollaudo, progDittaCA, progDataFine };
     antdMsg.success('Modifiche salvate con successo');
   };
 
@@ -2890,8 +3001,33 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
     setCalcestruzzo(o.calcestruzzo); setDataInstallazione(o.dataInstallazione); setCse(o.cse);
     setTecnicheUtilizzate(o.tecnicheUtilizzate); setAcciaoStrutturale(o.acciaoStrutturale);
     setGeologo(o.geologo); setDirettoreLavori(o.direttoreLavori); setCollaudatore(o.collaudatore);
+    setProgetto(o.progetto); setRsc(o.rsc); setDataCollaudo(o.dataCollaudo); setProgDittaCA(o.progDittaCA); setProgDataFine(o.progDataFine);
     setModifiedFields(prev => { const n = new Set(prev); PROJ_FIELDS.forEach(k => n.delete(k)); return n; });
     setIsEditingProject(false);
+  };
+
+  // "Scarica Modulo" Genio Civile (mock): genera un .txt precompilato con i dati di progetto del dettaglio
+  const downloadGcModulo = (tpl) => {
+    const righe = [
+      tpl.nome, tpl.ente + ' — Regione ' + tpl.regione, '',
+      'Impianto: ' + displayName, 'Indirizzo: ' + address, '',
+      '— Dati di progetto —',
+      'Progettista: ' + (progettista || '—'), 'Progetto: ' + (progetto || '—'),
+      'Direttore dei lavori: ' + (direttoreLavori || '—'), 'Resp. sicurezza cantiere: ' + (rsc || '—'),
+      'Laboratorio: ' + (laboratorio || '—'), 'Geologo: ' + (geologo || '—'),
+      'Collaudatore: ' + (collaudatore || '—'), 'Data collaudo: ' + (dataCollaudo || '—'),
+      'Calcestruzzo: ' + (calcestruzzo || '—'), 'Acciaio carpenteria: ' + (acciaoStrutturale || '—'),
+      'Acciaio armature: ' + (acciaoArmatura || '—'), 'Ditta cemento armato: ' + (progDittaCA || '—'),
+      'Tecniche utilizzate: ' + (tecnicheUtilizzate || '—'), 'Data fine lavori: ' + (progDataFine || '—'),
+    ];
+    const blob = new Blob([righe.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = tpl.nome.replace(/[^\w]+/g, '_') + '.txt';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setGcModuleOpen(false);
+    antdMsg.success('Documento generato dal modello "' + tpl.nome + '"');
   };
 
   const ef = (label, value, setter, fieldName, isEditSection) => {
@@ -2957,7 +3093,8 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
       return true;
     };
     const agentMap = { marco: 'Marco Picceri', admin: 'System Admin', gloria: 'Gloria Russo' };
-    const filtered = MOCK_EVENTS.filter(ev => {
+    const allEvents = [...extraEvents, ...MOCK_EVENTS];
+    const filtered = allEvents.filter(ev => {
       if (filterDateRange && filterDateRange[0] && filterDateRange[1]) {
         const evDate = parseDate(ev.date);
         const start = filterDateRange[0].toDate(); start.setHours(0,0,0,0);
@@ -2988,6 +3125,7 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
           { value: 'admin', label: 'System Admin' },
         ]}),
         React.createElement(Input, { placeholder: 'Cerca evento…', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.3)' } }), style: { width: 180 }, allowClear: true, value: filterSearch, onChange: e => { setFilterSearch(e.target.value); setVisibleCount(5); } }),
+        React.createElement(Button, { icon: React.createElement(PlusOutlined), style: { marginLeft: 'auto' }, onClick: openNewEvent }, 'Nuovo evento'),
       ),
       React.createElement('div', null,
         items.map((ev, i) =>
@@ -3042,11 +3180,35 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
           ),
     );
 
+  // Upload documenti riusabile (Genio Civile e SCIA): il bottone "Carica documento" sta a destra
+  // nell'header della sotto-sezione; la lista dei file va sotto.
+  const uploadBtn = (docs, onChange) => React.createElement(Upload, {
+    fileList: docs, showUploadList: false, onChange,
+    beforeUpload: () => false, accept: '.pdf,.doc,.docx,.dwg,.p7m', multiple: true,
+  }, React.createElement(Button, { icon: React.createElement(UploadOutlined) }, 'Carica documento'));
+  const docList = (docs, onChange) => {
+    if (!docs.length)
+      return React.createElement(Empty, { description: 'Nessun documento caricato', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+        uploadBtn(docs, onChange));
+    return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 } },
+      docs.map(d => React.createElement('div', { key: d.uid, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 6, background: '#FAFAFA', border: '1px solid #f0f0f0', fontSize: 13 } },
+        React.createElement(FileTextOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }),
+        React.createElement('span', { style: { flex: 1, minWidth: 0, color: 'rgba(0,0,0,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }, onClick: () => openDocPreview(d) }, d.name),
+        React.createElement(Popconfirm, {
+          title: 'Rimuovere il documento?', okText: 'Rimuovi', cancelText: 'Annulla', okButtonProps: { danger: true },
+          onConfirm: () => onChange({ fileList: docs.filter(x => x.uid !== d.uid) }),
+        },
+          React.createElement(Button, { type: 'text', size: 'small', danger: true, icon: React.createElement(DeleteOutlined) }),
+        ),
+      )),
+    );
+  };
   const tabAmm = React.createElement('div', null,
 
+    // ── Concessioni e autorizzazioni
     React.createElement('div', { className: 'tab-section' },
       React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 } },
-        React.createElement(Typography.Title, { level: 5, style: { margin: 0 } }, 'Permessi'),
+        React.createElement(Typography.Title, { level: 5, style: { margin: 0 } }, 'Concessioni e autorizzazioni'),
         React.createElement(Dropdown, {
           menu: { items: [
             { key: 'concessione', label: 'Aggiungi Concessione', disabled: accountNumber !== null, onClick: () => { setDrawerType('concessione'); setDrawerOpen(true); } },
@@ -3069,47 +3231,82 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
         : React.createElement(Empty, { description: "Aggiungi un permesso per collegarlo all'impianto", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '24px 0' } }),
     ),
 
-    React.createElement(Divider),
-
+    // ── Progetto (sotto-sezione Genio Civile)
     React.createElement('div', { className: 'tab-section' },
-      React.createElement('div', { style: { marginBottom: 12 } },
-        React.createElement(Typography.Title, { level: 5, style: { margin: 0 } }, 'Progetto'),
+      React.createElement(Typography.Title, { level: 5, style: { marginBottom: 12 } }, 'Progetto'),
+      React.createElement('div', { style: { marginBottom: 20 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 12 } },
+          React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.75)' } }, 'Genio Civile'),
+          gcDocs.length > 0 ? uploadBtn(gcDocs, ({ fileList: newList }) => setGcDocs(newList)) : null,
+        ),
+        docList(gcDocs, ({ fileList: newList }) => setGcDocs(newList)),
       ),
       React.createElement(Row, { gutter: [24, 16] },
         React.createElement(Col, { span: 6 }, ef('Progettista', progettista, setProgettista, 'progettista', isEditingProject)),
-        React.createElement(Col, { span: 6 }, ef('Geologo', geologo, setGeologo, 'geologo', isEditingProject)),
-        React.createElement(Col, { span: 6 }, ef('D.L. (Direttore Lavori)', direttoreLavori, setDirettoreLavori, 'direttoreLavori', isEditingProject)),
-        React.createElement(Col, { span: 6 }, ef('C.S.E.', cse, setCse, 'cse', isEditingProject)),
+        React.createElement(Col, { span: 6 }, ef('Progetto', progetto, setProgetto, 'progetto', isEditingProject)),
+        React.createElement(Col, { span: 6 }, ef('Direttore dei lavori', direttoreLavori, setDirettoreLavori, 'direttoreLavori', isEditingProject)),
+        React.createElement(Col, { span: 6 }, ef('Resp. sicurezza cantiere', rsc, setRsc, 'rsc', isEditingProject)),
       ),
       React.createElement(Row, { gutter: [24, 16], style: { marginTop: 16 } },
         React.createElement(Col, { span: 6 }, ef('Laboratorio', laboratorio, setLaboratorio, 'laboratorio', isEditingProject)),
-        React.createElement(Col, { span: 6 }, ef('Tecniche utilizzate', tecnicheUtilizzate, setTecnicheUtilizzate, 'tecnicheUtilizzate', isEditingProject)),
-        React.createElement(Col, { span: 6 }, ef('Acciaio armatura', acciaoArmatura, setAcciaoArmatura, 'acciaoArmatura', isEditingProject)),
-        React.createElement(Col, { span: 6 }, ef('Acciaio strutturale', acciaoStrutturale, setAcciaoStrutturale, 'acciaoStrutturale', isEditingProject)),
+        React.createElement(Col, { span: 6 }, ef('Geologo', geologo, setGeologo, 'geologo', isEditingProject)),
+        React.createElement(Col, { span: 6 }, ef('Collaudatore', collaudatore, setCollaudatore, 'collaudatore', isEditingProject)),
+        React.createElement(Col, { span: 6 }, ef('Data collaudo', dataCollaudo, setDataCollaudo, 'dataCollaudo', isEditingProject)),
       ),
       React.createElement(Row, { gutter: [24, 16], style: { marginTop: 16 } },
         React.createElement(Col, { span: 6 }, ef('Calcestruzzo', calcestruzzo, setCalcestruzzo, 'calcestruzzo', isEditingProject)),
-        React.createElement(Col, { span: 6 }, ef('Data installazione', dataInstallazione, setDataInstallazione, 'dataInstallazione', isEditingProject)),
-        React.createElement(Col, { span: 6 }, ef('Collaudatore', collaudatore, setCollaudatore, 'collaudatore', isEditingProject)),
+        React.createElement(Col, { span: 6 }, ef('Acciaio carpenteria', acciaoStrutturale, setAcciaoStrutturale, 'acciaoStrutturale', isEditingProject)),
+        React.createElement(Col, { span: 6 }, ef('Acciaio armature', acciaoArmatura, setAcciaoArmatura, 'acciaoArmatura', isEditingProject)),
+        React.createElement(Col, { span: 6 }, ef('Ditta cemento armato', progDittaCA, setProgDittaCA, 'progDittaCA', isEditingProject)),
       ),
+      React.createElement(Row, { gutter: [24, 16], style: { marginTop: 16 } },
+        React.createElement(Col, { span: 6 }, ef('Tecniche utilizzate', tecnicheUtilizzate, setTecnicheUtilizzate, 'tecnicheUtilizzate', isEditingProject)),
+        React.createElement(Col, { span: 6 }, ef('Data fine lavori', progDataFine, setProgDataFine, 'progDataFine', isEditingProject)),
+      ),
+      React.createElement('div', { style: { marginTop: 16, display: 'flex', justifyContent: 'flex-end' } },
+        React.createElement(Button, { icon: React.createElement(DownloadOutlined), onClick: () => setGcModuleOpen(true) }, 'Scarica Modulo'),
+      ),
+    ),
+
+    // ── Titolo a installare (SCIA urbanistica e commerciale)
+    React.createElement('div', { className: 'tab-section' },
+      React.createElement(Typography.Title, { level: 5, style: { marginBottom: 12 } }, 'Titolo a installare'),
+      SCIA_TYPES.map((scia, i) => {
+        const fields = SCIA_FIELD_META.filter(f => f.key in scia);
+        const onSciaDocs = ({ fileList: newList }) => setSciaDocs(prev => ({ ...prev, [scia.id]: newList }));
+        const docs = sciaDocs[scia.id] || [];
+        return React.createElement('div', { key: scia.id, style: i ? { marginTop: 24 } : null },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 12 } },
+            React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.75)' } }, scia.title),
+            docs.length > 0 ? uploadBtn(docs, onSciaDocs) : null,
+          ),
+          React.createElement('div', { style: { marginBottom: 16 } }, docList(docs, onSciaDocs)),
+          React.createElement(Row, { gutter: [24, 16] },
+            fields.map(f => React.createElement(Col, { span: 6, key: f.key },
+              ef(f.label, scia[f.key] || '', () => {}, 'scia-' + scia.id + '-' + f.key, false))),
+          ),
+        );
+      }),
     ),
   );
 
   const tabTecnici = React.createElement('div', null,
     React.createElement('div', { className: 'tab-section' },
-      React.createElement(Typography.Title, { level: 5, style: { marginBottom: 12 } }, 'Dimensioni'),
+      React.createElement(Typography.Title, { level: 5, style: { marginBottom: 12 } }, 'Caratteristiche fisiche'),
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 } },
         React.createElement(InfoCircleOutlined, { style: { fontSize: 13, color: '#8c8c8c' } }),
-        React.createElement(Text, { type: 'secondary', style: { fontSize: 13 } }, "Le informazioni riguardano l'area occupata dall'impianto"),
+        React.createElement(Text, { type: 'secondary', style: { fontSize: 13 } }, "Misure e ingombro dell'impianto, esposizione del sito e area espositiva"),
       ),
       React.createElement(Row, { gutter: [24, 16] },
-        React.createElement(Col, { span: 6 }, ef('Larghezza totale (m)', larghezzaTotale, setLarghezzaTotale, 'larghezzaTotale')),
-        React.createElement(Col, { span: 6 }, ef('Altezza totale (m)', altezzaTotale, setAltezzaTotale, 'altezzaTotale')),
-        React.createElement(Col, { span: 6 }, ef('Profondità totale (m)', profonditaTotale, setProfonditaTotale, 'profonditaTotale')),
-        React.createElement(Col, { span: 6 }, ef('Minima altezza da terra (m)', minimaAltezzaTerra, setMinimaAltezzaTerra, 'minimaAltezzaTerra')),
+        React.createElement(Col, { span: 6 }, ef('Larghezza (cm)', larghezzaTotale, setLarghezzaTotale, 'larghezzaTotale')),
+        React.createElement(Col, { span: 6 }, ef('Altezza (cm)', altezzaTotale, setAltezzaTotale, 'altezzaTotale')),
+        React.createElement(Col, { span: 6 }, ef('Profondità (cm)', profonditaTotale, setProfonditaTotale, 'profonditaTotale')),
+        React.createElement(Col, { span: 6 }, ef('Area ingombro (m²)', areaEspositiva, setAreaEspositiva, 'areaEspositiva')),
       ),
       React.createElement(Row, { gutter: [24, 16], style: { marginTop: 16 } },
-        React.createElement(Col, { span: 6 }, ef('Area espositiva (m²)', areaEspositiva, setAreaEspositiva, 'areaEspositiva')),
+        React.createElement(Col, { span: 6 }, ef('Alt. da terra (cm)', minimaAltezzaTerra, setMinimaAltezzaTerra, 'minimaAltezzaTerra')),
+        React.createElement(Col, { span: 6 }, ef('Tipologia altezza', tipoAltezza, setTipoAltezza, 'tipoAltezza')),
+        React.createElement(Col, { span: 6 }, ef('Copertura', copertura, setCopertura, 'copertura')),
       ),
     ),
     React.createElement('div', { className: 'tab-section' },
@@ -3177,6 +3374,192 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
     ),
   );
 
+  // Tab 4 · Cespiti e Dispositivi — card di dettaglio: mostra TUTTI i campi valorizzati,
+  // senza menu né limite di campi (a differenza di FormAssetCard usata nel form). 3 per riga.
+  const fmtAssetNode = (kind, val) => {
+    if (val == null || val === '' || (Array.isArray(val) && !val.length)) return null;
+    if (kind === 'tags' || kind === 'list')
+      return React.createElement('span', { style: { display: 'inline-flex', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end' } },
+        val.map((x, i) => React.createElement(Tag, { key: i, style: { margin: 0 } }, x)));
+    if (kind === 'date') return val.format ? val.format('DD/MM/YYYY') : String(val);
+    return String(val);
+  };
+  const renderDetailAssetCard = (a) => {
+    const def = getAssetType(a.tipo) || { category: 'Cespite', fields: [] };
+    const v = a.vals || {};
+    const isDevice = def.category === 'Dispositivo';
+    const title = isDevice ? (v.nome || a.tipo) : a.tipo;
+    const eyebrow = isDevice ? a.tipo : 'Cespite';
+    const rows = def.fields.filter(f => f.key !== 'nome')
+      .map(f => ({ label: f.label, node: fmtAssetNode(f.kind, v[f.key]) }))
+      .filter(r => r.node != null);
+    const accent = isDevice ? '#3E00FB' : '#1677FF';
+    return React.createElement(Card, {
+      style: { borderRadius: 8, border: '1px solid #f0f0f0', borderLeft: '3px solid ' + accent, height: '100%' },
+      styles: { body: { padding: '12px 14px' } },
+    },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 } },
+        React.createElement('div', { style: { minWidth: 0 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(0,0,0,0.45)' } }, eyebrow),
+          React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, title),
+        ),
+        React.createElement(Button, { type: 'text', size: 'small', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => removeDetailAsset(a.id) }),
+      ),
+      rows.length > 0
+        ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+            rows.map((r, i) => React.createElement('div', { key: i, style: { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, lineHeight: '18px' } },
+              React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, r.label),
+              React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)', textAlign: 'right', wordBreak: 'break-word' } }, r.node),
+            )),
+          )
+        : React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.35)' } }, 'Nessun dato'),
+    );
+  };
+  const renderAssetGrid = (list, emptyText) =>
+    list.length > 0
+      ? React.createElement(Row, { gutter: [16, 16] },
+          list.map(a => React.createElement(Col, { span: 8, key: a.id }, renderDetailAssetCard(a))),
+        )
+      : React.createElement(Empty, { description: emptyText, image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } });
+  const assetSectionHeader = (titolo, n, suff) => React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 } },
+    React.createElement(Typography.Title, { level: 5, style: { margin: 0 } }, titolo),
+    React.createElement(Text, { type: 'secondary', style: { fontSize: 14 } }, '|'),
+    React.createElement('span', { style: { fontSize: 14 } },
+      React.createElement('span', { style: { fontWeight: 600, color: '#3E00FB', fontSize: 16 } }, n),
+      React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 12 } }, ' ' + suff),
+    ),
+  );
+  const tabAssets = React.createElement('div', null,
+    React.createElement('div', { className: 'tab-section' },
+      assetSectionHeader('Cespiti', detailCespiti.length, 'cespiti'),
+      renderAssetGrid(detailCespiti, 'Nessun cespite registrato'),
+    ),
+    React.createElement('div', { className: 'tab-section' },
+      assetSectionHeader('Dispositivi', detailDispositivi.length, 'dispositivi'),
+      renderAssetGrid(detailDispositivi, 'Nessun dispositivo connesso'),
+    ),
+  );
+
+  // Tab Commerciale — dati commerciali (mock), sola lettura. Le foto stanno nella cover in alto.
+  const aliasComm = 'Pensilina Libertà — Centro';
+  const circuitiComm = ['Centro Storico', 'Premium'];
+  const qualitaComm = 4;
+  const venditaComm = 'Long term';
+  const prezzoNettoComm = '1.200,00';
+  const prezzoLordoComm = '1.500,00';
+  const scontoModuliComm = true;
+  const scontoPctComm = 10;
+  const moduliComm = [
+    { id: 'I042', tipo: 'Pensilina', indirizzo: 'Via Libertà, 40, Palermo', formato: '120×180 cm' },
+    { id: 'I043', tipo: 'Pensilina', indirizzo: 'Via Libertà, 52, Palermo', formato: '120×180 cm' },
+  ];
+  const roField = (label, node) => React.createElement('div', { className: 'field-col' },
+    React.createElement(Text, { type: 'secondary', style: { fontSize: 13 } }, label),
+    React.createElement('div', { style: { paddingTop: 5 } }, node),
+  );
+  const tabCommerciale = React.createElement('div', null,
+    React.createElement('div', { className: 'tab-section' },
+      React.createElement(Typography.Title, { level: 5, style: { marginBottom: 12 } }, 'Identità commerciale'),
+      React.createElement(Row, { gutter: [24, 16] },
+        React.createElement(Col, { span: 6 }, ef('Alias impianto', aliasComm, () => {}, 'aliasComm')),
+        React.createElement(Col, { span: 6 }, roField('Circuiti',
+          React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+            circuitiComm.map((c, i) => React.createElement(Tag, { key: i, style: { margin: 0 } }, c))))),
+        React.createElement(Col, { span: 6 }, roField('Qualità impianto',
+          React.createElement(Rate, { value: qualitaComm, disabled: true }))),
+      ),
+    ),
+    React.createElement('div', { className: 'tab-section' },
+      React.createElement(Typography.Title, { level: 5, style: { marginBottom: 12 } }, 'Modello commerciale'),
+      React.createElement(Row, { gutter: [24, 16] },
+        React.createElement(Col, { span: 6 }, ef('Modello di vendita', venditaComm, () => {}, 'venditaComm')),
+        React.createElement(Col, { span: 6 }, ef('Prezzo netto (€)', prezzoNettoComm, () => {}, 'prezzoNettoComm')),
+        React.createElement(Col, { span: 6 }, ef('Prezzo lordo (€)', prezzoLordoComm, () => {}, 'prezzoLordoComm')),
+        React.createElement(Col, { span: 6 }, roField('Sconto a moduli',
+          React.createElement('span', { style: { fontSize: 14, color: 'rgba(0,0,0,0.85)' } }, scontoModuliComm ? 'Sì · ' + scontoPctComm + '%' : 'No'))),
+      ),
+    ),
+    React.createElement('div', { className: 'tab-section' },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 } },
+        React.createElement(Typography.Title, { level: 5, style: { margin: 0 } }, 'Moduli collegati'),
+        React.createElement(Text, { type: 'secondary', style: { fontSize: 14 } }, '|'),
+        React.createElement('span', { style: { fontSize: 14 } },
+          React.createElement('span', { style: { fontWeight: 600, color: '#3E00FB', fontSize: 16 } }, moduliComm.length),
+          React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 12 } }, ' impianti'),
+        ),
+      ),
+      moduliComm.length > 0
+        ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 } },
+            moduliComm.map(m => React.createElement('div', { key: m.id, style: { border: '1px solid #E8E8E8', borderRadius: 8, overflow: 'hidden' } },
+              React.createElement('div', { style: { width: '100%', height: 110, background: '#F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center' } },
+                React.createElement(PictureOutlined, { style: { fontSize: 26, color: 'rgba(0,0,0,0.25)' } })),
+              React.createElement('div', { style: { padding: '12px 14px' } },
+                React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, m.id + ' · ' + m.tipo),
+                React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, m.indirizzo),
+                React.createElement('div', { style: { marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 } },
+                  React.createElement(ExpandOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }),
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Formato'),
+                  React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)' } }, m.formato),
+                ),
+              ),
+            )),
+          )
+        : React.createElement(Empty, { description: 'Nessun impianto collegato', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } }),
+    ),
+  );
+
+  // Tab Assegnazione Squadre — card per squadra, con assegnazione (modale) e rimozione (Popconfirm)
+  const tagsNode = (arr) => React.createElement('span', { style: { display: 'inline-flex', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end' } },
+    (arr || []).map((t, i) => React.createElement(Tag, { key: i, style: { margin: 0 } }, t)));
+  const renderSquadCard = (nome, codice, rows, onRemove) => React.createElement(Card, {
+    style: { borderRadius: 8, border: '1px solid #f0f0f0', borderLeft: '3px solid #3E00FB', height: '100%' },
+    styles: { body: { padding: '12px 14px' } },
+  },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 } },
+      React.createElement('span', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, nome),
+      React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', background: '#fafafa', color: 'rgba(0,0,0,0.65)' } }, codice),
+      React.createElement(Popconfirm, { title: 'Rimuovere la squadra?', okText: 'Rimuovi', cancelText: 'Annulla', okButtonProps: { danger: true }, onConfirm: onRemove },
+        React.createElement(Button, { type: 'text', size: 'small', danger: true, icon: React.createElement(DeleteOutlined) })),
+    ),
+    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+      rows.filter(r => r.value != null && r.value !== '').map((r, i) => React.createElement('div', { key: i, style: { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, lineHeight: '18px' } },
+        React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, r.label),
+        React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)', textAlign: 'right', wordBreak: 'break-word' } }, r.value),
+      )),
+    ),
+  );
+  const squadGrid = (cards, emptyText) => cards.length > 0
+    ? React.createElement(Row, { gutter: [16, 16] }, cards.map((c, i) => React.createElement(Col, { span: 8, key: i }, c)))
+    : React.createElement(Empty, { description: emptyText, image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } });
+  const squadHeader = (titolo, n, kind) => React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 16 } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+      React.createElement(Typography.Title, { level: 5, style: { margin: 0 } }, titolo),
+      React.createElement(Text, { type: 'secondary', style: { fontSize: 14 } }, '|'),
+      React.createElement('span', { style: { fontSize: 14 } },
+        React.createElement('span', { style: { fontWeight: 600, color: '#3E00FB', fontSize: 16 } }, n),
+        React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 12 } }, n === 1 ? ' squadra' : ' squadre'),
+      ),
+    ),
+    React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: () => openSquadModal(kind) }, 'Assegna squadra'),
+  );
+  const tabSquadre = React.createElement('div', null,
+    React.createElement('div', { className: 'tab-section' },
+      squadHeader('Affissione', affissioniDet.length, 'affissione'),
+      squadGrid(affissioniDet.map((a, i) => renderSquadCard(a.squadra, a.codice, [
+        { label: 'Tipo affissione', value: (a.tipo && a.tipo.length) ? tagsNode(a.tipo) : null },
+        { label: 'Costo affissione', value: a.costo != null ? '€ ' + a.costo : null },
+        { label: 'Costo preincollaggio', value: a.preincoll != null ? '€ ' + a.preincoll : null },
+      ], () => setAffissioniDet(prev => prev.filter((_, j) => j !== i)))), 'Nessuna squadra di affissione assegnata'),
+    ),
+    React.createElement('div', { className: 'tab-section' },
+      squadHeader('Manutenzione', manutenzioniDet.length, 'manutenzione'),
+      squadGrid(manutenzioniDet.map((m, i) => renderSquadCard(m.squadra, m.codice, [
+        { label: 'Tipo intervento', value: m.tipoInt },
+        { label: 'Oggetto', value: m.oggetto },
+      ], () => setManutenzioniDet(prev => prev.filter((_, j) => j !== i)))), 'Nessuna squadra di manutenzione assegnata'),
+    ),
+  );
+
   return React.createElement('div', { className: 'imp-detail-page' },
 
     // Cover filmstrip
@@ -3204,9 +3587,7 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
             React.createElement(Typography.Title, { level: 4, style: { margin: 0 } }, displayName),
             React.createElement(Tag, { color: imp.canale === 'DOOH' ? 'magenta' : 'green' }, imp.canale || 'OOH'),
           ),
-          React.createElement('div', { style: { flex: 1, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-end' } },
-            React.createElement(Button, { type: 'primary', icon: React.createElement(EditOutlined), onClick: onEdit }, 'Modifica'),
-          ),
+          React.createElement('div', { style: { flex: 1 } }),
         ),
 
         // Info row: map 25% + 8 cards 75%
@@ -3247,12 +3628,16 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
               { key: '3', label: 'Dati Tecnici' },
               { key: '4', label: 'Cespiti e Dispositivi' },
               { key: '5', label: 'Assegnazione Squadre' },
+              { key: '6', label: 'Profilo Commerciale' },
               { key: '1', label: 'Storico Eventi' },
             ],
           }),
           activeTab === '1' ? tabEvents
           : activeTab === '2' ? tabAmm
           : activeTab === '3' ? tabTecnici
+          : activeTab === '4' ? tabAssets
+          : activeTab === '5' ? tabSquadre
+          : activeTab === '6' ? tabCommerciale
           : React.createElement(Empty, { description: 'Nessun dato disponibile', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { marginTop: 48 } }),
         ),
       ),
@@ -3269,6 +3654,97 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
           )
         )
       ),
+    ),
+
+    // Modale "Scarica Modulo" Genio Civile — scelta del modello regionale (admin tenant)
+    React.createElement(Modal, { title: 'Scarica modulo Genio Civile', open: gcModuleOpen, onCancel: () => setGcModuleOpen(false), footer: null, width: 560 },
+      React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', marginBottom: 16, lineHeight: '20px' } },
+        'Modelli configurati per la regione di competenza. Seleziona un modello: verrà scaricato precompilato con i dati di progetto.'),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+        GC_TEMPLATES.map(tpl =>
+          React.createElement('div', { key: tpl.id, onClick: () => downloadGcModulo(tpl), className: 'gc-template-item',
+            style: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid #E8E8E8', borderRadius: 8, cursor: 'pointer' } },
+            React.createElement(FileTextOutlined, { style: { fontSize: 18, color: '#3E00FB', flexShrink: 0 } }),
+            React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+              React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, tpl.nome),
+              React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, tpl.desc),
+              React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)', marginTop: 2 } }, tpl.ente + ' · Regione ' + tpl.regione),
+            ),
+            React.createElement(DownloadOutlined, { style: { color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
+          ),
+        ),
+      ),
+    ),
+
+    // Nuovo evento modal — aggiunge un evento alla timeline
+    React.createElement(Modal, {
+      title: 'Nuovo evento', open: newEventOpen, width: 520,
+      onCancel: () => setNewEventOpen(false), onOk: saveNewEvent,
+      okText: 'Aggiungi', cancelText: 'Annulla', okButtonProps: { disabled: !newEventValid },
+    },
+      (() => {
+        const row = (label, control) => React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 } },
+          React.createElement('div', { style: { width: 140, textAlign: 'right', paddingTop: 5, fontSize: 14, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label),
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } }, control),
+        );
+        // Campi specifici per tipologia di evento
+        const specifici = neTipo === 'cambio-stato'
+          ? [row('Nuovo stato', React.createElement(Select, {
+              value: neStato, onChange: setNeStato, placeholder: 'Seleziona lo stato', style: { width: '100%' },
+              options: NEW_EVENT_STATI.map(s => ({
+                value: s,
+                label: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+                  React.createElement('span', { style: { width: 8, height: 8, borderRadius: '50%', backgroundColor: STATO_COLORS[s] || '#d9d9d9', flexShrink: 0 } }),
+                  s),
+              })),
+            }))]
+          : neTipo === 'verifica'
+          ? [
+              row('Esito', React.createElement(Select, { value: neEsito, onChange: setNeEsito, options: VERIFICA_ESITO_OPTS, placeholder: 'Seleziona l\'esito', style: { width: '100%' } })),
+              row('Responsabile', React.createElement(Input, { value: neResponsabile, onChange: e => setNeResponsabile(e.target.value), placeholder: 'Es. Ing. Mario Rossi' })),
+            ]
+          : neTipo === 'manutenzione'
+          ? [
+              row('Squadra', React.createElement(Input, { value: neSquadra, onChange: e => setNeSquadra(e.target.value), placeholder: '—' })),
+              row('Tipo intervento', React.createElement(Select, { value: neTipoInt, onChange: setNeTipoInt, options: TIPO_MAN_OPTS, placeholder: 'Seleziona', style: { width: '100%' } })),
+              row('Componente interessato', React.createElement(Input, { value: neComponente, onChange: e => setNeComponente(e.target.value), placeholder: 'Es. pannello frontale, illuminazione…' })),
+            ]
+          : [];
+        return React.createElement('div', { style: { paddingTop: 8 } },
+          row('Tipologia evento', React.createElement(Select, { value: neTipo, onChange: setNeTipo, options: EVENT_TIPI, placeholder: 'Seleziona la tipologia', style: { width: '100%' } })),
+          ...specifici,
+          neTipo ? row('Data', React.createElement(DatePicker, { value: neData, onChange: setNeData, style: { width: '100%' }, placeholder: 'Seleziona data', format: 'DD/MM/YYYY' })) : null,
+          neTipo ? row('Note', React.createElement(Input.TextArea, { value: neNote, onChange: e => setNeNote(e.target.value), placeholder: 'Descrizione dell\'evento', autoSize: { minRows: 2, maxRows: 4 } })) : null,
+        );
+      })(),
+    ),
+
+    // Assegna squadra modal
+    React.createElement(Modal, {
+      title: squadKind === 'affissione' ? 'Assegna squadra di affissione' : 'Assegna squadra di manutenzione',
+      open: squadModalOpen, width: 520,
+      onCancel: () => setSquadModalOpen(false), onOk: saveSquad,
+      okText: 'Assegna', cancelText: 'Annulla', okButtonProps: { disabled: !sqSquadra },
+    },
+      (() => {
+        const row = (label, control) => React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 } },
+          React.createElement('div', { style: { width: 150, textAlign: 'right', paddingTop: 5, fontSize: 14, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label),
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } }, control),
+        );
+        return React.createElement('div', { style: { paddingTop: 8 } },
+          row('Squadra', React.createElement(Select, { value: sqSquadra || undefined, onChange: v => setSqSquadra(v || null), options: SQUADRE_AFF_OPTS, placeholder: 'Seleziona la squadra', style: { width: '100%' }, showSearch: true, allowClear: true, optionFilterProp: 'label' })),
+          squadKind === 'affissione'
+            ? React.createElement(React.Fragment, null,
+                row('Tipo affissione', React.createElement(Select, { mode: 'multiple', allowClear: true, value: sqTipoAff, onChange: setSqTipoAff, options: TIPO_AFFISSIONE_OPTS, placeholder: 'Seleziona i tipi', style: { width: '100%' } })),
+                row('Costo affissione (€)', React.createElement(InputNumber, { value: sqCosto, onChange: setSqCosto, min: 0, precision: 2, style: { width: '100%' } })),
+                row('Costo preincollaggio (€)', React.createElement(InputNumber, { value: sqPreincoll, onChange: setSqPreincoll, min: 0, precision: 2, style: { width: '100%' } })),
+              )
+            : React.createElement(React.Fragment, null,
+                row('Tipo intervento', React.createElement(Select, { value: sqTipoInt, onChange: setSqTipoInt, options: TIPO_MAN_OPTS, placeholder: 'Seleziona', style: { width: '100%' } })),
+                row('Oggetto', React.createElement(Input, { value: sqOggetto, onChange: e => setSqOggetto(e.target.value), placeholder: 'Es. Sostituzione faretti' })),
+              ),
+        );
+      })(),
     ),
 
     // Map modal
@@ -3970,8 +4446,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [progDittaCA,  setProgDittaCA]  = useState('');
   const [progDataFine, setProgDataFine] = useState(null);
   const [dataCollaudo, setDataCollaudo] = useState(null);
-  const [dataVerifica, setDataVerifica] = useState(null);
-  const [respVerifica, setRespVerifica] = useState('');
   const [calcestruzzo, setCalcestruzzo] = useState('');
   const [acciaioCarp,  setAcciaioCarp]  = useState('');
   const [acciaioArm,   setAcciaioArm]   = useState('');
@@ -3988,7 +4462,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [iterDocs, setIterDocs] = useState([]);  // documenti dell'iter (concessioni, autorizzazioni, progetto) — box "Documenti"
   const [sciaDocs, setSciaDocs] = useState({});  // { urbanistica: [...], commerciale: [...] } — documenti per ogni SCIA, inline nello Step 3
   const [gcTemplateOpen, setGcTemplateOpen] = useState(false);  // modale "Scarica": scelta del modello regionale Genio Civile
-  const [noteVerifica, setNoteVerifica] = useState('');
 
   const [selConcessioni,    setSelConcessioni]    = useState([]);
   const [selAutorizzazioni, setSelAutorizzazioni] = useState([]);
@@ -4094,10 +4567,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
       codice: (SQUADRE_AFF.find(s => s.nome === g.squadra) || {}).codice || null,
       tipoIntervento: g.tipo, data: g.data, oggetto: g.oggetto,
     })),
-    progetto, progDittaCA, progDataFine, dataCollaudo, dataVerifica, respVerifica,
+    progetto, progDittaCA, progDataFine, dataCollaudo,
     calcestruzzo, acciaioCarp, acciaioArm, tecnicheGc,
     progettista, ddl, rsc, collaudatore, laboratorio, geologo,
-    noteVerifica,
     assets,
     concessioni: selConcessioni, autorizzazioni: selAutorizzazioni, permessi: addedPermits,
     scia: permitSciaManual,
@@ -4717,20 +5189,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               : React.createElement(Empty, { description: "Aggiungi le facce espositive dell'impianto", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
                   faceAddBtn,
                 ),
-          ),
-          box('Verifica', 'Registra le verifiche periodiche dell\'impianto.',
-            g2(
-              cs('Data ultima verifica',  false, dp(dataVerifica,  setDataVerifica)),
-              cs('Resp. ultima verifica', false,
-                sel(respVerifica || undefined, setRespVerifica, FORNITORI_OPTS, 'Seleziona il responsabile della verifica', { showSearch: true })),
-            ),
-            cs('Note', false,
-              React.createElement(Input.TextArea, {
-                value: noteVerifica, onChange: e => setNoteVerifica(e.target.value),
-                placeholder: 'Es. Verifica strutturale superata, prossimo controllo previsto a settembre…',
-                autoSize: { minRows: 2, maxRows: 4 },
-              })
-            ),
           ),
         ),
 
