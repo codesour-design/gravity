@@ -403,6 +403,8 @@
     .create-nav-item { display: block; padding: 7px 12px; border-radius: 6px; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; margin-bottom: 2px; transition: background 0.12s, color 0.12s; user-select: none; }
     .create-nav-item:hover { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.88); }
     .create-nav-item.active { background: rgba(62,0,251,0.07); color: #3E00FB; font-weight: 500; }
+    .create-nav-item.disabled { color: rgba(0,0,0,0.25); cursor: not-allowed; }
+    .create-nav-item.disabled:hover { background: transparent; color: rgba(0,0,0,0.25); }
     .create-scroll { flex: 1; overflow-y: auto; padding: 40px 0; background: #F5F5F5; display: flex; justify-content: center; align-items: flex-start; }
     .create-content { width: 80%; max-width: 100%; }
     .create-section { margin-bottom: 32px; }
@@ -3453,6 +3455,15 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
     { id: 'I042', tipo: 'Pensilina', indirizzo: 'Via Libertà, 40, Palermo', formato: '120×180 cm' },
     { id: 'I043', tipo: 'Pensilina', indirizzo: 'Via Libertà, 52, Palermo', formato: '120×180 cm' },
   ];
+  // Performance (statica, mock): tasso di riempimento = n. di selezioni in pianificazione; storico di vendita
+  const fillRate = '72%';
+  const fillCount = 14;
+  const ricavoStorico = '€ 11.200';
+  const salesHistory = [
+    { key: '1', periodo: 'Gen–Mar 2026', cliente: 'Vodafone Italia', campagna: 'Spring Promo',   importo: '€ 4.500', stato: 'Conclusa' },
+    { key: '2', periodo: 'Nov–Dic 2025', cliente: 'IKEA Palermo',    campagna: 'Black Friday',    importo: '€ 3.800', stato: 'Conclusa' },
+    { key: '3', periodo: 'Set–Ott 2025', cliente: 'Conad',           campagna: 'Back to School',  importo: '€ 2.900', stato: 'Conclusa' },
+  ];
   const roField = (label, node) => React.createElement('div', { className: 'field-col' },
     React.createElement(Text, { type: 'secondary', style: { fontSize: 13 } }, label),
     React.createElement('div', { style: { paddingTop: 5 } }, node),
@@ -3506,28 +3517,55 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
           )
         : React.createElement(Empty, { description: 'Nessun impianto collegato', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } }),
     ),
+    React.createElement('div', { className: 'tab-section' },
+      React.createElement(Typography.Title, { level: 5, style: { marginBottom: 12 } }, 'Performance'),
+      React.createElement(Row, { gutter: [16, 16], style: { marginBottom: 16 } },
+        React.createElement(Col, { span: 6 }, React.createElement(InfoCard, { title: 'Tasso di riempimento', value: fillRate, subtitle: fillCount + ' selezioni in pianificazione' })),
+        React.createElement(Col, { span: 6 }, React.createElement(InfoCard, { title: 'Ricavo storico', value: ricavoStorico, subtitle: 'Ultimi 12 mesi' })),
+      ),
+      React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.75)', margin: '4px 0 12px' } }, 'Storico di vendita'),
+      React.createElement(Table, {
+        size: 'small', pagination: false, dataSource: salesHistory,
+        columns: [
+          { title: 'Periodo', dataIndex: 'periodo', key: 'periodo' },
+          { title: 'Cliente', dataIndex: 'cliente', key: 'cliente' },
+          { title: 'Campagna', dataIndex: 'campagna', key: 'campagna' },
+          { title: 'Importo', dataIndex: 'importo', key: 'importo', align: 'right' },
+          { title: 'Stato', dataIndex: 'stato', key: 'stato', render: (s) => React.createElement(Tag, { color: s === 'In corso' ? 'processing' : 'default' }, s) },
+        ],
+      }),
+    ),
   );
 
   // Tab Assegnazione Squadre — card per squadra, con assegnazione (modale) e rimozione (Popconfirm)
   const tagsNode = (arr) => React.createElement('span', { style: { display: 'inline-flex', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end' } },
     (arr || []).map((t, i) => React.createElement(Tag, { key: i, style: { margin: 0 } }, t)));
-  const renderSquadCard = (nome, codice, rows, onRemove) => React.createElement(Card, {
-    style: { borderRadius: 8, border: '1px solid #f0f0f0', borderLeft: '3px solid #3E00FB', height: '100%' },
-    styles: { body: { padding: '12px 14px' } },
-  },
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 } },
-      React.createElement('span', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, nome),
-      React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', background: '#fafafa', color: 'rgba(0,0,0,0.65)' } }, codice),
-      React.createElement(Popconfirm, { title: 'Rimuovere la squadra?', okText: 'Rimuovi', cancelText: 'Annulla', okButtonProps: { danger: true }, onConfirm: onRemove },
-        React.createElement(Button, { type: 'text', size: 'small', danger: true, icon: React.createElement(DeleteOutlined) })),
-    ),
-    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
-      rows.filter(r => r.value != null && r.value !== '').map((r, i) => React.createElement('div', { key: i, style: { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, lineHeight: '18px' } },
-        React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, r.label),
-        React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)', textAlign: 'right', wordBreak: 'break-word' } }, r.value),
-      )),
-    ),
-  );
+  const renderSquadCard = (nome, codice, rows, onRemove) => {
+    const meta = SQUADRE_AFF.find(s => s.nome === nome) || {};
+    const allRows = [
+      { label: 'Servizi', value: (meta.servizi && meta.servizi.length) ? tagsNode(meta.servizi) : null },
+      ...rows,
+    ];
+    return React.createElement(Card, {
+      style: { borderRadius: 8, border: '1px solid #f0f0f0', borderLeft: '3px solid #3E00FB', height: '100%' },
+      styles: { body: { padding: '12px 14px' } },
+    },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 } },
+          React.createElement('span', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, nome),
+          React.createElement(Tag, { style: { margin: 0, flexShrink: 0, border: '1px solid #d9d9d9', background: '#fafafa', color: 'rgba(0,0,0,0.65)' } }, codice),
+        ),
+        React.createElement(Popconfirm, { title: 'Rimuovere la squadra?', okText: 'Rimuovi', cancelText: 'Annulla', okButtonProps: { danger: true }, onConfirm: onRemove },
+          React.createElement(Button, { type: 'text', size: 'small', danger: true, icon: React.createElement(DeleteOutlined) })),
+      ),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+        allRows.filter(r => r.value != null && r.value !== '').map((r, i) => React.createElement('div', { key: i, style: { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, lineHeight: '18px' } },
+          React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, r.label),
+          React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)', textAlign: 'right', wordBreak: 'break-word' } }, r.value),
+        )),
+      ),
+    );
+  };
   const squadGrid = (cards, emptyText) => cards.length > 0
     ? React.createElement(Row, { gutter: [16, 16] }, cards.map((c, i) => React.createElement(Col, { span: 8, key: i }, c)))
     : React.createElement(Empty, { description: emptyText, image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } });
@@ -4132,11 +4170,13 @@ const ASSET_TIPO_OPTS_BY_CAT = {
 };
 const TIPO_MAN_OPTS        = ['Ordinaria','Straordinaria','Urgente','Preventiva'].map(v=>({value:v,label:v}));
 // Squadre di affissione: selezionando la squadra il codice si compila in automatico
+// Anagrafica squadre (gestita nel CRUD squadre della platform). I servizi sono
+// attributi della squadra: nel dettaglio impianto si mostrano in sola lettura.
 const SQUADRE_AFF = [
-  { nome: 'START Affissioni',     codice: 'SQ-001' },
-  { nome: 'Affissioni Palermo',   codice: 'SQ-002' },
-  { nome: 'Sicilia Poster',       codice: 'SQ-003' },
-  { nome: 'Media Affissioni SRL', codice: 'SQ-004' },
+  { nome: 'START Affissioni',     codice: 'SQ-001', servizi: ['Affissione', 'Installazione'] },
+  { nome: 'Affissioni Palermo',   codice: 'SQ-002', servizi: ['Affissione', 'Manutenzione'] },
+  { nome: 'Sicilia Poster',       codice: 'SQ-003', servizi: ['Affissione'] },
+  { nome: 'Media Affissioni SRL', codice: 'SQ-004', servizi: ['Affissione', 'Manutenzione', 'Installazione'] },
 ];
 // Opzioni con codice + nome insieme ("SQ-002 Affissioni Palermo"); la ricerca filtra su entrambi
 const SQUADRE_AFF_OPTS = SQUADRE_AFF.map(s => ({ value: s.nome, label: s.codice + '  ' + s.nome }));
@@ -4536,6 +4576,21 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     { id: 'commerciale',     label: 'Commerciale' },
   ];
 
+  // RBAC: ruoli con accesso al form e sezioni disabilitate per ruolo.
+  // (Pianificatore e Sales non hanno accesso al form: gate a monte, non gestito qui.)
+  const FORM_ROLES = [
+    { value: 'admin',     label: 'Admin tenant' },
+    { value: 'inventory', label: 'Inventory Manager' },
+    { value: 'operation', label: 'Operation Manager' },
+  ];
+  const ROLE_DISABLED = {
+    admin:     [],
+    inventory: ['commerciale'],
+    operation: ['struttura', 'affissione'],
+  };
+  const [formRole, setFormRole] = useState('admin');
+  const disabledSections = ROLE_DISABLED[formRole] || [];
+
 
   const tipologieOpts = React.useMemo(() =>
     Object.entries(MACRO_TIPI).map(([group, tipi]) => ({
@@ -4910,19 +4965,26 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     React.createElement('div', { className: 'create-body' },
 
       React.createElement('nav', { className: 'create-nav' },
+        React.createElement('div', { className: 'create-nav-label' }, 'Ruolo (demo)'),
+        React.createElement(Select, {
+          value: formRole, onChange: v => { setFormRole(v); setActiveSection('identita'); },
+          options: FORM_ROLES, size: 'small', style: { width: '100%', marginBottom: 20 },
+        }),
         React.createElement('div', { className: 'create-nav-label' }, 'Sezioni'),
         SECTIONS.map(({ id, label }) => {
           const isActive = activeSection === id;
+          const disabled = disabledSections.includes(id);
           return React.createElement('div', {
             key: id,
-            className: 'create-nav-item' + (isActive ? ' active' : ''),
-            onClick: () => setActiveSection(id),
+            className: 'create-nav-item' + (isActive ? ' active' : '') + (disabled ? ' disabled' : ''),
+            onClick: disabled ? undefined : () => setActiveSection(id),
             style: { display: 'flex', alignItems: 'center', gap: 2 },
           },
             label,
-            hasRequired[id] && React.createElement('span', {
+            !disabled && hasRequired[id] && React.createElement('span', {
               style: { color: '#FF4D4F', fontSize: 13, lineHeight: 1 },
             }, ' *'),
+            disabled && React.createElement(LockOutlined, { style: { marginLeft: 'auto', fontSize: 11, color: 'rgba(0,0,0,0.25)' } }),
           );
         }),
       ),
