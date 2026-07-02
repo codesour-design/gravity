@@ -29,6 +29,8 @@
   var NOTES      = window.HANDOFF_NOTES || [];
   var RELATIONS  = window.HANDOFF_RELATIONS || [];
   var SCENARIOS  = window.HANDOFF_SCENARIOS || [];
+  var OUT_OF_SPRINT = window.HANDOFF_OUT_OF_SPRINT || [];
+  var VERSIONS   = (META.versions && META.versions.length) ? META.versions : null;
 
   var ROLE_COLOR = {
     'Tenant Admin':       'purple',
@@ -835,7 +837,7 @@
 
   // ── Pannello user story (contenuto del dropdown in navbar) ────────────────
 
-  function UsPanel({ tours, screen, role, roleColor, onStart }) {
+  function UsPanel({ tours, screen, role, roleColor, sprintMode, onSprintToggle, onStart }) {
     tours = (tours || []).slice().sort(function (a, b) {
       function n(t) { var m = (t.title || '').match(/US#?\s*([\d.]+)/i); return m ? m[1].split('.').map(Number) : [Infinity]; }
       var na = n(a), nb = n(b);
@@ -900,7 +902,23 @@
         h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
           h('span', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'User story'),
           h(antd.Tag, { color: roleColor, style: { margin: 0, fontSize: 11, fontWeight: 600 } }, role)
-        )
+        ),
+        // Toggle interfaccia semplificata — evidenzia gli elementi fuori sprint
+        (typeof onSprintToggle === 'function' && OUT_OF_SPRINT.length) ? h('div', {
+          style: {
+            display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10,
+            padding: '8px 10px', borderRadius: 8,
+            background: sprintMode ? 'rgba(255,74,28,.06)' : 'rgba(0,0,0,.03)',
+            border: '1px solid ' + (sprintMode ? 'rgba(255,74,28,.3)' : 'rgba(0,0,0,.06)'),
+          },
+        },
+          h(antd.Switch, { size: 'small', checked: !!sprintMode, onChange: onSprintToggle, style: { marginTop: 2 } }),
+          h('div', { style: { flex: 1 } },
+            h('div', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,.85)' } }, 'Interfaccia semplificata'),
+            h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.45)', lineHeight: 1.45, marginTop: 1 } },
+              'Evidenzia le aree ', h('b', { style: { color: '#FF4A1C' } }, 'fuori sprint'), ' — senza user story, non da realizzare ora.')
+          )
+        ) : null
       ),
       screens.length > 1 ? h('div', { style: { padding: '8px 12px', borderBottom: '1px solid rgba(0,0,0,.06)', display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center', whiteSpace: 'nowrap' } },
         h('span', { style: { fontSize: 9, color: 'rgba(0,0,0,.35)', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 700, marginRight: 2 } }, 'Schermata'),
@@ -992,9 +1010,129 @@
     );
   }
 
+  // ── Interfaccia semplificata: evidenzia gli elementi FUORI SPRINT ─────────
+  // Aggiunge la classe .ghf-oos agli elementi in OUT_OF_SPRINT (anche portalati
+  // e transitori, es. voci di dropdown). Ripassa in loop perché l'app ri-renderizza.
+  function SprintMarker() {
+    useEffect(function () {
+      var STYLE_ID = 'ghf-oos-style';
+      if (!document.getElementById(STYLE_ID)) {
+        var st = document.createElement('style');
+        st.id = STYLE_ID;
+        st.textContent =
+          '.ghf-oos{position:relative!important;outline:1.5px dashed #FF4A1C!important;' +
+          'outline-offset:-1px;border-radius:4px;' +
+          'background-image:repeating-linear-gradient(45deg,rgba(255,74,28,.05) 0 6px,rgba(255,74,28,.12) 6px 12px)!important;}' +
+          '.ghf-oos::after{content:"fuori sprint";position:absolute;top:-8px;right:6px;z-index:30;' +
+          'background:#FF4A1C;color:#fff;font-size:8px;font-weight:700;line-height:1;letter-spacing:.3px;' +
+          'padding:2px 5px;border-radius:8px;font-family:' + FONT.replace(/"/g, "'") + ';pointer-events:none;text-transform:uppercase;white-space:nowrap;}';
+        document.head.appendChild(st);
+      }
+      function apply() {
+        var marked = [];
+        OUT_OF_SPRINT.forEach(function (entry) {
+          var els;
+          try { els = document.querySelectorAll(entry.selector); } catch (e) { return; }
+          Array.prototype.forEach.call(els, function (el) {
+            if (entry.text && (el.textContent || '').indexOf(entry.text) === -1) return;
+            el.classList.add('ghf-oos');
+            if (entry.note && el.getAttribute('title') == null) el.setAttribute('title', entry.note);
+            marked.push(el);
+          });
+        });
+        // rimuove la marcatura dagli elementi non più in lista (es. dropdown chiuso)
+        Array.prototype.forEach.call(document.querySelectorAll('.ghf-oos'), function (el) {
+          if (marked.indexOf(el) === -1) { el.classList.remove('ghf-oos'); el.removeAttribute('title'); }
+        });
+      }
+      apply();
+      var id = setInterval(apply, 400);
+      return function () {
+        clearInterval(id);
+        Array.prototype.forEach.call(document.querySelectorAll('.ghf-oos'), function (el) {
+          el.classList.remove('ghf-oos'); el.removeAttribute('title');
+        });
+      };
+    }, []);
+
+    // Legenda fissa in basso: spiega la modalità attiva
+    return h('div', {
+      style: {
+        position: 'fixed', left: 16, bottom: 16, zIndex: 9998,
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        padding: '7px 12px', borderRadius: 8, fontFamily: FONT,
+        background: 'rgba(255,255,255,.96)', border: '1px solid rgba(255,74,28,.35)',
+        boxShadow: '0 4px 16px rgba(0,0,0,.12)', fontSize: 11, color: 'rgba(0,0,0,.65)',
+      },
+    },
+      h('span', { style: { width: 18, height: 12, borderRadius: 3, border: '1.5px dashed #FF4A1C', background: 'repeating-linear-gradient(45deg,rgba(255,74,28,.05) 0 4px,rgba(255,74,28,.12) 4px 8px)', flex: 'none' } }),
+      h('span', null, h('b', { style: { color: 'rgba(0,0,0,.85)' } }, 'Interfaccia semplificata'), ' — le aree evidenziate sono ', h('b', { style: { color: '#FF4A1C' } }, 'fuori sprint'), ' (non da realizzare ora)')
+    );
+  }
+
+  // ── Badge versione + selettore (nel dev-bar) ──────────────────────────────
+  function VersionBadge() {
+    var _o = useState(false); var open = _o[0]; var setOpen = _o[1];
+    if (!VERSIONS) return null;
+    var current = VERSIONS.filter(function (v) { return v.current; })[0] || VERSIONS[0];
+
+    function go(v) {
+      setOpen(false);
+      if (!v.file || v.current) return;
+      // v.file include già il parametro di versione (es. index.html?handoff=v1)
+      location.href = v.file + location.hash;
+    }
+
+    var menu = h('div', {
+      style: { width: 240, background: '#fff', borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,.15)', overflow: 'hidden', fontFamily: FONT },
+    },
+      h('div', { style: { padding: '9px 12px', borderBottom: '1px solid rgba(0,0,0,.06)', fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,.5)', textTransform: 'uppercase', letterSpacing: '.5px' } }, 'Versioni handoff'),
+      VERSIONS.map(function (v) {
+        var disabled = !v.file;
+        return h('div', {
+          key: v.id,
+          onClick: function () { if (!disabled) go(v); },
+          style: {
+            padding: '10px 12px', borderBottom: '1px solid rgba(0,0,0,.04)',
+            cursor: disabled ? 'default' : 'pointer',
+            display: 'flex', alignItems: 'center', gap: 8,
+            opacity: disabled ? 0.45 : 1,
+            background: v.current ? 'rgba(62,0,251,.05)' : 'transparent',
+          },
+          onMouseEnter: function (e) { if (!disabled && !v.current) e.currentTarget.style.background = 'rgba(0,0,0,.03)'; },
+          onMouseLeave: function (e) { if (!disabled && !v.current) e.currentTarget.style.background = 'transparent'; },
+        },
+          h('span', { style: { fontSize: 12, fontWeight: 700, color: v.current ? '#3E00FB' : 'rgba(0,0,0,.75)', minWidth: 26 } }, v.id),
+          h('span', { style: { flex: 1, fontSize: 11, color: 'rgba(0,0,0,.5)' } }, v.note || ''),
+          v.approved ? h(antd.Tag, { color: 'green', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 5px', fontWeight: 600 } }, 'Approvata') : null,
+          v.current ? h(icons.CheckOutlined, { style: { fontSize: 12, color: '#3E00FB' } }) : null
+        );
+      })
+    );
+
+    return h(antd.Dropdown, {
+      trigger: ['click'], open: open, onOpenChange: setOpen, placement: 'bottomLeft',
+      dropdownRender: function () { return menu; },
+    },
+      h(antd.Tooltip, { title: 'Versione handoff — clicca per cambiare', placement: 'bottom' },
+        h('span', {
+          style: {
+            display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+            height: 24, padding: '0 8px', borderRadius: 6, fontFamily: FONT,
+            background: '#fff', border: '1px solid rgba(0,0,0,0.15)',
+            fontSize: 12, fontWeight: 700, color: '#3E00FB', lineHeight: '22px',
+          },
+        },
+          h('span', null, (current && current.id) || 'V?'),
+          h(icons.DownOutlined, { style: { fontSize: 8, color: 'rgba(0,0,0,0.4)' } })
+        )
+      )
+    );
+  }
+
   // ── Controlli in navbar (portal accanto alla campanella) ─────────────────
 
-  function NavControls({ devMode, onDevToggle, tours, onStart, screen, role, roleColor, novitaCount, deps, notes, relations, scenarios }) {
+  function NavControls({ devMode, onDevToggle, sprintMode, onSprintToggle, tours, onStart, screen, role, roleColor, novitaCount, deps, notes, relations, scenarios }) {
     var _us = useState(false); var usOpen = _us[0]; var setUsOpen = _us[1];
     var _dep = useState(false); var depOpen = _dep[0]; var setDepOpen = _dep[1];
     var _nt = useState(false); var notesOpen = _nt[0]; var setNotesOpen = _nt[1];
@@ -1008,6 +1146,9 @@
         borderRadius: 8,
       },
     },
+      // Badge versione + selettore (solo se META.versions è definito)
+      VERSIONS ? h(VersionBadge) : null,
+      VERSIONS ? h('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }) : null,
       // Switch dev — attiva l'inspector componenti
       h(antd.Tooltip, { title: devMode ? 'Inspector componenti attivo' : 'Inspector componenti (dev)', placement: 'bottom' },
         h(antd.Switch, {
@@ -1026,7 +1167,7 @@
         onOpenChange: setUsOpen,
         placement: 'bottomRight',
         dropdownRender: function () {
-          return h(UsPanel, { tours: tours, screen: screen, role: role, roleColor: roleColor, onStart: function (tour) { setUsOpen(false); onStart(tour); } });
+          return h(UsPanel, { tours: tours, screen: screen, role: role, roleColor: roleColor, sprintMode: sprintMode, onSprintToggle: onSprintToggle, onStart: function (tour) { setUsOpen(false); onStart(tour); } });
         },
       },
         h('span', { style: { display: 'inline-flex' } },
@@ -1092,6 +1233,8 @@
     var _g = useState(getRole);      var role       = _g[0]; var setRole       = _g[1];
     var _h = useState(function () { return localStorage.getItem('ghf_dev_mode') === '1'; });
     var devMode = _h[0]; var setDevMode = _h[1];
+    var _sp = useState(function () { return localStorage.getItem('ghf_sprint_mode') === '1'; });
+    var sprintMode = _sp[0]; var setSprintMode = _sp[1];
     var _s = useState(null);         var slotEl     = _s[0]; var setSlotEl     = _s[1];
 
     var tours = useMemo(function () { return filterTours(role); }, [role]);
@@ -1143,6 +1286,11 @@
     function toggleDev(v) {
       setDevMode(v);
       try { localStorage.setItem('ghf_dev_mode', v ? '1' : '0'); } catch (e) {}
+    }
+
+    function toggleSprint(v) {
+      setSprintMode(v);
+      try { localStorage.setItem('ghf_sprint_mode', v ? '1' : '0'); } catch (e) {}
     }
 
     // goToStep — gestisce onEnter + delay prima di aggiornare l'indice
@@ -1212,8 +1360,10 @@
 
     var navControls = slotEl ? ReactDOM.createPortal(
       h(NavControls, {
-        devMode:     devMode,
-        onDevToggle: toggleDev,
+        devMode:        devMode,
+        onDevToggle:    toggleDev,
+        sprintMode:     sprintMode,
+        onSprintToggle: toggleSprint,
         tours:       tours,
         onStart:     startTour,
         screen:      screen,
@@ -1254,7 +1404,8 @@
       h(antd.App, null,
         navControls,
         tourUi,
-        (devMode && !tourOpen && COMPONENTS.length) ? h(DevInspector) : null
+        (devMode && !tourOpen && COMPONENTS.length) ? h(DevInspector) : null,
+        (sprintMode && OUT_OF_SPRINT.length) ? h(SprintMarker) : null
       )
     );
   }

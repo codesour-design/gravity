@@ -24,6 +24,26 @@
   <script src="../../navbar.js"></script>
   <script src="../../filter-drawer.js"></script>
 
+  <!-- Handoff loader — attiva il layer handoff (note di design + tour + interfaccia
+       semplificata) SOLO con ?handoff=<versione>. Senza il parametro questo è il
+       prototipo pulito. Le versioni sono file di config: il prototipo resta unico.
+       - ?handoff        → versione approvata
+       - ?handoff=v1/v2  → versione specifica
+       Il document.write in <head> carica la config in modo sincrono, così le note
+       inline (window.HANDOFF_NOTES) sono disponibili già al primo render. -->
+  <script>
+    (function () {
+      var CONFIGS  = { v1: './handoff-steps.js' };
+      var APPROVED = 'v1';
+      var params = new URLSearchParams(location.search);
+      if (!params.has('handoff')) return;
+      var v = (params.get('handoff') || APPROVED).toLowerCase();
+      var cfg = CONFIGS[v] || CONFIGS[APPROVED];
+      window.__HANDOFF_ACTIVE = true;
+      document.write('<scr' + 'ipt src="' + cfg + '"></scr' + 'ipt>');
+    })();
+  </script>
+
   <!-- Google Maps + MarkerClusterer -->
   <!-- ⚠️ API KEY: limitare questa chiave al dominio di deployment in Google Cloud Console
        (APIs & Services → Credentials → HTTP referrers) prima di qualsiasi deploy pubblico. -->
@@ -2904,7 +2924,7 @@ const todayStr   = () => dayjs(new Date()).format('DD/MM/YYYY');
 // Tipo di vendita selezionabile per canale (vincola le date)
 const SALE_TYPE_OPTIONS = {
   OOH:  [{ value: 'quattordicine', label: 'Quattordicine' }, { value: 'longterm', label: 'Long term' }],
-  DOOH: [{ value: 'standard', label: 'Standard · 7 giorni' }, { value: 'custom', label: 'Custom' }],
+  DOOH: [{ value: 'standard', label: 'Standard' }, { value: 'custom', label: 'Custom' }],
 };
 
 function inferSaleType(category, start, end) {
@@ -2964,14 +2984,24 @@ const deducedRow = (label, value) => React.createElement('div', {
 
 // Cascata trattativa → campagna riusata da drawer e modale duplica.
 // allowCombo: combinazione consentita anche se già usata (es. quella corrente in modifica)
-function TrattativaCascade({ trat, camp, onChangeTrat, onChangeCamp, usedCampagneByTrat, allowCombo }) {
+// channelLock: se valorizzato (es. duplica), solo le campagne di quel canale sono selezionabili
+function TrattativaCascade({ trat, camp, onChangeTrat, onChangeCamp, usedCampagneByTrat, allowCombo, channelLock }) {
   const tratOptions = TRATTATIVE.map(t => ({ value: t.name, label: t.name, advertiser: t.advertiser }));
   const selected = findTrattativa(trat);
   const campOptions = selected
     ? selected.campagne.map(c => {
         const used = !!(usedCampagneByTrat[trat] && usedCampagneByTrat[trat].has(c.name));
         const allowed = allowCombo && allowCombo.trat === trat && allowCombo.camp === c.name;
-        return { value: c.name, label: c.name, disabled: used && !allowed, channel: c.channel, start: c.start, end: c.end };
+        const wrongChannel = !!channelLock && c.channel !== channelLock;
+        const usedLocked = used && !allowed;
+        // Motivo mostrato in hover quando l'opzione è disabilitata
+        const disabledReason = wrongChannel
+          ? `Canale ${c.channel}: questa pianificazione richiede ${channelLock}.`
+          : (usedLocked ? 'Campagna già collegata a un\'altra pianificazione.' : null);
+        return {
+          value: c.name, label: c.name, disabled: usedLocked || wrongChannel,
+          channel: c.channel, start: c.start, end: c.end, wrongChannel, disabledReason,
+        };
       })
     : [];
   return React.createElement(React.Fragment, null,
@@ -2996,11 +3026,23 @@ function TrattativaCascade({ trat, camp, onChangeTrat, onChangeCamp, usedCampagn
       value: camp,
       onChange: v => onChangeCamp(v || null),
       options: campOptions,
-      optionRender: opt => React.createElement('div', null,
-        React.createElement('div', { style: { fontWeight: 500, fontSize: 12 } }, opt.data.label),
-        React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } },
-          `${opt.data.channel} · ${opt.data.start} → ${opt.data.end}`),
-      ),
+      optionRender: opt => {
+        const row = React.createElement('div', {
+          style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' },
+        },
+          React.createElement('div', { style: { minWidth: 0 } },
+            React.createElement('div', { style: { fontWeight: 500, fontSize: 12 } }, opt.data.label),
+            React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } },
+              `${opt.data.start} → ${opt.data.end}`),
+          ),
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 } },
+            React.createElement(ChannelChip, { channel: opt.data.channel }),
+          ),
+        );
+        return opt.data.disabledReason
+          ? React.createElement(Tooltip, { title: opt.data.disabledReason, placement: 'left' }, row)
+          : row;
+      },
     }),
   );
 }
@@ -3015,7 +3057,6 @@ function SaleTypeDates({ channel, saleType, onSaleType, range, onRange, disabled
 
   // Vincolo di durata mostrato finché non c'è una selezione valida
   const constraintHint = {
-    quattordicine: 'Quattordicine complete: 14, 28, 42… giorni.',
     longterm:      `Minimo ${LONG_TERM_THRESHOLD} giorni.`,
     standard:      'Settimane complete: 7, 14, 21… giorni.',
   }[saleType];
@@ -3042,7 +3083,11 @@ function SaleTypeDates({ channel, saleType, onSaleType, range, onRange, disabled
   };
 
   return React.createElement(React.Fragment, null,
-    React.createElement(Form.Item, { label: 'Tipo di vendita' },
+    React.createElement(Form.Item, {
+      label: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center' } },
+        'Tipo di vendita', React.createElement(HandoffDesignNote, { id: 'tipo-vendita', placement: 'right' })),
+      style: { marginBottom: 20 },
+    },
       React.createElement(antd.Radio.Group, {
         value: saleType,
         onChange: e => {
@@ -3146,7 +3191,6 @@ function PlanningFormDrawer({ open, mode, source, usedCampagneByTrat, onClose, o
         extra: nameLocked ? 'Generato dalla campagna collegata: non modificabile.' : undefined,
       },
         React.createElement(Input, {
-          size: 'large',
           placeholder: 'Inserisci un nome descrittivo',
           value: name,
           disabled: nameLocked,
@@ -3157,9 +3201,15 @@ function PlanningFormDrawer({ open, mode, source, usedCampagneByTrat, onClose, o
       sectionDivider,
       // ── Trattativa e campagna ─────────────────────────
       React.createElement(Form.Item, {
-        label: 'Trattativa e campagna',
-        extra: 'Facoltativo: la campagna compila inserzionista, canale e periodo.',
-        style: { marginBottom: 0 },
+        label: React.createElement('div', null,
+          React.createElement('div', null,
+            'Scegli trattativa e campagna ',
+            React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)'),
+          ),
+          React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.45)', marginTop: 4, whiteSpace: 'normal' } },
+            'Selezionando una campagna vengono compilati automaticamente inserzionista, canale e periodo.'),
+        ),
+        style: { marginBottom: 20 },
       },
         React.createElement(TrattativaCascade, {
           trat, camp,
@@ -3174,23 +3224,24 @@ function PlanningFormDrawer({ open, mode, source, usedCampagneByTrat, onClose, o
         style: {
           display: 'flex', flexDirection: 'column', gap: 12,
           background: 'var(--gravity-bg-subtle, #FAFAFA)', border: '1px solid rgba(0,0,0,0.06)',
-          borderRadius: 8, padding: '14px 16px', marginTop: 12,
+          borderRadius: 8, padding: '14px 16px',
         },
       },
         React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } },
-          'Dati ereditati dalla campagna'),
+          'Dati ereditati dalla campagna ',
+          React.createElement('b', { style: { fontWeight: 700, color: 'rgba(0,0,0,0.88)' } }, linkedCamp.name)),
         deducedRow('Inserzionista', React.createElement(React.Fragment, null,
           React.createElement(AdvertiserAvatar, { name: linkedTrat.advertiser, size: 20 }),
           linkedTrat.advertiser,
         )),
         deducedRow('Canale', React.createElement(ChannelChip, { channel: effChannel })),
-        deducedRow('Periodo', `${linkedCamp.start} → ${linkedCamp.end}`),
         deducedRow('Tipo di vendita', saleTypeLabel({ category: effChannel, start: linkedCamp.start, end: linkedCamp.end })),
+        deducedRow('Periodo di esposizione', `${linkedCamp.start} → ${linkedCamp.end}`),
       ),
       // ── Canale e periodo (solo senza campagna collegata) ─
       !linkedCamp && React.createElement(React.Fragment, null,
         sectionDivider,
-        React.createElement(Form.Item, { label: 'Canale' },
+        React.createElement(Form.Item, { label: 'Canale', style: { marginBottom: 20 } },
           React.createElement(antd.Radio.Group, {
             value: channel,
             onChange: e => { setChannel(e.target.value); setSaleType(null); setRange(null); },
@@ -3229,7 +3280,9 @@ function DuplicateModal({ open, source, usedCampagneByTrat, onClose, onDuplicate
 
   const linkedTrat = findTrattativa(trat);
   const campObj = camp ? findCampagna(trat, camp) : null;
-  const channel = campObj ? campObj.channel : null;
+  // Canale: dalla campagna se è stata scelta una trattativa; altrimenti ereditato
+  // dagli impianti duplicati (categoria della pianificazione di origine).
+  const channel = campObj ? campObj.channel : (source ? source.category : null);
 
   const handleCamp = c => {
     setCamp(c);
@@ -3242,26 +3295,33 @@ function DuplicateModal({ open, source, usedCampagneByTrat, onClose, onDuplicate
     }
   };
 
-  // Le date devono restare nella finestra della campagna selezionata
+  // Con trattativa le date restano nella finestra della campagna; senza trattativa
+  // il periodo di esposizione è libero (nessun vincolo di finestra).
   const winStart = campObj ? strToDayjs(campObj.start) : null;
   const winEnd   = campObj ? strToDayjs(campObj.end)   : null;
-  const disabledDate = d => !!winStart && (d.isBefore(winStart, 'day') || d.isAfter(winEnd, 'day'));
+  const disabledDate = campObj ? (d => d.isBefore(winStart, 'day') || d.isAfter(winEnd, 'day')) : undefined;
 
   const dateError = saleTypeDateError(saleType, range);
-  const canDuplicate = !!name.trim() && !!campObj && !!saleType && !!range && !!range[0] && !!range[1] && !dateError;
+  // La trattativa è facoltativa: bastano nome + canale (sempre noto) + tipo vendita + periodo valido.
+  const canDuplicate = !!name.trim() && !!channel && !!saleType && !!range && !!range[0] && !!range[1] && !dateError;
 
   return React.createElement(antd.Modal, {
     open, onCancel: onClose, destroyOnClose: true,
-    title: 'Duplica pianificazione',
-    width: 480,
+    title: React.createElement('div', {
+      style: { display: 'flex', alignItems: 'center', gap: 8 },
+    },
+      React.createElement('span', null, 'Duplica pianificazione'),
+      React.createElement(ChannelChip, { channel }),
+    ),
+    width: 580,
     okText: 'Duplica', cancelText: 'Annulla',
     okButtonProps: { disabled: !canDuplicate },
     onOk: () => onDuplicate({
       name: name.trim(),
-      trattativaName: trat,
-      campagnaName: camp,
+      trattativaName: trat || null,
+      campagnaName: camp || null,
       category: channel,
-      advertiser: linkedTrat.advertiser,
+      advertiser: linkedTrat ? linkedTrat.advertiser : null,
       start: dayjsToStr(range[0]),
       end: dayjsToStr(range[1]),
     }),
@@ -3270,38 +3330,68 @@ function DuplicateModal({ open, source, usedCampagneByTrat, onClose, onDuplicate
       React.createElement(Typography.Paragraph, {
         type: 'secondary',
         style: { fontSize: 13, marginBottom: 20 },
-      }, `Verranno copiati gli spazi selezionati di "${source.name}", non il brief. Con date diverse la disponibilità andrà riverificata.`),
-      React.createElement(Form.Item, { label: 'Nome della copia' },
+      },
+        'Verranno copiati gli spazi selezionati di ',
+        React.createElement('b', null, source.name),
+        '.',
+        React.createElement('br'),
+        React.createElement('b', null, 'Il canale è ereditato dagli impianti.'),
+      ),
+      React.createElement(Form.Item, { label: 'Nome della copia', style: { marginBottom: 20 } },
         React.createElement(Input, { value: name, onChange: e => setName(e.target.value) }),
       ),
-      React.createElement(Form.Item, { label: 'Nuova trattativa e campagna', style: { marginBottom: 0 } },
+      React.createElement(Form.Item, {
+        label: React.createElement('div', null,
+          React.createElement('div', null,
+            'Scegli trattativa e campagna ',
+            React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)'),
+          ),
+          React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.45)', marginTop: 4, whiteSpace: 'normal' } },
+            'Le campagne mostrate sono già filtrate per canale: se non trovi quella giusta, chiedi al commerciale di crearne una per questo canale.'),
+        ),
+        style: { marginBottom: 20 },
+      },
         React.createElement(TrattativaCascade, {
           trat, camp,
           onChangeTrat: v => { setTrat(v); handleCamp(null); },
           onChangeCamp: handleCamp,
           usedCampagneByTrat,
+          channelLock: source.category,
         }),
       ),
-      campObj && React.createElement(React.Fragment, null,
-        React.createElement('div', {
-          className: 'gv-inherited-box',
-          style: {
-            display: 'flex', flexDirection: 'column', gap: 10,
-            background: 'var(--gravity-bg-subtle, #FAFAFA)', border: '1px solid rgba(0,0,0,0.06)',
-            borderRadius: 8, padding: '12px 14px', margin: '12px 0 20px',
-          },
+      // Il dettaglio compare solo a selezione avvenuta: stessa struttura del box "Dati ereditati dalla campagna"
+      // del form Nuova pianificazione. Il gap sopra è già dato dal Form.Item precedente,
+      // quindi qui serve solo lo spazio sotto per arrivare a "Tipo di vendita".
+      campObj && React.createElement('div', {
+        className: 'gv-inherited-box',
+        style: {
+          display: 'flex', flexDirection: 'column', gap: 12,
+          background: 'var(--gravity-bg-subtle, #FAFAFA)', border: '1px solid rgba(0,0,0,0.06)',
+          borderRadius: 8, padding: '14px 16px', marginBottom: 20,
         },
-          deducedRow('Inserzionista', React.createElement(React.Fragment, null,
-            React.createElement(AdvertiserAvatar, { name: linkedTrat.advertiser, size: 20 }),
-            linkedTrat.advertiser,
-          )),
-          deducedRow('Canale', React.createElement(ChannelChip, { channel })),
-          deducedRow('Finestra campagna', `${campObj.start} → ${campObj.end}`),
-        ),
-        React.createElement(SaleTypeDates, {
-          channel, saleType, onSaleType: setSaleType, range, onRange: setRange, disabledDate,
-        }),
+      },
+        React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } },
+          'Dati ereditati dalla campagna ',
+          React.createElement('b', { style: { fontWeight: 700, color: 'rgba(0,0,0,0.88)' } }, campObj.name)),
+        deducedRow('Inserzionista', React.createElement(React.Fragment, null,
+          React.createElement(AdvertiserAvatar, { name: linkedTrat.advertiser, size: 20 }),
+          linkedTrat.advertiser,
+        )),
+        deducedRow('Canale', React.createElement(ChannelChip, { channel })),
+        deducedRow('Tipo di vendita', saleTypeLabel({ category: channel, start: campObj.start, end: campObj.end })),
+        deducedRow('Periodo di esposizione', `${campObj.start} → ${campObj.end}`),
       ),
+      React.createElement(SaleTypeDates, {
+        channel, saleType, onSaleType: setSaleType, range, onRange: setRange, disabledDate,
+      }),
+      React.createElement(Alert, {
+        type: 'warning', showIcon: true,
+        message: React.createElement(React.Fragment, null,
+          'Dopo la duplicazione alcuni impianti potrebbero non essere più "Disponibili": ',
+          React.createElement('b', null, 'verifica lo stato dell\'intera selezione con i filtri.'),
+        ),
+        style: { marginTop: 20, borderRadius: 8 },
+      }),
     ),
   );
 }
@@ -7065,7 +7155,7 @@ out geom;`;
           planning.state !== 'Completata' && React.createElement('div', {
             className: `ss-panel-tab${panelTab === 'results' ? ' active' : ''}`,
             onClick: () => setPanelTab('results'),
-          }, 'Risultati di ricerca'),
+          }, 'Risultati di ricerca', React.createElement(HandoffDesignNote, { id: 'nomenclatura-impianti', placement: 'bottom' })),
           React.createElement('div', {
             className: `ss-panel-tab${panelTab === 'selected' ? ' active' : ''}`,
             onClick: () => setPanelTab('selected'),
@@ -7406,5 +7496,9 @@ function AppRoot() {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(AppRoot));
 </script>
+  <!-- Motore handoff — caricato solo se il loader in <head> ha attivato il layer. -->
+  <script>
+    if (window.__HANDOFF_ACTIVE) document.write('<scr' + 'ipt src="../../handoff.js"></scr' + 'ipt>');
+  </script>
 </body>
 </html>
