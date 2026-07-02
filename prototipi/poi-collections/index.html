@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gravity — Mappa Impianti OOH</title>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@ant-design/icons@5/dist/index.umd.js"></script>
+  <script src="../tokens.js"></script>
+  <script>window.GRAVITY_NAV = {
+    section: 'Delivery', item: 'Collections',
+    logoSrc: '../../brand/Gravity_type.svg',
+    appHref: '../user-profile/index.html',
+    links: {
+      Systems:    '../inventory-systems/index.html',
+      Plannings:  '../planning/index--handoff.html',
+    },
+  };</script>
+  <script src="../navbar.js"></script>
+
+  <!-- Google Maps + MarkerClusterer -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeN8PAeuZkOtG8uyRzvXP2rOzP37HMBdI&libraries=places"></script>
+  <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      background: #F5F5F5;
+      font-size: 14px;
+      line-height: 1.5714;
+    }
+
+    /* ── App shell ── */
+    .app-shell { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    /* ── Navbar ── */
+    .top-nav {
+      height: 73px; background: #fff;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; z-index: 200;
+    }
+    .top-nav-logo { display: flex; align-items: center; padding: 0 20px; height: 100%; flex-shrink: 0; }
+    .top-nav-logo img { display: block; }
+    .top-nav-menu-wrap { flex: 1; align-self: stretch; display: flex; align-items: stretch; }
+    .top-nav-menu-wrap .ant-menu-horizontal { border-bottom: none !important; height: 73px; line-height: 73px; }
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-item,
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-submenu { height: 73px; line-height: 73px; padding: 0 16px; top: 0; }
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-item::after,
+    .top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-submenu::after { bottom: 0 !important; border-bottom-width: 2px !important; }
+    .top-nav-right { display: flex; align-items: center; gap: 24px; padding: 0 20px; flex-shrink: 0; }
+    .top-nav-bell {
+      background: none; border: none; cursor: pointer;
+      display: flex; align-items: center;
+      color: rgba(0,0,0,0.65); padding: 4px; border-radius: 6px; transition: background 0.15s;
+    }
+    .top-nav-bell:hover { background: rgba(0,0,0,0.04); }
+
+    /* ── Unified search bar ── */
+    .ss-searchbar-wrap { position: relative; width: 100%; }
+    /* ── Suggestions dropdown ── */
+    .ss-suggestions-wrap {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: #fff; border: 1px solid #E8E8E8; border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12); z-index: 600;
+      overflow: hidden;
+    }
+    .ss-sugg-group-title {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: rgba(0,0,0,0.3);
+      padding: 10px 14px 3px; line-height: 1.2;
+    }
+    .ss-suggestion-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px; cursor: pointer;
+      font-size: 13px; color: rgba(0,0,0,0.88);
+      transition: background 0.1s;
+    }
+    .ss-suggestion-item:hover { background: #F7F5FF; }
+    /* Google Maps overrides */
+    .gm-style .gm-style-iw-c { border-radius: 8px !important; box-shadow: 0 4px 18px rgba(0,0,0,0.16) !important; padding: 0 !important; }
+    .gm-style .gm-style-iw-d { overflow: hidden !important; padding: 0 !important; }
+    .gm-style .gm-style-iw-chr { display: none !important; }
+    .gm-style-iw-tc { display: none !important; }
+    .gm-ui-hover-effect { display: none !important; }
+    .gm-style .gmnoprint { opacity: 0.7; }
+    .gm-style-cc { font-size: 9px !important; }
+
+
+/* ── Collections list view ── */
+.coll-shell {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+}
+.coll-edit-body { flex: 1; min-height: 0; display: flex; gap: 16px; padding: 16px; overflow: hidden; background: #F5F5F5; }
+.coll-edit-sidebar {
+  width: 300px; flex-shrink: 0;
+  background: #fff; border-radius: 8px; border: 1px solid #F0F0F0;
+  overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.coll-edit-main {
+  flex: 1; min-width: 0; min-height: 0;
+  background: #fff; border-radius: 8px; border: 1px solid #F0F0F0;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.coll-list-header {
+  background: #fff;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px;
+  flex-shrink: 0;
+  margin: 16px 16px 0;
+}
+.coll-list-header-title {
+  font-size: 24px; font-weight: 600; color: rgba(0,0,0,0.88); line-height: 32px;
+}
+.coll-row-highlighted td {
+  background: rgba(62, 0, 251, 0.06) !important;
+}
+.coll-view {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 24px 0 16px;
+  background: #F5F5F5;
+}
+.coll-view::-webkit-scrollbar { width: 6px; }
+.coll-view::-webkit-scrollbar-thumb { background: #D9D9D9; border-radius: 3px; }
+
+
+
+/* ── Tabella collezioni — stile Shaker ── */
+.coll-table-wrap {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0 16px 16px;
+}
+
+/* Toolbar */
+.coll-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  height: 54px;
+  background: #fff;
+}
+.coll-toolbar-count {
+  font-size: 14px; color: rgba(0,0,0,0.88);
+}
+.coll-toolbar-count strong {
+  font-weight: 600;
+}
+
+/* Header */
+.coll-table-wrap .ant-table-thead > tr > th {
+  background: rgba(0,0,0,0.02) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: rgba(0,0,0,0.88) !important;
+  padding: 16px !important;
+  border-bottom: 0.5px solid #F0F0F0 !important;
+  height: 54px;
+}
+.coll-table-wrap .ant-table-thead > tr > th::before { display: none !important; }
+
+
+/* Celle */
+.coll-table-wrap .ant-table-tbody > tr > td {
+  padding: 16px !important;
+  font-size: 14px !important;
+  border-bottom: 0.5px solid #F0F0F0 !important;
+  border-right: 0.5px solid #F0F0F0 !important;
+  background: #fff !important;
+  height: 54px;
+}
+.coll-table-wrap .ant-table-tbody > tr > td:last-child {
+  border-right: none !important;
+}
+.coll-table-wrap .ant-table-thead > tr > th {
+  border-right: 0.5px solid #F0F0F0 !important;
+}
+.coll-table-wrap .ant-table-thead > tr > th:last-child {
+  border-right: none !important;
+}
+.coll-table-wrap .ant-table-tbody > tr:hover > td {
+  background: #F7F5FF !important;
+  cursor: pointer;
+}
+.coll-table-wrap .ant-table {
+  border-radius: 0 !important;
+}
+
+.coll-name-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.coll-color-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+
+.new-coll-map-side {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+}
+.new-coll-poi-search {
+  padding: 16px 16px 12px;
+  flex-shrink: 0;
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  border-bottom: 1px solid #F0F0F0;
+}
+.new-coll-map-content { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+.new-coll-map-area { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.new-coll-map-wrap { width: 100%; height: 100%; }
+.new-coll-list-view {
+  width: 260px; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  border-left: 1px solid #F0F0F0;
+}
+.new-coll-list-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #F0F0F0;
+  flex-shrink: 0;
+}
+.new-coll-list-scroll {
+  flex: 1; overflow-y: auto; padding: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.new-coll-list-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px;
+  border: 1px solid #F0F0F0; background: #fff;
+  transition: background 0.15s;
+}
+.new-coll-list-item:hover { background: #FAFAFA; }
+.new-coll-list-item-info { flex: 1; min-width: 0; }
+.new-coll-list-item-label { font-size: 13px; font-weight: 500; color: rgba(0,0,0,0.88); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.new-coll-list-item-sub { font-size: 11px; color: rgba(0,0,0,0.45); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.new-coll-detail-panel {
+  position: absolute; bottom: 0; left: 0;
+  width: 500px;
+  background: #fff;
+  border-top: 1px solid #E8E8E8;
+  border-right: 1px solid #E8E8E8;
+  border-radius: 0 12px 0 0;
+  padding: 12px 16px 16px;
+  box-shadow: 4px -4px 24px rgba(0,0,0,0.10);
+  z-index: 10;
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+.new-coll-detail-panel.visible {
+  transform: translateY(0);
+}
+.new-coll-poi-counter {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: rgba(0,0,0,0.45);
+  padding-top: 4px;
+}
+.new-coll-poi-counter strong { color: #3E00FB; font-weight: 700; font-size: 18px; }
+
+/* ── Form fields ── */
+.new-coll-field { display: flex; flex-direction: column; gap: 8px; }
+.new-coll-label { font-size: 14px; font-weight: 600; color: rgba(0,0,0,0.88); }
+.new-coll-icon-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.new-coll-icon-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; border-radius: 8px;
+  border: 1.5px solid #E8E8E8; background: #FAFAFA;
+  cursor: pointer; transition: all 0.15s; font-size: 16px;
+  color: rgba(0,0,0,0.45);
+}
+.new-coll-icon-btn:hover { border-color: #3E00FB; color: #3E00FB; background: #F0EAFF; }
+.new-coll-icon-btn.selected { border-color: #3E00FB; background: #F0EAFF; color: #3E00FB; }
+.new-coll-color-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.new-coll-color-swatch {
+  width: 28px; height: 28px; border-radius: 50%;
+  cursor: pointer; border: 2.5px solid transparent;
+  transition: transform 0.12s, border-color 0.12s;
+}
+.new-coll-color-swatch:hover { transform: scale(1.15); }
+.new-coll-color-swatch.selected { border-color: rgba(0,0,0,0.35); transform: scale(1.1); }
+
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const { useState, useEffect, useRef, useCallback } = React;
+const { ConfigProvider, Input, Button, Typography, Popover, Menu, Divider, Tooltip, Empty, Dropdown, Space } = antd;
+const {
+  SearchOutlined, BellOutlined, PlusOutlined, AppstoreOutlined, SendOutlined,
+  ArrowLeftOutlined,
+  EnvironmentOutlined,
+  StarOutlined, PushpinOutlined,
+  ShopOutlined, HomeOutlined, CarOutlined, BulbOutlined,
+  InboxOutlined, HeartOutlined, TagOutlined,
+  DeleteOutlined, MinusCircleOutlined, CopyOutlined, EyeOutlined, EllipsisOutlined, SaveOutlined,
+  ShareAltOutlined, UserOutlined,
+  ReadOutlined, ShoppingCartOutlined, MedicineBoxOutlined,
+} = icons;
+
+// ─────────────────────────────────────────────────────────
+// COLLEZIONI — dati e config
+// ─────────────────────────────────────────────────────────
+const COLL_COLORS = ['#3E00FB','#1677FF','#52C41A','#FAAD14','#FF4A1C','#EB2F96','#13C2C2','#722ED1'];
+
+const CURRENT_USER = { id: 'u0', name: 'Gloria Bonanno', initials: 'GB', role: 'Media Planner', avatarColor: '#3E00FB' };
+
+const PLATFORM_USERS = [
+  { id: 'u1', name: 'Marco Ricci',    initials: 'MR', role: 'Media Planner',    avatarColor: '#722ED1' },
+  { id: 'u2', name: 'Sofia Catalano', initials: 'SC', role: 'Account Manager',  avatarColor: '#EB2F96' },
+  { id: 'u3', name: 'Luca Ferrara',   initials: 'LF', role: 'Analyst',          avatarColor: '#FA8C16' },
+  { id: 'u4', name: 'Giulia Marino',  initials: 'GM', role: 'Media Planner',    avatarColor: '#13C2C2' },
+  { id: 'u5', name: 'Andrea Conti',   initials: 'AC', role: 'Campaign Manager', avatarColor: '#52C41A' },
+];
+
+const SHARED_COLLECTIONS = [
+  { id: 'col-def-1',  name: 'Scuole',               color: '#1677FF', icon: 'ReadOutlined',         poisCount: 42, createdBy: 'Marco Ricci',    createdAt: '10-04-2025', updatedAt: '10-04-2025', description: 'Istituti scolastici pubblici e privati',             area: 'Nazionale' },
+  { id: 'col-def-2',  name: 'Supermercati',          color: '#F759AB', icon: 'ShoppingCartOutlined', poisCount: 38, createdBy: 'Marco Ricci',    createdAt: '10-04-2025', updatedAt: '10-04-2025', description: 'Grande distribuzione e ipermercati',                   area: 'Nazionale' },
+  { id: 'col-def-3',  name: 'Farmacie',              color: '#EB2F96', icon: 'HeartOutlined',        poisCount: 29, createdBy: 'Marco Ricci',    createdAt: '10-04-2025', updatedAt: '10-04-2025', description: 'Farmacie e parafarmacie',                              area: 'Nazionale' },
+  { id: 'col-def-4',  name: 'Ospedali',              color: '#FF4A1C', icon: 'MedicineBoxOutlined',  poisCount: 11, createdBy: 'Sofia Catalano', createdAt: '10-04-2025', updatedAt: '10-04-2025', description: 'Strutture ospedaliere e pronto soccorso',              area: 'Nazionale' },
+  { id: 'col-def-5',  name: 'Stazioni ferroviarie',  color: '#722ED1', icon: 'CarOutlined',          poisCount: 8,  createdBy: 'Sofia Catalano', createdAt: '10-04-2025', updatedAt: '10-04-2025', description: 'Stazioni ferroviarie e fermate regionali',             area: 'Nazionale' },
+  { id: 'col-def-6',  name: 'Centri commerciali',    color: '#531DAB', icon: 'ShopOutlined',         poisCount: 14, createdBy: 'Luca Ferrara',   createdAt: '10-04-2025', updatedAt: '10-04-2025', description: 'Shopping center e gallerie commerciali',               area: 'Nazionale' },
+  { id: 'col-def-7',  name: 'Università',            color: '#0958D9', icon: 'ReadOutlined',         poisCount: 7,  createdBy: 'Luca Ferrara',   createdAt: '10-04-2025', updatedAt: '10-04-2025', description: 'Atenei, campus universitari e sedi distaccate',        area: 'Nazionale' },
+  { id: 'col-def-8',  name: 'Palestre',              color: '#13C2C2', icon: 'BulbOutlined',         poisCount: 33, createdBy: 'Giulia Marino',  createdAt: '10-04-2025', updatedAt: '10-04-2025', description: 'Centri fitness, palestre e piscine',                   area: 'Nazionale' },
+  { id: 'col-def-9',  name: 'Parchi',                color: '#237804', icon: 'EnvironmentOutlined',  poisCount: 21, createdBy: 'Giulia Marino',  createdAt: '10-04-2025', updatedAt: '10-04-2025', description: 'Parchi pubblici, giardini e aree verdi',               area: 'Nazionale' },
+  { id: 'col-def-10', name: 'Ristoranti',            color: '#FA8C16', icon: 'ShopOutlined',         poisCount: 87, createdBy: 'Andrea Conti',   createdAt: '10-04-2025', updatedAt: '10-04-2025', description: 'Ristorazione, bar, locali e fast food',                area: 'Nazionale' },
+];
+
+const INITIAL_OWN_COLLECTIONS = [
+  { id: 'col-cus-1', name: 'Centro storico Palermo',      color: '#3E00FB', icon: 'StarOutlined',        createdBy: 'Gloria Bonanno', createdAt: '25-04-2025', updatedAt: '02-05-2025', description: 'Monumenti e luoghi d\'interesse del centro storico', area: 'Sicilia Occidentale',
+    pois: [
+      { id: 'cc1-p1', label: 'Palazzo dei Normanni',    sub: 'Piazza del Parlamento, Palermo',  lat: 38.1115, lng: 13.3523 },
+      { id: 'cc1-p2', label: 'Cattedrale di Palermo',   sub: 'Via Vittorio Emanuele, Palermo',  lat: 38.1136, lng: 13.3557 },
+      { id: 'cc1-p3', label: 'Teatro Massimo',          sub: 'Piazza Verdi, Palermo',           lat: 38.1200, lng: 13.3611 },
+      { id: 'cc1-p4', label: 'Fontana Pretoria',        sub: 'Piazza Pretoria, Palermo',        lat: 38.1170, lng: 13.3611 },
+      { id: 'cc1-p5', label: 'Mercato Ballarò',         sub: 'Via Ballarò, Palermo',            lat: 38.1134, lng: 13.3577 },
+    ]},
+  { id: 'col-cus-2', name: 'Via Libertà',                 color: '#52C41A', icon: 'EnvironmentOutlined', createdBy: 'Gloria Bonanno', createdAt: '20-04-2025', updatedAt: '28-04-2025', description: 'Punti di riferimento lungo Via della Libertà',        area: 'Palermo PA',
+    pois: [
+      { id: 'cc2-p1', label: 'Piazza Sturzo',           sub: 'Via della Libertà, Palermo',      lat: 38.1258, lng: 13.3620 },
+      { id: 'cc2-p2', label: 'Villa Malfitano',         sub: 'Via Dante, Palermo',              lat: 38.1280, lng: 13.3548 },
+      { id: 'cc2-p3', label: 'Politeama Garibaldi',     sub: 'Piazza Ruggero Settimo, Palermo', lat: 38.1204, lng: 13.3593 },
+      { id: 'cc2-p4', label: 'Cinema De Seta',          sub: 'Via Gili, Palermo',               lat: 38.1240, lng: 13.3605 },
+    ]},
+  { id: 'col-cus-3', name: 'Scuole zona Politeama',       color: '#1677FF', icon: 'ReadOutlined',        createdBy: 'Gloria Bonanno', createdAt: '15-04-2025', updatedAt: '22-04-2025', description: 'Istituti scolastici nel quartiere Politeama',          area: 'Palermo PA',
+    pois: [
+      { id: 'cc3-p1', label: 'Liceo Classico Vittorio Emanuele II', sub: 'Via Roma 56, Palermo',        lat: 38.1178, lng: 13.3620 },
+      { id: 'cc3-p2', label: 'Istituto Comprensivo Piazzi',         sub: 'Via G. Piazzi, Palermo',     lat: 38.1210, lng: 13.3578 },
+      { id: 'cc3-p3', label: 'Scuola Media Scinà',                  sub: 'Via Sciná 40, Palermo',      lat: 38.1222, lng: 13.3600 },
+    ]},
+  { id: 'col-cus-4', name: 'Hub intermodale Stazione',    color: '#722ED1', icon: 'CarOutlined',         createdBy: 'Gloria Bonanno', createdAt: '08-04-2025', updatedAt: '15-04-2025', description: 'Nodi di trasporto pubblico intorno alla stazione',    area: 'Sicilia Occidentale',
+    pois: [
+      { id: 'cc4-p1', label: 'Stazione Centrale Palermo', sub: 'Piazza Giulio Cesare, Palermo', lat: 38.1096, lng: 13.3669 },
+      { id: 'cc4-p2', label: 'Terminal Bus AMG',           sub: 'Via Paolo Gili, Palermo',       lat: 38.1105, lng: 13.3650 },
+      { id: 'cc4-p3', label: 'Fermata Trinacria Express', sub: 'Via Oreto, Palermo',             lat: 38.1089, lng: 13.3680 },
+    ]},
+  { id: 'col-cus-5', name: 'Quartiere Noce residenziale', color: '#FA8C16', icon: 'HomeOutlined',        createdBy: 'Gloria Bonanno', createdAt: '01-04-2025', updatedAt: '09-04-2025', description: 'Servizi e punti di interesse del quartiere Noce',    area: 'Palermo PA',
+    pois: [
+      { id: 'cc5-p1', label: 'Piazza Noce',              sub: 'Piazza Noce, Palermo',            lat: 38.1290, lng: 13.3295 },
+      { id: 'cc5-p2', label: 'Supermercato Conad Noce',  sub: 'Via Lanza di Scalea, Palermo',   lat: 38.1305, lng: 13.3310 },
+      { id: 'cc5-p3', label: 'Parco Villa Castelnuovo',  sub: 'Viale della Regione Siciliana',  lat: 38.1275, lng: 13.3270 },
+      { id: 'cc5-p4', label: 'Scuola Elementare Noce',   sub: 'Via Noce 143, Palermo',          lat: 38.1315, lng: 13.3325 },
+    ]},
+];
+// poisCount è derivato dinamicamente da pois.length
+INITIAL_OWN_COLLECTIONS.forEach(c => { c.poisCount = c.pois.length; });
+
+const INITIAL_COLLECTIONS = [...INITIAL_OWN_COLLECTIONS, ...SHARED_COLLECTIONS];
+
+const INITIAL_COLLECTION_SHARES = {
+  'col-cus-1': [
+    { user: { id: 'u1', name: 'Marco Ricci',    initials: 'MR', avatarColor: '#722ED1' }, permission: 'edit' },
+    { user: { id: 'u2', name: 'Sofia Catalano', initials: 'SC', avatarColor: '#EB2F96' }, permission: 'view' },
+  ],
+  'col-cus-3': [
+    { user: { id: 'u3', name: 'Luca Ferrara',   initials: 'LF', avatarColor: '#FA8C16' }, permission: 'view' },
+  ],
+  'col-cus-4': [
+    { user: { id: 'u1', name: 'Marco Ricci',    initials: 'MR', avatarColor: '#722ED1' }, permission: 'view' },
+    { user: { id: 'u5', name: 'Andrea Conti',   initials: 'AC', avatarColor: '#52C41A' }, permission: 'view' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────
+// POI delle collezioni di default (mock)
+// ─────────────────────────────────────────────────────────
+// Viewport simulato: Palermo centrale zoom ~13
+const SIMULATED_VIEWPORT = { south: 38.107, north: 38.132, west: 13.348, east: 13.382 };
+function inViewport(lat, lng) {
+  return lat >= SIMULATED_VIEWPORT.south && lat <= SIMULATED_VIEWPORT.north &&
+         lng >= SIMULATED_VIEWPORT.west  && lng <= SIMULATED_VIEWPORT.east;
+}
+
+const DEFAULT_COLL_POIS = {
+  'col-def-1': [
+    { id: 'def1-01', label: 'Liceo Classico Vittorio Emanuele II', sub: 'Via Roma 56, Palermo',          lat: 38.1178, lng: 13.3620 },
+    { id: 'def1-02', label: 'Istituto Comprensivo Piazzi',          sub: 'Via G. Piazzi, Palermo',        lat: 38.1210, lng: 13.3578 },
+    { id: 'def1-03', label: 'Liceo Scientifico Cannizzaro',          sub: 'Via Scopari, Palermo',          lat: 38.1075, lng: 13.3622 },
+    { id: 'def1-04', label: 'Istituto Comprensivo Noce',             sub: 'Via Noce 143, Palermo',         lat: 38.1315, lng: 13.3325 },
+    { id: 'def1-05', label: 'Scuola Media Scinà',                    sub: 'Via Sciná 40, Palermo',         lat: 38.1222, lng: 13.3600 },
+    { id: 'def1-06', label: 'Istituto Tecnico Almeyda',              sub: 'Via Almeyda 24, Palermo',       lat: 38.1155, lng: 13.3482 },
+    { id: 'def1-07', label: 'Scuola Elementare Sperone',             sub: 'Via Sperone, Palermo',          lat: 38.0955, lng: 13.3810 },
+    { id: 'def1-08', label: 'Istituto Comprensivo Brancaccio',       sub: 'Via Brancaccio, Palermo',       lat: 38.0910, lng: 13.3760 },
+    { id: 'def1-09', label: 'Liceo Artistico Catalano',              sub: 'Via Del Molo 6, Palermo',       lat: 38.1189, lng: 13.3694 },
+    { id: 'def1-10', label: 'Istituto Comprensivo Politeama',        sub: 'Via Ruggero Settimo, Palermo',  lat: 38.1204, lng: 13.3593 },
+  ],
+  'col-def-2': [
+    { id: 'def2-01', label: 'Carrefour Palermo Centro',    sub: 'Via Libertà 118, Palermo',      lat: 38.1258, lng: 13.3620 },
+    { id: 'def2-02', label: 'Esselunga Palermo',           sub: 'Via Ernesto Basile, Palermo',   lat: 38.0998, lng: 13.3455 },
+    { id: 'def2-03', label: 'Conad City Noce',             sub: 'Via Lanza di Scalea, Palermo',  lat: 38.1305, lng: 13.3310 },
+    { id: 'def2-04', label: 'Lidl Palermo Oreto',          sub: 'Via Oreto 148, Palermo',        lat: 38.1081, lng: 13.3628 },
+    { id: 'def2-05', label: 'MD Discount Brancaccio',      sub: 'Via Brancaccio 120, Palermo',   lat: 38.0920, lng: 13.3755 },
+    { id: 'def2-06', label: 'Eurospin Zen',                sub: 'Via Filippo Patti, Palermo',    lat: 38.1380, lng: 13.3480 },
+    { id: 'def2-07', label: 'Penny Market Cruillas',       sub: 'Via Cruillas, Palermo',         lat: 38.1420, lng: 13.3660 },
+    { id: 'def2-08', label: 'Carrefour Market Zisa',       sub: 'Via Cappuccini, Palermo',       lat: 38.1185, lng: 13.3395 },
+  ],
+  'col-def-3': [
+    { id: 'def3-01', label: 'Farmacia Centrale',           sub: 'Corso Vittorio Emanuele, PA',   lat: 38.1145, lng: 13.3605 },
+    { id: 'def3-02', label: 'Farmacia Internazionale',     sub: 'Via Ruggero Settimo, Palermo',  lat: 38.1200, lng: 13.3590 },
+    { id: 'def3-03', label: 'Farmacia La Porta',           sub: 'Via Libertà 80, Palermo',       lat: 38.1248, lng: 13.3612 },
+    { id: 'def3-04', label: 'Farmacia Brancaccio',         sub: 'Via Brancaccio, Palermo',       lat: 38.0918, lng: 13.3762 },
+    { id: 'def3-05', label: 'Parafarmacia Noce',           sub: 'Via Noce, Palermo',             lat: 38.1320, lng: 13.3318 },
+    { id: 'def3-06', label: 'Farmacia dello Stadio',       sub: 'Viale del Fante, Palermo',      lat: 38.1340, lng: 13.3418 },
+  ],
+  'col-def-4': [
+    { id: 'def4-01', label: 'Ospedale Civico',             sub: 'Piazza Nicola Leotta, Palermo', lat: 38.1122, lng: 13.3728 },
+    { id: 'def4-02', label: 'Ospedale Villa Sofia',        sub: 'Viale Strasburgo, Palermo',     lat: 38.1358, lng: 13.3448 },
+    { id: 'def4-03', label: 'Ospedale Buccheri La Ferla',  sub: 'Via Messina Marine, Palermo',   lat: 38.0888, lng: 13.3598 },
+    { id: 'def4-04', label: 'Pronto Soccorso Vincenzo Cervello', sub: 'Via Trabucco, Palermo',   lat: 38.1455, lng: 13.3388 },
+    { id: 'def4-05', label: 'Policlinico P. Giaccone',     sub: 'Via del Vespro 129, Palermo',   lat: 38.1088, lng: 13.3682 },
+  ],
+  'col-def-5': [
+    { id: 'def5-01', label: 'Stazione Centrale Palermo',   sub: 'Piazza Giulio Cesare, Palermo', lat: 38.1096, lng: 13.3669 },
+    { id: 'def5-02', label: 'Stazione Notarbartolo',       sub: 'Via Notarbartolo, Palermo',     lat: 38.1278, lng: 13.3535 },
+    { id: 'def5-03', label: 'Stazione Palermo Brancaccio', sub: 'Via Brancaccio, Palermo',       lat: 38.0902, lng: 13.3840 },
+    { id: 'def5-04', label: 'Stazione Palermo Lolli',      sub: 'Via Cavour, Palermo',           lat: 38.1178, lng: 13.3488 },
+    { id: 'def5-05', label: 'Stazione Orleans',            sub: 'Via Campania, Palermo',         lat: 38.1332, lng: 13.3340 },
+  ],
+  'col-def-6': [
+    { id: 'def6-01', label: 'Forum Palermo',               sub: 'Via Ugo La Malfa, Palermo',     lat: 38.0992, lng: 13.3258 },
+    { id: 'def6-02', label: 'Centro Commerciale Conca d\'Oro', sub: 'Via Empedocle Restivo, PA', lat: 38.1302, lng: 13.3278 },
+    { id: 'def6-03', label: 'Giardino Ibleo',              sub: 'Via Perpignano, Palermo',       lat: 38.1185, lng: 13.3162 },
+    { id: 'def6-04', label: 'La Torre Shopping',           sub: 'Via Lanza di Scalea, Palermo',  lat: 38.1368, lng: 13.3192 },
+  ],
+  'col-def-7': [
+    { id: 'def7-01', label: 'Università degli Studi di Palermo', sub: 'Piazza Marina, Palermo',  lat: 38.1138, lng: 13.3672 },
+    { id: 'def7-02', label: 'Facoltà di Ingegneria',        sub: 'Viale delle Scienze, Palermo', lat: 38.1065, lng: 13.3465 },
+    { id: 'def7-03', label: 'Facoltà di Medicina',          sub: 'Via del Vespro, Palermo',      lat: 38.1092, lng: 13.3678 },
+    { id: 'def7-04', label: 'Campus Unipa Partinico',       sub: 'Via dei Mille, Partinico',     lat: 38.0492, lng: 13.1248 },
+  ],
+  'col-def-8': [
+    { id: 'def8-01', label: 'Palestra Planet Fitness Palermo', sub: 'Via Libertà, Palermo',      lat: 38.1255, lng: 13.3615 },
+    { id: 'def8-02', label: 'Virgin Active Palermo',         sub: 'Via Ugo La Malfa, Palermo',   lat: 38.0988, lng: 13.3262 },
+    { id: 'def8-03', label: 'Piscina Olimpica Comunale',     sub: 'Viale del Fante, Palermo',    lat: 38.1335, lng: 13.3415 },
+    { id: 'def8-04', label: 'Gym Box Palermo Centro',        sub: 'Via Roma 234, Palermo',       lat: 38.1168, lng: 13.3635 },
+    { id: 'def8-05', label: 'Crossfit Sicilia',              sub: 'Via Oreto, Palermo',          lat: 38.1085, lng: 13.3625 },
+    { id: 'def8-06', label: 'Palestra Noce Sport',           sub: 'Via Noce, Palermo',           lat: 38.1312, lng: 13.3330 },
+  ],
+  'col-def-9': [
+    { id: 'def9-01', label: 'Villa Giulia',                  sub: 'Foro Umberto I, Palermo',     lat: 38.1128, lng: 13.3728 },
+    { id: 'def9-02', label: 'Villa Bonanno',                 sub: 'Piazza della Vittoria, PA',   lat: 38.1118, lng: 13.3568 },
+    { id: 'def9-03', label: 'Parco della Favorita',          sub: 'Viale Diana, Palermo',        lat: 38.1498, lng: 13.3338 },
+    { id: 'def9-04', label: 'Villa Castelnuovo',             sub: 'Viale della Regione Sic., PA',lat: 38.1275, lng: 13.3270 },
+    { id: 'def9-05', label: 'Giardino Inglese',              sub: 'Via della Libertà, Palermo',  lat: 38.1275, lng: 13.3598 },
+    { id: 'def9-06', label: 'Parco Uditore',                 sub: 'Via Uditore, Palermo',        lat: 38.1392, lng: 13.3312 },
+  ],
+  'col-def-10': [
+    { id: 'def10-01', label: 'Osteria dei Vespri',            sub: 'Piazza Croce dei Vespri, PA', lat: 38.1158, lng: 13.3655 },
+    { id: 'def10-02', label: 'Trattoria Biondo',              sub: 'Via Carducci 15, Palermo',    lat: 38.1225, lng: 13.3532 },
+    { id: 'def10-03', label: 'Pizzeria Frida',                sub: 'Via Principe di Belmonte, PA',lat: 38.1188, lng: 13.3592 },
+    { id: 'def10-04', label: 'Pasticceria Cappello',          sub: 'Via Colonna Rotta 68, PA',    lat: 38.1278, lng: 13.3498 },
+    { id: 'def10-05', label: 'Caffè Spinnato',                sub: 'Via Principe di Belmonte, PA',lat: 38.1192, lng: 13.3598 },
+    { id: 'def10-06', label: 'Ristorante Cin Cin',            sub: 'Via Manin 22, Palermo',       lat: 38.1208, lng: 13.3578 },
+    { id: 'def10-07', label: 'Focacceria San Francesco',      sub: 'Via Paternostro, Palermo',    lat: 38.1162, lng: 13.3648 },
+    { id: 'def10-08', label: 'Bar Touring',                   sub: 'Via Quintino Sella, Palermo', lat: 38.1235, lng: 13.3568 },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────
+// POI — dati, utilities, geocoding
+// ─────────────────────────────────────────────────────────
+
+async function photonSuggestPOI(query, limit = 7) {
+  try {
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lang=it&limit=${limit}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const seen = new Set();
+    return (data.features || []).map(feat => {
+      const p = feat.properties;
+      const [lng, lat] = feat.geometry.coordinates;
+      if (!lat || !lng) return null;
+      const streetFull = p.street ? (p.housenumber ? `${p.street} ${p.housenumber}` : p.street) : null;
+      const label = p.name || streetFull;
+      if (!label) return null;
+      const subParts = [];
+      if (p.name && streetFull) subParts.push(streetFull);
+      if (p.city && p.city !== label) subParts.push(p.city);
+      const sub = subParts.join(', ') || (p.osm_value || '').replace(/_/g, ' ');
+      return { id: `ph-${lat.toFixed(5)}-${lng.toFixed(5)}`, label, sub, lat, lng, color: '#FF4A1C', icon: '📍' };
+    }).filter(x => { if (!x || seen.has(x.label)) return false; seen.add(x.label); return true; });
+  } catch { return []; }
+}
+
+async function googleAutocompletePOI(query, service, limit = 7) {
+  if (!service) return [];
+  return new Promise(resolve => {
+    const palermoBounds = new google.maps.LatLngBounds(
+      new google.maps.LatLng(38.055, 13.285),
+      new google.maps.LatLng(38.245, 13.455)
+    );
+    service.getPlacePredictions(
+      { input: query, bounds: palermoBounds },
+      (predictions, status) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
+          resolve([]); return;
+        }
+        resolve(predictions.slice(0, limit).map(p => ({
+          id:      `gac-${p.place_id}`,
+          label:   p.structured_formatting?.main_text || p.description,
+          sub:     p.structured_formatting?.secondary_text || '',
+          lat:     null,
+          lng:     null,
+          placeId: p.place_id,
+          color:   '#FF4A1C',
+          icon:    '📍',
+        })));
+      }
+    );
+  });
+}
+
+const POI_SVG_PATHS = {
+  ReadOutlined:         `<rect x="6" y="4" width="12" height="16" rx="1" fill="none" stroke="white" stroke-width="1.5"/><line x1="9" y1="8" x2="15" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="9" y1="11" x2="15" y2="11" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="9" y1="14" x2="13" y2="14" stroke="white" stroke-width="1.5" stroke-linecap="round"/>`,
+  ShoppingCartOutlined: `<path d="M5 5h1.2l2 8h8l1.8-5H9" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="17.5" r="1.2" fill="white"/><circle cx="15" cy="17.5" r="1.2" fill="white"/>`,
+  MedicineBoxOutlined:  `<rect x="5" y="8" width="14" height="11" rx="1.5" fill="none" stroke="white" stroke-width="1.5"/><path d="M9 8V6h6v2" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="11" x2="12" y2="16" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="9.5" y1="13.5" x2="14.5" y2="13.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>`,
+  CarOutlined:          `<path d="M7 12l2-5h6l2 5" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="12" width="16" height="5" rx="1" fill="none" stroke="white" stroke-width="1.5"/><circle cx="8.5" cy="17.5" r="1.5" fill="white"/><circle cx="15.5" cy="17.5" r="1.5" fill="white"/>`,
+  CoffeeOutlined:       `<path d="M7 9h8v6a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3V9z" fill="none" stroke="white" stroke-width="1.5"/><path d="M15 10h1.5a1.5 1.5 0 0 1 0 3H15" fill="none" stroke="white" stroke-width="1.5"/><line x1="6" y1="20" x2="18" y2="20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>`,
+  HeartOutlined:        `<path d="M12 19C8.5 16.5 4 13 4 9a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 4-4.5 7.5-8 10z" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
+  ThunderboltOutlined:  `<path d="M13 3L6 14h7l-2 7 9-11h-7l2-7z" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
+  ShopOutlined:         `<path d="M4 7h16l-1.5 4a2 2 0 0 1-4 0 2 2 0 0 1-4 0 2 2 0 0 1-4 0L4 7z" fill="none" stroke="white" stroke-width="1.5" stroke-linejoin="round"/><path d="M6 12v7h12v-7" fill="none" stroke="white" stroke-width="1.5"/><rect x="10" y="15" width="4" height="4" rx="0.5" fill="none" stroke="white" stroke-width="1.5"/>`,
+  BankOutlined:         `<polygon points="12,4 20,9 4,9" fill="none" stroke="white" stroke-width="1.5" stroke-linejoin="round"/><line x1="6" y1="9" x2="6" y2="17" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="9" x2="10" y2="17" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="14" y1="9" x2="14" y2="17" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="18" y1="9" x2="18" y2="17" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="17" x2="20" y2="17" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="3" y1="20" x2="21" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>`,
+  PlayCircleOutlined:   `<circle cx="12" cy="12" r="8" fill="none" stroke="white" stroke-width="1.5"/><path d="M10 9l6 3-6 3V9z" fill="white"/>`,
+  EnvironmentOutlined:  `<path d="M12 4a6 6 0 0 1 6 6c0 5-6 11-6 11S6 15 6 10a6 6 0 0 1 6-6z" fill="none" stroke="white" stroke-width="1.5"/><circle cx="12" cy="10" r="2" fill="white"/>`,
+};
+
+function makePoiMarkerIcon(color, antIconName) {
+  const rawPath = POI_SVG_PATHS[antIconName] || POI_SVG_PATHS.EnvironmentOutlined;
+  const iconPath = rawPath.replace(/="white"/g, `="${color}"`);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28"><circle cx="12" cy="12" r="11" fill="white" stroke="white" stroke-width="2"/><circle cx="12" cy="12" r="11" fill="${color}" fill-opacity="0.15"/><g transform="translate(3.6,3.6) scale(0.7)">${iconPath}</g></svg>`;
+  return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), scaledSize: new google.maps.Size(22, 22), anchor: new google.maps.Point(11, 11) };
+}
+
+async function photonReverse(lat, lng) {
+  try {
+    const res = await fetch(
+      `https://photon.komoot.io/reverse/?lat=${lat}&lon=${lng}&lang=it&limit=1`,
+      { signal: AbortSignal.timeout(4000) }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const feat = data.features?.[0];
+    if (!feat) return null;
+    const p = feat.properties;
+    const street = p.street ? (p.housenumber ? `${p.street} ${p.housenumber}` : p.street) : null;
+    const label = p.name && street ? `${p.name}, ${street}` : p.name || street || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    const sub   = [street, p.city].filter(Boolean).join(', ');
+    return { id: `rev-${lat.toFixed(5)}-${lng.toFixed(5)}`, label, sub, lat, lng };
+  } catch { return null; }
+}
+
+// ─────────────────────────────────────────────────────────
+// PLANNER PROFILE
+// ─────────────────────────────────────────────────────────
+const PLANNER = {
+  name:      'Gloria Bonanno',
+  initials:  'GB',
+  role:      'Pianificatrice',
+  area:      'Sicilia Occidentale',
+  provinces: ['Palermo', 'Trapani', 'Agrigento', 'Caltanissetta'],
+  channels:  ['OOH', 'DOOH'],
+};
+
+// ─────────────────────────────────────────────────────────
+// COLLECTIONS LIST VIEW
+// ─────────────────────────────────────────────────────────
+const COLL_ICON_MAP = {
+  ReadOutlined:         ReadOutlined,
+  ShoppingCartOutlined: ShoppingCartOutlined,
+  MedicineBoxOutlined:  MedicineBoxOutlined,
+  EnvironmentOutlined:  EnvironmentOutlined,
+  StarOutlined:         StarOutlined,
+  HomeOutlined:         HomeOutlined,
+  CarOutlined:          CarOutlined,
+  HeartOutlined:        HeartOutlined,
+  ShopOutlined:         ShopOutlined,
+  BulbOutlined:         BulbOutlined,
+  PushpinOutlined:      PushpinOutlined,
+  TagOutlined:          TagOutlined,
+};
+
+
+function CollectionsListView({ onNewCollection, onEditCollection, collections, onDeleteCollection, onDuplicateCollection, highlightedCollId, onShare, collectionShares }) {
+  const allCollections = collections;
+
+  return React.createElement('div', { className: 'coll-shell' },
+
+    // ── Header bar ─────────────────────────────────────────
+    React.createElement('div', { className: 'coll-list-header' },
+      React.createElement('span', { className: 'coll-list-header-title' }, 'Collezioni POI'),
+      React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center' } },
+        React.createElement(Button, {
+          type: 'primary',
+          icon: React.createElement(PlusOutlined),
+          onClick: onNewCollection,
+        }, 'Nuova Collezione'),
+      ),
+    ),
+
+    React.createElement('div', { className: 'coll-view' },
+
+      React.createElement('div', { className: 'coll-table-wrap' },
+
+        // ── Toolbar ────────────────────────────────────────
+        React.createElement('div', { className: 'coll-toolbar' },
+          React.createElement('span', { className: 'coll-toolbar-count' },
+            React.createElement('strong', null, 'Totale:'),
+            ` ${collections.length} collezioni`
+          ),
+        ),
+
+        // ── Tabella ─────────────────────────────────────────
+        React.createElement(antd.Table, {
+          size: 'small',
+          showSorterTooltip: false,
+          style: { margin: '0 16px' },
+          pagination: {
+            pageSize: 10,
+            position: ['bottomRight'],
+            style: { padding: '16px 0', margin: '0 16px' },
+          },
+          scroll: { x: 1135 },
+          dataSource: collections.map(c => ({ ...c, key: c.id })),
+          onRow: (record) => ({
+            onClick: () => onEditCollection(record),
+            style: { cursor: 'pointer' },
+          }),
+          rowClassName: (record) => record.id === highlightedCollId ? 'coll-row-highlighted' : '',
+          columns: [
+            {
+              title: 'Nome',
+              dataIndex: 'name',
+              width: 200,
+              filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) =>
+                React.createElement('div', { style: { padding: 8 } },
+                  React.createElement(antd.Input, {
+                    placeholder: 'Cerca per nome',
+                    value: selectedKeys[0],
+                    onChange: e => setSelectedKeys(e.target.value ? [e.target.value] : []),
+                    onPressEnter: () => confirm(),
+                    style: { marginBottom: 8, display: 'block' },
+                  }),
+                  React.createElement('div', { style: { display: 'flex', gap: 8 } },
+                    React.createElement(antd.Button, { type: 'primary', size: 'small', onClick: () => confirm() }, 'Cerca'),
+                    React.createElement(antd.Button, { size: 'small', onClick: () => { clearFilters(); confirm(); } }, 'Reset'),
+                  )
+                ),
+              filterIcon: filtered => React.createElement(icons.SearchOutlined, { style: { color: filtered ? '#3E00FB' : undefined } }),
+              onFilter: (value, record) => record.name.toLowerCase().includes(value.toLowerCase()),
+              render: (name, record) => {
+                const IconComp = record.icon ? COLL_ICON_MAP[record.icon] : null;
+                return React.createElement('div', { className: 'coll-name-chip' },
+                  IconComp
+                    ? React.createElement('div', {
+                        style: {
+                          width: 22, height: 22, borderRadius: 5, flexShrink: 0,
+                          background: record.color + '18',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }
+                      }, React.createElement(IconComp, { style: { fontSize: 11, color: record.color } }))
+                    : React.createElement('span', { className: 'coll-color-dot', style: { background: record.color } }),
+                  React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.88)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, name)
+                );
+              },
+            },
+            {
+              title: 'Descrizione',
+              dataIndex: 'description',
+              width: 260,
+              render: v => v
+                ? React.createElement(Tooltip, { title: v, placement: 'topLeft' },
+                    React.createElement('span', {
+                      style: { color: 'rgba(0,0,0,0.65)', fontSize: 13, display: 'block',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+                    }, v)
+                  )
+                : React.createElement('span', { style: { color: 'rgba(0,0,0,0.2)', fontSize: 13 } }, '—'),
+            },
+            {
+              title: 'Area di riferimento',
+              dataIndex: 'area',
+              width: 165,
+              filters: [
+                { text: 'Nazionale',          value: 'Nazionale' },
+                { text: 'Sicilia Occidentale', value: 'Sicilia Occidentale' },
+                { text: 'Palermo PA',          value: 'Palermo PA' },
+              ],
+              onFilter: (value, record) => record.area === value,
+              render: v => v
+                ? React.createElement('span', { style: { color: 'rgba(0,0,0,0.65)', fontSize: 13 } }, v)
+                : React.createElement('span', { style: { color: 'rgba(0,0,0,0.2)', fontSize: 13 } }, '—'),
+            },
+            {
+              title: "POI",
+              dataIndex: 'poisCount',
+              width: 80,
+              align: 'center',
+              sorter: (a, b) => a.poisCount - b.poisCount,
+              render: v => React.createElement('span', {
+                style: {
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: '#3E00FB', color: '#fff',
+                  borderRadius: 26, padding: '0 10px', height: 22,
+                  fontSize: 12, fontWeight: 600, minWidth: 32,
+                }
+              }, v),
+            },
+            {
+              title: 'Ultimo aggiornamento',
+              dataIndex: 'updatedAt',
+              width: 140,
+              sorter: (a, b) => a.updatedAt.localeCompare(b.updatedAt),
+              render: v => React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, v),
+            },
+            {
+              title: 'Creato il',
+              dataIndex: 'createdAt',
+              width: 100,
+              sorter: (a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''),
+              render: v => React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, v || '—'),
+            },
+            {
+              title: 'Creato da',
+              dataIndex: 'createdBy',
+              width: 145,
+              filters: [...new Set(allCollections.map(c => c.createdBy))].map(name => ({ text: name, value: name })),
+              onFilter: (value, record) => record.createdBy === value,
+              render: (v, record) => {
+                const isOwn = record.createdBy === CURRENT_USER.name;
+                const user  = isOwn ? CURRENT_USER : (PLATFORM_USERS.find(u => u.name === v) || { initials: v.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase(), avatarColor: '#8C8C8C' });
+                return React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                  React.createElement('span', {
+                    style: {
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 22, height: 22, borderRadius: '50%',
+                      background: user.avatarColor, fontSize: 10, fontWeight: 700, color: '#fff', flexShrink: 0,
+                    }
+                  }, user.initials),
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.65)', fontSize: 13 } }, isOwn ? `${v} (tu)` : v)
+                );
+              },
+            },
+            {
+              title: 'Condivisa con',
+              width: 130,
+              render: (_, record) => {
+                const shares = collectionShares[record.id] || [];
+                if (shares.length === 0) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.2)', fontSize: 13 } }, '—');
+                const visible  = shares.slice(0, 3);
+                const overflow = shares.length - 3;
+                return React.createElement(Tooltip, {
+                  title: shares.map(s => s.user.name).join(', '),
+                  placement: 'top',
+                },
+                  React.createElement('div', {
+                    style: { display: 'inline-flex', alignItems: 'center', cursor: 'pointer' },
+                    onClick: e => { e.stopPropagation(); onShare([record.id]); },
+                  },
+                    visible.map((s, i) => React.createElement('span', {
+                      key: s.user.id,
+                      style: {
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: 22, height: 22, borderRadius: '50%',
+                        background: s.user.avatarColor, fontSize: 9, fontWeight: 700, color: '#fff',
+                        border: '2px solid #fff',
+                        marginLeft: i === 0 ? 0 : -6,
+                        position: 'relative', zIndex: visible.length - i,
+                      }
+                    }, s.user.initials)),
+                    overflow > 0 && React.createElement('span', {
+                      style: {
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: 22, height: 22, borderRadius: '50%',
+                        background: '#F0F0F0', fontSize: 9, fontWeight: 600, color: 'rgba(0,0,0,0.45)',
+                        border: '2px solid #fff',
+                        marginLeft: -6, position: 'relative',
+                      }
+                    }, `+${overflow}`),
+                  )
+                );
+              },
+            },
+            {
+              title: '',
+              width: 48,
+              fixed: 'right',
+              render: (_, record) => {
+                const isOwn = record.createdBy === CURRENT_USER.name;
+                return React.createElement(Dropdown, {
+                menu: {
+                  items: isOwn ? [
+                    { key: 'open',      label: 'Apri',       icon: React.createElement(EyeOutlined) },
+                    { key: 'duplicate', label: 'Duplica',    icon: React.createElement(CopyOutlined) },
+                    { key: 'share',     label: 'Condividi',  icon: React.createElement(ShareAltOutlined) },
+                    { type: 'divider' },
+                    { key: 'delete',    label: 'Elimina',    icon: React.createElement(DeleteOutlined), danger: true },
+                  ] : [
+                    { key: 'open',      label: 'Apri',       icon: React.createElement(EyeOutlined) },
+                    { key: 'duplicate', label: 'Duplica',    icon: React.createElement(CopyOutlined) },
+                    { key: 'share',     label: 'Condividi',  icon: React.createElement(ShareAltOutlined) },
+                    { type: 'divider' },
+                    { key: 'delete',    label: 'Rimuovi',    icon: React.createElement(MinusCircleOutlined), danger: true },
+                  ],
+                  onClick: ({ key, domEvent }) => {
+                    domEvent.stopPropagation();
+                    if (key === 'open')      onEditCollection(record);
+                    if (key === 'duplicate') onDuplicateCollection(record);
+                    if (key === 'share')     onShare([record.id]);
+                    if (key === 'delete') antd.Modal.confirm({
+                      title: isOwn ? 'Elimina collezione' : 'Rimuovi accesso',
+                      icon: React.createElement(DeleteOutlined, { style: { color: '#ff4d4f' } }),
+                      content: isOwn
+                        ? `Sei sicuro di voler eliminare "${record.name}"? L'operazione non può essere annullata.`
+                        : `Rimuoverai il tuo accesso a "${record.name}". Per riottenere l'accesso dovrai essere ricondiviso.`,
+                      okText: isOwn ? 'Elimina' : 'Rimuovi accesso',
+                      okButtonProps: { danger: true },
+                      cancelText: 'Annulla',
+                      onOk: () => onDeleteCollection(record.id),
+                    });
+                  },
+                },
+                trigger: ['click'],
+                placement: 'bottomRight',
+              },
+                React.createElement(Button, {
+                  type: 'text', size: 'small',
+                  icon: React.createElement(EllipsisOutlined),
+                  style: { color: 'rgba(0,0,0,0.45)' },
+                  onClick: e => e.stopPropagation(),
+                })
+              );
+              },
+            },
+          ],
+        }),
+      ),
+    ),   // ← chiude coll-view
+  );   // ← chiude coll-shell
+}
+
+// ─────────────────────────────────────────────────────────
+// COLLECTION MAP PICKER
+// ─────────────────────────────────────────────────────────
+function CollectionMapPicker({ open, autocompleteService, placesService, collPois, onAddPin, onRemovePin, allCollections }) {
+  const mapRef           = useRef(null);
+  const mapInst          = useRef(null);
+  const pinMarkersRef    = useRef({});
+  const pendingMarkerRef = useRef(null);
+  const debounceRef      = useRef(null);
+  const inputRef         = useRef(null);
+  const onMapClickRef    = useRef(null);
+
+  const [addrQuery,  setAddrQuery]  = useState('');
+  const [addrSuggs,  setAddrSuggs]  = useState([]);
+  const [collSuggs,  setCollSuggs]  = useState([]);
+  const [showSugg,   setShowSugg]   = useState(false);
+  const [searching,  setSearching]  = useState(false);
+  const [pendingPin, setPendingPin] = useState(null);
+
+  // ── Init mappa ─────────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || mapInst.current) return;
+    try {
+      mapInst.current = new google.maps.Map(mapRef.current, {
+        center: { lat: 38.115, lng: 13.362 },
+        zoom: 12,
+        disableDefaultUI: true,
+        zoomControl: true,
+        zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+        styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }],
+      });
+      // click sulla mappa → pin + reverse geocoding
+      mapInst.current.addListener('click', (e) => onMapClickRef.current?.(e));
+    } catch(err) { console.warn('CollectionMapPicker init:', err); }
+  }, []);
+
+  // aggiorna il riferimento al handler ad ogni render (accede all'ultimo stato)
+  onMapClickRef.current = async (e) => {
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+    const result = await photonReverse(lat, lng);
+    dropPin(result || { id: `click-${lat.toFixed(5)}-${lng.toFixed(5)}`, label: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, sub: '', lat, lng });
+  };
+
+  // ── Sincronizza marker mappa con collPois ─────────────
+  useEffect(() => {
+    if (!mapInst.current) return;
+    const currentIds = new Set((collPois || []).map(p => p.id));
+    Object.keys(pinMarkersRef.current).forEach(id => {
+      if (!currentIds.has(id)) { pinMarkersRef.current[id].setMap(null); delete pinMarkersRef.current[id]; }
+    });
+    (collPois || []).forEach(poi => {
+      if (!pinMarkersRef.current[poi.id]) {
+        pinMarkersRef.current[poi.id] = new google.maps.Marker({
+          map: mapInst.current,
+          position: { lat: poi.lat, lng: poi.lng },
+          title: poi.label,
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#3E00FB', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
+        });
+      }
+    });
+    if ((collPois || []).length === 1) {
+      mapInst.current.panTo({ lat: collPois[0].lat, lng: collPois[0].lng });
+      mapInst.current.setZoom(15);
+    } else if ((collPois || []).length > 1) {
+      const bounds = new google.maps.LatLngBounds();
+      collPois.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
+      mapInst.current.fitBounds(bounds, 80);
+    }
+  }, [collPois]);
+
+  // ── Mostra punto in attesa di conferma ────────────────
+  const dropPin = (sugg) => {
+    setAddrQuery('');
+    setAddrSuggs([]);
+    setShowSugg(false);
+    if (pendingMarkerRef.current) { pendingMarkerRef.current.setMap(null); pendingMarkerRef.current = null; }
+    setPendingPin(sugg);
+    if (!mapInst.current) return;
+    pendingMarkerRef.current = new google.maps.Marker({
+      map: mapInst.current,
+      position: { lat: sugg.lat, lng: sugg.lng },
+      title: sugg.label,
+      icon: { path: google.maps.SymbolPath.CIRCLE, scale: 9, fillColor: '#3E00FB', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
+    });
+    mapInst.current.panTo({ lat: sugg.lat, lng: sugg.lng });
+    mapInst.current.setZoom(15);
+  };
+
+  const confirmPin = () => {
+    if (!pendingPin) return;
+    if (pendingMarkerRef.current) { pendingMarkerRef.current.setMap(null); pendingMarkerRef.current = null; }
+    onAddPin({ id: pendingPin.id, label: pendingPin.label, sub: pendingPin.sub || '', lat: pendingPin.lat, lng: pendingPin.lng });
+    setPendingPin(null);
+  };
+
+  const dismissPin = () => {
+    if (pendingMarkerRef.current) { pendingMarkerRef.current.setMap(null); pendingMarkerRef.current = null; }
+    setPendingPin(null);
+  };
+
+  // ── Risolve placeId → coordinate (Google Places) ──────
+  const resolveAndPin = (sugg) => {
+    if (sugg.placeId && placesService) {
+      placesService.getDetails(
+        { placeId: sugg.placeId, fields: ['geometry', 'name'] },
+        (place, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
+            dropPin({ id: sugg.id, label: place.name || sugg.label, sub: sugg.sub,
+              lat: place.geometry.location.lat(), lng: place.geometry.location.lng() });
+          }
+        }
+      );
+    } else if (sugg.lat != null && sugg.lng != null) {
+      dropPin(sugg);
+    }
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    setPendingPin(null);
+    if (pendingMarkerRef.current) { pendingMarkerRef.current.setMap(null); pendingMarkerRef.current = null; }
+    setTimeout(() => {
+      if (mapInst.current) google.maps.event.trigger(mapInst.current, 'resize');
+    }, 300);
+  }, [open]);
+
+
+  // ── Ricerca suggerimenti (Google Autocomplete → Photon fallback) ──
+  const fetchSuggestions = async (val) => {
+    let results = [];
+    if (autocompleteService) {
+      results = await googleAutocompletePOI(val, autocompleteService);
+    }
+    if (results.length === 0) {
+      results = await photonSuggestPOI(val, 7);
+    }
+    return results;
+  };
+
+  const handleAddrChange = (val) => {
+    setAddrQuery(val);
+    setShowSugg(true);
+    const q = val.toLowerCase().trim();
+    setCollSuggs(q.length >= 1
+      ? (allCollections || []).filter(c => c.name.toLowerCase().includes(q))
+      : []);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (val.length >= 2) {
+      debounceRef.current = setTimeout(async () => {
+        setAddrSuggs(await fetchSuggestions(val));
+      }, 350);
+    } else {
+      setAddrSuggs([]);
+    }
+  };
+
+  const handleSelectCollection = (coll) => {
+    const pois = coll.pois || DEFAULT_COLL_POIS[coll.id] || [];
+    const toAdd = pois.filter(p => !collPois.find(e => e.id === p.id));
+    toAdd.forEach(p => onAddPin(p));
+    setAddrQuery('');
+    setCollSuggs([]);
+    setAddrSuggs([]);
+    setShowSugg(false);
+    antd.message.success(
+      toAdd.length > 0
+        ? `${toAdd.length} POI importati da "${coll.name}"`
+        : `Tutti i POI di "${coll.name}" sono già presenti`
+    );
+  };
+
+  // ── Ricerca immediata al click "Cerca" o Enter ─────────
+  const handleSearch = async () => {
+    const q = addrQuery.trim();
+    if (!q) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setSearching(true);
+    const results = await fetchSuggestions(q);
+    setSearching(false);
+    if (results.length === 0) return;
+    if (results.length === 1) {
+      resolveAndPin(results[0]);
+    } else {
+      setAddrSuggs(results);
+      setShowSugg(true);
+    }
+  };
+
+  return React.createElement('div', { className: 'new-coll-map-side' },
+
+    // ── Search bar ────────────────────────────────────────
+    React.createElement('div', { className: 'new-coll-poi-search' },
+      React.createElement('div', { className: 'new-coll-field' },
+      React.createElement('span', { className: 'new-coll-label' }, 'Cerca luoghi'),
+      React.createElement('div', { className: 'ss-searchbar-wrap' },
+
+        React.createElement(Space.Compact, { style: { width: '100%' } },
+          React.createElement(Input, {
+            ref: inputRef,
+            prefix: React.createElement(icons.SearchOutlined, { style: { color: 'rgba(0,0,0,0.3)' } }),
+            placeholder: 'Es. Via Roma 14, Lidl, supermercati…',
+            value: addrQuery,
+            onChange: e => handleAddrChange(e.target.value),
+            onFocus: () => setShowSugg(true),
+            onBlur: () => setTimeout(() => setShowSugg(false), 200),
+            onPressEnter: handleSearch,
+            size: 'large',
+          }),
+          React.createElement(Button, {
+            size: 'large',
+            loading: searching,
+            disabled: searching,
+            onMouseDown: e => { e.preventDefault(); handleSearch(); },
+          }, searching ? 'Ricerca…' : 'Cerca'),
+        ),
+
+        // Dropdown suggerimenti
+        showSugg && (collSuggs.length > 0 || addrSuggs.length > 0) && React.createElement('div', { className: 'ss-suggestions-wrap' },
+
+          // ── Collezioni di default ──
+          collSuggs.length > 0 && React.createElement(React.Fragment, null,
+            React.createElement('div', { className: 'ss-sugg-group-title' }, 'Collezioni'),
+            collSuggs.map(c => {
+              const IconComp = COLL_ICON_MAP[c.icon] || icons.AppstoreOutlined;
+              const collPoisData = c.pois || DEFAULT_COLL_POIS[c.id] || [];
+              const alreadyAdded = collPoisData.every(p => collPois.find(e => e.id === p.id));
+              return React.createElement('div', {
+                key: c.id,
+                className: 'ss-suggestion-item',
+                onMouseDown: () => handleSelectCollection(c),
+              },
+                React.createElement('div', {
+                  style: { width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                    background: c.color + '18',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                },
+                  React.createElement(IconComp, { style: { fontSize: 12, color: c.color } })
+                ),
+                React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                  React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, c.name),
+                  React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.38)', marginTop: 1 } },
+                    alreadyAdded ? 'Già aggiunta' : `${collPoisData.length} POI`
+                  ),
+                ),
+              );
+            }),
+          ),
+
+          // ── Luoghi ──
+          addrSuggs.length > 0 && React.createElement(React.Fragment, null,
+            React.createElement('div', { className: 'ss-sugg-group-title' }, 'Luoghi'),
+            addrSuggs.map(s => React.createElement('div', {
+              key: s.id,
+              className: 'ss-suggestion-item',
+              onMouseDown: () => resolveAndPin(s),
+            },
+              React.createElement('div', {
+                style: { width: 28, height: 28, borderRadius: 6, background: 'rgba(62,0,251,0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
+              },
+                React.createElement(icons.EnvironmentOutlined, { style: { fontSize: 12, color: '#3E00FB' } })
+              ),
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, s.label),
+                s.sub && React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.38)', marginTop: 1 } }, s.sub),
+              ),
+            )),
+          ),
+        ),
+
+      )
+    )
+  ),
+
+    // ── Mappa + lista affiancate ──────────────────────────
+    React.createElement('div', { className: 'new-coll-map-content' },
+
+    React.createElement('div', { className: 'new-coll-map-area' },
+
+      React.createElement('div', { ref: mapRef, className: 'new-coll-map-wrap' }),
+
+      React.createElement('div', { className: `new-coll-detail-panel${pendingPin ? ' visible' : ''}` },
+        pendingPin && React.createElement(React.Fragment, null,
+          React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 } },
+            React.createElement('div', {
+              style: { width: 32, height: 32, borderRadius: 8, background: 'rgba(62,0,251,0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+            },
+              React.createElement(icons.EnvironmentOutlined, { style: { fontSize: 14, color: '#3E00FB' } }),
+            ),
+            React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+              React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', lineHeight: '20px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, pendingPin.label),
+              pendingPin.sub && React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginTop: 2 } }, pendingPin.sub),
+            ),
+            React.createElement('button', {
+              style: { border: 'none', background: 'none', cursor: 'pointer', color: 'rgba(0,0,0,0.35)', padding: '2px 4px', lineHeight: 1, flexShrink: 0 },
+              onClick: dismissPin,
+            },
+              React.createElement(icons.CloseOutlined, { style: { fontSize: 13 } }),
+            ),
+          ),
+          (() => {
+            const alreadyIn = collPois.some(p => p.id === pendingPin.id);
+            return React.createElement('div', { style: { display: 'flex', gap: 8 } },
+              React.createElement(antd.Button, { onClick: dismissPin }, 'Ignora'),
+              React.createElement(antd.Button, {
+                type: 'primary',
+                icon: React.createElement(alreadyIn ? icons.CheckOutlined : icons.PlusOutlined),
+                onClick: confirmPin,
+                disabled: alreadyIn,
+              }, alreadyIn ? 'Aggiunto alla collezione' : 'Aggiungi alla collezione'),
+            );
+          })(),
+        ),
+      ),
+    ),
+
+    React.createElement('div', { className: 'new-coll-list-view' },
+      React.createElement('div', { className: 'new-coll-list-header' },
+        React.createElement('span', { className: 'new-coll-poi-counter' },
+          React.createElement('strong', null, collPois.length),
+          collPois.length === 1 ? ' POI selezionato' : ' POI selezionati',
+        ),
+      ),
+      React.createElement('div', { className: 'new-coll-list-scroll' },
+      collPois.length === 0
+        ? React.createElement(antd.Empty, {
+            image: antd.Empty.PRESENTED_IMAGE_SIMPLE,
+            description: 'Nessun POI aggiunto.',
+            style: { margin: 'auto' },
+          })
+        : collPois.map(poi => React.createElement('div', { key: poi.id, className: 'new-coll-list-item' },
+            React.createElement('div', {
+              style: { width: 32, height: 32, borderRadius: 8, background: 'rgba(62,0,251,0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+            },
+              React.createElement(icons.EnvironmentOutlined, { style: { fontSize: 14, color: '#3E00FB' } }),
+            ),
+            React.createElement('div', { className: 'new-coll-list-item-info' },
+              React.createElement('div', { className: 'new-coll-list-item-label' }, poi.label),
+              poi.sub && React.createElement('div', { className: 'new-coll-list-item-sub' }, poi.sub),
+            ),
+            React.createElement(antd.Button, {
+              type: 'text', size: 'small', danger: true,
+              icon: React.createElement(icons.DeleteOutlined),
+              onClick: () => onRemovePin(poi.id),
+            }),
+          )),
+      ), // new-coll-list-scroll
+    ),
+    ), // new-coll-map-content
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────
+// APP
+// ─────────────────────────────────────────────────────────
+function App() {
+  const [collections, setCollections] = useState(INITIAL_COLLECTIONS);
+
+  const handleDeleteCollection = useCallback((id) => {
+    setCollections(prev => prev.filter(c => c.id !== id));
+  }, []);
+
+  const [highlightedCollId, setHighlightedCollId] = useState(null);
+
+  const handleDuplicateCollection = useCallback((record) => {
+    const d = new Date();
+    const dd   = String(d.getDate()).padStart(2, '0');
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const copy = {
+      id:          `col-cus-${Date.now()}`,
+      name:        `${record.name} (copia)`,
+      color:       record.color,
+      icon:        record.icon,
+      pois:        [...(record.pois || [])],
+      poisCount:   record.poisCount || (record.pois || []).length,
+      createdBy:   CURRENT_USER.name,
+      createdAt:   `${dd}-${mm}-${yyyy}`,
+      updatedAt:   `${dd}-${mm}-${yyyy}`,
+      description: record.description || '',
+      area:        record.area || '',
+    };
+    setCollections(prev => [copy, ...prev]);
+    setHighlightedCollId(copy.id);
+    setTimeout(() => setHighlightedCollId(null), 2200);
+  }, []);
+
+  // ── Schermata creazione/modifica ────────────────────────
+  const [appView, setAppView] = useState('list'); // 'list' | 'edit'
+  const [newCollName,        setNewCollName]        = useState('');
+  const [newCollDescription, setNewCollDescription] = useState('');
+  const [newCollArea,        setNewCollArea]        = useState('');
+  const [newCollIcon,        setNewCollIcon]        = useState('StarOutlined');
+  const [newCollColor,       setNewCollColor]       = useState(COLL_COLORS[0]);
+  const [collPois,           setCollPois]           = useState([]);
+  const [editingColl,  setEditingColl]  = useState(null);
+
+  const handleAddCollPin    = useCallback((poi) => {
+    setCollPois(prev => {
+      if (prev.some(p => p.id === poi.id)) return prev;
+      return [...prev, poi];
+    });
+  }, []);
+  const handleRemoveCollPin = useCallback((id)  => setCollPois(prev => prev.filter(p => p.id !== id)), []);
+
+
+  const closeNewCollDrawer = useCallback(() => {
+    setAppView('list');
+    setEditingColl(null);
+    setCollPois([]);
+  }, []);
+
+  const handleCreateCollection = useCallback(() => {
+    if (!newCollName.trim()) return;
+    const d = new Date();
+    const dd   = String(d.getDate()).padStart(2, '0');
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    if (editingColl) {
+      const updated = { ...editingColl, name: newCollName.trim(), description: newCollDescription.trim(), area: newCollArea.trim(), icon: newCollIcon, color: newCollColor, pois: collPois, poisCount: collPois.length, updatedAt: `${dd}-${mm}-${yyyy}` };
+      setCollections(prev => prev.map(c => c.id === editingColl.id ? updated : c));
+      setEditingColl(updated);
+      antd.message.success(`Collezione "${updated.name}" aggiornata`);
+    } else {
+      const coll = {
+        id: `col-cus-${Date.now()}`,
+        name: newCollName.trim(),
+        color: newCollColor,
+        icon: newCollIcon,
+        pois: collPois,
+        poisCount: collPois.length,
+        createdBy: CURRENT_USER.name,
+        createdAt: `${dd}-${mm}-${yyyy}`,
+        updatedAt: `${dd}-${mm}-${yyyy}`,
+        description: newCollDescription.trim(),
+        area: newCollArea.trim(),
+      };
+      setCollections(prev => [coll, ...prev]);
+      setEditingColl(coll);
+      setEditReadOnly(false);
+      antd.message.success(`Collezione "${coll.name}" creata`);
+    }
+  }, [newCollName, newCollDescription, newCollArea, newCollIcon, newCollColor, collPois, editingColl]);
+
+  // ── Modifica collezione (riusa drawer creazione) ────────
+  const [editReadOnly, setEditReadOnly] = useState(false);
+
+  // ── Share modal ──────────────────────────────────────────
+  const [shareModalOpen,   setShareModalOpen]   = useState(false);
+  const [shareTargetIds,   setShareTargetIds]   = useState([]);
+  const [userSearch,       setUserSearch]       = useState('');
+  const [pendingUsers,     setPendingUsers]     = useState([]);
+  const [pendingPerm,      setPendingPerm]      = useState('view');
+  const [collectionShares, setCollectionShares] = useState(INITIAL_COLLECTION_SHARES);
+  const [showUserDrop,     setShowUserDrop]     = useState(false);
+
+  const openShareModal = (ids) => {
+    setShareTargetIds(ids);
+    setUserSearch('');
+    setPendingUsers([]);
+    setPendingPerm('view');
+    setShowUserDrop(false);
+    setShareModalOpen(true);
+  };
+
+  const suggestedUsers = PLATFORM_USERS.filter(u => {
+    if (!userSearch.trim()) return false;
+    const q = userSearch.toLowerCase();
+    const parts = u.name.toLowerCase().split(' ');
+    return parts.some(part => part.startsWith(q))
+      && !pendingUsers.find(p => p.user.id === u.id);
+  });
+
+  const addPendingUser = (user) => {
+    setPendingUsers(prev => [...prev, { user, permission: pendingPerm }]);
+    setUserSearch('');
+    setShowUserDrop(false);
+  };
+
+  const removePendingUser = (userId) => {
+    setPendingUsers(prev => prev.filter(p => p.user.id !== userId));
+  };
+
+  const updatePendingPerm = (userId, perm) => {
+    setPendingUsers(prev => prev.map(p => p.user.id === userId ? { ...p, permission: perm } : p));
+  };
+
+  const updateSharedPermission = (userId, value) => {
+    setCollectionShares(prev => {
+      const next = { ...prev };
+      shareTargetIds.forEach(id => {
+        if (value === 'remove') {
+          next[id] = (prev[id] || []).filter(e => e.user.id !== userId);
+        } else {
+          next[id] = (prev[id] || []).map(e => e.user.id === userId ? { ...e, permission: value } : e);
+        }
+      });
+      return next;
+    });
+  };
+
+  const handleShare = () => {
+    if (pendingUsers.length === 0) { setShareModalOpen(false); return; }
+    setCollectionShares(prev => {
+      const next = { ...prev };
+      shareTargetIds.forEach(id => {
+        const existing = prev[id] || [];
+        const merged = [...existing];
+        pendingUsers.forEach(({ user, permission }) => {
+          if (!merged.find(e => e.user.id === user.id)) merged.push({ user, permission });
+          else merged.forEach(e => { if (e.user.id === user.id) e.permission = permission; });
+        });
+        next[id] = merged;
+      });
+      return next;
+    });
+    setShareModalOpen(false);
+    antd.message.success('Collezione condivisa correttamente');
+  };
+
+  const sharedUsersForSelected = (() => {
+    if (shareTargetIds.length === 0) return [];
+    const maps = shareTargetIds.map(id => collectionShares[id] || []);
+    if (maps.length === 1) return maps[0];
+    const first = maps[0];
+    return first.filter(e => maps.every(m => m.find(x => x.user.id === e.user.id)));
+  })();
+
+  const selectedCollectionsForModal = collections.filter(c => shareTargetIds.includes(c.id));
+
+  const handleOpenEdit = useCallback((record) => {
+    setEditingColl(record);
+    setNewCollName(record.name);
+    setNewCollDescription(record.description || '');
+    setNewCollArea(record.area || '');
+    setNewCollIcon(record.icon || 'StarOutlined');
+    setNewCollColor(record.color || COLL_COLORS[0]);
+    setCollPois(record.pois || []);
+    setEditReadOnly(record.createdBy !== CURRENT_USER.name);
+    setAppView('edit');
+  }, []);
+
+  const hasChanges = editingColl ? (
+    newCollName.trim()        !== editingColl.name ||
+    newCollDescription.trim() !== (editingColl.description || '') ||
+    newCollArea.trim()        !== (editingColl.area || '') ||
+    newCollIcon               !== (editingColl.icon || 'StarOutlined') ||
+    newCollColor              !== (editingColl.color || COLL_COLORS[0]) ||
+    collPois.length           !== (editingColl.pois || []).length ||
+    !collPois.every((p, i) => p.id === (editingColl.pois || [])[i]?.id)
+  ) : true;
+
+  // ── POI ────────────────────────────────────────────────
+  const placesServiceRef       = useRef(null);   // google.maps.places.PlacesService
+  const autocompleteServiceRef = useRef(null);   // google.maps.places.AutocompleteService
+
+  // ── Inizializza PlacesService (richiede libraries=places) ──
+  useEffect(() => {
+    try {
+      const el = document.createElement('div');
+      placesServiceRef.current = new google.maps.places.PlacesService(el);
+      autocompleteServiceRef.current = new google.maps.places.AutocompleteService();
+    } catch(e) {
+      console.warn('Places API non disponibile:', e);
+    }
+  }, []);
+
+  return React.createElement('div', { className: 'app-shell' },
+    React.createElement(window.GravityNavbar, null),
+
+    // ── Vista lista / vista modifica ─────────────────────
+    appView === 'list'
+      ? React.createElement(CollectionsListView, {
+          onNewCollection:       () => { setNewCollName(''); setNewCollDescription(''); setNewCollArea(''); setNewCollIcon('StarOutlined'); setNewCollColor(COLL_COLORS[0]); setCollPois([]); setEditReadOnly(false); setAppView('edit'); },
+          onEditCollection:      handleOpenEdit,
+          onDuplicateCollection: handleDuplicateCollection,
+          onDeleteCollection:    handleDeleteCollection,
+          onShare:           openShareModal,
+          collectionShares,
+          collections,
+          highlightedCollId,
+        })
+      : React.createElement('div', { className: 'coll-shell' },
+
+          // ── Header ───────────────────────────────────────
+          React.createElement('div', { className: 'coll-list-header' },
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 } },
+              React.createElement(antd.Button, {
+                type: 'link',
+                icon: React.createElement(ArrowLeftOutlined),
+                onClick: () => {
+                  const shouldConfirm = hasChanges && (editingColl || newCollName.trim());
+                  if (shouldConfirm) {
+                    antd.Modal.confirm({
+                      title: 'Modifiche non salvate',
+                      content: 'Hai modifiche non salvate. Se esci le perderai.',
+                      okText: 'Esci senza salvare',
+                      cancelText: 'Rimani',
+                      okButtonProps: { danger: true },
+                      onOk: closeNewCollDrawer,
+                    });
+                  } else {
+                    closeNewCollDrawer();
+                  }
+                },
+                style: { padding: 0, height: 'auto', fontSize: 13 },
+              }, 'Lista Collezioni POI'),
+              React.createElement('span', { className: 'coll-list-header-title' },
+                'Collezione',
+                React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)', fontWeight: 300, margin: '0 10px' } }, '|'),
+                React.createElement('span', { style: { fontWeight: 400, fontSize: 20 } },
+                  editingColl ? editingColl.name : 'Nuova Collezione',
+                ),
+              ),
+              editingColl && React.createElement('div', {
+                style: { display: 'flex', alignItems: 'center', gap: 16, fontSize: 13, lineHeight: '22px' }
+              },
+                React.createElement('span', null,
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Creato da: '),
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, editingColl.createdBy),
+                ),
+                React.createElement('span', null,
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Creato il: '),
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, editingColl.createdAt),
+                ),
+                React.createElement('span', null,
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Aggiornato il: '),
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, editingColl.updatedAt),
+                ),
+                (() => {
+                  const shares  = collectionShares[editingColl.id] || [];
+                  if (shares.length === 0) return null;
+                  const visible  = shares.slice(0, 3);
+                  const overflow = shares.length - 3;
+                  return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+                    React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Condivisa con:'),
+                    React.createElement(Tooltip, { title: shares.map(s => s.user.name).join(', '), placement: 'top' },
+                      React.createElement('div', {
+                        style: { display: 'inline-flex', alignItems: 'center', cursor: 'pointer' },
+                        onClick: () => openShareModal([editingColl.id]),
+                      },
+                        visible.map((s, i) => React.createElement('span', {
+                          key: s.user.id,
+                          style: {
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            width: 20, height: 20, borderRadius: '50%',
+                            background: s.user.avatarColor, fontSize: 8, fontWeight: 700, color: '#fff',
+                            border: '2px solid #fff',
+                            marginLeft: i === 0 ? 0 : -5,
+                            position: 'relative', zIndex: visible.length - i,
+                          }
+                        }, s.user.initials)),
+                        overflow > 0 && React.createElement('span', {
+                          style: {
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            width: 20, height: 20, borderRadius: '50%',
+                            background: '#F0F0F0', fontSize: 8, fontWeight: 600, color: 'rgba(0,0,0,0.45)',
+                            border: '2px solid #fff', marginLeft: -5, position: 'relative',
+                          }
+                        }, `+${overflow}`),
+                      )
+                    ),
+                  );
+                })(),
+              ),
+            ),
+            React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center' } },
+              React.createElement(antd.Button, {
+                type: 'default',
+                icon: React.createElement(ShareAltOutlined),
+                disabled: !editingColl,
+                onClick: () => editingColl && openShareModal([editingColl.id]),
+              }, 'Condividi'),
+              !editReadOnly && React.createElement(antd.Button, {
+                type: 'primary',
+                icon: React.createElement(SaveOutlined),
+                disabled: editingColl ? (!hasChanges || !newCollName.trim()) : !newCollName.trim(),
+                onClick: handleCreateCollection,
+              }, 'Salva'),
+            ),
+          ),
+
+          // ── Body: sidebar form + mappa ────────────────────
+          React.createElement('div', { className: 'coll-edit-body' },
+
+            React.createElement('div', { className: 'coll-edit-sidebar' },
+              React.createElement('div', { className: 'new-coll-field' },
+                React.createElement('span', { className: 'new-coll-label' }, 'Nome'),
+                React.createElement(antd.Input, {
+                  placeholder: 'Es. Scuole zona Noce',
+                  value: newCollName,
+                  onChange: e => !editReadOnly && setNewCollName(e.target.value),
+                  onPressEnter: !editReadOnly ? handleCreateCollection : undefined,
+                  size: 'large',
+                  autoFocus: true,
+                  disabled: editReadOnly,
+                }),
+              ),
+              React.createElement('div', { className: 'new-coll-field' },
+                React.createElement('span', { className: 'new-coll-label' }, 'Descrizione breve'),
+                React.createElement(antd.Input.TextArea, {
+                  placeholder: 'Es. Istituti scolastici nel quartiere Politeama',
+                  value: newCollDescription,
+                  onChange: e => !editReadOnly && setNewCollDescription(e.target.value),
+                  disabled: editReadOnly,
+                  maxLength: 120,
+                  showCount: true,
+                  autoSize: { minRows: 2, maxRows: 3 },
+                }),
+              ),
+              React.createElement('div', { className: 'new-coll-field' },
+                React.createElement('span', { className: 'new-coll-label' }, 'Area di riferimento'),
+                React.createElement(antd.Input, {
+                  placeholder: 'Es. Palermo PA',
+                  value: newCollArea,
+                  onChange: e => !editReadOnly && setNewCollArea(e.target.value),
+                  disabled: editReadOnly,
+                }),
+              ),
+              React.createElement('div', { className: 'new-coll-field' },
+                React.createElement('span', { className: 'new-coll-label' }, 'Icona'),
+                React.createElement('div', { className: 'new-coll-icon-grid' },
+                  Object.entries(COLL_ICON_MAP).map(([key, IconComp]) =>
+                    React.createElement('div', {
+                      key,
+                      className: `new-coll-icon-btn${newCollIcon === key ? ' selected' : ''}`,
+                      onClick: () => setNewCollIcon(key),
+                      title: key.replace('Outlined', ''),
+                    },
+                      React.createElement(IconComp, { style: { fontSize: 16 } })
+                    )
+                  )
+                ),
+              ),
+              React.createElement('div', { className: 'new-coll-field' },
+                React.createElement('span', { className: 'new-coll-label' }, 'Colore'),
+                React.createElement('div', { className: 'new-coll-color-row' },
+                  COLL_COLORS.map(c =>
+                    React.createElement('div', {
+                      key: c,
+                      className: `new-coll-color-swatch${newCollColor === c ? ' selected' : ''}`,
+                      style: { background: c },
+                      onClick: () => setNewCollColor(c),
+                    })
+                  )
+                ),
+              ),
+
+            ),
+
+            React.createElement('div', { className: 'coll-edit-main' },
+              React.createElement(CollectionMapPicker, {
+                open: appView === 'edit',
+                autocompleteService: autocompleteServiceRef.current,
+                placesService: placesServiceRef.current,
+                collPois,
+                onAddPin: handleAddCollPin,
+                onRemovePin: handleRemoveCollPin,
+                allCollections: collections,
+              }),
+            ),
+
+          ),
+        ),
+
+    // ── Modal condivisione ──────────────────────────────
+    React.createElement(antd.Modal, {
+      title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+        React.createElement('div', {
+          style: { width: 32, height: 32, borderRadius: 8, background: '#F0EAFF',
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }
+        }, React.createElement(ShareAltOutlined, { style: { fontSize: 15, color: '#3E00FB' } })),
+        selectedCollectionsForModal.length === 1
+          ? `Condividi "${selectedCollectionsForModal[0]?.name}"`
+          : `Condividi ${selectedCollectionsForModal.length} collezioni`,
+      ),
+      open: shareModalOpen,
+      onCancel: () => setShareModalOpen(false),
+      width: 520,
+      footer: null,
+    },
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 0, paddingTop: 4 } },
+
+        // ── Cerca utente ────────────────────────────────
+        React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 } },
+          React.createElement('div', { style: { flex: 1, position: 'relative' } },
+            React.createElement(antd.Input, {
+              placeholder: 'Cerca utente…',
+              value: userSearch,
+              prefix: React.createElement(UserOutlined, { style: { color: 'rgba(0,0,0,0.25)' } }),
+              autoFocus: true,
+              autoComplete: 'off',
+              onChange: e => { setUserSearch(e.target.value); setShowUserDrop(true); },
+              onFocus: () => setShowUserDrop(true),
+            }),
+            showUserDrop && suggestedUsers.length > 0 && React.createElement('div', {
+              style: { position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                background: '#fff', border: '1px solid #D9D9D9', borderRadius: 6,
+                boxShadow: '0 6px 16px rgba(0,0,0,0.08)', marginTop: 2, overflow: 'hidden' }
+            },
+              suggestedUsers.map(u => React.createElement('div', {
+                key: u.id,
+                style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                  cursor: 'pointer', transition: 'background 0.15s' },
+                onMouseEnter: e => e.currentTarget.style.background = '#F5F5F5',
+                onMouseLeave: e => e.currentTarget.style.background = 'transparent',
+                onMouseDown: e => { e.preventDefault(); addPendingUser(u); },
+              },
+                React.createElement('div', {
+                  style: { width: 30, height: 30, borderRadius: '50%', background: u.avatarColor,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontSize: 11, fontWeight: 600, flexShrink: 0 }
+                }, u.initials),
+                React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, u.name),
+              ))
+            ),
+          ),
+          React.createElement(Button, {
+            type: 'primary',
+            disabled: pendingUsers.length === 0,
+            onClick: handleShare,
+          }, 'Condividi'),
+        ),
+
+        // ── Utenti in attesa ────────────────────────────
+        pendingUsers.length > 0 && React.createElement('div', {
+          style: { display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }
+        },
+          pendingUsers.map(({ user: u, permission }) => React.createElement('div', {
+            key: u.id,
+            style: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px',
+              borderRadius: 6, background: '#F8F6FF', border: '1px solid #EDE9FF' }
+          },
+            React.createElement('div', {
+              style: { width: 28, height: 28, borderRadius: '50%', background: u.avatarColor,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: 11, fontWeight: 600, flexShrink: 0 }
+            }, u.initials),
+            React.createElement('div', { style: { flex: 1, display: 'flex', flexDirection: 'column', lineHeight: 1.3 } },
+              React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, u.name),
+              React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, u.role),
+            ),
+            React.createElement(antd.Select, {
+              value: permission,
+              size: 'small',
+              variant: 'borderless',
+              popupMatchSelectWidth: false,
+              dropdownStyle: { minWidth: 160 },
+              onChange: v => updatePendingPerm(u.id, v),
+              style: { fontSize: 12 },
+              options: [
+                { value: 'view', label: 'Visualizza' },
+                { value: 'edit', label: 'Modifica' },
+              ],
+            }),
+            React.createElement('div', {
+              style: { cursor: 'pointer', color: 'rgba(0,0,0,0.35)', padding: 2, lineHeight: 1,
+                display: 'flex', alignItems: 'center' },
+              onClick: () => removePendingUser(u.id),
+            }, React.createElement(icons.CloseOutlined, { style: { fontSize: 12 } })),
+          ))
+        ),
+
+        React.createElement(Divider, { style: { margin: '4px 0 12px' } }),
+
+        // ── Chi ha accesso ──────────────────────────────
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } },
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, 'Chi ha accesso'),
+
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+            React.createElement('div', {
+              style: { width: 30, height: 30, borderRadius: '50%', background: CURRENT_USER.avatarColor,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: 11, fontWeight: 600, flexShrink: 0 }
+            }, CURRENT_USER.initials),
+            React.createElement('div', { style: { flex: 1, display: 'flex', flexDirection: 'column', lineHeight: 1.3 } },
+              React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } },
+                `${CURRENT_USER.name} (tu)`),
+              React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, CURRENT_USER.role),
+            ),
+            React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', paddingRight: 4 } }, 'Proprietario'),
+          ),
+
+          sharedUsersForSelected.map(({ user: u, permission }) => React.createElement('div', {
+            key: u.id,
+            style: { display: 'flex', alignItems: 'center', gap: 10 }
+          },
+            React.createElement('div', {
+              style: { width: 30, height: 30, borderRadius: '50%', background: u.avatarColor,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: 11, fontWeight: 600, flexShrink: 0 }
+            }, u.initials),
+            React.createElement('div', { style: { flex: 1, display: 'flex', flexDirection: 'column', lineHeight: 1.3 } },
+              React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, u.name),
+              React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, u.role),
+            ),
+            React.createElement(antd.Select, {
+              value: permission,
+              size: 'small',
+              variant: 'borderless',
+              popupMatchSelectWidth: false,
+              dropdownStyle: { minWidth: 160 },
+              style: { fontSize: 12 },
+              onChange: v => updateSharedPermission(u.id, v),
+              options: [
+                { value: 'view',   label: 'Visualizza' },
+                { value: 'edit',   label: 'Modifica' },
+                { value: 'remove', label: React.createElement('span', { style: { color: '#FF4A1C' } }, 'Rimuovi') },
+              ],
+            }),
+          )),
+        ),
+
+      )
+    ),
+
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────────────────────
+window.applyGravityTokens && window.applyGravityTokens();
+ReactDOM.createRoot(document.getElementById('root')).render(
+  React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
+    React.createElement(App)
+  )
+);
+</script>
+</body>
+</html>

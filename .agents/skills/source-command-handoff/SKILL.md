@@ -30,8 +30,8 @@ Tutta la logica vive già nel motore condiviso **`prototipi/handoff.js`** — **
 
 **Riferimento canonico** (leggilo sempre prima di iniziare, è la fonte di verità del formato):
 - `prototipi/handoff.js` — il motore (schema degli oggetti globali, commentato in testa)
-- `prototipi/prototipo approvato/planning/handoff-steps.js` — config completa di esempio
-- `prototipi/prototipo approvato/planning/index--handoff.html` — wiring HTML + `HandoffDesignNote`
+- `prototipi/planning/handoff-steps.js` — config completa di esempio
+- `prototipi/planning/index--handoff.html` — wiring HTML + `HandoffDesignNote`
 
 Segui le fasi nell'ordine. Non saltare passi.
 
@@ -112,7 +112,7 @@ Crea la variante handoff **a fianco** dell'`index.html` del prototipo, stessa ca
    <script src="../handoff.js"></script>
    ```
    Adatta il numero di `../` alla profondità della cartella: per `prototipi/<nome>/` è `../handoff.js`; per una sottocartella più profonda (`prototipi/.../<nome>/`) aggiungi i livelli necessari fino a `prototipi/handoff.js`. Stesso criterio per `navbar.js`.
-4. **Aggiungi il componente note inline** `HandoffDesignNote` (+ helper `_ghfRenderNoteBody`). Copialo **invariato** da `prototipi/prototipo approvato/planning/index--handoff.html` (icona `CoffeeOutlined` rossa `#FF4A1C`, popover su hover, body con `**grassetto**`, `==evidenziato==`, righe `- ` → lista).
+4. **Aggiungi il componente note inline** `HandoffDesignNote` (+ helper `_ghfRenderNoteBody`). Copialo **invariato** da `prototipi/planning/index--handoff.html` (icona `CoffeeOutlined` rossa `#FF4A1C`, popover su hover, body con `**grassetto**`, `==evidenziato==`, righe `- ` → lista).
 5. **Piazza le note inline** accanto agli elementi UI di riferimento, passando l'`id` della nota:
    ```jsx
    React.createElement('span', null,
