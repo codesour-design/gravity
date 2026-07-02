@@ -2,7 +2,7 @@
 
 > Documento di sintesi del lavoro su brand, copy e concept visivo del sito Gravity.
 > Fonti: `brand/Manuale Logo.pdf`, `brand/Gravity contenuti sito.pdf`, `PRD_Gravity_Platform_CodeSour.md`,
-> `prototipi/test/sito/contenuti.md`, `intervista-bianca-2026-06-04.md`.
+> `prototipi/sito/contenuti.md`, `intervista-bianca-2026-06-04.md`.
 > Ultimo aggiornamento: 26 giugno 2026.
 
 ---
@@ -140,7 +140,7 @@ animata sotto le parole (non piace), type grassa.
 
 ## 9. File di riferimento
 
-- Prototipo hero: `prototipi/test/sito/hero-scroll.html` (preservato dalla sessione; era nello scratchpad).
-- Contenuti sito esistenti: `prototipi/test/sito/contenuti.md` + `index.html`.
+- Prototipo hero: `prototipi/sito/hero-scroll.html` (preservato dalla sessione; era nello scratchpad).
+- Contenuti sito esistenti: `prototipi/sito/contenuti.md` + `index.html`.
 - Brand: `brand/Manuale Logo.pdf`, `brand/Gravity contenuti sito.pdf`, `brand/Gravity_type.svg`, `brand/Gravity_mark.svg`.
 - PRD: `PRD_Gravity_Platform_CodeSour.md`.

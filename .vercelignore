@@ -1,7 +1,11 @@
 brand/SF-Pro.dmg
 .DS_Store
 .claude
+.agents
+.codex
 CLAUDE.md
+AGENTS.md
 LAYOUT.md
 ONBOARDING.md
-PRD_Gravity_Platform_CodeSour.md
+components
+docs

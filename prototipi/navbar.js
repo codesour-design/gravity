@@ -19,6 +19,18 @@
 (function () {
   if (window.GravityNavbar) return;
 
+  // Base URL della cartella prototipi/, derivata dalla posizione di questo script:
+  // così i link di default funzionano da qualsiasi profondità di pagina, senza
+  // che ogni prototipo debba correggere i path relativi a mano.
+  var _src = (document.currentScript && document.currentScript.src) || '';
+  var ROOT = _src ? _src.slice(0, _src.lastIndexOf('/') + 1) : '../';
+
+  // Registro prototipi (stato + link): caricato in modo sincrono se la pagina
+  // non lo ha già incluso. È l'unica fonte di verità per approved/in-progress.
+  if (!window.GRAVITY_PROTOTYPES) {
+    document.write('<script src="' + ROOT + 'registry.js"><\/script>');
+  }
+
   var h          = React.createElement;
   var useState   = React.useState;
   var useEffect  = React.useEffect;
@@ -42,17 +54,31 @@
     'Sales':             ['Commercial', 'Delivery'],
   };
 
-  // Voci di navigazione e link ai prototipi (Figma node 3261-3147)
+  // Voci di navigazione (Figma node 3261-3147). I link ai prototipi non sono
+  // hardcoded qui: si ricavano dal registro (registry.js) via campo `nav`.
   var NAV = {
-    Overview:   { items: ['Per te', 'Dashboard finance', 'Dashboard analytics'], links: {} },
-    Inventory:  { items: ['Systems', 'Licenses', 'Supplier'],
-                  links: { Systems: '../prototipo%20approvato/inventory-systems/index.html' } },
-    Commercial: { items: ['Wallet', 'Activities', 'Negotiations', 'Orders'],
-                  links: { Negotiations: '../test/trattative/index.html' } },
-    Delivery:   { items: ['Campaigns', 'Plannings', 'Collections'],
-                  links: { Plannings: '../prototipo%20approvato/planning/index--handoff.html', Collections: '../prototipo%20approvato/poi-collections/index.html' } },
-    Settings:   { items: ['Users', 'Tenants'], links: {} },
+    Overview:   { items: ['Per te', 'Dashboard finance', 'Dashboard analytics'] },
+    Inventory:  { items: ['Systems', 'Licenses', 'Supplier'] },
+    Commercial: { items: ['Wallet', 'Activities', 'Negotiations', 'Orders'] },
+    Delivery:   { items: ['Campaigns', 'Plannings', 'Collections'] },
+    Settings:   { items: ['Users', 'Tenants'] },
   };
+
+  // Link di default per (sezione, voce) dal registro. Calcolati lazy perché
+  // registry.js — se iniettato via document.write — viene eseguito dopo questo file.
+  function registryLinks() {
+    var reg = window.GRAVITY_PROTOTYPES || {};
+    var map = {};
+    Object.keys(reg).forEach(function (key) {
+      var p = reg[key];
+      if (p.nav && p.entry) map[p.nav.section + '/' + p.nav.item] = ROOT + p.entry;
+    });
+    return map;
+  }
+
+  // Nota: lo stato del prototipo (approved / in-progress) NON è più un chip nella
+  // navbar — vive dentro il dropdown del selettore versioni nel dev-bar handoff
+  // (VersionBadge in handoff.js), che lo legge dallo stesso window.GRAVITY_PROTOTYPES.
 
   // Label italiani per il display (le chiavi restano in inglese per window.GRAVITY_NAV)
   var SECTION_LABEL = {
@@ -203,9 +229,10 @@
     var cfg           = window.GRAVITY_NAV || {};
     var activeSection = cfg.section  || null;
     var activeItem    = cfg.item     || null;
-    var logoSrc       = cfg.logoSrc  || '../../brand/Gravity_type.svg';
-    var appHref       = cfg.appHref  || '../test/user%20profile/index.html';
+    var logoSrc       = cfg.logoSrc  || (ROOT + '../brand/Gravity_type.svg');
+    var appHref       = cfg.appHref  || (ROOT + 'user-profile/index.html');
     var cfgLinks      = cfg.links    || {};
+    var regLinks      = registryLinks();
 
     var _r1     = useState(function () { return localStorage.getItem('gravity_proto_role') || null; });
     var role    = _r1[0]; var setRole = _r1[1];
@@ -247,7 +274,7 @@
         key: sec,
         label: SECTION_LABEL[sec] || sec,
         children: conf.items.map(function (item) {
-          var link   = cfgLinks[item] !== undefined ? cfgLinks[item] : conf.links[item];
+          var link   = cfgLinks[item] !== undefined ? cfgLinks[item] : regLinks[sec + '/' + item];
           // "Per te" punta sempre alla pagina profilo (percorso relativo per-pagina via appHref)
           if (item === 'Per te') link = appHref;
           var isAct  = item === activeItem;

@@ -1,246 +1,126 @@
 # Navbar — Gravity Platform
 
-> Questo file è la fonte di verità per la navbar in tutti i prototipi HTML e nella trasposizione Figma.
-> Ogni prototipo DEVE usare questo pattern. Non inventare varianti.
+> Fonte di verità per la navbar in tutti i prototipi HTML e nella trasposizione Figma.
+> Ogni prototipo DEVE usare il componente condiviso `prototipi/navbar.js` (`window.GravityNavbar`).
+> Non ricostruire una navbar per-prototipo e non inventare varianti.
 
 ---
 
 ## Figma Design System
 
 - **File:** Ant Design System for Gravity
-- **Link diretto al componente:** https://www.figma.com/design/uR6CBOh0Y7dUQvH30SyD0P/Ant-Design-System-for-Gravity?node-id=48-1331
+- **Componente:** https://www.figma.com/design/uR6CBOh0Y7dUQvH30SyD0P/Ant-Design-System-for-Gravity?node-id=48-1331
 - **Component node ID:** `48:1331` (component set `*Navbar*`)
-- **Istanza Planner:** node `129:10634`
+- **Voci di navigazione e ruoli:** node `3261-3147`
 
 ---
 
-## Specifiche visive (misurate da Figma)
+## Componente condiviso: `window.GravityNavbar`
+
+Sorgente: `prototipi/navbar.js`. Da caricare dopo React, ReactDOM, antd, `@ant-design/icons`
+e `tokens.js`:
+
+```js
+// 1. Prima dello script del prototipo:
+window.GRAVITY_NAV = { section: 'Inventory', item: 'Systems' };
+```
+```html
+<!-- 2. -->
+<script src="../navbar.js"></script>
+```
+```js
+// 3. Nel render:
+React.createElement(window.GravityNavbar, null)
+```
+
+`window.GRAVITY_NAV` accetta anche: `logoSrc`, `appHref` (destinazione del logo e di "Per te")
+e `links` (override dei link delle singole voci menu). **Dal 2026-07-02 gli override di path non
+servono più nei casi standard**: `navbar.js` deriva la base dei link dalla propria posizione
+(`document.currentScript` → `ROOT`), quindi logo, "Per te" e voci menu funzionano da qualsiasi
+profondità di pagina. Usa gli override solo per destinazioni non standard.
+
+### Registro prototipi e stato
+
+I link delle voci menu ai prototipi **non sono hardcoded in navbar.js**: vengono dal campo `nav`
+di **`prototipi/registry.js`** (`window.GRAVITY_PROTOTYPES`), che navbar.js carica da solo se la
+pagina non lo ha già incluso.
+
+Il campo `status` (`approved` / `in-progress`) resta nel registro come metadato del prototipo, ma
+**non è mostrato nell'interfaccia**: il dropdown del selettore versioni (dev-bar handoff) è ridotto
+alla sola lista di versioni selezionabili, senza riga di stato né titolo.
+
+Regole: un prototipo = una cartella sotto `prototipi/` per tutto il ciclo di vita; quando viene
+approvato si aggiorna `status` nel registro, **non si sposta la cartella** (gli URL non cambiano).
+Nuovo prototipo → nuova voce nel registro (`label`, `status`, `entry`, `nav` se collegato a una
+voce di menu).
+
+### Specifiche visive
 
 | Proprietà | Valore |
 |-----------|--------|
-| Altezza navbar | **73px** |
-| Sfondo | `#ffffff` |
-| Border bottom | `1px solid rgba(0,0,0,0.06)` |
-| Logo padding orizzontale | `20px` |
-| Logo — type SVG height in prototipo | **28px** (scalato per leggibilità senza il mark) |
-| Menu item padding orizzontale | `16px` |
-| Menu item padding verticale | `12px` |
-| Font voci menu | SF Pro Text Regular, 14px / line-height 22px |
-| Colore voce attiva | `#3E00FB` + `border-bottom: 2px solid #3E00FB` |
-| Colore voce inattiva | `rgba(0,0,0,0.88)` |
-| Icon size nelle voci menu | `14×14px` |
-| Gap icon → label | `8px` |
-| Bell icon size | `24×24px` |
-| Avatar size | `32×32px`, `border-radius: 999px` |
-| Gap bell → avatar | `24px` |
-| Padding destro | `20px` |
+| Altezza | **64px**, sticky (`top: 0; z-index: 100`) |
+| Sfondo / bordo | `#ffffff` / `1px solid rgba(0,0,0,0.06)` |
+| Logo | `Gravity_type.svg`, height 26px, padding orizzontale 24px |
+| Voce attiva | `#3E00FB` + underline 2px |
+| Voce senza link | testo disabilitato `rgba(0,0,0,0.25)`, `cursor: default` (non link rotto) |
+| Campanella | `BellOutlined` 18px |
+| Avatar | 32×32 circolare, iniziali colorate per hash del nome |
+| Gap campanella → avatar / padding destro | 16px / 20px |
+
+Logo: **solo il logotipo tipografico** (`Gravity_type.svg`) — mai il mark da solo né entrambi.
 
 ---
 
-## Logo
+## Sezioni e voci (dal DS Figma)
 
-Usa **solo il logotipo tipografico** (`Gravity_type.svg`). Non usare il mark (`Gravity_mark.svg`) o entrambi insieme.
+"Overview" (area personale, con "Per te") è **sempre presente per ogni ruolo**, anche dove non
+elencata tra le sezioni del ruolo.
 
-```
-src: ../../brand/Gravity_type.svg
-height: 28px
-width: auto
-```
+| Sezione | Label IT | Voci (label IT) |
+|---------|----------|------------------|
+| Overview | Panoramica | Per te · Dashboard Finance · Dashboard Analytics |
+| Inventory | Inventario | Systems (Impianti) · Licenses (Permessi) · Supplier (Fornitori) |
+| Commercial | Commerciale | Wallet (Portafoglio) · Activities (Attività) · Negotiations (Trattative) · Orders (Ordini) |
+| Delivery | Espletamento | Campaigns (Campagne) · Plannings (Pianificazioni) · Collections (Collezioni POI) |
+| Settings | Impostazioni | Users (Utenti) · Tenants (Tenant) |
 
-Percorso relativo ai prototipi in `prototipi/NN-nome/index.html` → `../../brand/Gravity_type.svg`
-
----
-
-## Voci di navigazione per ruolo Planner
-
-| Voce | Icona Ant Design | Dropdown |
-|------|-----------------|----------|
-| Overview | `AppstoreOutlined` | no |
-| Inventory | `InboxOutlined` | no |
-| Delivery | `SendOutlined` | sì → Campaigns, Plannings |
-
-**La voce Delivery apre un dropdown** con:
-- `Campaigns` → naviga alla lista campagne
-- `Plannings` → naviga alla lista plannings
-
-Quando l'utente si trova nell'area Planning (list, detail, select-systems), la `selectedKey` del Menu deve essere `'plannings'` — Ant Design evidenzia automaticamente anche il parent `Delivery` con il colore e l'underline attivo.
+Le chiavi di `GRAVITY_NAV` restano in inglese; i label mostrati sono in italiano
+(`SECTION_LABEL`/`ITEM_LABEL` in `navbar.js`).
 
 ---
 
-## Avatar — Planner
+## Ruoli e accesso
 
-- **Tipo:** foto reale (immagine circolare `object-cover`)
-- **Figma asset (temporaneo, 7gg):** `https://www.figma.com/api/mcp/asset/df094a9b-9185-4165-9f4c-fdb584fa6cac`
-- **Fallback:** cerchio `#3E00FB` con iniziale `P`
-- Per aggiornare l'asset: aprire il file Figma al node `129:10638` e riesportare
+Ruolo attivo persistito in `localStorage.gravity_proto_role`, si cambia dal dropdown
+sull'avatar (nessuna autenticazione reale).
 
----
+| Ruolo | Sezioni |
+|-------|---------|
+| Tenant Admin | tutte |
+| Inventory Manager | Overview, Inventory |
+| Operation Manager | Overview, Inventory, Commercial, Delivery |
+| Planner | Overview, Inventory, Delivery |
+| Sales | Overview (implicita), Commercial, Delivery |
 
-## Pattern HTML (React, no JSX)
+- Ruolo **senza accesso** alla sezione della pagina corrente: navbar visibile, contenuto
+  sostituito da `Empty` "Il ruolo **{ruolo}** non ha accesso a questa sezione" — mai redirect o
+  pagina bianca.
+- Nel dropdown avatar i ruoli senza accesso alla sezione corrente sono disabilitati con
+  `LockOutlined`; il ruolo attivo mostra `CheckOutlined`.
+- Ogni ruolo ha un utente demo (nome, cognome, colore avatar): valori in `ROLE_USER` in
+  `navbar.js` — non hardcodare nomi diversi altrove.
 
-```js
-// ── Navbar ─────────────────────────────────────────────────────────────
-// Requisiti: antd.Menu, icons.AppstoreOutlined, InboxOutlined, SendOutlined, BellOutlined
+## Notifiche (solo Sales)
 
-function TopNav({ activeNavKey, onNavSelect }) {
-  const navItems = [
-    { key: 'overview',   icon: React.createElement(AppstoreOutlined), label: 'Overview'  },
-    { key: 'inventory',  icon: React.createElement(InboxOutlined),     label: 'Inventory' },
-    {
-      key: 'delivery',
-      icon: React.createElement(SendOutlined),
-      label: 'Delivery',
-      children: [
-        { key: 'campaigns', label: 'Campaigns' },
-        { key: 'plannings', label: 'Plannings' },
-      ],
-    },
-  ];
-
-  return React.createElement('div', { className: 'top-nav' },
-    // Logo
-    React.createElement('div', { className: 'top-nav-logo' },
-      React.createElement('img', {
-        src: '../../brand/Gravity_type.svg',
-        alt: 'Gravity',
-        style: { height: 28, width: 'auto' },
-        onError: e => { e.target.style.display = 'none'; },
-      })
-    ),
-    // Menu orizzontale
-    React.createElement('div', { className: 'top-nav-menu-wrap' },
-      React.createElement(Menu, {
-        mode: 'horizontal',
-        selectedKeys: [activeNavKey],
-        items: navItems,
-        onSelect: ({ key }) => onNavSelect(key),
-        style: { flex: 1, border: 'none', height: 73, lineHeight: '73px' },
-        theme: 'light',
-      })
-    ),
-    // Destra: Bell + Avatar
-    React.createElement('div', { className: 'top-nav-right' },
-      React.createElement('button', { className: 'top-nav-bell' },
-        React.createElement(BellOutlined, { style: { fontSize: 20, color: 'rgba(0,0,0,0.65)' } })
-      ),
-      React.createElement('div', {
-        style: { width: 32, height: 32, borderRadius: '999px', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' },
-      },
-        React.createElement('img', {
-          src: 'https://www.figma.com/api/mcp/asset/df094a9b-9185-4165-9f4c-fdb584fa6cac',
-          alt: 'Planner',
-          style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-          onError: e => {
-            e.target.parentElement.style.background = '#3E00FB';
-            e.target.style.display = 'none';
-            e.target.parentElement.innerHTML = '<span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">P</span>';
-          },
-        })
-      )
-    )
-  );
-}
-```
-
-### CSS necessario
-
-```css
-.top-nav {
-  height: 73px;
-  background: #ffffff;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  z-index: 100;
-}
-.top-nav-logo {
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  height: 100%;
-  flex-shrink: 0;
-}
-.top-nav-logo img { display: block; }
-.top-nav-menu-wrap {
-  flex: 1;
-  align-self: stretch;
-  display: flex;
-  align-items: stretch;
-}
-/* Azzeramento bordo inferiore del Menu Ant Design */
-.top-nav-menu-wrap .ant-menu-horizontal {
-  border-bottom: none !important;
-  height: 73px;
-  line-height: 73px;
-}
-.top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-item,
-.top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-submenu {
-  height: 73px;
-  line-height: 73px;
-  padding: 0 16px;
-  top: 0;
-}
-.top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-item::after,
-.top-nav-menu-wrap .ant-menu-horizontal > .ant-menu-submenu::after {
-  bottom: 0 !important;
-  border-bottom-width: 2px !important;
-}
-.top-nav-right {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 0 20px;
-  flex-shrink: 0;
-}
-.top-nav-bell {
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  color: rgba(0,0,0,0.65);
-  padding: 4px;
-  border-radius: 6px;
-  transition: background 0.15s;
-}
-.top-nav-bell:hover { background: rgba(0,0,0,0.04); }
-```
-
-### State management in AppRoot
-
-```js
-// activeNavKey si calcola dalla view corrente
-const activeNavKey = (view === 'list' || view === 'detail' || view === 'select-systems')
-  ? 'plannings'
-  : 'overview';
-
-function handleNavSelect(key) {
-  if (key === 'plannings') { setView('list'); setSelectedPlanning(null); }
-  // altri key: navigazione futura
-}
-
-// Render
-React.createElement(TopNav, { activeNavKey, onNavSelect: handleNavSelect })
-```
+Il ruolo **Sales** ha badge conteggio sulla campanella e pannello notifiche mock (trattative
+assegnate); gli altri ruoli vedono "Nessuna notifica". Non estendere ad altri ruoli senza
+decisione di prodotto esplicita.
 
 ---
 
 ## Trasposizione Figma
 
-Quando si trasferisce una schermata di prototipo su Figma:
-
-1. Usa il componente **`*Navbar*`** dalla libreria _Ant Design System for Gravity_
-2. Variante: **Role = Planner**
-3. Node diretto: `48:1331` → scegli l'istanza con le 3 voci Overview / Inventory / Delivery
-4. La voce attiva si imposta dalla proprietà `Selected Item` del componente Figma
-5. Non disegnare la navbar da zero: usa sempre il componente dal file del DS
-
----
-
-## Note
-
-- La navbar è **sticky** (rimane in cima allo scroll): aggiungere `position: sticky; top: 0;` se il layout non usa `overflow: hidden` sull'app shell.
-- In dark mode (futura): esiste una variante `Theme = Dark` nello stesso component set Figma.
-- Non usare entrambi i loghi (mark + type) insieme: solo il logotipo tipografico esteso.
+1. Componente **`*Navbar*`** dalla libreria DS (node `48:1331`) — mai disegnarla da zero.
+2. Variante **Role = {ruolo del flusso}** (il set ha varianti per ruolo).
+3. Voce attiva dalla proprietà `Selected Item`.
+4. Dark mode (futura): variante `Theme = Dark` nello stesso set.

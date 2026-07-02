@@ -1086,7 +1086,6 @@
     var menu = h('div', {
       style: { width: 240, background: '#fff', borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,.15)', overflow: 'hidden', fontFamily: FONT },
     },
-      h('div', { style: { padding: '9px 12px', borderBottom: '1px solid rgba(0,0,0,.06)', fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,.5)', textTransform: 'uppercase', letterSpacing: '.5px' } }, 'Versioni handoff'),
       VERSIONS.map(function (v) {
         var disabled = !v.file;
         return h('div', {
@@ -1111,21 +1110,19 @@
     );
 
     return h(antd.Dropdown, {
-      trigger: ['click'], open: open, onOpenChange: setOpen, placement: 'bottomLeft',
+      trigger: ['click'], open: open, onOpenChange: setOpen, placement: 'bottomRight',
       dropdownRender: function () { return menu; },
     },
-      h(antd.Tooltip, { title: 'Versione handoff — clicca per cambiare', placement: 'bottom' },
-        h('span', {
-          style: {
-            display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
-            height: 24, padding: '0 8px', borderRadius: 6, fontFamily: FONT,
-            background: '#fff', border: '1px solid rgba(0,0,0,0.15)',
-            fontSize: 12, fontWeight: 700, color: '#3E00FB', lineHeight: '22px',
-          },
+      h('span', {
+        style: {
+          display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+          height: 24, padding: '0 8px', borderRadius: 6, fontFamily: FONT,
+          background: '#fff', border: '1px solid rgba(0,0,0,0.15)',
+          fontSize: 12, fontWeight: 700, color: '#3E00FB', lineHeight: '22px',
         },
-          h('span', null, (current && current.id) || 'V?'),
-          h(icons.DownOutlined, { style: { fontSize: 8, color: 'rgba(0,0,0,0.4)' } })
-        )
+      },
+        h('span', null, (current && current.id) || 'V?'),
+        h(icons.DownOutlined, { style: { fontSize: 8, color: 'rgba(0,0,0,0.4)' } })
       )
     );
   }

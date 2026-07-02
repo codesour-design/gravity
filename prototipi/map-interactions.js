@@ -2,7 +2,7 @@
  * map-interactions.js — Logica condivisa della mappa Gravity
  * ===========================================================
  * Modulo unico usato da inventory-systems e planning per marker, cluster e zoom.
- * Vedi prototipi/prototipo approvato/MAP_INTERACTIONS.md per il catalogo stati.
+ * Vedi docs/MAP_INTERACTIONS.md per il catalogo stati.
  *
  * Espone window.GravityMap. Caricare DOPO la Google Maps API.
  *
