@@ -403,6 +403,10 @@
     .create-nav-item { display: block; padding: 7px 12px; border-radius: 6px; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; margin-bottom: 2px; transition: background 0.12s, color 0.12s; user-select: none; }
     .create-nav-item:hover { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.88); }
     .create-nav-item.active { background: rgba(62,0,251,0.07); color: #3E00FB; font-weight: 500; }
+    /* Scheda impianto V2 */
+    .dv2-nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; margin-bottom: 2px; transition: background .12s, color .12s; }
+    .dv2-nav-item:hover { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.88); }
+    .dv2-nav-item.active { background: rgba(62,0,251,0.07); color: #3E00FB; font-weight: 600; }
     .create-nav-item.disabled { color: rgba(0,0,0,0.25); cursor: not-allowed; }
     .create-nav-item.disabled:hover { background: transparent; color: rgba(0,0,0,0.25); }
     .create-scroll { flex: 1; overflow-y: auto; padding: 40px 0; background: #F5F5F5; display: flex; justify-content: center; align-items: flex-start; }
@@ -453,6 +457,20 @@
     .imp-detail-tl-item { display: flex; gap: 16px; padding: 14px 0; border-bottom: 1px solid #F5F5F5; }
     .imp-detail-tl-item:last-child { border-bottom: none; }
     .ant-tabs .ant-tabs-nav::before { border-bottom: none !important; }
+
+    /* ── Detail V2 — header card + sidebar DataCard (template Shaker UI) ── */
+    .imp-detail-shell { padding: 20px 32px 40px; max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    .gv-detail-header { background: #fff; border-radius: 8px; border: 1px solid #F0F0F0; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+    .gv-back { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: #3E00FB; cursor: pointer; text-decoration: none; transition: opacity .15s; }
+    .gv-back:hover { opacity: .75; }
+    /* DataCard — pattern brief (icona + label, valore, azione) allineato alla pianificazione */
+    .data-card { background: #fff; border-radius: 8px; border: 1px solid #F0F0F0; overflow: hidden; }
+    .data-card-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px 2px; }
+    .data-card-head-icon { color: rgba(0,0,0,0.45); font-size: 16px; display: inline-flex; align-items: center; }
+    .data-card-head-label { font-size: 12px; font-weight: 500; color: rgba(0,0,0,0.88); }
+    .data-card-body { padding: 8px 14px 14px; }
+    .data-card-value { font-size: 18px; font-weight: 700; color: rgba(0,0,0,0.88); line-height: 1.4; display: block; }
+    .data-card-action { padding: 10px 14px; border-top: 1px solid #F0F0F0; }
   </style>
 </head>
 <body>
@@ -2808,6 +2826,314 @@ function openDocPreview(file) {
   else antdMsg.info('Anteprima non disponibile');
 }
 
+
+// ─────────────────────────────────────────────────────────
+// Scheda impianto (V2) — ridisegno: shell fedele al form, edit inline per sezione,
+// tutti i dati con UX/UI del design system. Una sola sorgente dati + draft per l'edit.
+// ─────────────────────────────────────────────────────────
+function ImpiantoDetailV2({ imp, onBack }) {
+  const displayName = imp.nome || imp.code || imp.id || 'Impianto';
+  const addr = (imp.indirizzo || 'Via Maqueda, 148').split(',');
+  const [data, setData] = useState({
+    canale: imp.canale || 'OOH', nome: displayName, tipologia: imp.tipo || '', formato: imp.formato || '',
+    stato: imp.stato_amm || 'Attivo', proprieta: 'Comune', proprietario: 'AMAT S.p.A.',
+    via: (addr[0] || '').trim(), civico: (addr[1] || '36').trim(), cap: '90133', citta: 'Palermo',
+    provincia: 'PA', regione: 'Sicilia', nazione: 'Italia', zona: imp.zona || 'Centro Storico',
+    lat: imp.lat ? String(imp.lat) : '38.1182', lng: imp.lng ? String(imp.lng) : '13.3608',
+    tipoSuolo: 'Pubblico', catSuolo: 'Urbano', utenza: 'DB45PL', cimasa: 'CIM-2024-00847',
+    progettista: 'Studio Tecnico Russo & Partners', progetto: '1305', ddl: 'Ing. Paolo Greco', rsc: 'Arch. Marta Vitale',
+    laboratorio: 'LabStrutture Palermo', geologo: 'Dott. Andrea Rizzo', collaudatore: 'Ing. Sergio Lombardo',
+    dataCollaudo: '02/09/2022', calcestruzzo: 'RCK > 25 MPA', acciaioCarp: 'S355JR - IPE 200', acciaioArm: 'FEB 44 K',
+    dittaCA: 'Edil Costruzioni S.r.l.', tecniche: 'Saldature con elettrodi basici', dataFine: '15/10/2024',
+    larghezza: '1250', altezza: '1800', profondita: '280', areaIngombro: '225', altTerra: '350', tipoAltezza: 'Alto', copertura: 'Riparato',
+    alias: 'Pensilina Libertà — Centro', circuiti: ['Premium City', 'Arredo Urbano'], qualita: 4,
+    vendita: 'Long term', prezzoNetto: '1.200,00', prezzoLordo: '1.500,00', scontoModuli: true, scontoPct: 10,
+  });
+  const [active, setActive] = useState('identita');
+  const [editSec, setEditSec] = useState(null);
+  const [draft, setDraft] = useState(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+
+  const isEdit = (s) => editSec === s;
+  const startEdit = (s) => { setDraft({ ...data }); setEditSec(s); };
+  const cancelEdit = () => { setDraft(null); setEditSec(null); };
+  const saveEdit = () => { setData(draft); setDraft(null); setEditSec(null); antdMsg.success('Modifiche salvate'); };
+  const gv = (k) => (editSec && draft ? draft[k] : data[k]);
+  const sv = (k) => (v) => setDraft(d => ({ ...d, [k]: v }));
+
+  const SECTIONS = [
+    { id: 'identita',    label: 'Anagrafica e ubicazione' },
+    { id: 'iter',        label: 'Iter autorizzativo' },
+    { id: 'tecnici',     label: 'Dati tecnici' },
+    { id: 'cespiti',     label: 'Cespiti e dispositivi' },
+    { id: 'squadre',     label: 'Squadre' },
+    { id: 'commerciale', label: 'Profilo commerciale' },
+    { id: 'eventi',      label: 'Storico eventi' },
+  ];
+
+  // ── Field helpers (read/edit) ──
+  const ro = (v) => (v == null || v === '' || (Array.isArray(v) && !v.length))
+    ? React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)' } }, '—')
+    : Array.isArray(v)
+      ? React.createElement('span', { style: { display: 'inline-flex', flexWrap: 'wrap', gap: 4 } }, v.map((x, i) => React.createElement(Tag, { key: i, style: { margin: 0 } }, x)))
+      : React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, String(v));
+  const field = (label, control) => React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } },
+    React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, label),
+    React.createElement('div', { style: { fontSize: 14, minHeight: 24, display: 'flex', alignItems: 'center' } }, control));
+  const fT = (sec, k, label, ph) => field(label, isEdit(sec) ? React.createElement(Input, { value: gv(k), onChange: e => sv(k)(e.target.value), placeholder: ph || '' }) : ro(gv(k)));
+  const fS = (sec, k, label, opts, ph) => field(label, isEdit(sec) ? React.createElement(Select, { value: gv(k) || undefined, onChange: sv(k), options: opts, style: { width: '100%' }, placeholder: ph || 'Seleziona', allowClear: true, showSearch: true, optionFilterProp: 'label' }) : ro(gv(k)));
+  const fM = (sec, k, label, opts, ph) => field(label, isEdit(sec) ? React.createElement(Select, { mode: 'multiple', value: gv(k) || [], onChange: sv(k), options: opts, style: { width: '100%' }, placeholder: ph || 'Seleziona', allowClear: true }) : ro(gv(k)));
+  const fR = (sec, k, label) => field(label, React.createElement(Rate, { value: gv(k), onChange: isEdit(sec) ? sv(k) : undefined, disabled: !isEdit(sec) }));
+  const fSwPct = (sec) => field('Sconto a moduli', isEdit(sec)
+    ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+        React.createElement(Switch, { checked: gv('scontoModuli'), onChange: sv('scontoModuli'), checkedChildren: 'Sì', unCheckedChildren: 'No' }),
+        gv('scontoModuli') ? React.createElement(InputNumber, { value: gv('scontoPct'), onChange: sv('scontoPct'), min: 0, max: 100, suffix: '%', style: { width: 110 } }) : null)
+    : ro(gv('scontoModuli') ? 'Sì · ' + (gv('scontoPct') || 0) + '%' : 'No'));
+
+  const col = (...kids) => React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 20 } }, ...kids);
+  const grid = (cols, ...kids) => React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + cols + ', 1fr)', gap: '18px 20px' } }, ...kids);
+  const card = (sec, title, desc, editable, body) => React.createElement('div', { style: { background: '#fff', border: '1px solid #E8E8E8', borderRadius: 10, marginBottom: 16, overflow: 'hidden' } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '16px 20px', borderBottom: '1px solid #F5F5F5' } },
+      React.createElement('div', null,
+        React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, title),
+        desc ? React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', marginTop: 2 } }, desc) : null),
+      editable ? (isEdit(sec)
+        ? React.createElement(Space, null,
+            React.createElement(Button, { size: 'small', onClick: cancelEdit }, 'Annulla'),
+            React.createElement(Button, { type: 'primary', size: 'small', icon: React.createElement(SaveOutlined), onClick: saveEdit }, 'Salva'))
+        : React.createElement(Button, { size: 'small', icon: React.createElement(EditOutlined), onClick: () => startEdit(sec) }, 'Modifica')) : null),
+    React.createElement('div', { style: { padding: '20px' } }, body));
+  const subTitle = (t) => React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.75)', marginBottom: 12 } }, t);
+
+  // ── Dati entità (mock) ──
+  const stateColor = STATO_COLORS[data.stato] || '#1677FF';
+  const permits = [
+    { permitType: 'concessione', documentType: 'Concessione suolo pubblico', documentId: 'Pos. 74322 del 15/04/2004', accountNumber: 'DB45PL', state: 'Attiva', isActive: true },
+    { permitType: 'autorizzazione', documentType: 'Autorizzazione', authorizationCategory: 'Pubblicità permanente', documentId: 'AUT-2024-0098', state: 'Valida', isActive: true },
+  ];
+  const facce = FACCE.slice(0, imp.faces || 2);
+  const cespiti = [
+    { id: 'c1', tipo: 'Fondazione', vals: { tipoFond: 'Plinti', dimFond: '5,50 × 3,20 × 0,80 m', dataFine: '10/09/2024' } },
+    { id: 'c2', tipo: 'Pali', vals: { tipoPali: 'Ipe300', numPali: 4, dittaPali: 'Edil Costruzioni S.r.l.' } },
+  ];
+  const dispositivi = [
+    { id: 'd1', tipo: 'Player multimediale', vals: { nome: 'Player faccia A', ip: '192.168.1.20', sw: 'v2.4.1', serial: ['SN-204813'] } },
+  ];
+  const squadreAff = [{ squadra: 'START Affissioni', tipo: ['Prebagnato'], costo: 35, preincoll: 15 }];
+  const squadreMan = [{ squadra: 'Affissioni Palermo', tipoInt: 'Ordinaria', oggetto: 'Pulizia pannelli' }];
+  const moduli = [
+    { id: 'I042', tipo: 'Pensilina', indirizzo: 'Via Libertà, 40, Palermo', formato: '120×180 cm' },
+    { id: 'I043', tipo: 'Pensilina', indirizzo: 'Via Libertà, 52, Palermo', formato: '120×180 cm' },
+  ];
+  const salesHistory = [
+    { key: '1', periodo: 'Gen–Mar 2026', cliente: 'Vodafone Italia', campagna: 'Spring Promo', importo: '€ 4.500', stato: 'Conclusa' },
+    { key: '2', periodo: 'Nov–Dic 2025', cliente: 'IKEA Palermo', campagna: 'Black Friday', importo: '€ 3.800', stato: 'Conclusa' },
+  ];
+
+  // tag servizi (da anagrafica squadre)
+  const servChips = (nome) => { const m = SQUADRE_AFF.find(s => s.nome === nome) || {}; return (m.servizi || []).map((s, i) => React.createElement(Tag, { key: i, style: { margin: 0 } }, s)); };
+  const fmtAssetVal = (kind, val) => (val == null || val === '' || (Array.isArray(val) && !val.length)) ? null : (Array.isArray(val) ? val.join(', ') : String(val));
+  const assetRows = (a) => { const def = getAssetType(a.tipo) || { fields: [] }; const v = a.vals || {}; return def.fields.filter(f => f.key !== 'nome').map(f => ({ label: f.label, value: fmtAssetVal(f.kind, v[f.key]) })).filter(r => r.value != null); };
+  const miniCard = (accent, headerLeft, headerRight, rows) => React.createElement('div', { style: { border: '1px solid #f0f0f0', borderLeft: '3px solid ' + accent, borderRadius: 8, padding: '12px 14px', height: '100%' } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 } }, headerLeft, headerRight),
+    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+      rows.filter(r => r.value != null && r.value !== '').map((r, i) => React.createElement('div', { key: i, style: { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 } },
+        React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, r.label),
+        React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)', textAlign: 'right' } }, r.value))))) ;
+
+  // ── Sezioni ──
+  const sectionContent = () => {
+    if (active === 'identita') return card('identita', 'Anagrafica e ubicazione', 'Identità e posizione geografica dell\'impianto.', true,
+      col(
+        grid(4, fS('identita', 'canale', 'Canale', CANALI_OPTS), fT('identita', 'nome', 'Nome impianto'), fT('identita', 'tipologia', 'Tipologia'), fT('identita', 'formato', 'Formato')),
+        grid(4, fT('identita', 'via', 'Via'), fT('identita', 'civico', 'Civico'), fT('identita', 'cap', 'CAP'), fT('identita', 'citta', 'Città')),
+        grid(4, fT('identita', 'provincia', 'Provincia'), fT('identita', 'regione', 'Regione'), fT('identita', 'nazione', 'Nazione'), fT('identita', 'zona', 'Zona')),
+        grid(4, fT('identita', 'lat', 'Latitudine'), fT('identita', 'lng', 'Longitudine'), fS('identita', 'proprieta', 'Proprietà', PROPRIETA_OPTS), fT('identita', 'proprietario', 'Proprietario')),
+      ));
+    if (active === 'iter') return React.createElement(React.Fragment, null,
+      card('iter-permessi', 'Concessioni e autorizzazioni', 'Titoli relativi all\'esposizione sullo spazio.', false,
+        React.createElement(Row, { gutter: [16, 16] }, permits.map((p, i) => React.createElement(Col, { span: 12, key: i }, React.createElement(PermitCard, p))))),
+      card('iter-suolo', 'Suolo e canone', 'Tipo di suolo e dati per il canone unico patrimoniale.', true,
+        grid(4, fS('iter-suolo', 'tipoSuolo', 'Tipo suolo', [{ value: 'Pubblico', label: 'Pubblico' }, { value: 'Privato', label: 'Privato' }]), fS('iter-suolo', 'catSuolo', 'Categoria suolo', CAT_SUOLO_OPTS), fT('iter-suolo', 'utenza', 'Utenza'), fT('iter-suolo', 'cimasa', 'Cimasa'))),
+      card('iter-progetto', 'Progetto · Genio Civile', 'Dati del progetto strutturale depositato al Genio Civile.', true,
+        col(
+          grid(4, fS('iter-progetto', 'progettista', 'Progettista', FORNITORI_OPTS), fT('iter-progetto', 'progetto', 'Progetto'), fS('iter-progetto', 'ddl', 'Direttore dei lavori', FORNITORI_OPTS), fS('iter-progetto', 'rsc', 'Resp. sicurezza cantiere', FORNITORI_OPTS)),
+          grid(4, fS('iter-progetto', 'laboratorio', 'Laboratorio', FORNITORI_OPTS), fS('iter-progetto', 'geologo', 'Geologo', FORNITORI_OPTS), fS('iter-progetto', 'collaudatore', 'Collaudatore', FORNITORI_OPTS), fT('iter-progetto', 'dataCollaudo', 'Data collaudo')),
+          grid(4, fT('iter-progetto', 'calcestruzzo', 'Calcestruzzo'), fT('iter-progetto', 'acciaioCarp', 'Acciaio carpenteria'), fT('iter-progetto', 'acciaioArm', 'Acciaio armature'), fT('iter-progetto', 'dittaCA', 'Ditta cemento armato')),
+          grid(4, fT('iter-progetto', 'tecniche', 'Tecniche utilizzate'), fT('iter-progetto', 'dataFine', 'Data fine lavori')),
+        )),
+      card('iter-scia', 'Titolo a installare', 'SCIA urbanistica e commerciale presentate per l\'impianto.', false,
+        React.createElement('div', null, SCIA_TYPES.map((scia, i) => {
+          const fs = SCIA_FIELD_META.filter(f => f.key in scia);
+          return React.createElement('div', { key: scia.id, style: i ? { marginTop: 20 } : null },
+            subTitle(scia.title),
+            grid(4, ...fs.map(f => field(f.label, ro(scia[f.key])))));
+        }))),
+    );
+    if (active === 'tecnici') return React.createElement(React.Fragment, null,
+      card('tecnici-fis', 'Caratteristiche fisiche', 'Misure, ingombro, esposizione e copertura.', true,
+        col(
+          grid(4, fT('tecnici-fis', 'larghezza', 'Larghezza (cm)'), fT('tecnici-fis', 'altezza', 'Altezza (cm)'), fT('tecnici-fis', 'profondita', 'Profondità (cm)'), fT('tecnici-fis', 'areaIngombro', 'Area ingombro (m²)')),
+          grid(4, fT('tecnici-fis', 'altTerra', 'Alt. da terra (cm)'), fS('tecnici-fis', 'tipoAltezza', 'Tipologia altezza', TIPO_ALTEZZA_OPTS), fS('tecnici-fis', 'copertura', 'Copertura', RIPARATO_OPTS)),
+        )),
+      card('tecnici-facce', 'Facce', facce.length + (facce.length === 1 ? ' faccia' : ' facce'), false,
+        React.createElement(Row, { gutter: [16, 16] }, facce.map(fc => React.createElement(Col, { span: 8, key: fc.id },
+          miniCard('#1677FF',
+            React.createElement('span', { style: { fontSize: 14, fontWeight: 600, flex: 1 } }, 'Faccia ' + fc.id),
+            React.createElement(Tag, { color: fc.tipo === 'anteriore' ? 'cyan' : 'orange', style: { margin: 0 } }, fc.tipo),
+            [{ label: 'Formato', value: fc.formato }, { label: 'Slot', value: fc.slot }, { label: 'Orientamento', value: fc.orientamento }, { label: 'Illuminazione', value: fc.illuminazione }, { label: 'Prezzo', value: '€ ' + fc.prezzo }]))))),
+    );
+    if (active === 'cespiti') return React.createElement(React.Fragment, null,
+      card('cespiti-c', 'Cespiti', cespiti.length + ' cespiti', false,
+        React.createElement(Row, { gutter: [16, 16] }, cespiti.map(a => React.createElement(Col, { span: 8, key: a.id },
+          miniCard('#1677FF', React.createElement('span', { style: { fontSize: 14, fontWeight: 600, flex: 1 } }, a.tipo), null, assetRows(a)))))),
+      card('cespiti-d', 'Dispositivi', dispositivi.length + ' dispositivi', false,
+        React.createElement(Row, { gutter: [16, 16] }, dispositivi.map(a => React.createElement(Col, { span: 8, key: a.id },
+          miniCard('#3E00FB', React.createElement('span', { style: { fontSize: 14, fontWeight: 600, flex: 1 } }, (a.vals || {}).nome || a.tipo), React.createElement(Tag, { style: { margin: 0 } }, a.tipo), assetRows(a)))))),
+    );
+    if (active === 'squadre') return React.createElement(React.Fragment, null,
+      card('sq-aff', 'Affissione', squadreAff.length + (squadreAff.length === 1 ? ' squadra' : ' squadre'), false,
+        React.createElement(Row, { gutter: [16, 16] }, squadreAff.map((s, i) => React.createElement(Col, { span: 8, key: i },
+          miniCard('#3E00FB', React.createElement('span', { style: { fontSize: 14, fontWeight: 600, flex: 1 } }, s.squadra), null,
+            [{ label: 'Servizi', value: null }, { label: 'Tipo affissione', value: (s.tipo || []).join(', ') }, { label: 'Costo affissione', value: '€ ' + s.costo }, { label: 'Costo preincollaggio', value: s.preincoll != null ? '€ ' + s.preincoll : null }].filter(r => r.label !== 'Servizi')))))),
+      card('sq-man', 'Manutenzione', squadreMan.length + (squadreMan.length === 1 ? ' squadra' : ' squadre'), false,
+        React.createElement(Row, { gutter: [16, 16] }, squadreMan.map((s, i) => React.createElement(Col, { span: 8, key: i },
+          miniCard('#3E00FB', React.createElement('span', { style: { fontSize: 14, fontWeight: 600, flex: 1 } }, s.squadra), null,
+            [{ label: 'Tipo intervento', value: s.tipoInt }, { label: 'Oggetto', value: s.oggetto }]))))),
+    );
+    if (active === 'commerciale') return React.createElement(React.Fragment, null,
+      card('comm-id', 'Identità commerciale', null, true,
+        grid(4, fT('comm-id', 'alias', 'Alias impianto'), fM('comm-id', 'circuiti', 'Circuiti', CIRCUITI_OPTS), fR('comm-id', 'qualita', 'Qualità impianto'))),
+      card('comm-mod', 'Modello commerciale', null, true,
+        grid(4, fS('comm-mod', 'vendita', 'Modello di vendita', [{ value: 'Standard', label: 'Standard' }, { value: 'Long term', label: 'Long term' }]), fT('comm-mod', 'prezzoNetto', 'Prezzo netto (€)'), fT('comm-mod', 'prezzoLordo', 'Prezzo lordo (€)'), fSwPct('comm-mod'))),
+      card('comm-mod-link', 'Moduli collegati', moduli.length + ' impianti', false,
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 } }, moduli.map(m => React.createElement('div', { key: m.id, style: { border: '1px solid #E8E8E8', borderRadius: 8, overflow: 'hidden' } },
+          React.createElement('div', { style: { height: 100, background: '#F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center' } }, React.createElement(PictureOutlined, { style: { fontSize: 26, color: 'rgba(0,0,0,0.25)' } })),
+          React.createElement('div', { style: { padding: '12px 14px' } },
+            React.createElement('div', { style: { fontSize: 14, fontWeight: 600 } }, m.id + ' · ' + m.tipo),
+            React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, m.indirizzo),
+            React.createElement('div', { style: { marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 } }, React.createElement(ExpandOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Formato'), React.createElement('span', { style: { fontWeight: 500 } }, m.formato))))))),
+      card('comm-perf', 'Performance', null, false,
+        React.createElement('div', null,
+          React.createElement(Row, { gutter: [16, 16], style: { marginBottom: 16 } },
+            React.createElement(Col, { span: 8 }, React.createElement(InfoCard, { title: 'Tasso di riempimento', value: '72%', subtitle: '14 selezioni in pianificazione' })),
+            React.createElement(Col, { span: 8 }, React.createElement(InfoCard, { title: 'Ricavo storico', value: '€ 11.200', subtitle: 'Ultimi 12 mesi' }))),
+          subTitle('Storico di vendita'),
+          React.createElement(Table, { size: 'small', pagination: false, dataSource: salesHistory, columns: [
+            { title: 'Periodo', dataIndex: 'periodo', key: 'periodo' }, { title: 'Cliente', dataIndex: 'cliente', key: 'cliente' },
+            { title: 'Campagna', dataIndex: 'campagna', key: 'campagna' }, { title: 'Importo', dataIndex: 'importo', key: 'importo', align: 'right' },
+            { title: 'Stato', dataIndex: 'stato', key: 'stato', render: (s) => React.createElement(Tag, null, s) },
+          ] }))),
+    );
+    if (active === 'eventi') return card('eventi', 'Storico eventi', 'Cronologia di stati, verifiche e interventi.', false,
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 14 } }, MOCK_EVENTS.slice(0, 8).map((ev, i) => React.createElement('div', { key: i, style: { display: 'flex', gap: 12 } },
+        React.createElement('div', { style: { width: 90, flexShrink: 0, fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, ev.date),
+        React.createElement('div', { style: { flex: 1, borderLeft: '2px solid #f0f0f0', paddingLeft: 14 } },
+          React.createElement('div', { style: { fontSize: 14, fontWeight: 600 } }, ev.title, ev.badge ? React.createElement(Badge, { status: ev.badge.status, text: ev.badge.label, style: { marginLeft: 8 } }) : null),
+          React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.55)', marginTop: 2 } }, ev.desc),
+          React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)', marginTop: 2 } }, ev.agent + ' · ' + ev.time))))));
+    return null;
+  };
+
+  // mini-mappa per la sidebar brief
+  const mLng = parseFloat(data.lng) || 13.36, mLat = parseFloat(data.lat) || 38.11;
+  const mapSrc = 'https://www.openstreetmap.org/export/embed.html?bbox=' + (mLng - 0.0018) + '%2C' + (mLat - 0.0009) + '%2C' + (mLng + 0.0018) + '%2C' + (mLat + 0.0009) + '&layer=mapnik&marker=' + mLat + '%2C' + mLng;
+  // DataCard della sidebar (pattern brief della pianificazione: icona + label, valore, azione)
+  const briefCard = (icon, title, body, action) => React.createElement('div', { className: 'data-card' },
+    React.createElement('div', { className: 'data-card-head' },
+      React.createElement('span', { className: 'data-card-head-icon' }, React.createElement(icon, { style: { fontSize: 16 } })),
+      React.createElement('span', { className: 'data-card-head-label' }, title)),
+    React.createElement('div', { className: 'data-card-body' }, body),
+    action ? React.createElement('div', { className: 'data-card-action' }, action) : null);
+  const kvRow = (label, value) => React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, padding: '3px 0' } },
+    React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, label),
+    React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)', textAlign: 'right' } }, value));
+  // coppia label:valore della riga meta dell'header (pattern componente Gravity)
+  const mp = (label, value) => React.createElement('span', null,
+    React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, label + ': '),
+    React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, value || '—'));
+  const fillPct = 72;
+
+  return React.createElement('div', { className: 'imp-detail-page' },
+    React.createElement('div', { className: 'imp-detail-shell' },
+
+      // ── Header card (template Shaker: back · "Impianto | Nome" + tag · azioni · riga meta) ──
+      React.createElement('div', { className: 'gv-detail-header' },
+        React.createElement('div', { style: { marginBottom: 10 } },
+          React.createElement('a', { className: 'gv-back', onClick: onBack },
+            React.createElement(ArrowLeftOutlined, { style: { fontSize: 11 } }), 'Torna al Parco Impianti')),
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 } },
+          React.createElement('div', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' } },
+            React.createElement(Typography.Title, { level: 4, style: { margin: 0, fontSize: 20, fontWeight: 600 } },
+              'Impianto',
+              React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)', fontWeight: 300, margin: '0 8px' } }, '|'),
+              React.createElement('span', { style: { fontWeight: 400 } }, data.nome)),
+            React.createElement(Tag, { color: data.canale === 'DOOH' ? 'magenta' : 'green', style: { marginInlineEnd: 0 } }, data.canale)),
+          React.createElement(Space, { size: 8 },
+            React.createElement(Button, { icon: React.createElement(ExpandOutlined), onClick: () => setGalleryOpen(true) }, 'Galleria'),
+            React.createElement(Dropdown, { menu: { items: [
+              { key: 'dup', label: 'Duplica', icon: React.createElement(CopyOutlined), onClick: () => antdMsg.info('Duplica impianto') },
+              { key: 'share', label: 'Condividi', icon: React.createElement(LinkOutlined), onClick: () => antdMsg.info('Condividi') },
+              { type: 'divider' },
+              { key: 'del', label: 'Elimina', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => antdMsg.info('Elimina impianto') },
+            ] } }, React.createElement(Button, { icon: React.createElement(MoreOutlined) })))),
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, marginTop: 10, fontSize: 13, flexWrap: 'wrap' } },
+          React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, '#' + imp.id),
+          React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
+            React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Stato:'),
+            React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: stateColor } }),
+            React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, data.stato)),
+          mp('Ubicazione', [data.via, data.civico].filter(Boolean).join(', ') + ' · ' + data.citta))),
+
+      // ── Body: brief sidebar + main ──
+      React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 16 } },
+        // Brief sidebar (DataCard stile pianificazione)
+        React.createElement('div', { style: { width: 300, flexShrink: 0, position: 'sticky', top: 20, display: 'flex', flexDirection: 'column', gap: 8 } },
+          briefCard(icons.UserOutlined, 'Proprietario',
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+              React.createElement(Avatar, { style: { backgroundColor: '#E6E8F0', color: '#3E00FB', fontWeight: 700, flexShrink: 0 } }, (data.proprietario[0] || 'A')),
+              React.createElement('div', { style: { minWidth: 0 } },
+                React.createElement('span', { className: 'data-card-value', style: { fontSize: 15 } }, data.proprietario),
+                React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', display: 'block', marginTop: 2 } }, data.proprieta + ' · P.IVA IT02576420817'))),
+            React.createElement(Button, { type: 'link', size: 'small', icon: React.createElement(icons.ExportOutlined), style: { padding: 0, height: 'auto' }, onClick: () => antdMsg.info('Vai al profilo proprietario') }, 'Vai al profilo')),
+
+          briefCard(icons.LineChartOutlined, 'Performance',
+            React.createElement('div', null,
+              React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 } },
+                React.createElement('span', { className: 'data-card-value', style: { color: '#3E00FB' } }, fillPct + '%'),
+                React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, 'Riempimento')),
+              React.createElement('div', { style: { height: 6, borderRadius: 3, background: '#F0F0F0', overflow: 'hidden', marginBottom: 12 } },
+                React.createElement('div', { style: { width: fillPct + '%', height: '100%', background: '#3E00FB' } })),
+              kvRow('In pianificazione', '14 selezioni'),
+              kvRow('Ricavo storico', '€ 11.200'),
+              kvRow('Ultima vendita', 'Gen–Mar 2026'))),
+
+          briefCard(icons.EnvironmentOutlined, 'Ubicazione',
+            React.createElement('div', null,
+              React.createElement('div', { style: { height: 130, borderRadius: 8, overflow: 'hidden', background: '#eef1f4', marginBottom: 10 } },
+                React.createElement('iframe', { width: '100%', height: '100%', style: { border: 0, display: 'block', filter: 'grayscale(0.4)' }, src: mapSrc, title: 'Mappa impianto' })),
+              React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, [data.via, data.civico].filter(Boolean).join(', ')),
+              React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, data.cap + ' ' + data.citta + ' (' + data.provincia + ') · ' + data.zona)),
+            React.createElement(Button, { type: 'link', size: 'small', icon: React.createElement(EnvironmentOutlined), style: { padding: 0, height: 'auto' }, onClick: () => antdMsg.info('Apri mappa') }, 'Apri mappa')),
+
+          briefCard(icons.ProfileOutlined, 'Caratteristiche',
+            React.createElement('div', null,
+              kvRow('Tipologia', data.tipologia || '—'),
+              kvRow('Formato', data.formato || '—'),
+              kvRow('Suolo', data.tipoSuolo + ' · ' + data.catSuolo),
+              kvRow('Cimasa', data.cimasa)))),
+
+        // Main: tabs + sezione attiva
+        React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+          React.createElement(Tabs, { activeKey: active, onChange: (k) => { setActive(k); setEditSec(null); }, items: SECTIONS.map(s => ({ key: s.id, label: s.label })) }),
+          sectionContent()))),
+
+    // Gallery
+    React.createElement(Modal, { title: 'Galleria foto', open: galleryOpen, onCancel: () => setGalleryOpen(false), footer: null, width: 840 },
+      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 } },
+        FOTO_IMPIANTO.map((src, i) => React.createElement('img', { key: i, src: src, style: { width: '100%', height: 180, objectFit: 'cover', borderRadius: 8, display: 'block' } })))),
+  );
+}
 
 function ImpiantoDetailPage({ imp, onBack, onEdit }) {
   const [activeTab,         setActiveTab]         = useState('2');
@@ -6072,7 +6398,8 @@ function App() {
     React.createElement(window.GravityNavbar, null),
 
     page === 'detail'
-      ? React.createElement(ImpiantoDetailPage, { imp: detailImpianto, onBack: () => setPage('map'), onEdit: () => {
+      ? React.createElement(ImpiantoDetailV2, { imp: detailImpianto, onBack: () => setPage('map') })
+      : false ? React.createElement(ImpiantoDetailPage, { imp: detailImpianto, onBack: () => setPage('map'), onEdit: () => {
           if (savedFormData) {
             setPrefillData(savedFormData);
           } else {
