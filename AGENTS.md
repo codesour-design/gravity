@@ -11,9 +11,6 @@
 >
 > Componenti documentati finora:
 > - **components/navbar.md** — Navbar (altezza, logo, menu, avatar, pattern HTML, componente Figma)
-> - **components/form-patterns.md** — Pattern layout per form in Modal/Drawer (spacing tra campi,
->   label campi facoltativi, box "Dati ereditati da…", tooltip su opzioni disabilitate, Alert,
->   dimensione uniforme dei campi, titolo con tag). Applicalo a ogni nuovo form in Modal o Drawer.
 
 ---
 

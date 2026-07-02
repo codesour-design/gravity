@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gravity · Software gestionale per l'advertising multicanale</title>
+<meta name="description" content="Un solo software per organizzare, vendere e ottimizzare i tuoi spazi pubblicitari su ogni canale — OOH, DOOH, display web, advertorial. Nell'advertising, la domanda va dove l'offerta è strategica." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --blue:   #3E00FB;   /* Chrysler Blue  */
+    --orange: #FF4A1C;   /* Coquelicot     */
+    --violet: #45185C;   /* Russian Violet */
+    --powder: #FFFFFA;   /* Baby Powder    */
+    --black:  #231C07;   /* Smoky Black    */
+  }
+  body { background: var(--powder); color: var(--black); }
+
+  /* contenitore di pin: la sua altezza = lunghezza dello scroll dell'animazione */
+  .pin { position: relative; height: 260vh; }
+  .stage {
+    position: sticky; top: 0;
+    height: 100vh;
+    display: grid;                         /* due colonne, larghezze guidate da JS */
+    grid-template-columns: calc(100vw - 360px) 360px;
+    overflow: hidden;
+  }
+
+  /* ---- COLONNA SINISTRA: la hero. Viene spinta fuori a sinistra. ---- */
+  .left { position: relative; overflow: hidden; }
+  .leftInner {                              /* larghezza fissa: scorre via, non si comprime */
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    will-change: transform;
+  }
+  .headline {
+    flex: 1; display: flex; align-items: center;
+    padding: 0 40px;
+    font-family: 'Inter Tight', 'Inter', sans-serif;   /* display pulito e leggero */
+    font-size: clamp(2rem, 4.8vw, 5.2rem);
+    font-weight: 500; line-height: 1.06; letter-spacing: -0.02em;
+  }
+  /* evidenziati: i due corpi del sistema binario + il punto di convergenza */
+  .kw-domanda { color: var(--orange); }          /* domanda = Coquelicot */
+  .kw-offerta { color: var(--blue);   }          /* offerta = Chrysler Blue */
+  .kw-strat {                                     /* strategica = marker pop, leggibile */
+    background: linear-gradient(transparent 58%, rgba(255,74,28,0.30) 58%);
+    padding: 0 0.04em;
+  }
+  .pixels {
+    flex: 1;
+    background: var(--blue);                     /* area sotto il claim: primary pieno, pop elettrico */
+  }
+
+  /* ---- COLONNA DESTRA: si allarga e DIVENTA la seconda sezione ---- */
+  .right {
+    position: relative; overflow: hidden;
+    border-left: 1px solid rgba(62,0,251,0.14);
+    background: #F4F1FC;                          /* tint blu Gravity, leggerissimo */
+    display: flex; flex-direction: column;
+  }
+  /* contenuti "rail" iniziali (frecce + notizie) che svaniscono */
+  .rail-extra {
+    position: absolute; right: 0; bottom: 0; width: 360px;
+    padding: 0 24px 24px;
+    will-change: opacity;
+  }
+  .rail-extra .arrows { text-align:center; color: rgba(62,0,251,0.45); font-size: 20px; margin: 0 0 24px; }
+  .rail-extra .arrows span { display:block; line-height:1.3; animation: arrowFlow 1.6s ease-in-out infinite; }
+  .rail-extra .arrows span:nth-child(2) { animation-delay: .18s; }
+  .rail-extra .arrows span:nth-child(3) { animation-delay: .36s; }
+  @keyframes arrowFlow {
+    0%   { opacity:.2; transform: translateY(-5px); }
+    50%  { opacity:1;  transform: translateY(0); }
+    100% { opacity:.2; transform: translateY(5px); }
+  }
+  .rail-extra .lbl { font-size: 11px; letter-spacing:.12em; text-transform:uppercase; color: rgba(0,0,0,0.45); margin-bottom: 10px; }
+  .rail-extra .card { display:flex; align-items:center; gap:12px; background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:12px; }
+  .rail-extra .card .thumb { width:40px; height:40px; border-radius:7px; background:linear-gradient(135deg,#3E00FB,#FF4A1C); flex:0 0 auto; }
+  .rail-extra .card .t { font-size:14px; font-weight:500; }
+
+  /* il blocco protagonista: centrato nella colonna destra (qualunque sia la sua larghezza) */
+  .vp {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+    padding: 24px 40px;
+  }
+  /* blocco che scala come unità: gli a-capo NON cambiano mai (3 righe fisse) */
+  .vpInner {
+    width: max-content;                     /* si dimensiona sul contenuto, non sulla colonna */
+    transform-origin: left center;          /* si ancora a sinistra: slitta e si allarga */
+    will-change: transform;
+    text-align: left;
+  }
+  .vp .icons { letter-spacing: 8px; margin-bottom: 14px; font-size: 30px; will-change: opacity; }
+  .vp h2 {
+    font-size: 46px; font-weight: 500; line-height: 1.12; letter-spacing: -0.015em;
+    width: max-content;                     /* la larghezza la definiscono i <br>, niente riflusso */
+  }
+
+  .after { min-height: 100vh; display:flex; align-items:center; justify-content:center; color: rgba(0,0,0,0.4); border-top: 1px solid rgba(0,0,0,0.1); }
+  .hint { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--blue); color:#fff; font-size:13px; padding: 8px 16px; border-radius: 999px; z-index: 50; pointer-events:none; }
+</style>
+</head>
+<body>
+  <div class="pin">
+    <div class="stage" id="stage">
+      <!-- COLONNA SINISTRA -->
+      <div class="left">
+        <div class="leftInner" id="leftInner">
+          <h1 class="headline"><span class="hl">Nell'advertising, la <span class="kw-domanda">domanda</span><br>va dove l'<span class="kw-offerta">offerta</span> è <span class="kw-strat">strategica</span>.</span></h1>
+          <div class="pixels" id="pixels"></div>
+        </div>
+      </div>
+
+      <!-- COLONNA DESTRA (diventa la sezione 2) -->
+      <div class="right">
+        <div class="vp">
+          <div class="vpInner" id="vpInner">
+            <h2 id="vpText">Un solo software per organizzare,<br>vendere e ottimizzare su ogni canale<br>i tuoi spazi pubblicitari.</h2>
+          </div>
+        </div>
+        <div class="rail-extra" id="railExtra">
+          <div class="arrows"><span>↓</span><span>↓</span><span>↓</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="after">↓ resto della pagina ↓</section>
+  <div class="hint">Scrolla per vedere l'effetto</div>
+
+  <script>
+    const pin = document.querySelector('.pin');
+    const stage = document.getElementById('stage');
+    const leftInner = document.getElementById('leftInner');
+    const vpInner = document.getElementById('vpInner');
+    const railExtra = document.getElementById('railExtra');
+
+    const RAIL = 360;                       // larghezza colonna destra a riposo
+    const PAD = 40;                         // padding orizzontale colonna destra
+    const lerp = (a,b,t)=>a+(b-a)*t;
+    const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+
+    let W = window.innerWidth;
+    let startScale = 0.34;                  // scala iniziale della value prop (ricalcolata)
+    function onResize(){
+      W = window.innerWidth;
+      leftInner.style.width = (W - RAIL) + 'px';
+      // scala iniziale = quanto rimpicciolire il blocco a 3 righe per stare nella colonna stretta
+      vpInner.style.transform = 'none';
+      const natural = vpInner.getBoundingClientRect().width;
+      startScale = (RAIL - PAD * 2) / natural;
+    }
+    onResize();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('load', onResize);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(onResize);
+
+    function render(){
+      const rect = pin.getBoundingClientRect();
+      const dist = pin.offsetHeight - window.innerHeight;
+      const p = clamp(-rect.top / dist, 0, 1);
+      const e = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2,2)/2;   // easing morbido
+
+      // larghezze colonne: destra 360 -> 100vw ; sinistra (W-360) -> 0
+      const leftStart = W - RAIL;
+      const leftW = leftStart * (1 - e);
+      const rightW = W - leftW;
+      stage.style.gridTemplateColumns = `${leftW}px ${rightW}px`;
+
+      // la sinistra viene SPINTA fuori a sinistra (non si comprime, scorre via)
+      leftInner.style.transform = `translateX(${leftW - leftStart}px)`;
+
+      // la value prop SLITTA e si ALLARGA come unità: scala uniforme, 3 righe sempre fisse
+      const scale = lerp(startScale, 1, e);
+      vpInner.style.transform = `scale(${scale})`;
+
+      // gli extra del rail svaniscono subito
+      railExtra.style.opacity = String(clamp(1 - e*3, 0, 1));
+
+      requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>

@@ -34,10 +34,46 @@ function ghfOpenMineDraft() {
 
 window.HANDOFF_META = {
   title:   'Planning',
-  version: '1.0',
+  version: 'V1',
   date:    'Giugno 2026',
   author:  'Gloria Bonanno',
+  // Storico versioni dell'handoff. Ogni versione è un file di config (il prototipo
+  // resta unico: index.html + ?handoff=vX). `approved: true` marca quella verso cui
+  // punta la navigazione dell'app (index--handoff.html fa redirect a quella).
+  // Per pubblicare una nuova versione: crea handoff-steps-v2.js, aggiungi la voce qui
+  // e la entry nel loader di index.html; quando approvata, sposta `approved` + redirect.
+  versions: [
+    { id: 'V1', file: 'index.html?handoff=v1', approved: true, current: true, note: 'Versione corrente' },
+  ],
 };
+
+// ════════════════════════════════════════════════════════════════════════════
+// Interfaccia semplificata (toggle nel pannello User story).
+// Elementi FUORI SPRINT: non hanno user story in sprint, il dev NON deve
+// realizzarli ora. Quando il toggle è attivo il motore li evidenzia.
+// - selector: CSS selector (anche su elementi portalati, es. voci di dropdown)
+// - text:     (opzionale) filtra gli elementi il cui testo contiene questa stringa
+// - note:     (opzionale) tooltip esplicativo sul perché è fuori sprint
+// ════════════════════════════════════════════════════════════════════════════
+window.HANDOFF_OUT_OF_SPRINT = [
+  // Menu azioni (lista + dettaglio) — solo "Visualizza" è in sprint
+  { selector: '.ant-dropdown-menu-item', text: 'Modifica',  note: 'Fuori sprint — nessuna user story per la modifica pianificazione' },
+  { selector: '.ant-dropdown-menu-item', text: 'Duplica',   note: 'Fuori sprint — nessuna user story per la duplicazione' },
+  { selector: '.ant-dropdown-menu-item', text: 'Elimina',   note: 'Fuori sprint — nessuna user story per l\'eliminazione' },
+  { selector: '.ant-dropdown-menu-item', text: 'Condividi', note: 'Fuori sprint — condivisione pianificazione non in sprint' },
+  // Bottone Condividi standalone nella colonna azioni della lista
+  { selector: '.ant-table .anticon-share-alt', note: 'Fuori sprint — condivisione pianificazione non in sprint' },
+  // Dettaglio — card informative (sidebar brief/budget)
+  { selector: '.bpn .ant-btn', text: 'Audience',  note: 'Fuori sprint — modale audience inserzionista non in sprint' },
+  { selector: '.bpn .ant-btn', text: 'Vedi KPI',  note: 'Fuori sprint — modale KPI obiettivo non in sprint' },
+  { selector: '.bpn .ant-progress',                note: 'Fuori sprint — barra di avanzamento budget (spesa/budget) non in sprint' },
+  // Dettaglio — accordion impianti/facce
+  { selector: '.ss-face-price-wrap .anticon-info-circle', note: 'Fuori sprint — dettaglio calcolo prezzo (tooltip info) non in sprint' },
+  { selector: '.ss-label-chip', note: 'Fuori sprint — etichette impianti non in sprint' },
+  { selector: '.ss-label-btn',  note: 'Fuori sprint — assegnazione etichette impianti non in sprint' },
+  // Dettaglio — espansione interfaccia (schermo intero mappa)
+  { selector: '.ss-fullscreen-btn', note: 'Fuori sprint — modalità schermo intero non in sprint' },
+];
 
 window.HANDOFF_SCREENS = {
   'lista': {
@@ -729,6 +765,11 @@ window.HANDOFF_NOTES = [
     id: 'campagna-senza-trattativa',
     title: 'Pianificazione ↔ campagna senza trattativa (sprint futuri)',
     body: 'Il flusso in cui una pianificazione viene collegata a una **campagna senza trattativa** sarà progettato in sprint successivi, dopo un **redesign della funzionalità Campagne**.',
+  },
+  {
+    id: 'nomenclatura-impianti',
+    title: 'Nomenclatura impianti (in lavorazione)',
+    body: 'Il design sta ancora lavorando sulla **nomenclatura degli impianti**.\n- ==Per il momento va mantenuta la nomenclatura che abbiamo già==',
   },
 ];
 
