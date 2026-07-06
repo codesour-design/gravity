@@ -1,13 +1,13 @@
 # Handoff Engine — Gravity Platform
 
-> Fonte di verità per il motore di handoff HTML interattivo condiviso (`prototipi/handoff.js`).
+> Fonte di verità per il motore di handoff HTML interattivo condiviso (`prototype/_shared/handoff.js`).
 > Per generare un handoff usa la skill **`/handoff`**; la skill **`/handoff-figma`** è un flusso
 > diverso (costruisce le schermate su Figma con la libreria DS) — non confonderli.
 
 ## Architettura: prototipo unico + loader `?handoff`
 
 Il prototipo è l'**unica fonte** — niente copie "handoff". Il layer si attiva via query param
-(riferimento: `prototipi/planning/index.html`):
+(riferimento: `prototype/planning/index.html`):
 
 | URL | Mostra |
 |-----|--------|
@@ -49,12 +49,12 @@ vecchie mostrano il prototipo aggiornato con le vecchie annotazioni.
   (id, nota, tag "Approvata" sulla versione approvata, check sulla corrente) — senza titolo né
   stato del prototipo, e senza tooltip in hover sul badge.
 - **Note di design**: `CoffeeOutlined` **rossa** `#FF4A1C`, marker inline contestuale con
-  popover "Nota di design" — iconografia riservata (vedi `docs/ui-ux-standards.md` §Icone).
+  popover "Nota di design" — iconografia riservata (vedi `LAYOUT.md` §6.5).
 - **Fuori sprint**: classe `.ghf-oos` (outline tratteggiato + badge + tooltip) sugli elementi in
   `HANDOFF_OUT_OF_SPRINT`, toggle nel pannello User story.
 
 ## Riferimenti implementativi
 
-- Motore: `prototipi/handoff.js` (schema globali in testa al file)
-- Config esempio: `prototipi/planning/handoff-steps.js`
-- Wiring: `prototipi/planning/index.html` (loader + `HandoffDesignNote`)
+- Motore: `prototype/_shared/handoff.js` (schema globali in testa al file)
+- Config esempio: `prototype/planning/handoff-steps.js`
+- Wiring: `prototype/planning/index.html` (loader + `HandoffDesignNote`)

@@ -11,7 +11,7 @@ Segui questo flusso nell'ordine esatto. Non saltare nessun passo.
 ## FASE 1 — Identificazione del file
 
 Se l'utente non ha specificato il file, chiedi:
-> "Su quale prototipo devo fare il cleanup? Fornisci il percorso (es. `prototipi/systems-map/index.html`) oppure dimmi il nome del prototipo."
+> "Su quale prototipo devo fare il cleanup? Fornisci il percorso (es. `prototype/planning/index.html`) oppure dimmi il nome del prototipo."
 
 Leggi il file con `Read` prima di procedere.
 

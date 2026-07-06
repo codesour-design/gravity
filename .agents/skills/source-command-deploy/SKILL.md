@@ -117,4 +117,4 @@ In caso di problemi controlla i log su: https://vercel.com/codesour-projects/gra
 - URL produzione: https://gravity-prototipi-codesour.vercel.app
 - Vercel Dashboard: https://vercel.com/codesour-projects/gravity-prototipi
 - Account Vercel: `bonnyb` / team `codesour-projects` (MAI usare l'account personale `pianobdesign20`)
-- Struttura: tutti i prototipi in `prototipi/` — un solo progetto, path separati per modulo
+- Struttura: tutti i prototipi in `prototype/` — un solo progetto, path separati per modulo

@@ -1,9 +1,9 @@
 # Gravity — Brand Concept & Direzione Sito
 
 > Documento di sintesi del lavoro su brand, copy e concept visivo del sito Gravity.
-> Fonti: `brand/Manuale Logo.pdf`, `brand/Gravity contenuti sito.pdf`, `PRD_Gravity_Platform_CodeSour.md`,
-> `prototipi/sito/contenuti.md`, `intervista-bianca-2026-06-04.md`.
-> Ultimo aggiornamento: 26 giugno 2026.
+> Fonti: manuale logo originale (assorbito qui in §1, §6-6.2 — file PDF non più nel repo),
+> `PRD_Gravity_Platform_CodeSour.md`, `website/contenuti.md`, `intervista-bianca-2026-06-04.md`.
+> Ultimo aggiornamento: 6 luglio 2026.
 
 ---
 
@@ -85,15 +85,33 @@ canale — OOH, DOOH, display web, advertorial. Nell'advertising, la domanda va 
 
 ## 6. Palette (dal Manuale Logo)
 
-| Nome | HEX | Uso |
-|------|-----|-----|
-| Chrysler Blue | `#3E00FB` | Primary — pop elettrico, fiducia |
-| Coquelicot | `#FF4A1C` | Accent caldo (domanda) |
-| Russian Violet | `#45185C` | Profondità / "spazio" |
-| Baby Powder | `#FFFFFA` | Sfondo chiaro |
-| Smoky Black | `#231C07` | Testo |
+| Nome | HEX | RGB | CMYK | Uso |
+|------|-----|-----|------|-----|
+| Chrysler Blue | `#3E00FB` | 62, 0, 251 | 89, 77, 0, 0 | Primary — pop elettrico, fiducia |
+| Coquelicot | `#FF4A1C` | 255, 74, 28 | 0, 81, 87, 0 | Accent caldo (domanda) |
+| Russian Violet | `#45185C` | 69, 24, 92 | 87, 100, 30, 21 | Profondità / "spazio" |
+| Baby Powder | `#FFFFFA` | 255, 255, 250 | 0, 0, 3, 0 | Sfondo chiaro |
+| Smoky Black | `#231C07` | 35, 28, 7 | 67, 64, 75, 83 | Testo |
 
 Gradiente di brand: blu → viola → arancio.
+
+> Nota: questi sono i colori del **manuale logo/brand** (materiale di comunicazione). Non sono i
+> token dell'interfaccia prodotto — quelli sono in `prototype/tokens.js` e in `CLAUDE.md`
+> ("Brand essenziale"): coincidono su Primary/Secondary (`#3E00FB`/`#FF4A1C`) ma l'UI ha una
+> palette di superficie/testo propria (light/dark bg, testo primario/secondario) che qui non c'è.
+
+### 6.1 Safe Zone
+
+Spazio di rispetto minimo attorno al logo, misurato sull'altezza `x` del monogramma: margine
+laterale di `2x` sui lati corti (sinistra/destra del gruppo mark+type), `x` sopra/sotto. Non
+posizionare altri elementi (testo, immagini, bordi del frame) dentro questo margine.
+
+### 6.2 Declinazioni
+
+- **App icon**: monogramma su fondo squircle con gradiente Chrysler Blue → Russian Violet
+  (stesso gradiente di brand, verticale).
+- **Pattern decorativo**: monogramma ripetuto in diagonale, mono Chrysler Blue su bianco — uso
+  per superfici ampie di comunicazione (slide, sito), non nell'interfaccia prodotto.
 
 ---
 
@@ -140,7 +158,7 @@ animata sotto le parole (non piace), type grassa.
 
 ## 9. File di riferimento
 
-- Prototipo hero: `prototipi/sito/hero-scroll.html` (preservato dalla sessione; era nello scratchpad).
-- Contenuti sito esistenti: `prototipi/sito/contenuti.md` + `index.html`.
-- Brand: `brand/Manuale Logo.pdf`, `brand/Gravity contenuti sito.pdf`, `brand/Gravity_type.svg`, `brand/Gravity_mark.svg`.
+- Prototipo hero: `website/hero-scroll.html` (preservato dalla sessione; era nello scratchpad).
+- Contenuti sito esistenti: `website/contenuti.md` + `index.html`.
+- Brand: `brand/Gravity_type.svg`, `brand/Gravity_mark.svg` (i PDF originali sono stati assorbiti in questo documento e rimossi dal repo).
 - PRD: `PRD_Gravity_Platform_CodeSour.md`.

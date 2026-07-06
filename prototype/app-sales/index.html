@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gravity</title>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@ant-design/icons@5/dist/index.umd.js"></script>
+  <!-- Oswald: solo per fallback SVG logo (--gravity-font-brand) -->
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600&display=swap" rel="stylesheet" />
+  <script src="../_shared/tokens.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--gravity-font-body);
+      background: var(--gravity-bg);
+      color: var(--gravity-text);
+      font-size: 14px;
+      line-height: 1.5714;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       LOGIN SCREEN
+    ═══════════════════════════════════════════════════════ */
+
+    .login-bg {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(ellipse 100% 90% at 50% 100%, rgba(62,0,251,0.5) 0%, transparent 65%),
+        var(--gravity-bg);
+    }
+
+    .login-card {
+      background: var(--gravity-bg-container);
+      border-radius: var(--gravity-radius-lg);
+      box-shadow: var(--gravity-shadow-md);
+      padding: 48px;
+      width: 440px;
+      max-width: calc(100vw - 32px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .login-logo img.mark { height: 36px; width: auto; }
+    .login-logo img.type { height: 16px; width: auto; }
+
+    .login-head {
+      width: 100%;
+      text-align: center;
+    }
+
+    .login-title {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--gravity-text);
+      margin: 0 0 8px;
+      line-height: 1.2;
+    }
+
+    .login-sub {
+      font-size: 14px;
+      color: var(--gravity-text-secondary);
+      margin: 0;
+    }
+
+    .login-form {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .login-form .ant-input-affix-wrapper,
+    .login-form .ant-input {
+      height: 44px;
+    }
+
+    .login-form .ant-btn-lg {
+      height: 44px;
+      font-size: 15px;
+      margin-top: 4px;
+    }
+
+    .login-footer {
+      font-size: 12px;
+      color: var(--gravity-text-tertiary);
+      text-align: center;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       APP SHELL
+    ═══════════════════════════════════════════════════════ */
+
+    .shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Navbar ── */
+    .topbar {
+      background: var(--gravity-bg-container);
+      border-bottom: 1px solid var(--gravity-split);
+      display: flex;
+      align-items: stretch;
+      padding-right: 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: stretch;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .topbar-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      text-decoration: none;
+      padding: 0 20px;
+    }
+
+    /* antd Menu in horizontal mode: remove bottom border (already on .topbar) */
+    .topbar .ant-menu-horizontal {
+      border-bottom: none !important;
+      flex: 1;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ── Main ── */
+    .main {
+      flex: 1;
+      padding: 24px;
+      background: var(--gravity-bg);
+      overflow-y: auto;
+      min-width: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       DASHBOARD CONTENT
+    ═══════════════════════════════════════════════════════ */
+
+    /* Section heading */
+    .section-h {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gravity-text);
+      margin: 0 0 16px;
+    }
+
+    /* KPI row */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    /* KPI value */
+    .kpi-value-num {
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 28px;
+      color: var(--gravity-text);
+      margin: 8px 0;
+    }
+
+    /* Workflow grid */
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    /* Workflow tabs placeholder */
+    .wf-tab-placeholder {
+      background: var(--gravity-bg);
+      border: 1px dashed var(--gravity-border);
+      border-radius: var(--gravity-radius);
+      padding: 16px;
+      text-align: center;
+      color: var(--gravity-text-tertiary);
+      font-size: 13px;
+    }
+
+    /* Recent tables */
+    .recent-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .recent-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--gravity-split);
+      gap: 12px;
+    }
+
+    .recent-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .recent-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gravity-text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .recent-meta {
+      font-size: 12px;
+      color: var(--gravity-text-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       GREETING
+    ═══════════════════════════════════════════════════════ */
+
+    .greeting {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      gap: 24px;
+    }
+
+    .greeting-left {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .greeting-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .greeting-right { flex-shrink: 0; }
+
+    /* ═══════════════════════════════════════════════════════
+       MINI CALENDAR
+    ═══════════════════════════════════════════════════════ */
+
+    .mini-calendar { user-select: none; }
+
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      text-align: center;
+    }
+
+    .cal-cell {
+      padding: 4px 2px;
+      font-size: 11px;
+      border-radius: 4px;
+      color: var(--gravity-text);
+      line-height: 1.5;
+    }
+
+    .cal-cell.dow {
+      color: var(--gravity-text-tertiary);
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .cal-cell.today {
+      background: var(--gravity-primary);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       QUICK ACCESS ROW
+    ═══════════════════════════════════════════════════════ */
+
+    .quick-access-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       ACTIVITIES
+    ═══════════════════════════════════════════════════════ */
+
+    .activities-layout {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .activities-layout.with-team { grid-template-columns: 1fr 1fr; }
+
+    .task-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--gravity-split);
+    }
+
+    .task-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .task-text { font-size: 13px; display: block; }
+
+    .task-done .task-text {
+      text-decoration: line-through;
+      color: var(--gravity-text-tertiary);
+    }
+
+    .team-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--gravity-split);
+    }
+
+    .team-row:last-child { border-bottom: none; padding-bottom: 0; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/javascript">
+window.applyGravityTokens();
+
+const { useState, useRef, useEffect } = React;
+const {
+  ConfigProvider, Button, Input, Select, Checkbox, Badge, Tag, Menu,
+  Card, Divider, Typography, Space, Avatar, Tabs, Progress,
+  message: antMessage,
+} = antd;
+const {
+  EyeOutlined, EyeInvisibleOutlined, UserOutlined,
+  LockOutlined, BellOutlined, RightOutlined,
+  AppstoreOutlined, InboxOutlined, ShoppingOutlined, SendOutlined, SettingOutlined,
+  GlobalOutlined, EnvironmentOutlined,
+  LeftOutlined,
+  InfoCircleOutlined, ArrowUpOutlined,
+} = icons;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MOCK DATA
+// ─────────────────────────────────────────────────────────────────────────────
+
+const USER = { name: 'Marco', surname: 'Bianchi', initials: 'MB' };
+
+const TODAY = new Intl.DateTimeFormat('it-IT', {
+  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+}).format(new Date());
+
+const KPIS = [
+  { label: 'Spazi attivi',        value: '1.482', delta: '+18 questo mese',     dir: 'up'  },
+  { label: 'Campagne in corso',   value: '11',    delta: '2 in attesa firma',   dir: null  },
+  { label: 'Preventivi aperti',   value: '7',     delta: '3 da confermare',     dir: null  },
+  { label: 'Fatturato YTD',       value: '€ 84k', delta: '+12% vs last period', dir: 'up'  },
+];
+
+const NEGOTIATIONS = [
+  { name: 'ADV Gucci Estate 2025',        state: 'Active', date: '10/08' },
+  { name: 'ADV Profumi Prada 2026',       state: 'Active', date: '10/09' },
+  { name: 'ADV Dolce & Gabbana 2026',     state: 'Won',    date: '10/10' },
+  { name: 'ADV Estate Versace 2025',      state: 'Won',    date: '10/11' },
+  { name: 'ADV Natale Bottega Veneta',    state: 'Lost',   date: '10/12' },
+];
+
+const SPACES = [
+  { name: 'Pensilina_LiberàPA01',   type: 'OOH',        format: 'Pensilina 120×600'  },
+  { name: 'Parapedonale_PA02',      type: 'OOH',        format: 'Parapedonale 120×80' },
+  { name: 'LED_Milano_C01',         type: 'DOOH',       format: 'LED 200×100'        },
+  { name: 'Banner_Republic_W01',    type: 'Web',        format: 'Leaderboard 728×90' },
+  { name: 'Cartello_RM_03',         type: 'OOH',        format: 'Cartello 300×200'   },
+];
+
+const STATE_STATUS = { Active: 'processing', Won: 'success', Lost: 'error' };
+const CHANNEL_COLOR = { OOH: 'purple', DOOH: 'volcano', Web: 'geekblue', Advertorial: 'cyan' };
+
+const ROLES = ['Commerciale','Inventory Manager','Pianificatore','Operation Manager','Admin Tenant','Super Admin','Guest'];
+
+const ROLE_KPIS = {
+  'Commerciale':       [ { label:'Trattative aperte',    value:'14',    delta:'+3 questa settimana',  dir:'up'   }, { label:'Valore pipeline',      value:'€ 210k', delta:'+8% vs mese scorso',   dir:'up'   }, { label:'Preventivi in attesa', value:'7',    delta:'3 da confermare',      dir:null   }, { label:'Contratti in scadenza', value:'2',   delta:'Entro 7 giorni',       dir:'down' } ],
+  'Inventory Manager': [ { label:'Spazi totali',         value:'1.482', delta:'+18 questo mese',      dir:'up'   }, { label:'Tasso occupazione',    value:'73%',   delta:'+2% vs last period',   dir:'up'   }, { label:'Permessi in scadenza', value:'4',    delta:'Entro 30 giorni',      dir:'down' }, { label:'Da approvare',          value:'11',  delta:'5 in attesa da >3gg',  dir:null   } ],
+  'Pianificatore':     [ { label:'Campagne in piano',    value:'9',     delta:'3 da avviare',         dir:null   }, { label:'Conflitti scheduling', value:'2',     delta:'Da risolvere',          dir:'down' }, { label:'Spazi prenotati',      value:'348',  delta:'+24 questa settimana', dir:'up'   }, { label:'Campagne da avviare',   value:'3',   delta:'Nei prossimi 7gg',     dir:null   } ],
+  'Operation Manager': [ { label:'Campagne live',        value:'11',    delta:'2 avviate oggi',       dir:'up'   }, { label:'Ordini da evadere',    value:'5',     delta:'2 urgenti',             dir:'down' }, { label:'Problemi aperti',      value:'1',    delta:'Segnalato ieri',       dir:'down' }, { label:'Completate oggi',       value:'3',   delta:'Su 4 pianificate',     dir:null   } ],
+  'Admin Tenant':      [ { label:'Utenti attivi',        value:'24',    delta:'+2 questo mese',       dir:'up'   }, { label:'Ruoli assegnati',      value:'7',     delta:'Tutti i ruoli attivi',  dir:null   }, { label:'Attività oggi',        value:'47',   delta:'Azioni nel tenant',    dir:null   }, { label:'Storage usato',         value:'12 GB',delta:'Di 50 GB disponibili', dir:null   } ],
+  'Super Admin':       [ { label:'Tenant attivi',        value:'8',     delta:'+1 questo mese',       dir:'up'   }, { label:'Utenti totali',        value:'186',   delta:'+12 questa settimana', dir:'up'   }, { label:'Uptime',               value:'99.9%', delta:'Ultimi 30 giorni',     dir:null   }, { label:'Alert aperti',          value:'0',   delta:'Tutto regolare',       dir:null   } ],
+  'Guest':             [ { label:'Campagne attive',      value:'3',     delta:'1 avviata oggi',       dir:'up'   }, { label:'Impression totali',    value:'1.2M',  delta:'+18% vs last period',  dir:'up'   }, { label:'Budget residuo',       value:'€ 28k', delta:'Su € 60k totali',      dir:null   }, { label:'Prossima scadenza',     value:'12 apr',delta:'Campagna Primavera',   dir:null   } ],
+};
+
+const QUICK_ACCESS = [
+  { key:'inventory-ooh', label:'Inventory OOH/DOOH', description:'Spazi fisici e digitali outdoor',    Icon:EnvironmentOutlined, color:'#722ED1' },
+  { key:'inventory-web', label:'Inventory Web',       description:'Banner, leaderboard, advertorial',  Icon:GlobalOutlined,      color:'#1677FF' },
+  { key:'commercial',    label:'Commercial Tool',     description:'Trattative, preventivi, contratti', Icon:ShoppingOutlined,    color:'#FA8C16' },
+  { key:'delivery',      label:'Delivery Tool',       description:'Campagne, ordini, pianificazione',  Icon:SendOutlined,        color:'#52C41A' },
+  { key:'settings',      label:'Global Settings',     description:'Utenti, ruoli, configurazione',     Icon:SettingOutlined,     color:'#8C8C8C' },
+];
+
+const SEES_TEAM_ACTIVITY = new Set(['Admin Tenant','Super Admin','Operation Manager','Pianificatore']);
+const SEES_CAMPAIGNS     = new Set(['Commerciale','Pianificatore','Operation Manager','Admin Tenant','Super Admin']);
+
+const MY_TASKS = {
+  'Commerciale':       [ { id:1, text:'Inviare preventivo ADV Gucci',          done:false, due:'Oggi'    }, { id:2, text:'Chiamata follow-up Prada',             done:false, due:'Domani'  }, { id:3, text:'Aggiornare bozza contratto D&G',        done:false, due:'3 apr'  }, { id:4, text:'Archiviare pratica Versace',            done:true,  due:''       } ],
+  'Inventory Manager': [ { id:1, text:'Approvare 5 nuovi spazi in attesa',     done:false, due:'Oggi'    }, { id:2, text:'Rinnovare permesso Pensilina PA01',     done:false, due:'7 apr'  }, { id:3, text:'Aggiornare formato LED Milano C01',     done:false, due:'10 apr' } ],
+  'Pianificatore':     [ { id:1, text:'Risolvere conflitto scheduling CP-08',  done:false, due:'Oggi'    }, { id:2, text:'Assegnare spazi campagna Bottega',     done:false, due:'Domani'  }, { id:3, text:'Confermare piano aprile Versace',       done:false, due:'2 apr'  } ],
+  'Operation Manager': [ { id:1, text:'Evadere ordini urgenti (×2)',           done:false, due:'Oggi'    }, { id:2, text:'Verificare erogazione LED Milano',     done:false, due:'Oggi'    }, { id:3, text:'Chiudere segnalazione aperta',          done:false, due:'Domani'  } ],
+  'Admin Tenant':      [ { id:1, text:'Assegnare ruolo ai 2 nuovi utenti',     done:false, due:'Oggi'    }, { id:2, text:'Revisionare permessi Inventory Mgr',   done:false, due:'Domani'  } ],
+  'Super Admin':       [ { id:1, text:'Revisione configurazione tenant #8',    done:false, due:'Oggi'    }, { id:2, text:'Backup mensile completato',             done:true,  due:''       } ],
+  'Guest':             [ { id:1, text:'Approvare bozza campagna Primavera',    done:false, due:'12 apr'  }, { id:2, text:'Verifica report aprile',               done:false, due:'15 apr' } ],
+};
+
+const TEAM_ACTIVITY = [
+  { initials:'SR', user:'Sara Rossi',     action:'ha creato il preventivo', target:'ADV Prada Summer 26',  time:'10 min fa' },
+  { initials:'LF', user:'Luca Ferrari',   action:'ha aggiunto lo spazio',   target:'LED Roma Termini C03', time:'28 min fa' },
+  { initials:'AB', user:'Anna Bianchi',   action:'ha chiuso la trattativa', target:'ADV Gucci Estate 25',  time:'1 ora fa'  },
+  { initials:'ME', user:'Marco Esposito', action:'ha avviato la campagna',  target:'ADV D&G Primavera 26', time:'2 ore fa'  },
+  { initials:'CR', user:'Chiara Ricci',   action:'ha modificato il piano',  target:'Piano Aprile OOH',     time:'3 ore fa'  },
+];
+
+const LIVE_CAMPAIGNS = [
+  { name:'ADV Gucci Estate 2025',    channel:'OOH',         client:'Gucci',           start:'15 mar', end:'15 apr', spaces:12, progress:65 },
+  { name:'ADV Prada Web Banner',     channel:'Web',         client:'Prada',           start:'01 apr', end:'30 apr', spaces:5,  progress:5  },
+  { name:'LED Milano Fashion Week',  channel:'DOOH',        client:'Versace',         start:'20 mar', end:'10 apr', spaces:8,  progress:80 },
+  { name:'ADV D&G Primavera 2026',   channel:'OOH',         client:'Dolce & Gabbana', start:'01 apr', end:'30 apr', spaces:20, progress:5  },
+  { name:'Advertorial Bottega W26',  channel:'Advertorial', client:'Bottega Veneta',  start:'10 mar', end:'10 apr', spaces:3,  progress:70 },
+  { name:'Banner Repubblica Prada',  channel:'Web',         client:'Prada',           start:'28 mar', end:'28 apr', spaces:2,  progress:15 },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOGO
+// ─────────────────────────────────────────────────────────────────────────────
+
+// variant='mark' → solo marchio | variant='full' → marchio + logotipo (default)
+function Logo({ markH = 26, typeH = 13, gap = 10, variant = 'full' }) {
+  const [showFallback, setShowFallback] = useState(false);
+  return React.createElement('div', { style: { display:'flex', alignItems:'center', gap } },
+    !showFallback
+      ? React.createElement('img', {
+          src: '../../brand/Gravity_mark.svg',
+          style: { height: markH, width: 'auto' },
+          alt: 'Gravity',
+          onError: () => setShowFallback(true),
+        })
+      : React.createElement('span', {
+          style: {
+            fontFamily: 'var(--gravity-font-brand)',
+            fontSize: markH * 0.75,
+            fontWeight: 600,
+            color: 'var(--gravity-primary)',
+          }
+        }, 'G'),
+    variant === 'full' && React.createElement('img', {
+      src: '../../brand/Gravity_type.svg',
+      style: { height: typeH, width: 'auto' },
+      alt: '',
+      onError: (e) => { e.target.style.display = 'none'; }
+    })
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOGIN SCREEN
+// ─────────────────────────────────────────────────────────────────────────────
+
+function LoginScreen({ onLogin }) {
+  const [email, setEmail]       = useState('gloria@gravity.com');
+  const [password, setPassword] = useState('Gravity2024!');
+  const [loading, setLoading]   = useState(false);
+  const [pwVisible, setPwVisible] = useState(false);
+
+  const canSubmit = email.trim().length > 3 && password.length >= 1;
+
+  function handleSubmit() {
+    if (!canSubmit) return;
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      onLogin({ email });
+    }, 900);
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter') handleSubmit();
+  }
+
+  return React.createElement('div', { className: 'login-bg' },
+    React.createElement('div', { className: 'login-card' },
+
+      React.createElement('div', { className: 'login-logo' },
+        React.createElement(Logo, { markH: 56, variant: 'mark' })
+      ),
+
+      React.createElement('div', { className: 'login-head' },
+        React.createElement('h1', { className: 'login-title' }, 'Accedi a Gravity'),
+        React.createElement('p', { className: 'login-sub' },
+          'Inserisci le tue credenziali aziendali per continuare.'
+        )
+      ),
+
+      React.createElement('div', { className: 'login-form' },
+
+        React.createElement(Input, {
+          size: 'large',
+          placeholder: 'Email aziendale',
+          prefix: React.createElement(UserOutlined, { style: { color: 'var(--gravity-text-tertiary)' } }),
+          type: 'email',
+          value: email,
+          autoFocus: true,
+          onChange: e => setEmail(e.target.value),
+          onKeyDown: handleKey,
+        }),
+
+        React.createElement(Input, {
+          size: 'large',
+          placeholder: 'Password',
+          prefix: React.createElement(LockOutlined, { style: { color: 'var(--gravity-text-tertiary)' } }),
+          type: pwVisible ? 'text' : 'password',
+          value: password,
+          onChange: e => setPassword(e.target.value),
+          onKeyDown: handleKey,
+          suffix: React.createElement(Button, {
+            type: 'text',
+            size: 'small',
+            tabIndex: -1,
+            icon: React.createElement(pwVisible ? EyeInvisibleOutlined : EyeOutlined),
+            onClick: () => setPwVisible(v => !v),
+            style: { color: 'var(--gravity-text-tertiary)' }
+          }),
+        }),
+
+        React.createElement(Button, {
+          type: 'primary',
+          size: 'large',
+          block: true,
+          loading,
+          disabled: !canSubmit,
+          onClick: handleSubmit,
+          icon: React.createElement(RightOutlined),
+          iconPosition: 'end',
+          style: { marginTop: 4 }
+        }, 'Accedi')
+
+      ),
+
+      React.createElement('p', { className: 'login-footer' },
+        'Problemi di accesso? Contatta il tuo amministratore di sistema.'
+      )
+
+    )
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WELCOME SCREEN
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TopBar({ user, onLogout }) {
+  const [active, setActive] = useState('overview');
+  const navItems = [
+    { key: 'overview',   label: 'Overview',   icon: React.createElement(AppstoreOutlined) },
+    { key: 'inventory',  label: 'Inventory',  icon: React.createElement(InboxOutlined) },
+    { key: 'commercial', label: 'Commercial', icon: React.createElement(ShoppingOutlined) },
+    { key: 'delivery',   label: 'Delivery',   icon: React.createElement(SendOutlined) },
+    { key: 'settings',   label: 'Settings',   icon: React.createElement(SettingOutlined) },
+  ];
+  return React.createElement('header', { className: 'topbar' },
+    React.createElement('div', { className: 'topbar-left' },
+      React.createElement('a', { className: 'topbar-logo', href: '#' },
+        React.createElement(Logo, { markH: 26, typeH: 13, variant: 'full' })
+      ),
+      React.createElement(Menu, {
+        mode: 'horizontal',
+        selectedKeys: [active],
+        items: navItems,
+        onClick: ({ key }) => setActive(key),
+        style: { flex: 1, border: 'none', minWidth: 0 },
+      })
+    ),
+    React.createElement('div', { className: 'topbar-right' },
+      React.createElement(Button, {
+        type: 'text', size: 'middle',
+        icon: React.createElement(BellOutlined),
+        style: { color: 'var(--gravity-text-secondary)' }
+      }),
+      React.createElement(Avatar, {
+        size: 32,
+        style: {
+          backgroundColor: 'var(--gravity-primary)',
+          borderRadius: 6,
+          cursor: 'pointer',
+          flexShrink: 0,
+          fontSize: 12,
+          fontWeight: 600,
+        },
+        title: user.name + ' ' + user.surname + ' — Esci',
+        onClick: onLogout,
+      }, user.initials)
+    )
+  );
+}
+
+function KpiCard({ label, value, delta, dir }) {
+  const deltaColor = dir === 'up' ? '#52C41A' : dir === 'down' ? '#FF4A1C' : 'rgba(0,0,0,0.45)';
+  return React.createElement(Card, {
+    size: 'small',
+    title: label,
+    extra: React.createElement(InfoCircleOutlined, { style: { color: 'rgba(0,0,0,0.45)', cursor: 'default' } }),
+  },
+    React.createElement('p', { className: 'kpi-value-num' }, value),
+    React.createElement(Divider, { style: { margin: '8px 0' } }),
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 4 } },
+      dir === 'up' && React.createElement(ArrowUpOutlined, { style: { color: '#52C41A', fontSize: 12 } }),
+      React.createElement(Typography.Text, { style: { fontSize: 12, color: deltaColor } }, delta)
+    )
+  );
+}
+
+function WorkflowCard({ title, tabs }) {
+  const [active, setActive] = useState(tabs[0].key);
+  return React.createElement(Card, {
+    title,
+    extra: React.createElement('a', {
+      href: '#',
+      style: { color: 'var(--gravity-primary)', fontSize: 14 }
+    }, 'More'),
+  },
+    React.createElement(Tabs, {
+      activeKey: active,
+      onChange: setActive,
+      items: tabs.map(t => ({ key: t.key, label: t.label, children: t.content })),
+      size: 'default',
+      style: { marginTop: -8 },
+    })
+  );
+}
+
+function QuickAccessCard({ Icon, label, description, color, onClick }) {
+  return React.createElement(Card, {
+    hoverable: true,
+    size: 'small',
+    onClick,
+    style: { cursor: 'pointer' },
+    styles: { body: { padding: '12px 16px' } },
+  },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+      React.createElement('div', {
+        style: {
+          width: 36, height: 36,
+          borderRadius: 8,
+          backgroundColor: color + '1a',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        },
+      },
+        React.createElement(Icon, { style: { color, fontSize: 18 } })
+      ),
+      React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+        React.createElement(Typography.Text, { strong: true, style: { display: 'block', fontSize: 13, lineHeight: '1.4' } }, label),
+        React.createElement(Typography.Text, { type: 'secondary', style: { fontSize: 12 } }, description)
+      ),
+      React.createElement(RightOutlined, { style: { color: 'var(--gravity-text-tertiary)', fontSize: 11, flexShrink: 0 } })
+    )
+  );
+}
+
+function MiniCalendar() {
+  const today = new Date();
+  const [current, setCurrent] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+
+  const year  = current.getFullYear();
+  const month = current.getMonth();
+  const monthLabel = new Intl.DateTimeFormat('it-IT', { month: 'long', year: 'numeric' }).format(current);
+
+  const offset    = (new Date(year, month, 1).getDay() + 6) % 7; // Mon=0
+  const totalDays = new Date(year, month + 1, 0).getDate();
+
+  const cells = [];
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let d = 1; d <= totalDays; d++) cells.push(d);
+
+  const isToday = d =>
+    d !== null &&
+    year  === today.getFullYear() &&
+    month === today.getMonth() &&
+    d     === today.getDate();
+
+  return React.createElement(Card, {
+    size: 'small',
+    styles: { body: { padding: '12px 16px' } },
+    style: { width: 228 },
+  },
+    React.createElement('div', { className: 'mini-calendar' },
+
+      React.createElement('div', { className: 'cal-header' },
+        React.createElement(Button, {
+          type: 'text', size: 'small',
+          icon: React.createElement(LeftOutlined),
+          onClick: () => setCurrent(new Date(year, month - 1, 1)),
+          style: { color: 'var(--gravity-text-tertiary)', padding: '0 4px' },
+        }),
+        React.createElement(Typography.Text, { strong: true, style: { fontSize: 12, textTransform: 'capitalize' } },
+          monthLabel
+        ),
+        React.createElement(Button, {
+          type: 'text', size: 'small',
+          icon: React.createElement(RightOutlined),
+          onClick: () => setCurrent(new Date(year, month + 1, 1)),
+          style: { color: 'var(--gravity-text-tertiary)', padding: '0 4px' },
+        }),
+      ),
+
+      React.createElement('div', { className: 'cal-grid' },
+        ['L','M','M','G','V','S','D'].map((d, i) =>
+          React.createElement('div', { key: 'dow-' + i, className: 'cal-cell dow' }, d)
+        ),
+        cells.map((d, i) =>
+          React.createElement('div', {
+            key: 'c-' + i,
+            className: 'cal-cell' + (isToday(d) ? ' today' : ''),
+          }, d !== null ? d : '')
+        )
+      )
+
+    )
+  );
+}
+
+function WelcomeScreen({ user, onLogout, onNavigate }) {
+  const [activeRole, setActiveRole] = useState('Commerciale');
+  const [tasks, setTasks] = useState(() => MY_TASKS['Commerciale'].map(t => ({ ...t })));
+  const [activeChan, setActiveChan] = useState('Tutti');
+
+  useEffect(() => {
+    setTasks(MY_TASKS[activeRole].map(t => ({ ...t })));
+  }, [activeRole]);
+
+  const h = new Date().getHours();
+  const greeting = h < 12 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  const kpis = ROLE_KPIS[activeRole];
+  const seesTeam     = SEES_TEAM_ACTIVITY.has(activeRole);
+  const seesCampaigns = SEES_CAMPAIGNS.has(activeRole);
+
+  function toggleTask(id) {
+    setTasks(ts => ts.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  }
+
+  const CHAN_TABS = ['Tutti', 'OOH', 'DOOH', 'Web', 'Advertorial'];
+
+  return React.createElement('div', { className: 'shell' },
+    React.createElement(TopBar, { user, onLogout }),
+    React.createElement('main', { className: 'main' },
+
+      // ── Greeting + Calendario ───────────────────────────────────────────────
+      React.createElement('div', { className: 'greeting' },
+
+        React.createElement('div', { className: 'greeting-left' },
+          React.createElement(Typography.Title, { level: 4, style: { margin: 0 } },
+            greeting + ', ' + user.name + '.'
+          ),
+          React.createElement(Typography.Text, { type: 'secondary' },
+            'Ecco il riepilogo della tua giornata.'
+          ),
+          React.createElement('div', { className: 'greeting-meta' },
+            React.createElement(Select, {
+              value: activeRole,
+              onChange: v => { setActiveRole(v); setActiveChan('Tutti'); },
+              size: 'small',
+              style: { width: 190 },
+              options: ROLES.map(r => ({ value: r, label: r })),
+            }),
+            React.createElement(Typography.Text, { type: 'secondary', style: { fontSize: 12 } }, TODAY)
+          )
+        ),
+
+        React.createElement('div', { className: 'greeting-right' },
+          React.createElement(MiniCalendar)
+        )
+
+      ),
+
+      // ── KPI ─────────────────────────────────────────────────────────────────
+      React.createElement('div', { className: 'kpi-grid', style: { marginBottom: 24 } },
+        kpis.map(k => React.createElement(KpiCard, { key: k.label, ...k }))
+      ),
+
+      // ── Accesso rapido ───────────────────────────────────────────────────────
+      React.createElement('div', { className: 'quick-access-row' },
+        QUICK_ACCESS.map(item =>
+          React.createElement(QuickAccessCard, {
+            key:         item.key,
+            Icon:        item.Icon,
+            label:       item.label,
+            description: item.description,
+            color:       item.color,
+            onClick:     () => onNavigate(item.key),
+          })
+        )
+      ),
+
+      // ── Attività ─────────────────────────────────────────────────────────────
+      React.createElement('div', {
+        className: 'activities-layout' + (seesTeam ? ' with-team' : ''),
+      },
+
+        // Le mie attività
+        React.createElement(Card, { title: 'Le mie attività', size: 'small' },
+          tasks.map(t =>
+            React.createElement('div', {
+              key: t.id,
+              className: 'task-row' + (t.done ? ' task-done' : ''),
+            },
+              React.createElement(Checkbox, {
+                checked: t.done,
+                onChange: () => toggleTask(t.id),
+              }),
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement(Typography.Text, { className: 'task-text' }, t.text)
+              ),
+              t.due && React.createElement(Tag, {
+                style: { margin: 0, flexShrink: 0 },
+                color: t.due === 'Oggi' ? 'error' : t.due === 'Domani' ? 'warning' : 'default',
+              }, t.due)
+            )
+          )
+        ),
+
+        // Attività del team — solo admin / manager
+        seesTeam && React.createElement(Card, { title: 'Attività del team', size: 'small' },
+          TEAM_ACTIVITY.map((a, i) =>
+            React.createElement('div', { key: i, className: 'team-row' },
+              React.createElement(Avatar, {
+                size: 28,
+                style: {
+                  backgroundColor: 'var(--gravity-primary)',
+                  fontSize: 11, fontWeight: 600,
+                  borderRadius: 6, flexShrink: 0,
+                },
+              }, a.initials),
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement(Typography.Text, { style: { fontSize: 13 } },
+                  React.createElement('strong', null, a.user), ' ' + a.action
+                ),
+                React.createElement('br'),
+                React.createElement(Typography.Text, { type: 'secondary', style: { fontSize: 12 } }, a.target)
+              ),
+              React.createElement('span', { className: 'recent-meta', style: { flexShrink: 0 } }, a.time)
+            )
+          )
+        ),
+
+      ), // activities-layout
+
+      // ── Campagne in erogazione ────────────────────────────────────────────────
+      seesCampaigns && React.createElement(Card, {
+        title: 'Campagne in erogazione',
+        size: 'small',
+        style: { marginBottom: 0 },
+      },
+        React.createElement(Tabs, {
+          activeKey: activeChan,
+          onChange: setActiveChan,
+          size: 'small',
+          style: { marginTop: -8 },
+          items: CHAN_TABS.map(ch => ({
+            key: ch,
+            label: ch,
+            children: React.createElement('div', null,
+              (ch === 'Tutti' ? LIVE_CAMPAIGNS : LIVE_CAMPAIGNS.filter(c => c.channel === ch))
+                .map(c =>
+                  React.createElement('div', { key: c.name, className: 'recent-row' },
+
+                    React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                      React.createElement('span', { className: 'recent-name' }, c.name),
+                      React.createElement('div', { style: { display:'flex', alignItems:'center', gap:8, marginTop:3 } },
+                        React.createElement(Tag, { color: CHANNEL_COLOR[c.channel] || 'default', style: { margin:0 } }, c.channel),
+                        React.createElement('span', { className: 'recent-meta' }, c.client),
+                        React.createElement('span', { className: 'recent-meta' }, c.start + ' → ' + c.end),
+                        React.createElement('span', { className: 'recent-meta' }, c.spaces + ' spazi'),
+                      )
+                    ),
+
+                    React.createElement('div', { style: { width: 110, flexShrink: 0, textAlign: 'right' } },
+                      React.createElement(Progress, {
+                        percent: c.progress,
+                        size: 'small',
+                        showInfo: false,
+                        strokeColor: 'var(--gravity-primary)',
+                      }),
+                      React.createElement('span', { className: 'recent-meta', style: { fontSize: 11 } },
+                        c.progress + '% completata'
+                      )
+                    )
+
+                  )
+                )
+            ),
+          })),
+        })
+      ),
+
+    ) // main
+  ); // shell
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOT — gestione stato flusso
+// ─────────────────────────────────────────────────────────────────────────────
+
+function App() {
+  const [screen, setScreen]   = useState('login'); // 'login' | 'welcome'
+  const [loggedUser, setLoggedUser] = useState(null);
+  const [msgApi, ctxHolder]   = antMessage.useMessage();
+
+  function handleLogin({ email }) {
+    setLoggedUser({ ...USER, email });
+    setScreen('welcome');
+  }
+
+  function handleLogout() {
+    setLoggedUser(null);
+    setScreen('login');
+  }
+
+  function handleNavigate(key) {
+    msgApi.info({
+      content: 'Schermata "' + key + '" in costruzione — proseguiamo step by step!',
+      duration: 3,
+    });
+  }
+
+  return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
+    React.createElement(React.Fragment, null,
+      ctxHolder,
+      screen === 'login'
+        ? React.createElement(LoginScreen, { onLogin: handleLogin })
+        : React.createElement(WelcomeScreen, {
+            user: loggedUser,
+            onLogout: handleLogout,
+            onNavigate: handleNavigate,
+          })
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>

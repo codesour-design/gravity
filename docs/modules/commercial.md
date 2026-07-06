@@ -117,6 +117,9 @@ Showing 10 of 519 negotiations
 **Figma:** `Wizard/Strategy` (frames multipli, uno per step)
 **Canvas:** 1728×1543px — modale centrata sopra la Negotiations List (overlay)
 
+**Pattern:** Modal Wizard multi-step — vedi `LAYOUT.md` §3.8 per la struttura generica
+(Modal + Steps + footer Cancel/Next). Qui solo il contenuto specifico di ciascuno step:
+
 **Step 1 — Channel:**
 ```
 Choose Channel
@@ -135,14 +138,12 @@ Scegli il canale che preferisci
 
 **Step 4 — Budget:** allocazione budget per canale selezionato
 
-**Componenti Ant Design:**
+**Componenti Ant Design (oltre al pattern base §3.8):**
 - `<Modal width={640}>` con overlay sulla lista
-- `<Steps current={0} items={[Channel, Goal, Target, Budget]}>`
 - `<Checkbox.Group>` — selezione canali multipli (step 1)
 - `<Radio.Group>` o card selezionabili — Goal (step 2)
 - `<Select multiple>` × n — Target campi (step 3)
 - `<InputNumber addonAfter="€">` × n canali — Budget (step 4)
-- `<Button>Cancel</Button>` + `<Button type="primary">Next</Button>`
 
 ---
 
@@ -427,7 +428,7 @@ Total: 8 items   ✎ Subjects Changes: 4   🖼 Graphic Costs: Not included   �
 ### 11.10 Guest: Quote Detail/Card
 
 **Figma:** `Guest: Quote Detail/Card`
-**Canvas:** 1728×1796px — **layout senza App Shell** (no sidebar, no top nav)
+**Canvas:** 1728×1796px — pattern Public/Guest View (`LAYOUT.md` §3.7)
 
 ```
           S GRAVITY
@@ -450,8 +451,7 @@ Contract term: 10/01/2026 – 12/12/2026   Last update: 04/12/2025
                                     └──────────────────────────┘
 ```
 
-**Differenze rispetto alla Sales view:**
-- **No sidebar, no top nav** — solo logo Gravity centrato in cima
+**Differenze rispetto alla Sales view** (oltre al pattern base §3.7 — nessun App Shell):
 - Mostra info advertiser completa (ragione sociale, indirizzo) nell'header
 - Ha una riga descrittiva della strategia (tagline)
 - Non ha Edit / Share nel header
@@ -462,7 +462,8 @@ Contract term: 10/01/2026 – 12/12/2026   Last update: 04/12/2025
 ### 11.11 OTP Insert (Guest Access)
 
 **Figma:** `OTP Insert`
-**Canvas:** 1728×1117px — **layout centrato, senza App Shell**
+**Canvas:** 1728×1117px — pattern Public/Guest View (`LAYOUT.md` §3.7), variante con sfondo
+radiale viola decorativo
 
 ```
          [sfondo viola radiale]
@@ -491,9 +492,9 @@ Contract term: 10/01/2026 – 12/12/2026   Last update: 04/12/2025
 ### 11.12 Expired Link
 
 **Figma:** `Expired Link`
-**Canvas:** 1728×1117px — layout centrato, senza App Shell
+**Canvas:** 1728×1117px — pattern Public/Guest View (`LAYOUT.md` §3.7)
 
-Schermata di errore quando il link OTP è scaduto. Pattern: pagina di errore con icona + titolo + CTA per richiedere nuovo link.
+Schermata di errore quando il link OTP è scaduto: icona + titolo + CTA per richiedere nuovo link.
 
 **Componenti Ant Design:**
 - `<Result status="error" title="Link Expired" subTitle="..." extra={<Button>Request new link</Button>}>`
@@ -520,14 +521,15 @@ I template sono HTML email (non prototipi di app). Dimensione canvas: 680px widt
 
 Wizard per la selezione degli impianti pubblicitari da aggiungere a una campagna. Chiamato da "Choose formats" nella campaign card della Strategy Detail.
 
+**Pattern:** Modal Wizard multi-step — vedi `LAYOUT.md` §3.8 (qui il contenuto è lungo,
+valutare la variante full-page per lo step 4, ~1230px height).
+
 | Step | Contenuto |
 |------|-----------|
 | Step 1 | Selezione tipologia di formato/impianti |
 | Step 2 | Configurazione dettagli (geolocalizzazione, date) |
 | Step 3 | Preview e review impianti selezionati |
 | Step 4 | Conferma e riepilogo (form lungo ~1230px height) |
-
-**Pattern:** Modal a step (`<Steps>` + `<Modal>` o full-page wizard).
 
 ---
 

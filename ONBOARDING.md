@@ -100,8 +100,8 @@ git checkout -b tuonome/prototipo     # crea il tuo branch
 
 ### Costruire un prototipo HTML
 
-1. Crea la cartella in `prototipi/nome-prototipo/` (kebab-case, inglese, no numeri)
-2. Parti da `prototipi/_template.html` come base
+1. Crea la cartella in `prototype/nome-prototipo/` (kebab-case, inglese, no numeri)
+2. Parti da `prototype/_shared/_template.html` come base
 3. Lavora in Claude Code — `CLAUDE.md`, `LAYOUT.md` e `components/` sono i tuoi riferimenti
 4. Verifica nel browser aprendo il file in locale
 5. Salva spesso con commit:

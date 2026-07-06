@@ -1,7 +1,7 @@
 # Navbar — Gravity Platform
 
 > Fonte di verità per la navbar in tutti i prototipi HTML e nella trasposizione Figma.
-> Ogni prototipo DEVE usare il componente condiviso `prototipi/navbar.js` (`window.GravityNavbar`).
+> Ogni prototipo DEVE usare il componente condiviso `prototype/_shared/navbar.js` (`window.GravityNavbar`).
 > Non ricostruire una navbar per-prototipo e non inventare varianti.
 
 ---
@@ -17,7 +17,7 @@
 
 ## Componente condiviso: `window.GravityNavbar`
 
-Sorgente: `prototipi/navbar.js`. Da caricare dopo React, ReactDOM, antd, `@ant-design/icons`
+Sorgente: `prototype/_shared/navbar.js`. Da caricare dopo React, ReactDOM, antd, `@ant-design/icons`
 e `tokens.js`:
 
 ```js
@@ -42,14 +42,14 @@ profondità di pagina. Usa gli override solo per destinazioni non standard.
 ### Registro prototipi e stato
 
 I link delle voci menu ai prototipi **non sono hardcoded in navbar.js**: vengono dal campo `nav`
-di **`prototipi/registry.js`** (`window.GRAVITY_PROTOTYPES`), che navbar.js carica da solo se la
+di **`prototype/_shared/registry.js`** (`window.GRAVITY_PROTOTYPES`), che navbar.js carica da solo se la
 pagina non lo ha già incluso.
 
 Il campo `status` (`approved` / `in-progress`) resta nel registro come metadato del prototipo, ma
 **non è mostrato nell'interfaccia**: il dropdown del selettore versioni (dev-bar handoff) è ridotto
 alla sola lista di versioni selezionabili, senza riga di stato né titolo.
 
-Regole: un prototipo = una cartella sotto `prototipi/` per tutto il ciclo di vita; quando viene
+Regole: un prototipo = una cartella sotto `prototype/` per tutto il ciclo di vita; quando viene
 approvato si aggiorna `status` nel registro, **non si sposta la cartella** (gli URL non cambiano).
 Nuovo prototipo → nuova voce nel registro (`label`, `status`, `entry`, `nav` se collegato a una
 voce di menu).

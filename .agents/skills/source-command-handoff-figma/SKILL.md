@@ -33,7 +33,7 @@ Elenca le user story da disegnare. Per ognuna fornisci:
 In che lingua vanno scritti tutti i testi del canvas? (italiano / inglese / altra)
 
 **Domanda 4 — Prototipo HTML** *(opzionale ma molto utile)*
-Hai un prototipo HTML che implementa questo flusso? Se sì, fornisci il percorso del file (es. `prototipi/03-inventory/index.html`) oppure aprilo nel browser e condividi l'URL locale. Lo userò per individuare le schermate reali del flusso prima di costruire su Figma.
+Hai un prototipo HTML che implementa questo flusso? Se sì, fornisci il percorso del file (es. `prototype/03-inventory/index.html`) oppure aprilo nel browser e condividi l'URL locale. Lo userò per individuare le schermate reali del flusso prima di costruire su Figma.
 
 **Domanda 5 — Diagramma di flusso** *(opzionale)*
 Hai un diagramma di flusso (Figma, FigJam, immagine, o testo strutturato) che descrive la logica del flusso con branch, condizioni e percorsi alternativi? Se sì, condividi l'URL o il percorso.

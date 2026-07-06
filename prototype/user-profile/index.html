@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gravity — Profilo utente</title>
+
+  <!-- React 18 -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Ant Design 5.x -->
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+
+  <!-- Icons -->
+  <script src="https://unpkg.com/@ant-design/icons@5/dist/index.umd.js"></script>
+
+  <!-- Gravity tokens -->
+  <script src="../_shared/tokens.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: #f5f5f5; }
+
+    /* Navbar: menu orizzontale altezza fissa — stesso pattern di navbar.js */
+    .gv-nav-menu.ant-menu-horizontal { border-bottom: none !important; height: 64px !important; line-height: 64px !important; }
+    .gv-nav-menu.ant-menu-horizontal > .ant-menu-item,
+    .gv-nav-menu.ant-menu-horizontal > .ant-menu-submenu { height: 64px !important; line-height: 64px !important; top: 0 !important; }
+    .gv-nav-menu.ant-menu-horizontal > .ant-menu-item::after,
+    .gv-nav-menu.ant-menu-horizontal > .ant-menu-submenu::after { bottom: 0 !important; border-bottom-width: 2px !important; }
+    .gv-nav-menu.ant-menu-horizontal > .ant-menu-overflow { height: 64px; }
+
+    /* Avatar header — overlay "Modifica" visibile solo in hover */
+    .gv-avatar-wrap .gv-avatar-overlay { opacity: 0; transition: opacity 0.15s ease; }
+    .gv-avatar-wrap:hover .gv-avatar-overlay { opacity: 1; }
+
+    /* Tenant switcher trigger */
+    .gv-tenant-trigger:hover { background: rgba(0,0,0,0.04); }
+
+    /* Calendario scadenze (area app) — base ispirata al MiniCalendar di Planning */
+    .gv-cal { font-size: 12px; }
+    .gv-cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 500; }
+    .gv-cal-header button { background: none; border: none; cursor: pointer; color: rgba(0,0,0,0.45); padding: 4px; display: flex; align-items: center; border-radius: 6px; }
+    .gv-cal-header button:hover { background: rgba(0,0,0,0.04); color: #3E00FB; }
+    .gv-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; }
+    .gv-cal-day-label { text-align: center; font-size: 11px; color: rgba(0,0,0,0.45); padding: 3px 0; }
+    .gv-cal-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3px 2px; gap: 3px; }
+    .gv-cal-day { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; color: rgba(0,0,0,0.88); line-height: 1; }
+    .gv-cal-cell.has-deadline .gv-cal-day { font-weight: 600; }
+    .gv-cal-day.today { border: 1px solid #3E00FB; font-weight: 600; }
+    .gv-cal-cell.outside .gv-cal-day { color: rgba(0,0,0,0.25); }
+    .gv-cal-dot { width: 5px; height: 5px; border-radius: 50%; }
+    .gv-cal-dot.empty { background: transparent; }
+    .gv-cal-legend { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0; display: flex; flex-direction: column; gap: 10px; }
+    .gv-cal-legend-item { display: flex; align-items: center; gap: 10px; font-size: 12px; min-width: 0; }
+    .gv-cal-legend-date { flex-shrink: 0; font-weight: 600; color: rgba(0,0,0,0.88); width: 52px; }
+    .gv-cal-legend-title { color: rgba(0,0,0,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/javascript">
+window.applyGravityTokens();
+
+// ── Globals ──────────────────────────────────────────────────────────────────
+const { useState, useEffect, useRef } = React;
+const {
+  ConfigProvider, App, Layout, Space, Typography,
+  Button, Avatar, Upload, Modal, Form, Input, Select, Card, Tag, Badge,
+  Dropdown, Skeleton, Alert, Divider, Checkbox, Popover, Drawer, Result, Segmented, Spin,
+} = antd;
+const {
+  UserOutlined, LockOutlined, BellOutlined,
+  CheckOutlined, InfoCircleOutlined, SettingOutlined, DownOutlined,
+  EditOutlined, SwapOutlined, CameraOutlined, HistoryOutlined,
+  ArrowLeftOutlined, FilterOutlined, LoadingOutlined,
+} = icons;
+const { Title, Text } = Typography;
+
+// ── Dati navigazione (replica pattern navbar.js) ─────────────────────────────
+
+const ROLES = ['Tenant Admin', 'Inventory Manager', 'Operation Manager', 'Planner', 'Sales'];
+
+const ROLE_NAV = {
+  'Tenant Admin':      ['Overview', 'Inventory', 'Commercial', 'Delivery', 'Settings'],
+  'Inventory Manager': ['Overview', 'Inventory'],
+  'Operation Manager': ['Overview', 'Inventory', 'Commercial', 'Delivery'],
+  'Planner':           ['Overview', 'Inventory', 'Delivery'],
+  'Sales':             ['Commercial', 'Delivery'],
+};
+
+const NAV = {
+  Overview:   { items: ['Per te', 'Dashboard finance', 'Dashboard analytics'],
+                links: { 'Per te': './index.html' } },
+  Inventory:  { items: ['Systems', 'Licenses', 'Supplier'],
+                links: { Systems: '../inventory-systems/index.html' } },
+  Commercial: { items: ['Wallet', 'Activities', 'Negotiations', 'Orders'],
+                links: { Negotiations: '../negotiations/index.html' } },
+  Delivery:   { items: ['Campaigns', 'Plannings', 'Collections'],
+                links: { Plannings: '../planning/index--handoff.html', Collections: '../poi-collections/index.html' } },
+  Settings:   { items: ['Users', 'Tenants'], links: {} },
+};
+
+const SECTION_LABEL = {
+  Overview: 'Panoramica', Inventory: 'Inventario', Commercial: 'Commerciale',
+  Delivery: 'Espletamento', Settings: 'Impostazioni',
+};
+
+const ITEM_LABEL = {
+  'Per te': 'Per te',
+  'Dashboard finance': 'Dashboard Finance', 'Dashboard analytics': 'Dashboard Analytics',
+  'Systems': 'Impianti', 'Licenses': 'Permessi', 'Supplier': 'Fornitori',
+  'Wallet': 'Portafoglio', 'Activities': 'Attività', 'Negotiations': 'Trattative', 'Orders': 'Ordini',
+  'Campaigns': 'Campagne', 'Plannings': 'Pianificazioni', 'Collections': 'Collezioni POI',
+  'Users': 'Utenti', 'Tenants': 'Tenant',
+};
+
+const ROLE_USER = {
+  'Tenant Admin':      { nome: 'Sofia',   cognome: 'Marchetti' },
+  'Inventory Manager': { nome: 'Tommaso', cognome: 'Ferrara'   },
+  'Operation Manager': { nome: 'Davide',  cognome: 'Serra'     },
+  'Planner':           { nome: 'Giulia',  cognome: 'Romano'    },
+  'Sales':             { nome: 'Lorenzo', cognome: 'Bianchi'   },
+};
+
+const AVATAR_PALETTE = [
+  { bg: '#F0EAFF', fg: '#3E00FB' },
+  { bg: '#E6F7FF', fg: '#0958D9' },
+  { bg: '#FFF7E6', fg: '#D46B08' },
+  { bg: '#F6FFED', fg: '#389E0D' },
+  { bg: '#FFF1F0', fg: '#CF1322' },
+  { bg: '#E8F5E9', fg: '#2E7D32' },
+];
+
+function nameColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
+}
+
+// ── Tenant mock ───────────────────────────────────────────────────────────────
+
+const TENANTS = {
+  gravity: {
+    key: 'gravity', name: 'Gravity (White Label)', company: 'Gravity Platform S.r.l.',
+    logo: '../../brand/Gravity_mark.svg', domain: 'gravity.com',
+  },
+  alessi: {
+    key: 'alessi', name: 'Alessi Pubblicità Spa', company: 'Alessi Media S.p.A.',
+    logo: 'assets/logo-alessi.png', domain: 'alessimedia.it',
+  },
+  movingup: {
+    key: 'movingup', name: 'Moving Up Srl', company: 'Moving Up Italia Srl',
+    logo: 'assets/logo-movingup.png', domain: 'movingup.it',
+  },
+};
+
+// Area di competenza per ruolo — coerente con il planning (Giulia Romano · Sicilia Occidentale)
+// Area di competenza — coerente col prototipo Planning (PLANNER.area/provinces)
+const COMPETENCY = {
+  area:      'Sicilia Occidentale',
+  provinces: ['Palermo', 'Trapani', 'Agrigento', 'Caltanissetta'],
+};
+
+// Email aziendale derivata dall'utente effettivamente visualizzato + dominio del tenant
+function userEmail(role, tenant) {
+  const u = ROLE_USER[role] || { nome: 'u', cognome: '' };
+  const local = (u.nome[0] + '.' + u.cognome).toLowerCase().replace(/\s+/g, '');
+  return local + '@' + tenant.domain;
+}
+
+// ── Prodotti piattaforma (universale per tutti i ruoli) ────────────────────────
+
+// Sotto-prodotti Gravity — naming a tema gravità/spazio, icone placeholder colorate
+const PRODUCTS = [
+  { name: 'Atlas',   desc: 'Inventory OOH/DOOH',     color: '#3E00FB', icon: 'EnvironmentOutlined' },
+  { name: 'Quasar',  desc: 'Inventory Web',          color: '#0EA5E9', icon: 'GlobalOutlined' },
+  { name: 'Vega',    desc: 'CRM Mobile & Desktop',   color: '#16A34A', icon: 'ContactsOutlined' },
+  { name: 'Orbit',   desc: 'Pianificazione OOH/DOOH', color: '#F59E0B', icon: 'CalendarOutlined' },
+  { name: 'Pulsar',  desc: 'Pianificazione Web',     color: '#EC4899', icon: 'ScheduleOutlined' },
+  { name: 'Comet',   desc: 'Espletamento Campagne',  color: '#EF4444', icon: 'RocketOutlined' },
+  { name: 'Aurora',  desc: 'Advertorial',            color: '#8B5CF6', icon: 'ReadOutlined' },
+  { name: 'Polaris', desc: 'ERP & Contabilità',      color: '#0D9488', icon: 'CalculatorOutlined' },
+];
+
+// ── Mappatura app per ruolo ────────────────────────────────────────────────────
+// Ogni ruolo vede solo le app coerenti con le sue responsabilità (allineate ai
+// domini delle sezioni che già vede in navbar). Area esplorativa: assegnazione
+// indicativa, da validare con lo studio dei ruoli.
+//  · Tenant Admin      → tutte (governance di piattaforma)
+//  · Inventory Manager → inventario OOH/DOOH + web
+//  · Operation Manager → disponibilità, CRM, pianif. OOH, espletamento, ERP/pagamenti (OOH-focused, da intervista)
+//  · Planner           → inventario + pianificazione OOH/web + espletamento
+//  · Sales             → CRM, proposte, advertorial, delivery
+const ROLE_APPS = {
+  'Tenant Admin':      ['Atlas', 'Quasar', 'Vega', 'Orbit', 'Pulsar', 'Comet', 'Aurora', 'Polaris'],
+  'Inventory Manager': ['Atlas', 'Quasar'],
+  'Operation Manager': ['Atlas', 'Vega', 'Orbit', 'Comet', 'Polaris'],
+  'Planner':           ['Atlas', 'Orbit', 'Pulsar', 'Comet'],
+  'Sales':             ['Vega', 'Orbit', 'Aurora', 'Comet'],
+};
+
+// ── Categorie attività (stile + icona condivisi tra ruoli) ─────────────────────
+
+const CATEGORY_STYLE = {
+  // Operation Manager / commerciale
+  'Pagamenti':      { color: '#ff4d4f', icon: 'CreditCardOutlined' },
+  'Preventivi':     { color: '#fa8c16', icon: 'FileTextOutlined' },
+  'Anagrafiche':    { color: '#3E00FB', icon: 'IdcardOutlined' },
+  'Contratti':      { color: '#16A34A', icon: 'SolutionOutlined' },
+  'Assegnazioni':   { color: '#0EA5E9', icon: 'UsergroupAddOutlined' },
+  // Inventory
+  'Impianti':       { color: '#3E00FB', icon: 'EnvironmentOutlined' },
+  'Permessi':       { color: '#fa8c16', icon: 'SafetyCertificateOutlined' },
+  'Fornitori':      { color: '#0EA5E9', icon: 'ShopOutlined' },
+  'Manutenzione':   { color: '#16A34A', icon: 'ToolOutlined' },
+  // Tenant Admin
+  'Utenti':         { color: '#3E00FB', icon: 'TeamOutlined' },
+  'Fatturazione':   { color: '#ff4d4f', icon: 'DollarOutlined' },
+  'Compliance':     { color: '#722ED1', icon: 'AuditOutlined' },
+  'Listini':        { color: '#fa8c16', icon: 'TagsOutlined' },
+  // Planner
+  'Pianificazione': { color: '#3E00FB', icon: 'CalendarOutlined' },
+  'Disponibilità':  { color: '#16A34A', icon: 'AppstoreOutlined' },
+  'Ordini':         { color: '#0EA5E9', icon: 'ShoppingOutlined' },
+  'Conflitti':      { color: '#ff4d4f', icon: 'WarningOutlined' },
+  'Campagne':       { color: '#722ED1', icon: 'ThunderboltOutlined' },
+  // Sales
+  'Trattative':     { color: '#3E00FB', icon: 'SolutionOutlined' },
+  'Clienti':        { color: '#16A34A', icon: 'UserOutlined' },
+  'Follow-up':      { color: '#0EA5E9', icon: 'ClockCircleOutlined' },
+  'Demo':           { color: '#fa8c16', icon: 'DesktopOutlined' },
+};
+
+function catStyle(cat) { return CATEGORY_STYLE[cat] || { color: '#8c8c8c', icon: 'TagOutlined' }; }
+function catIcon(cat, size) {
+  const s = catStyle(cat);
+  const Ico = icons[s.icon] || icons.TagOutlined;
+  return React.createElement(Ico, { style: { color: s.color, fontSize: size || 14 } });
+}
+
+// ── Dati per ruolo ────────────────────────────────────────────────────────────
+
+// ── Mock attività Operation Manager ───────────────────────────────────────────
+// Mondo Media Hub / Alessi — Sicilia occidentale (dall'intervista a Bianca).
+// Granularità card↔attività: ogni KPI = numero di record della sua coda; questi
+// record alimentano sia il conteggio nella card sia la lista "Le tue attività".
+// Categorie non-MVP (Assegnazioni, Contratti) → record sola lettura (disabled+nota).
+const _omAgents  = ['Roberto Vinci', 'Margherita Lo Cascio', 'Giorgio Focarini', 'Alessandro Nicoletti', 'Lia Greco'];
+const _omComuni  = ['Palermo', 'Monreale', 'Bagheria', 'Carini', 'Partinico', 'Trapani', 'Erice', 'Marsala', 'Mazara del Vallo', 'Alcamo', 'Castelvetrano', 'Sciacca'];
+const _omClienti = ['Fagone S.r.l.', 'Ottica Rinaldi S.r.l.', 'Panificio Sciarrino', 'Cantine Florio', 'Caseificio Belicino', 'Mobilificio Saporito', 'Autoscuola Vittoria', 'Farmacia San Giovanni', 'Vivai Mediterraneo', 'Clinica Sorriso', 'Hotel Crystal', 'Pasticceria Oscar', 'Calzature Damiani', 'Ferramenta Lo Bue', 'Centro Estetico Aura', 'Ristorante Al Saraceno', 'Supermercati Iblea', 'Carrozzeria Maggiore', 'Tipografia Eolo', 'Enoteca Solunto', 'Palestra Olympia', 'Lavanderia Smeralda', 'Profumeria Lux'];
+const _omSoggetti = ['Saldi estate', 'Apertura punto vendita', 'Promo stagionale', 'Campagna istituzionale', 'Lancio menù estivo', 'Open day', 'Black week', 'Festa del cliente', 'Promo occhiali da sole'];
+const _pick = (arr, i) => arr[((i % arr.length) + arr.length) % arr.length];
+const _omBuild = (n, fn) => Array.from({ length: n }, (_, k) => fn(k));
+
+// Pagamenti scaduti (7) — solleciti via PEC, controllo scaduto cliente.
+// time = da quanto è in coda (recency); il ritardo vive solo nel dettaglio.
+const OM_PAGAMENTI = [
+  { title: 'Sollecito pagamento — AutoMove S.p.A.', desc: 'Fattura #2024-318 · €4.820 · 18 gg di ritardo · 2° sollecito', time: '2 ore fa', priority: 'high', category: 'Pagamenti' },
+  ..._omBuild(6, (k) => {
+    const gg  = [31, 14, 9, 5, 22, 7][k];
+    const imp = ['€3.150', '€2.090', '€1.240', '€560', '€2.460', '€890'][k];
+    const lvl = gg >= 20 ? 'prelegale' : gg >= 10 ? '2° sollecito' : '1° sollecito';
+    const rec = ['1 ora fa', '3 ore fa', 'ieri', '2 gg fa', 'oggi', '3 gg fa'][k];
+    return { title: 'Sollecito pagamento — ' + _pick(_omClienti, k * 2 + 3), desc: 'Fattura #2024-' + (291 + k) + ' · ' + imp + ' · ' + gg + ' gg di ritardo · ' + lvl, time: rec, priority: gg >= 15 ? 'high' : 'medium', category: 'Pagamenti' };
+  }),
+];
+
+// Preventivi da approvare (14) — gatekeeping sconto: "se non passa da qui non esce".
+// Nome = trattativa collegata (soggetto + area). Dettaglio = cliente · totale ·
+// commerciale · n° campagne nel preventivo (un preventivo può contenere più
+// campagne). Lo sconto resta come driver (invisibile) della priorità.
+const _prevSconto = [23, 18, 25, 12, 20, 28, 15, 10, 30, 17, 22, 14, 26, 8];
+const _prevTotale = ['€3.200', '€8.450', '€12.400', '€2.100', '€5.600', '€18.900', '€4.300', '€1.850', '€24.000', '€6.700', '€9.100', '€3.950', '€14.200', '€2.480'];
+const _prevCamp   = [1, 2, 1, 1, 3, 2, 1, 1, 4, 2, 1, 1, 3, 1];
+const _prevTime   = ['1 ora fa', '2 ore fa', '3 ore fa', 'ieri', '2 gg fa', '3 gg fa', '4 gg fa'];
+const _campLabel  = (n) => n + (n === 1 ? ' campagna' : ' campagne');
+const OM_PREVENTIVI = _omBuild(14, (k) => {
+  const sc = _prevSconto[k];
+  const trattativa = _pick(_omSoggetti, k) + ' ' + _pick(_omComuni, k);
+  return {
+    title: 'Approva preventivo — ' + trattativa,
+    desc: _pick(_omClienti, k) + ' · ' + _prevTotale[k] + ' · ' + _pick(_omAgents, k) + ' · ' + _campLabel(_prevCamp[k]),
+    time: _pick(_prevTime, k),
+    priority: sc >= 22 ? 'high' : sc >= 15 ? 'medium' : 'low',
+    category: 'Preventivi',
+  };
+});
+
+// Anagrafiche da verificare (23) — dati incompleti (spesso solo nome insegna)
+const _anaMiss = ['P.IVA mancante', 'PEC e codice univoco assenti', 'sede legale incompleta', 'codice fiscale da inserire', 'solo recapito telefonico — ragione sociale da verificare', 'IBAN e condizioni di pagamento assenti'];
+const _anaTime = ['1 ora fa', '2 ore fa', '3 ore fa', 'oggi', 'ieri', '2 gg fa', '3 gg fa', '4 gg fa', '5 gg fa'];
+const OM_ANAGRAFICHE = [
+  { title: 'Completa anagrafica — BrandX S.r.l.', desc: 'P.IVA e sede legale incomplete', time: '2 ore fa', priority: 'high', category: 'Anagrafiche' },
+  ..._omBuild(22, (k) => ({ title: 'Completa anagrafica — ' + _pick(_omClienti, k), desc: _pick(_anaMiss, k), time: _pick(_anaTime, k), priority: k < 3 ? 'high' : k < 13 ? 'medium' : 'low', category: 'Anagrafiche' })),
+];
+
+// Inserzionisti/lead da assegnare (11) — NON-MVP (wizard da definire): sola lettura
+const _leadFonti   = ['sito', 'media monitor'];
+const _leadInsegne = ['Gelateria Campiano', 'Bar Centrale', 'Ottica Visione', 'Pizzeria Da Nino', 'Centro Gomme Sud', 'Boutique Mirò', 'Macelleria Lo Verde', 'Caffè Letterario', 'Idea Casa Arredi', 'Studio Dentistico Bianco', 'Garden Flora'];
+const OM_ASSEGNAZIONI = _omBuild(11, (k) => ({ title: 'Assegna inserzionista — ' + _leadInsegne[k], desc: 'da ' + _pick(_leadFonti, k) + ' · zona ' + _pick(_omComuni, k + 2) + ' → ' + _pick(_omAgents, k), time: _pick(['30 min fa', '1 ora fa', '2 ore fa', '3 ore fa', 'ieri', '2 gg fa'], k), priority: k < 3 ? 'medium' : 'low', category: 'Assegnazioni', disabled: true, popover: 'Wizard da definire' }));
+
+// Contratti da preparare (9) — NON-MVP: sola lettura
+const OM_CONTRATTI = [
+  { title: 'Prepara contratto #PR-4790', desc: 'BrandX S.r.l. · preventivo approvato dal cliente — invio firma', time: 'ieri', priority: 'medium', category: 'Contratti', disabled: true, popover: 'No MVP' },
+  ..._omBuild(8, (k) => ({ title: 'Prepara contratto #PR-' + (4791 + k), desc: _pick(_omClienti, k + 9) + ' · preventivo approvato — invio firma', time: _pick(['oggi', 'ieri', '2 gg fa', '3 gg fa'], k), priority: k < 3 ? 'medium' : 'low', category: 'Contratti', disabled: true, popover: 'No MVP' })),
+];
+
+// Round-robin tra le code → le attività si alternano per categoria invece di
+// comparire tutte insieme (Pag, Prev, Ana, Ass, Contr, Pag, Prev, …).
+const _interleave = (...lists) => {
+  const out = [];
+  const max = Math.max.apply(null, lists.map((l) => l.length));
+  for (let i = 0; i < max; i++) lists.forEach((l) => { if (i < l.length) out.push(l[i]); });
+  return out;
+};
+const OM_ACTIVITIES = _interleave(OM_PAGAMENTI, OM_PREVENTIVI, OM_ANAGRAFICHE, OM_ASSEGNAZIONI, OM_CONTRATTI);
+const _omCount = (cat) => String(OM_ACTIVITIES.filter((t) => t.category === cat).length);
+
+// Solo l'Operation Manager ha dati validati con la UX research. Gli altri ruoli
+// mostrano card e attività placeholder: lo studio del ruolo è ancora da effettuare.
+const STUDIED_ROLES = ['Operation Manager'];
+
+// Ogni metrica: icon = icona pertinente (header) · action = link button del footer
+const ROLE_METRICS = {
+  'Tenant Admin': [
+    { label: 'Spazi totali gestiti',  value: '214',   trend: '+8 vs mese',   trendUp: true,  icon: 'EnvironmentOutlined', action: 'Vedi inventario' },
+    { label: 'Fatturato mensile',     value: '€487K', trend: '+4,2%',        trendUp: true,  icon: 'EuroOutlined',        action: 'Apri report finance' },
+    { label: 'Utenti attivi',         value: '23',    trend: 'su 2 tenant',  trendUp: null,  icon: 'TeamOutlined',        action: 'Gestisci utenti' },
+    { label: 'Campagne attive',       value: '28',    trend: '+3 oggi',      trendUp: true,  icon: 'ThunderboltOutlined', action: 'Vedi campagne' },
+  ],
+  'Inventory Manager': [
+    { label: 'Spazi disponibili',        value: '128',   trend: '+12 vs sett.', trendUp: true,  icon: 'EnvironmentOutlined',       action: 'Vedi inventario' },
+    { label: 'Permessi in scadenza',     value: '9',     trend: 'entro 30 gg',  trendUp: false, icon: 'SafetyCertificateOutlined', action: 'Gestisci permessi' },
+    { label: 'Occupazione media',        value: '73,4%', trend: '+2,1%',        trendUp: true,  icon: 'PieChartOutlined',          action: 'Apri analytics' },
+    { label: 'Manutenzioni programmate', value: '4',     trend: 'questo mese',  trendUp: null,  icon: 'ToolOutlined',              action: 'Vedi calendario' },
+  ],
+  // Vista di riferimento — dati esatti da Figma Make (5 metriche operative)
+  'Operation Manager': [
+    { label: 'Anagrafiche da verificare',  value: _omCount('Anagrafiche'),  trend: 'da completare',        trendUp: false, icon: 'IdcardOutlined',       action: 'Vai a Portafoglio commerciale', designNote: 'App e flusso commerciale propedeutici per questa card.' },
+    { label: 'Inserzionisti da assegnare', value: _omCount('Assegnazioni'), trend: 'lead da smistare',     trendUp: false, icon: 'UsergroupAddOutlined', action: 'Assegna Inserzionista', disabled: true, popover: 'Wizard da definire', designNote: 'App e flusso commerciale propedeutici per questa card. Casistica: accade quando arrivano lead da sito, media monitor o altre situazioni in cui si verifica il caso di anagrafiche inserzionisti che non hanno agenti commerciali assegnati. Necessaria review modello dati Inserzionisti.' },
+    { label: 'Pagamenti scaduti',          value: _omCount('Pagamenti'),    trend: 'azione richiesta',     trendUp: false, icon: 'CreditCardOutlined',   action: 'Vai a ordini', designNote: 'Necessario redesign ordini con plausibile integrazione ERP per stato pagamenti e ampliamento modello dati attuale. Nuova funzionalità necessaria: recupero crediti.' },
+    { label: 'Preventivi da approvare',    value: _omCount('Preventivi'),   trend: 'intervento operation', trendUp: false, icon: 'FileTextOutlined',     action: 'Vai a preventivi', disabled: true, popover: 'Work in progress, sprint imminenti', designNote: 'Necessario rivedere flusso preventivi come conseguenza del redesign del flusso trattative.' },
+    { label: 'Contratti da preparare',     value: _omCount('Contratti'),    trend: 'approvati da cliente', trendUp: true,  icon: 'SolutionOutlined',     action: 'Vai a contratti', disabled: true, popover: 'No MVP', designNote: 'Va progettato flusso contratti, attualmente non esistente.' },
+  ],
+  'Planner': [
+    { label: 'Ordini pianificati',  value: '34',  trend: '+5 vs sett.', trendUp: true,  icon: 'ScheduleOutlined', action: 'Vedi pianificazioni' },
+    { label: 'Disponibilità Q3',    value: '62%', trend: '-3% vs Q2',   trendUp: false, icon: 'CalendarOutlined', action: 'Apri calendario' },
+    { label: 'Copertura campagne',  value: '88%', trend: '+2%',         trendUp: true,  icon: 'AimOutlined',      action: 'Vedi campagne' },
+    { label: 'Slot liberi oggi',    value: '47',  trend: '+8 vs ieri',  trendUp: true,  icon: 'AppstoreOutlined', action: 'Pianifica slot' },
+  ],
+  'Sales': [
+    { label: 'Trattative attive',  value: '12',    trend: '+2 questa sett.', trendUp: true, icon: 'SolutionOutlined', action: 'Vedi trattative' },
+    { label: 'Pipeline totale',    value: '€340K', trend: '+18%',            trendUp: true, icon: 'FundOutlined',     action: 'Apri pipeline' },
+    { label: 'Nuovi clienti mese', value: '3',     trend: 'in trattativa',   trendUp: null, icon: 'UserAddOutlined',  action: 'Gestisci clienti' },
+    { label: 'Tasso chiusura',     value: '68%',   trend: '+4%',             trendUp: true, icon: 'RiseOutlined',     action: 'Report vendite' },
+  ],
+};
+
+const ROLE_PENDING = {
+  'Tenant Admin': [
+    { title: 'Rinnovo contratto Alessi',        desc: 'Scadenza licenza piattaforma Q3',     time: 'scade in 12 gg', priority: 'high',   category: 'Contratti'    },
+    { title: 'Revisione permessi utenti',       desc: '3 utenti con accessi da aggiornare',   time: '2 ore fa',       priority: 'high',   category: 'Utenti'       },
+    { title: 'Approvazione fattura fornitore',  desc: 'Affissioni Nord Ovest — €12.400',      time: 'ieri',           priority: 'medium', category: 'Fatturazione' },
+    { title: 'Audit accessi piattaforma',       desc: 'Report mensile compliance',            time: '3 gg fa',        priority: 'medium', category: 'Compliance'   },
+    { title: 'Aggiornamento listino prezzi',    desc: 'DOOH Q3 — Nord Italia',                time: '5 gg fa',        priority: 'low',    category: 'Listini'      },
+  ],
+  'Inventory Manager': [
+    { title: 'Permesso BG-CEN-009',      desc: 'Rinnovo concessione comunale',          time: 'scade in 8 gg', priority: 'high',   category: 'Permessi'  },
+    { title: 'Scheda tecnica mancante',  desc: 'TO-PNZ-031 — dati impianto incompleti', time: '1 ora fa',      priority: 'high',   category: 'Impianti'  },
+    { title: 'Verifica fornitore',       desc: 'Affissioni Nord Ovest — SLA Q2',        time: 'ieri',          priority: 'medium', category: 'Fornitori' },
+    { title: 'Aggiornamento coordinate', desc: '4 impianti con GPS da correggere',      time: '2 gg fa',       priority: 'medium', category: 'Impianti'  },
+    { title: 'Aggiornamento listino',    desc: 'DOOH Bologna Fiera Q3',                 time: '4 gg fa',       priority: 'low',    category: 'Listini'   },
+  ],
+  // Coda completa Operation Manager (64 record) — alimenta sia i conteggi delle
+  // KPI sia la lista attività. Granularità: card = conteggio coda, attività = record.
+  'Operation Manager': OM_ACTIVITIES,
+  'Planner': [
+    { title: 'Conflitto slot MI-DUO-014',   desc: 'Ordine #4821 sovrapposto al #4855',  time: '2 ore fa', priority: 'high',   category: 'Conflitti'      },
+    { title: 'Capacità esaurita VR-AR-022', desc: 'Nessuna disponibilità luglio',        time: '4 ore fa', priority: 'high',   category: 'Disponibilità'  },
+    { title: 'Richiesta slot urgente',       desc: 'Cliente BrandX — 3 impianti MI',     time: 'ieri',     priority: 'medium', category: 'Pianificazione' },
+    { title: 'Revisione piano Q3',           desc: 'Bozza condivisa da approvare',        time: '2 gg fa',  priority: 'medium', category: 'Pianificazione' },
+    { title: 'Prenotazione scaduta',         desc: 'BO-FIE-019 — opzione non confermata', time: '3 gg fa',  priority: 'low',    category: 'Ordini'         },
+  ],
+  'Sales': [
+    { title: 'Follow-up BrandX',          desc: 'Proposta inviata — attesa risposta',     time: 'scade in 2 gg', priority: 'high',   category: 'Follow-up'  },
+    { title: 'Rinnovo contratto AutoMove', desc: 'Contratto campagne annuale in scadenza', time: '5 gg',         priority: 'high',   category: 'Contratti'  },
+    { title: 'Demo Nuovo cliente',         desc: 'GreenCo S.r.l. — call alle 15:00',       time: 'oggi',          priority: 'medium', category: 'Demo'       },
+    { title: 'Preventivo MediaGroup',      desc: 'Budget DOOH Q3 — da quotare',            time: 'ieri',          priority: 'medium', category: 'Preventivi' },
+    { title: 'Aggiornamento CRM',          desc: '5 contatti da qualificare',              time: '3 gg fa',       priority: 'low',    category: 'Clienti'    },
+  ],
+};
+
+const ROLE_IN_PROGRESS = {
+  'Tenant Admin': [
+    { title: 'Config SSO nuovo tenant',     desc: 'Integrazione SAML — Moving Up',       time: '30 min fa', priority: 'high',   category: 'Utenti'     },
+    { title: 'Migrazione dati storici',     desc: 'Inventario Q1-Q2 2025',               time: '2 ore fa',  priority: 'high',   category: 'Compliance' },
+    { title: 'Report executive mensile',    desc: 'Board Alessi Media — giugno 2026',    time: '1 gg fa',   priority: 'medium', category: 'Compliance' },
+    { title: 'Revisione SLA contratti',     desc: '3 fornitori da rinegoziare',          time: 'ieri',      priority: 'medium', category: 'Contratti'  },
+    { title: 'Onboarding utente Sales',     desc: 'L. Bianchi — accessi da configurare', time: '2 gg fa',   priority: 'low',    category: 'Utenti'     },
+  ],
+  'Inventory Manager': [
+    { title: 'Audit inventario DOOH',   desc: 'Nord Italia — 47 spazi',               time: '2 ore fa', priority: 'high',   category: 'Impianti'    },
+    { title: 'Onboarding spazio nuovo', desc: 'BG-CEN-010 — scheda in compilazione',  time: '3 ore fa', priority: 'medium', category: 'Impianti'    },
+    { title: 'Aggiornamento foto',      desc: '12 impianti da fotografare',           time: 'ieri',     priority: 'medium', category: 'Impianti'    },
+    { title: 'Rinnovo licenza SIAE',    desc: 'TO-PNZ-031 — pratica in corso',        time: '2 gg fa',  priority: 'low',    category: 'Permessi'    },
+    { title: 'Verifica stato impianti', desc: 'Report trimestrale Q2',                time: '3 gg fa',  priority: 'low',    category: 'Manutenzione' },
+  ],
+  // Vista di riferimento — dati esatti da Figma Make
+  'Operation Manager': [
+    { title: 'Riconciliazione pagamenti scaduti', desc: 'Allineamento con amministrazione — 4 posizioni', time: '20 min fa', priority: 'high',   category: 'Pagamenti'    },
+    { title: 'Revisione preventivo #PR-4855',     desc: 'In attesa approvazione sconto volume',           time: '1 ora fa',  priority: 'medium', category: 'Preventivi'   },
+    { title: 'Completamento anagrafiche',         desc: 'Import batch · 10 contatti da arricchire',       time: '2 ore fa',  priority: 'medium', category: 'Anagrafiche'  },
+    { title: 'Invio contratto firmato',           desc: 'BeverageCo · attesa controfirma',                time: 'ieri',      priority: 'low',    category: 'Contratti'    },
+    { title: 'Assegnazione lead campagna Q3',     desc: '5 nominativi al commerciale di area',            time: '2 gg fa',   priority: 'low',    category: 'Assegnazioni' },
+  ],
+  'Planner': [
+    { title: 'Piano ordine #4861',          desc: 'BrandX — distribuzione 12 spazi',  time: '30 min fa', priority: 'high',   category: 'Pianificazione' },
+    { title: 'Ottimizzazione slot Q3',      desc: '47 spazi Nord Italia — luglio',    time: '1 ora fa',  priority: 'medium', category: 'Disponibilità'  },
+    { title: 'Calendario campagna GreenCo', desc: 'Settembre — 8 impianti',           time: 'ieri',      priority: 'medium', category: 'Campagne'       },
+    { title: 'Verifica disponibilità',      desc: 'MI/TO — richiesta urgente BrandX', time: '2 gg fa',   priority: 'low',    category: 'Disponibilità'  },
+    { title: 'Report copertura mensile',    desc: 'Giugno 2026 — bozza pronta',       time: '3 gg fa',   priority: 'low',    category: 'Pianificazione' },
+  ],
+  'Sales': [
+    { title: 'Proposta DOOH BrandX',     desc: '12 spazi MI/TO — offerta premium', time: '20 min fa', priority: 'high',   category: 'Preventivi' },
+    { title: 'Trattativa GreenCo',       desc: 'Budget Q3 — €45.000',              time: '2 ore fa',  priority: 'high',   category: 'Trattative' },
+    { title: 'Upsell AutoMove S.p.A.',   desc: 'Estensione campagna autunnale',    time: 'ieri',      priority: 'medium', category: 'Trattative' },
+    { title: 'Referral MediaGroup',      desc: 'Contatto introdotto da BrandX',    time: '2 gg fa',   priority: 'medium', category: 'Clienti'    },
+    { title: 'Report vendite giugno',    desc: 'Bozza per review con AM',          time: '3 gg fa',   priority: 'low',    category: 'Follow-up'  },
+  ],
+};
+
+// Cronologia per ruolo — voci ordinate, raggruppate per data nel render
+const ROLE_HISTORY = {
+  'Tenant Admin': [
+    { title: 'Permessi utente aggiornati',      desc: '3 accessi rivisti — team Nord',        category: 'Utenti',       status: 'in_progress', date: 'Oggi',        time: '11:30', user: 'Sofia Marchetti' },
+    { title: 'Approvazione fattura fornitore',  desc: 'Affissioni Nord Ovest — €12.400',      category: 'Fatturazione', status: 'pending',     date: 'Oggi',        time: '09:15', user: 'Sofia Marchetti' },
+    { title: 'Config SSO Moving Up completata', desc: 'Integrazione SAML attiva',             category: 'Utenti',       status: 'completed',   date: 'Ieri',        time: '17:40', user: 'Sofia Marchetti' },
+    { title: 'Report executive maggio inviato', desc: 'Board Alessi Media',                   category: 'Compliance',   status: 'completed',   date: 'Ieri',        time: '14:10', user: 'Sofia Marchetti' },
+    { title: 'Contratto Alessi rinnovato',      desc: 'Licenza piattaforma Q3 firmata',       category: 'Contratti',    status: 'completed',   date: '15 giu 2026', time: '16:00', user: 'Sofia Marchetti' },
+    { title: 'Audit accessi Q2 chiuso',         desc: 'Report compliance archiviato',         category: 'Compliance',   status: 'completed',   date: '15 giu 2026', time: '10:20', user: 'Marco Conti'     },
+    { title: 'Listino DOOH Q3 pubblicato',      desc: 'Nord Italia — nuovi prezzi',           category: 'Listini',      status: 'completed',   date: '14 giu 2026', time: '12:45', user: 'Sofia Marchetti' },
+    { title: 'Onboarding utente Sales',         desc: 'L. Bianchi — accessi configurati',     category: 'Utenti',       status: 'completed',   date: '14 giu 2026', time: '09:05', user: 'Sofia Marchetti' },
+  ],
+  'Inventory Manager': [
+    { title: 'Scheda tecnica TO-PNZ-031',       desc: 'Dati impianto in completamento',       category: 'Impianti',    status: 'in_progress', date: 'Oggi',        time: '10:50', user: 'Tommaso Ferrara' },
+    { title: 'Rinnovo permesso BG-CEN-009',     desc: 'Concessione comunale — pratica avviata', category: 'Permessi',  status: 'pending',     date: 'Oggi',        time: '09:00', user: 'Tommaso Ferrara' },
+    { title: 'Audit inventario DOOH Nord',      desc: '47 spazi verificati',                  category: 'Impianti',    status: 'completed',   date: 'Ieri',        time: '16:30', user: 'Tommaso Ferrara' },
+    { title: '12 impianti fotografati',         desc: 'Aggiornamento gallery completato',     category: 'Impianti',    status: 'completed',   date: 'Ieri',        time: '11:15', user: 'Luca Verdi'      },
+    { title: 'Licenza SIAE TO-PNZ-031 rinnovata', desc: 'Pratica chiusa',                     category: 'Permessi',    status: 'completed',   date: '15 giu 2026', time: '15:20', user: 'Tommaso Ferrara' },
+    { title: 'Coordinate GPS corrette',         desc: '4 impianti riallineati',               category: 'Impianti',    status: 'completed',   date: '15 giu 2026', time: '09:40', user: 'Tommaso Ferrara' },
+    { title: 'Manutenzione MI-DUO-014 chiusa',  desc: 'Player sostituito',                    category: 'Manutenzione', status: 'completed',  date: '14 giu 2026', time: '14:00', user: 'Luca Verdi'      },
+    { title: 'Onboarding BG-CEN-010',           desc: 'Scheda impianto creata',               category: 'Impianti',    status: 'completed',   date: '14 giu 2026', time: '08:30', user: 'Tommaso Ferrara' },
+  ],
+  // Vista di riferimento — dati esatti da Figma Make
+  'Operation Manager': [
+    { title: 'Sollecito pagamento scaduto',     desc: 'Fattura #2024-318 · AutoMove S.p.A.',  category: 'Pagamenti',   status: 'in_progress', date: 'Oggi',        time: '11:20', user: 'Davide Serra'  },
+    { title: 'Approva preventivo #PR-4821',     desc: 'Campagna Estate Milano · BrandX Srl',  category: 'Preventivi',  status: 'pending',     date: 'Oggi',        time: '10:05', user: 'Davide Serra'  },
+    { title: 'Verifica anagrafica BrandX Srl',  desc: 'P.IVA e sede legale incomplete',       category: 'Anagrafiche', status: 'pending',     date: 'Oggi',        time: '09:14', user: 'Davide Serra'  },
+    { title: 'Contratto #PR-4781 inviato',      desc: 'AutoMove S.p.A. · in attesa firma cliente', category: 'Contratti', status: 'completed', date: 'Ieri',     time: '17:48', user: 'Davide Serra'  },
+    { title: 'Preventivo #PR-4790 approvato',   desc: 'Campagna Primavera · BrandX Srl',      category: 'Preventivi',  status: 'completed',   date: 'Ieri',        time: '15:32', user: 'Giulia Conti'  },
+    { title: '8 nominativi assegnati',          desc: 'Lead fiera MIA Milano al team Nord',   category: 'Assegnazioni', status: 'completed',  date: 'Ieri',        time: '11:10', user: 'Davide Serra'  },
+    { title: 'Pagamento #2024-301 incassato',   desc: 'BeverageCo · € 12.400 saldato',        category: 'Pagamenti',   status: 'completed',   date: '12 giu 2026', time: '16:20', user: 'Amm.ne'        },
+    { title: 'Anagrafica TechWave Srl completata', desc: 'Dati fiscali e referenti verificati', category: 'Anagrafiche', status: 'completed', date: '12 giu 2026', time: '10:45', user: 'Giulia Conti'  },
+    { title: 'Contratto #PR-4755 firmato',      desc: 'AutoMove S.p.A. · archiviato',         category: 'Contratti',   status: 'completed',   date: '11 giu 2026', time: '14:02', user: 'Davide Serra'  },
+    { title: 'Preventivo #PR-4762 rifiutato',   desc: 'Budget cliente non confermato',        category: 'Preventivi',  status: 'completed',   date: '11 giu 2026', time: '09:30', user: 'Davide Serra'  },
+    { title: 'Sollecito #2024-288 inviato',     desc: 'TurismoNord · 30 gg di ritardo',       category: 'Pagamenti',   status: 'completed',   date: '10 giu 2026', time: '12:15', user: 'Amm.ne'        },
+  ],
+  'Planner': [
+    { title: 'Piano ordine #4861',              desc: 'BrandX — distribuzione 12 spazi',      category: 'Pianificazione', status: 'in_progress', date: 'Oggi',     time: '11:05', user: 'Giulia Romano' },
+    { title: 'Conflitto slot MI-DUO-014',       desc: 'Ordine #4821 vs #4855 da risolvere',   category: 'Conflitti',      status: 'pending',     date: 'Oggi',     time: '09:30', user: 'Giulia Romano' },
+    { title: 'Ottimizzazione slot Q3 completata', desc: '47 spazi Nord Italia',               category: 'Disponibilità',  status: 'completed',   date: 'Ieri',        time: '17:00', user: 'Giulia Romano' },
+    { title: 'Calendario campagna GreenCo',     desc: 'Settembre — 8 impianti definiti',      category: 'Campagne',       status: 'completed',   date: 'Ieri',        time: '12:20', user: 'Giulia Romano' },
+    { title: 'Piano copertura giugno chiuso',   desc: 'Report mensile archiviato',            category: 'Pianificazione', status: 'completed',   date: '15 giu 2026', time: '16:10', user: 'Marco Neri'    },
+    { title: 'Disponibilità luglio verificata', desc: 'MI/TO — capacità confermata',          category: 'Disponibilità',  status: 'completed',   date: '15 giu 2026', time: '10:00', user: 'Giulia Romano' },
+    { title: 'Ordine #4821 pianificato',        desc: 'Distribuzione confermata',             category: 'Ordini',         status: 'completed',   date: '14 giu 2026', time: '13:30', user: 'Giulia Romano' },
+    { title: 'Conflitto VR-AR-022 risolto',     desc: 'Slot riassegnato',                     category: 'Conflitti',      status: 'completed',   date: '14 giu 2026', time: '09:15', user: 'Marco Neri'    },
+  ],
+  'Sales': [
+    { title: 'Trattativa GreenCo aggiornata',   desc: 'Budget Q3 — €45.000',                  category: 'Trattative', status: 'in_progress', date: 'Oggi',        time: '10:40', user: 'Lorenzo Bianchi' },
+    { title: 'Follow-up BrandX',                desc: 'Proposta inviata — attesa risposta',   category: 'Follow-up',  status: 'pending',     date: 'Oggi',        time: '09:10', user: 'Lorenzo Bianchi' },
+    { title: 'Proposta DOOH BrandX inviata',    desc: '12 spazi MI/TO — offerta premium',     category: 'Preventivi', status: 'completed',   date: 'Ieri',        time: '18:00', user: 'Lorenzo Bianchi' },
+    { title: 'Demo GreenCo svolta',             desc: 'Call commerciale conclusa',            category: 'Demo',       status: 'completed',   date: 'Ieri',        time: '14:30', user: 'Lorenzo Bianchi' },
+    { title: 'Contratto AutoMove rinnovato',    desc: 'Campagne annuali confermate',          category: 'Contratti',  status: 'completed',   date: '15 giu 2026', time: '15:45', user: 'Lorenzo Bianchi' },
+    { title: 'Preventivo MediaGroup quotato',   desc: 'Budget DOOH Q3 inviato',               category: 'Preventivi', status: 'completed',   date: '15 giu 2026', time: '11:00', user: 'Sara Galli'      },
+    { title: '5 contatti CRM qualificati',      desc: 'Lead inbound sito web',                category: 'Clienti',    status: 'completed',   date: '14 giu 2026', time: '16:20', user: 'Lorenzo Bianchi' },
+    { title: 'Referral MediaGroup acquisito',   desc: 'Introdotto da BrandX',                 category: 'Clienti',    status: 'completed',   date: '14 giu 2026', time: '09:50', user: 'Sara Galli'      },
+  ],
+};
+
+// Scadenze più importanti per ruolo — offset in giorni da OGGI (calendario evergreen).
+// Alimentano il calendario dell'area app (vista alternativa alle "Le tue app").
+const ROLE_DEADLINES = {
+  'Tenant Admin': [
+    { offset: 3,  title: 'Audit accessi piattaforma',     category: 'Compliance' },
+    { offset: 6,  title: 'Revisione permessi utenti',     category: 'Utenti'     },
+    { offset: 12, title: 'Rinnovo contratto Alessi',      category: 'Contratti'  },
+  ],
+  'Inventory Manager': [
+    { offset: 2,  title: 'Scheda tecnica TO-PNZ-031',     category: 'Impianti'   },
+    { offset: 5,  title: 'Verifica fornitore SLA Q2',     category: 'Fornitori'  },
+    { offset: 8,  title: 'Permesso BG-CEN-009',           category: 'Permessi'   },
+  ],
+  'Operation Manager': [
+    { offset: 1,  title: 'Approva preventivo #PR-4821',   category: 'Preventivi'   },
+    { offset: 3,  title: 'Riconciliazione pagamenti',     category: 'Pagamenti'    },
+    { offset: 5,  title: 'Verifica anagrafica BrandX',    category: 'Anagrafiche'  },
+    { offset: 9,  title: 'Invio contratto BeverageCo',    category: 'Contratti'    },
+  ],
+  'Planner': [
+    { offset: 1,  title: 'Conflitto slot MI-DUO-014',     category: 'Conflitti'      },
+    { offset: 2,  title: 'Capacità esaurita VR-AR-022',   category: 'Disponibilità'  },
+    { offset: 7,  title: 'Revisione piano Q3',            category: 'Pianificazione' },
+  ],
+  'Sales': [
+    { offset: 2,  title: 'Follow-up BrandX',              category: 'Follow-up'  },
+    { offset: 4,  title: 'Preventivo MediaGroup',         category: 'Preventivi' },
+    { offset: 5,  title: 'Rinnovo contratto AutoMove',    category: 'Contratti'  },
+  ],
+};
+
+const HISTORY_STATUS = {
+  completed:   { label: 'Completata', color: '#16A34A' },
+  in_progress: { label: 'In corso',   color: '#3E00FB' },
+  pending:     { label: 'Da gestire', color: '#fa8c16' },
+};
+
+// ── Tenant switcher (dropdown con loghi aziendali) ────────────────────────────
+function TenantSwitcher({ tenantKey, onTenantChange, loading }) {
+  const h = React.createElement;
+  const [open, setOpen] = useState(false);
+  const tenant = TENANTS[tenantKey];
+
+  const logoBox = (t, size) => h('div', {
+    style: {
+      width: size, height: size, borderRadius: 6, overflow: 'hidden', flexShrink: 0,
+      background: '#fff', border: '1px solid rgba(0,0,0,0.06)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    },
+  },
+    h('img', {
+      src: t.logo, alt: t.name,
+      style: { width: '100%', height: '100%', objectFit: 'contain' },
+      onError: (e) => { e.target.style.display = 'none'; },
+    })
+  );
+
+  return h('div', { style: { position: 'relative' } },
+    h('button', {
+      type: 'button',
+      className: 'gv-tenant-trigger',
+      onClick: () => setOpen((v) => !v),
+      style: {
+        display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+        border: 'none', background: 'transparent', borderRadius: 8, padding: '4px 8px',
+        transition: 'background 0.15s ease',
+      },
+    },
+      h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 } },
+        h('span', { style: { fontSize: 10, color: 'rgba(0,0,0,0.35)', letterSpacing: '0.04em', marginBottom: 4 } }, 'AZIENDA'),
+        h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, tenant.name)
+      ),
+      loading
+        ? h(LoadingOutlined, { style: { fontSize: 12, color: '#3E00FB' }, spin: true })
+        : h(DownOutlined, { style: { fontSize: 10, color: 'rgba(0,0,0,0.45)' } })
+    ),
+
+    open && h(React.Fragment, null,
+      h('div', { style: { position: 'fixed', inset: 0, zIndex: 10 }, onClick: () => setOpen(false) }),
+      h('div', {
+        style: {
+          position: 'absolute', right: 0, top: 'calc(100% + 8px)', zIndex: 20,
+          background: '#fff', borderRadius: 8, minWidth: 260, padding: '6px 0',
+          border: '1px solid #f0f0f0', boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
+        },
+      },
+        h('div', { style: { padding: '6px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(0,0,0,0.45)' } }, 'Cambia tenant'),
+        Object.values(TENANTS).map((t) => {
+          const active = t.key === tenantKey;
+          return h('button', {
+            key: t.key,
+            type: 'button',
+            onClick: () => { setOpen(false); onTenantChange(t.key); },
+            style: {
+              width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 12px', border: 'none', background: active ? 'rgba(62,0,251,0.04)' : 'transparent',
+              cursor: 'pointer',
+            },
+            onMouseEnter: (e) => { if (!active) e.currentTarget.style.background = 'rgba(62,0,251,0.04)'; },
+            onMouseLeave: (e) => { if (!active) e.currentTarget.style.background = 'transparent'; },
+          },
+            logoBox(t, 28),
+            h('div', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 } },
+              h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, t.name),
+              h('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, t.company)
+            ),
+            active && h(CheckOutlined, { style: { color: '#3E00FB', fontSize: 12 } })
+          );
+        })
+      )
+    )
+  );
+}
+
+// ── GravityNavbarTenant — navbar role-driven + tenant switcher ────────────────
+function GravityNavbarTenant({ role, onRoleChange, tenantKey, onTenantChange, tenantLoading, avatarSrc }) {
+  const h = React.createElement;
+
+  const user    = ROLE_USER[role] || { nome: 'U', cognome: '' };
+  const abbr    = (user.nome[0] + (user.cognome[0] || '')).toUpperCase();
+  const palette = nameColor(user.nome + ' ' + user.cognome);
+  // "Panoramica" (con "Per te") è l'area personale: sempre disponibile per ogni ruolo,
+  // anche se non elencata in ROLE_NAV (es. Sales). La forziamo come prima sezione.
+  const sections = ['Overview', ...(ROLE_NAV[role] || []).filter((s) => s !== 'Overview')];
+
+  // Sezione attualmente visualizzata: questa pagina è l'area personale (Overview/Per te),
+  // sempre accessibile a ogni ruolo. Un ruolo è disabilitato nel menù se non ha accesso a questa sezione.
+  const activeSection = 'Overview';
+  const roleHasAccess = (r) =>
+    !activeSection || activeSection === 'Overview' || (ROLE_NAV[r] || []).indexOf(activeSection) !== -1;
+
+  const menuItems = sections.map((sec) => {
+    const conf = NAV[sec];
+    return {
+      key: sec,
+      label: SECTION_LABEL[sec] || sec,
+      children: conf.items.map((item) => {
+        const link = conf.links[item];
+        const lbl  = ITEM_LABEL[item] || item;
+        return {
+          key: sec + '/' + item,
+          label: link
+            ? h('a', { href: link }, lbl)
+            : h(Popover, { content: 'Funzionalità da implementare', placement: 'right' },
+                h('span', { style: { color: 'rgba(0,0,0,0.25)', cursor: 'not-allowed' } }, lbl)
+              ),
+        };
+      }),
+    };
+  });
+
+  const avatarMenuItems = [
+    {
+      key: '_user', disabled: true,
+      label: h('div', { style: { padding: '4px 0 8px', minWidth: 200, display: 'flex', alignItems: 'center', gap: 12 } },
+        h('div', {
+          style: {
+            width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+            background: palette.bg, border: '1.5px solid ' + palette.fg + '22',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          },
+        }, h('span', { style: { color: palette.fg, fontSize: 13, fontWeight: 700 } }, abbr)),
+        h('div', null,
+          h('div', { style: { fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.88)', lineHeight: '22px' } },
+            user.nome + ' ' + user.cognome),
+          h('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, role)
+        )
+      ),
+    },
+    { type: 'divider' },
+    { key: '_hd', disabled: true,
+      label: h('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Vista ruolo'),
+    },
+    ...ROLES.map((r) => {
+      // Ruolo disabilitato se non ha accesso alla sezione visualizzata.
+      // Il ruolo corrente resta sempre selezionabile (e mostra il check).
+      const noAccess = r !== role && !roleHasAccess(r);
+      return {
+        key: r,
+        disabled: noAccess,
+        label: h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32, minWidth: 200 } },
+          h('span', { style: { fontWeight: r === role ? 600 : 400 } }, r),
+          r === role
+            ? h(CheckOutlined, { style: { color: '#3e00fb', fontSize: 12 } })
+            : (noAccess ? h(LockOutlined, { style: { color: 'rgba(0,0,0,0.25)', fontSize: 12 } }) : null)
+        ),
+        onClick: noAccess ? undefined : () => onRoleChange(r),
+      };
+    }),
+  ];
+
+  return h('nav', {
+    style: {
+      background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.06)',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      height: 64, position: 'sticky', top: 0, zIndex: 100, flexShrink: 0,
+    },
+  },
+    // Sinistra: logo + menu
+    h('div', { style: { display: 'flex', alignItems: 'stretch', height: '100%', flex: 1, minWidth: 0 } },
+      h('a', {
+        href: './index.html',
+        style: { padding: '0 24px 0 80px', display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 },
+      },
+        h('img', {
+          src: '../../brand/Gravity_type.svg', alt: 'Gravity',
+          style: { height: 26 }, onError: (e) => { e.target.style.display = 'none'; },
+        })
+      ),
+      h(antd.Menu, {
+        mode: 'horizontal', selectedKeys: ['Overview/Per te'], items: menuItems,
+        className: 'gv-nav-menu', style: { border: 'none', flex: 1, minWidth: 0 },
+      })
+    ),
+
+    // Destra: campana | avatar (role switcher) + tenant switcher
+    h('div', { style: { display: 'flex', alignItems: 'center', gap: 16, padding: '0 80px', flexShrink: 0 } },
+      h(BellOutlined, { style: { fontSize: 18, color: 'rgba(0,0,0,0.45)', cursor: 'pointer' } }),
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+        h(Dropdown, { menu: { items: avatarMenuItems }, trigger: ['click'], placement: 'bottom' },
+          avatarSrc
+            ? h('div', {
+                style: {
+                  width: 32, height: 32, borderRadius: '50%', overflow: 'hidden',
+                  cursor: 'pointer', flexShrink: 0,
+                },
+              }, h('img', { src: avatarSrc, alt: 'Avatar', style: { width: '100%', height: '100%', objectFit: 'cover' } }))
+            : h('div', {
+                style: {
+                  width: 32, height: 32, borderRadius: '50%', background: palette.bg,
+                  border: '1.5px solid ' + palette.fg + '22',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', userSelect: 'none',
+                },
+              }, h('span', { style: { color: palette.fg, fontSize: 11, fontWeight: 700 } }, abbr))
+        ),
+        h(TenantSwitcher, { tenantKey, onTenantChange, loading: tenantLoading })
+      )
+    )
+  );
+}
+
+// ── Password Modal ────────────────────────────────────────────────────────────
+function PasswordModal({ open, onClose }) {
+  const [form] = Form.useForm();
+  const [success, setSuccess] = useState(false);
+  const { token } = antd.theme.useToken();
+
+  const onFinish = (values) => {
+    if (values.newPassword !== values.confirm) {
+      form.setFields([{ name: 'confirm', errors: ['Le due password non coincidono.'] }]);
+      return;
+    }
+    setSuccess(true);
+    setTimeout(() => { setSuccess(false); onClose(); form.resetFields(); }, 1400);
+  };
+
+  const handleCancel = () => { form.resetFields(); setSuccess(false); onClose(); };
+
+  return React.createElement(Modal, {
+    open, onCancel: handleCancel, footer: null, width: 440,
+    title: React.createElement(Space, { align: 'center', size: 12 },
+      React.createElement('div', {
+        style: { width: 36, height: 36, borderRadius: token.borderRadius, background: token.colorPrimaryBg, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center' },
+      }, React.createElement(LockOutlined, { style: { color: token.colorPrimary, fontSize: 18 } })),
+      React.createElement('div', null,
+        React.createElement(Text, { strong: true }, 'Cambia password'),
+        React.createElement('br'),
+        React.createElement(Text, { type: 'secondary', style: { fontSize: token.fontSizeSM } }, 'Aggiorna le tue credenziali di accesso')
+      )
+    ),
+  },
+    success
+      ? React.createElement(Result, {
+          status: 'success',
+          title: 'Password aggiornata',
+          subTitle: 'Le tue credenziali di accesso sono state modificate.',
+          style: { padding: '24px 0' },
+        })
+      : React.createElement(Form, { form, layout: 'vertical', onFinish },
+          React.createElement(Alert, {
+            type: 'info', showIcon: true, style: { marginBottom: 16 },
+            message: React.createElement('span', { style: { fontSize: 12 } },
+              'La modifica riguarda il tuo account Gravity e si applica a ', React.createElement('strong', null, 'tutti i tenant'),
+              ' a cui hai accesso, non solo a quello selezionato. Dovrai riautenticarti su tutti i dispositivi.'
+            ),
+          }),
+          React.createElement(Form.Item, { name: 'current', label: 'Password attuale',
+            rules: [{ required: true, message: 'Campo obbligatorio' }] },
+            React.createElement(Input.Password, { placeholder: '••••••••' })),
+          React.createElement(Form.Item, { name: 'newPassword', label: 'Nuova password',
+            rules: [{ required: true, message: 'Campo obbligatorio' }, { min: 8, message: 'Almeno 8 caratteri' }] },
+            React.createElement(Input.Password, { placeholder: '••••••••' })),
+          React.createElement(Form.Item, { name: 'confirm', label: 'Conferma nuova password',
+            rules: [{ required: true, message: 'Campo obbligatorio' }] },
+            React.createElement(Input.Password, { placeholder: '••••••••' })),
+          React.createElement(Form.Item, { style: { marginBottom: 0, textAlign: 'right' } },
+            React.createElement(Space, null,
+              React.createElement(Button, { onClick: handleCancel }, 'Annulla'),
+              React.createElement(Button, { type: 'primary', htmlType: 'submit' }, 'Aggiorna password')
+            )
+          )
+        )
+  );
+}
+
+// ── Header Card ───────────────────────────────────────────────────────────────
+function HeaderCard({ role, tenant, avatarSrc, onAvatarChange }) {
+  const [pwOpen, setPwOpen] = useState(false);
+  const roleUser = ROLE_USER[role] || { nome: '—', cognome: '' };
+  const abbr     = (roleUser.nome[0] + (roleUser.cognome[0] || '')).toUpperCase();
+  const palette  = nameColor(roleUser.nome + ' ' + roleUser.cognome);
+
+  const gestisciItems = [
+    { key: 'password', icon: React.createElement(LockOutlined), label: 'Password', onClick: () => setPwOpen(true) },
+    { key: 'notifiche', icon: React.createElement(BellOutlined), disabled: true,
+      label: React.createElement(Popover, { content: 'No MVP', placement: 'left' },
+        React.createElement('span', { style: { pointerEvents: 'auto' } }, 'Notifiche')) },
+  ];
+
+  const uploadProps = {
+    showUploadList: false, accept: 'image/*',
+    beforeUpload: (file) => { onAvatarChange(URL.createObjectURL(file)); return false; },
+  };
+
+  // overlay "Modifica" mostrato in hover sopra l'avatar
+  const editOverlay = React.createElement('div', {
+    className: 'gv-avatar-overlay',
+    style: {
+      position: 'absolute', inset: 0, borderRadius: '50%',
+      background: 'rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 2,
+    },
+  },
+    React.createElement(CameraOutlined, { style: { color: '#fff', fontSize: 18 } }),
+    React.createElement('span', { style: { color: '#fff', fontSize: 11, fontWeight: 500 } }, 'Modifica')
+  );
+
+  return React.createElement(React.Fragment, null,
+    React.createElement(Card, {
+      bordered: false,
+      style: { borderRadius: 8, border: '1px solid rgba(0,0,0,0.06)', width: '100%' },
+      styles: { body: { padding: '16px' } },
+    },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20 } },
+
+        // Avatar con upload — overlay "Modifica" in hover
+        React.createElement(Upload, uploadProps,
+          React.createElement('div', { className: 'gv-avatar-wrap', style: { position: 'relative', cursor: 'pointer', flexShrink: 0, width: 88, height: 88, borderRadius: '50%', overflow: 'hidden' } },
+            avatarSrc
+              ? React.createElement('img', { src: avatarSrc, alt: 'Avatar', style: { width: '100%', height: '100%', objectFit: 'cover' } })
+              : React.createElement('div', {
+                  style: {
+                    width: 88, height: 88, borderRadius: '50%',
+                    background: palette.bg, border: '2px solid ' + palette.fg + '22',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none',
+                  },
+                }, React.createElement('span', { style: { color: palette.fg, fontSize: 28, fontWeight: 700 } }, abbr)),
+            editOverlay
+          )
+        ),
+
+        // Blocco testo: welcome + meta row
+        React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 } },
+            React.createElement(Text, { style: { fontSize: 20, fontWeight: 600, color: 'rgba(0,0,0,0.88)', lineHeight: '28px' } },
+              'Benvenuto, ' + roleUser.nome + ' ' + roleUser.cognome),
+            React.createElement(Tag, { style: { margin: 0, fontSize: 12, fontWeight: 600 } }, role)
+          ),
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', minWidth: 0 } },
+            // Area di competenza — area + tag province (stile Planning)
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+              React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, 'Area di competenza:'),
+              React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)' } }, COMPETENCY.area),
+              React.createElement('div', { style: { display: 'flex', gap: 4 } },
+                ...COMPETENCY.provinces.map((p) => React.createElement('span', {
+                  key: p,
+                  style: {
+                    fontSize: 11, lineHeight: '18px', padding: '0 6px',
+                    background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.1)',
+                    borderRadius: 4, color: 'rgba(0,0,0,0.55)', fontWeight: 500,
+                  },
+                }, p))
+              )
+            ),
+            // Email aziendale
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, maxWidth: 280, flexShrink: 1 } },
+              React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, 'Email aziendale:'),
+              React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, userEmail(role, tenant))
+            )
+          )
+        ),
+
+        // Azione Gestisci
+        React.createElement(Dropdown, { menu: { items: gestisciItems }, trigger: ['click'], placement: 'bottomRight' },
+          React.createElement(Button, { icon: React.createElement(SettingOutlined), style: { flexShrink: 0 } },
+            'Gestisci', React.createElement(DownOutlined, { style: { fontSize: 10, marginLeft: 4 } })
+          )
+        )
+      )
+    ),
+    React.createElement(PasswordModal, { open: pwOpen, onClose: () => setPwOpen(false) })
+  );
+}
+
+// ── Metric Cards ──────────────────────────────────────────────────────────────
+// Card KPI a 3 livelli (Head / Value / Extra) — icona pertinente + link button nel footer.
+// designNote (opzionale) → marker di nota di design in alto a dx, popover in hover.
+function MetricCard({ label, value, icon, action, href, disabled, popover, designNote }) {
+  const Ico = icons[icon] || icons.BarChartOutlined;
+  const btnIcon = React.createElement(Ico, { style: { fontSize: 13 } });
+
+  return React.createElement(Card, {
+    bordered: false,
+    style: { flex: '1 1 0', minWidth: 180, borderRadius: 8, border: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column' },
+    styles: { body: { padding: 0, flex: 1, display: 'flex', flexDirection: 'column', width: '100%' } },
+  },
+    // Livello 1 — Head: icona pertinente + label (+ nota di design, se presente)
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 8px' } },
+      React.createElement(Ico, { style: { color: 'rgba(0,0,0,0.88)', fontSize: 16, flexShrink: 0 } }),
+      React.createElement(Text, { strong: true, ellipsis: true, style: { fontSize: 14, flex: 1 } }, label),
+      designNote && React.createElement(Popover, {
+        trigger: 'hover', placement: 'top',
+        content: React.createElement('div', { style: { maxWidth: 280 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FF4A1C', marginBottom: 6 } }, 'Nota di design'),
+          React.createElement('div', { style: { fontSize: 13, lineHeight: 1.55, color: 'rgba(0,0,0,0.65)' } }, designNote)
+        ),
+      },
+        React.createElement('span', {
+          style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'help', color: '#FF4A1C' },
+        }, React.createElement(icons.CoffeeOutlined, { style: { fontSize: 15 } }))
+      )
+    ),
+    // Livello 2 — Value: numero (28/700/lineHeight 1, come la vista lista del planning)
+    React.createElement('div', { style: { padding: '0 16px 16px' } },
+      React.createElement('div', { style: { fontSize: 28, fontWeight: 700, lineHeight: 1, color: 'rgba(0,0,0,0.88)' } }, value)
+    ),
+    // Livello 3 — Extra/footer: link button coerente col contenuto (link / disabled+popover)
+    action && React.createElement('div', { style: { padding: '8px 16px', borderTop: '1px solid #f0f0f0', marginTop: 'auto' } },
+      disabled
+        ? React.createElement(Popover, { content: popover, trigger: 'hover', placement: 'top' },
+            React.createElement('span', { style: { display: 'inline-block', cursor: 'not-allowed' } },
+              React.createElement(Button, { type: 'link', size: 'small', disabled: true, icon: btnIcon, style: { padding: 0, height: 'auto', pointerEvents: 'none' } },
+                action
+              )
+            )
+          )
+        : React.createElement(Button, { type: 'link', size: 'small', icon: btnIcon, href: href || undefined, style: { padding: 0, height: 'auto' } },
+            action
+          )
+    )
+  );
+}
+
+function MetricRow({ role }) {
+  const metrics = ROLE_METRICS[role];
+  // Ruolo non ancora studiato → card KPI placeholder (vuote)
+  if (!STUDIED_ROLES.includes(role) || !metrics || !metrics.length) {
+    return React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 10, width: '100%' } },
+      [0, 1, 2, 3].map((i) => React.createElement(Card, {
+        key: i, bordered: false,
+        style: { flex: '1 1 0', minWidth: 180, borderRadius: 8, border: '1px dashed #d9d9d9', background: '#fafafa' },
+        styles: { body: { padding: '16px' } },
+      },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 } },
+          React.createElement(icons.BarChartOutlined, { style: { color: 'rgba(0,0,0,0.18)', fontSize: 16 } }),
+          React.createElement(Text, { style: { fontSize: 13, color: 'rgba(0,0,0,0.30)' } }, 'Da definire')
+        ),
+        React.createElement('div', { style: { fontSize: 28, fontWeight: 700, lineHeight: 1, color: 'rgba(0,0,0,0.15)' } }, '—')
+      ))
+    );
+  }
+  return React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 10, width: '100%' } },
+    metrics.map((m) => React.createElement(MetricCard, { key: m.label, ...m }))
+  );
+}
+
+// ── Product Cards (universale) ─────────────────────────────────────────────────
+function ProductCard({ name, desc, color, icon }) {
+  const Ico = icons[icon] || icons.AppstoreOutlined;
+  return React.createElement(Card, {
+    hoverable: true,
+    bordered: false,
+    style: { borderRadius: 8, border: '1px solid #f0f0f0', cursor: 'pointer', width: '100%' },
+    styles: { body: { padding: '16px' } },
+  },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+      React.createElement('div', {
+        style: { width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center' },
+      }, React.createElement(Ico, { style: { color: '#fff', fontSize: 20 } })),
+      React.createElement('div', { style: { minWidth: 0 } },
+        React.createElement(Text, { strong: true, style: { display: 'block', fontSize: 15, lineHeight: '22px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, name),
+        React.createElement(Text, { type: 'secondary', style: { display: 'block', fontSize: 12, lineHeight: '20px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, desc)
+      )
+    )
+  );
+}
+
+// Nota di design dell'area app (riusa l'icona Coffee rossa delle KPI).
+// Il popover contiene la spiegazione + il button che nasconde l'area.
+function AppsDesignNote({ onHide, appsView, onToggleView }) {
+  return React.createElement(Popover, {
+    trigger: 'hover', placement: 'bottomLeft',
+    content: React.createElement('div', { style: { maxWidth: 340 } },
+      React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FF4A1C', marginBottom: 6 } }, 'Nota di design'),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 7, fontSize: 13, lineHeight: 1.55, color: 'rgba(0,0,0,0.65)' } },
+        React.createElement('div', null,
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'Cos’è — '),
+          'base progettuale per la futura ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'architettura del brand Gravity'),
+          ', strutturato in ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'sottoprodotti tematici'),
+          '.'),
+        React.createElement('div', null,
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'Impatto — '),
+          'introdurla richiede di rivedere ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'navigazione'),
+          ' e ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'voci in navbar'),
+          ' all’atterraggio sul prodotto.'),
+        React.createElement('div', null,
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'Nota — '),
+          'spazio ricavato ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'a fini di test'),
+          ': usa il button per nascondere l’area e valutare il layout nella ',
+          React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, 'fattibilità attuale'),
+          '.')
+      ),
+      React.createElement(Button, {
+        type: 'primary', size: 'small', block: true, style: { marginTop: 12 },
+        icon: React.createElement(icons.CalendarOutlined),
+        onClick: onToggleView,
+      }, appsView === 'calendar' ? 'Torna alle app' : 'Mostra calendario scadenze'),
+      React.createElement(Button, {
+        size: 'small', block: true, style: { marginTop: 8 },
+        onClick: onHide,
+      }, 'Nascondi area')
+    ),
+  },
+    React.createElement('span', {
+      style: { display: 'inline-flex', alignItems: 'center', cursor: 'help', color: '#FF4A1C' },
+    }, React.createElement(icons.CoffeeOutlined, { style: { fontSize: 16 } }))
+  );
+}
+
+// ── Calendario scadenze — vista alternativa di "Le tue app" ──────────────────────
+// Base ispirata al MiniCalendar di Planning; marca i singoli giorni con scadenza
+// (dot colorato per categoria) + elenco scadenze in legenda. Date evergreen: oggi+offset.
+const CAL_MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const CAL_MONTHS_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const CAL_DAY_LABELS = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
+
+function DeadlineCalendar({ role }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadlines = (ROLE_DEADLINES[role] || []).map((d) => {
+    const date = new Date(today);
+    date.setDate(date.getDate() + d.offset);
+    return { ...d, date, color: catStyle(d.category).color };
+  }).sort((a, b) => a.date - b.date);
+
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+  const firstDow = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7; // settimana lun→dom
+
+  const cells = [];
+  for (let i = firstDow - 1; i >= 0; i--) cells.push({ day: daysInPrevMonth - i, outside: true });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, outside: false });
+  let nextDay = 1;
+  while (cells.length % 7 !== 0) cells.push({ day: nextDay++, outside: true });
+
+  const deadlineOn = (cell) => cell.outside ? null
+    : deadlines.find((dl) => dl.date.getDate() === cell.day && dl.date.getMonth() === viewMonth && dl.date.getFullYear() === viewYear) || null;
+  const isToday = (cell) => !cell.outside && cell.day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+
+  const prevMonth = () => { if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); } else setViewMonth((m) => m - 1); };
+  const nextMonth = () => { if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); } else setViewMonth((m) => m + 1); };
+
+  const relLabel = (d) => {
+    const diff = Math.round((d.date - today) / 86400000);
+    return diff <= 0 ? 'oggi' : diff === 1 ? 'domani' : 'tra ' + diff + ' gg';
+  };
+
+  return React.createElement('div', { className: 'gv-cal' },
+    React.createElement('div', { className: 'gv-cal-header' },
+      React.createElement('button', { onClick: prevMonth }, React.createElement(icons.LeftOutlined, { style: { fontSize: 11 } })),
+      React.createElement(Text, { style: { fontSize: 13, fontWeight: 500 } }, CAL_MONTHS[viewMonth] + ' ' + viewYear),
+      React.createElement('button', { onClick: nextMonth }, React.createElement(icons.RightOutlined, { style: { fontSize: 11 } }))
+    ),
+    React.createElement('div', { className: 'gv-cal-grid' },
+      ...CAL_DAY_LABELS.map((d) => React.createElement('div', { key: 'l' + d, className: 'gv-cal-day-label' }, d)),
+      ...cells.map((cell, i) => {
+        const dl = deadlineOn(cell);
+        let cls = 'gv-cal-cell';
+        if (cell.outside) cls += ' outside';
+        if (dl) cls += ' has-deadline';
+        return React.createElement('div', { key: i, className: cls },
+          React.createElement('div', { className: 'gv-cal-day' + (isToday(cell) ? ' today' : '') }, cell.day),
+          React.createElement('div', { className: 'gv-cal-dot' + (dl ? '' : ' empty'), style: dl ? { background: dl.color } : undefined })
+        );
+      })
+    ),
+    // Legenda — prossime scadenze in ordine di data
+    deadlines.length === 0
+      ? React.createElement('div', { style: { marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0', fontSize: 12, color: 'rgba(0,0,0,0.35)', textAlign: 'center' } }, 'Nessuna scadenza imminente')
+      : React.createElement('div', { className: 'gv-cal-legend' },
+          ...deadlines.map((d, i) => React.createElement('div', { key: i, className: 'gv-cal-legend-item' },
+            React.createElement('span', { className: 'gv-cal-legend-date' }, d.date.getDate() + ' ' + CAL_MONTHS_SHORT[d.date.getMonth()]),
+            React.createElement('span', { className: 'gv-cal-dot', style: { background: d.color, flexShrink: 0 } }),
+            React.createElement('span', { className: 'gv-cal-legend-title' }, d.title),
+            React.createElement(Text, { type: 'secondary', style: { fontSize: 11, marginLeft: 'auto', flexShrink: 0, whiteSpace: 'nowrap' } }, relLabel(d))
+          ))
+        )
+  );
+}
+
+function ProductsSection({ role, onHide, appsView, onToggleView }) {
+  const allowed = ROLE_APPS[role] || [];
+  const apps = PRODUCTS.filter((p) => allowed.includes(p.name));
+  const calendar = appsView === 'calendar';
+  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+      React.createElement(Title, { level: 4, style: { margin: 0 } }, calendar ? 'Scadenze' : 'Le tue app'),
+      React.createElement(AppsDesignNote, { onHide, appsView, onToggleView })
+    ),
+    calendar
+      ? React.createElement(Card, { bordered: false, style: { border: '1px solid #f0f0f0', borderRadius: 10, background: '#fff' }, styles: { body: { padding: 16 } } },
+          React.createElement(DeadlineCalendar, { role }))
+      // Card app a griglia (2 colonne) — solo le app del ruolo
+      : apps.length === 0
+        ? React.createElement('div', { style: { padding: '24px 0', fontSize: 13, color: 'rgba(0,0,0,0.35)' } }, 'Nessuna app assegnata a questo ruolo')
+        : React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, width: '100%' } },
+            apps.map((p) => React.createElement(ProductCard, { key: p.name, ...p }))
+          )
+  );
+}
+
+// ── Task Cards ────────────────────────────────────────────────────────────────
+// Card attività — SOLA LETTURA + deep-link al modulo (nessuna azione inline).
+// Clic → apre il modulo filtrato sullo stato (href). I target non ancora
+// disponibili (non-MVP) restano leggibili ma non navigabili, con nota al hover.
+//
+// Principio: ogni informazione una sola volta, ogni elemento con un significato
+// leggibile senza legenda.
+//  · categoria → codificata UNA volta (box icona colorato) + label neutra che
+//    disambigua l'icona; niente più pill colorata ridondante.
+//  · priorità  → non mostrata sulla card: ordina soltanto il feed.
+//  · tempo     → da quanto l'attività è in coda (recency), distinto dal detail.
+function TaskCard({ title, desc, time, category, href, disabled, popover }) {
+  const s = catStyle(category);
+  const clickable = !disabled;
+
+  const card = React.createElement(Card, {
+    bordered: false,
+    hoverable: clickable,
+    onClick: clickable && href ? () => { window.location.href = href; } : undefined,
+    style: { width: '100%', borderRadius: 8, border: '1px solid #f0f0f0', cursor: clickable ? 'pointer' : 'default' },
+    styles: { body: { padding: '12px 16px' } },
+  },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+      // Icona categoria — unica codifica cromatica della categoria
+      React.createElement('div', {
+        style: { width: 36, height: 36, borderRadius: 8, flexShrink: 0, background: s.color + '1F',
+          display: 'flex', alignItems: 'center', justifyContent: 'center' },
+      }, catIcon(category, 18)),
+      // Corpo
+      React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+        // Riga 1: categoria (label neutra)
+        React.createElement(Text, {
+          style: { display: 'block', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(0,0,0,0.45)', marginBottom: 1 },
+        }, category),
+        // Riga 2: titolo
+        React.createElement(Text, { strong: true, ellipsis: true, style: { display: 'block', fontSize: 14, lineHeight: '20px' } }, title),
+        // Riga 3: dettaglio di dominio
+        React.createElement(Text, { type: 'secondary', ellipsis: true, style: { display: 'block', fontSize: 12, lineHeight: '18px' } }, desc)
+      ),
+      // Destra: da quanto è in coda + affordance deep-link (chevron). Nessuna azione inline.
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 } },
+        React.createElement(Text, { type: 'secondary', style: { fontSize: 12, whiteSpace: 'nowrap' } }, time),
+        clickable
+          ? React.createElement(icons.RightOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.25)' } })
+          : null
+      )
+    )
+  );
+
+  return disabled
+    ? React.createElement(Popover, { content: popover, trigger: 'hover', placement: 'top' },
+        React.createElement('div', { style: { cursor: 'not-allowed', width: '100%' } }, card)
+      )
+    : card;
+}
+
+// ── Filtro categorie (multi-selezione) ─────────────────────────────────────────
+function ActivityFilter({ categories, selected, onToggle, onClear }) {
+  const h = React.createElement;
+  const [open, setOpen] = useState(false);
+  const label = selected.length === 0 ? 'Tutte le attività'
+    : selected.length === 1 ? selected[0] : selected.length + ' tipologie';
+
+  return h('div', { style: { position: 'relative' } },
+    h(Button, { icon: h(FilterOutlined), onClick: () => setOpen((v) => !v) },
+      label, h(DownOutlined, { style: { fontSize: 10, marginLeft: 4 } })
+    ),
+    open && h(React.Fragment, null,
+      h('div', { style: { position: 'fixed', inset: 0, zIndex: 10 }, onClick: () => setOpen(false) }),
+      h('div', {
+        style: { position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20,
+          background: '#fff', borderRadius: 8, minWidth: 200, padding: '6px 0',
+          border: '1px solid #f0f0f0', boxShadow: '0 6px 16px rgba(0,0,0,0.08)' },
+      },
+        h('div', {
+          onClick: onClear,
+          style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer' },
+        },
+          h(Checkbox, { checked: selected.length === 0 }),
+          h('span', { style: { fontSize: 14, color: 'rgba(0,0,0,0.88)' } }, 'Tutte le attività')
+        ),
+        h('div', { style: { borderTop: '1px solid #f0f0f0', margin: '4px 12px' } }),
+        categories.map((c) => {
+          const s = catStyle(c);
+          return h('div', {
+            key: c,
+            onClick: () => onToggle(c),
+            style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer' },
+          },
+            h(Checkbox, { checked: selected.includes(c) }),
+            h('span', { style: { width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 } }),
+            h('span', { style: { fontSize: 14, color: 'rgba(0,0,0,0.88)' } }, c)
+          );
+        })
+      )
+    )
+  );
+}
+
+function TaskColumn({ tasks, label }) {
+  return React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+    React.createElement('div', { style: { padding: '0 6px 12px', display: 'flex', alignItems: 'center', gap: 8 } },
+      React.createElement(Text, {
+        style: { fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(0,0,0,0.45)' },
+      }, label),
+      React.createElement('span', {
+        style: { background: 'rgba(62,0,251,0.08)', color: '#3E00FB', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 600 },
+      }, tasks.length)
+    ),
+    tasks.length === 0
+      ? React.createElement('div', { style: { padding: '24px 0', textAlign: 'center', fontSize: 13, color: 'rgba(0,0,0,0.35)' } },
+          'Nessuna attività per i filtri selezionati')
+      : React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+          tasks.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
+        )
+  );
+}
+
+const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
+
+// Marker nota di design (icona Coffee rossa) — popover in hover. Riusato in più punti.
+function DesignNoteBulb({ note, placement }) {
+  return React.createElement(Popover, {
+    trigger: 'hover', placement: placement || 'top',
+    content: React.createElement('div', { style: { maxWidth: 300 } },
+      React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FF4A1C', marginBottom: 6 } }, 'Nota di design'),
+      React.createElement('div', { style: { fontSize: 13, lineHeight: 1.55, color: 'rgba(0,0,0,0.65)' } }, note)
+    ),
+  },
+    React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', cursor: 'help', color: '#FF4A1C' } },
+      React.createElement(icons.CoffeeOutlined, { style: { fontSize: 15 } }))
+  );
+}
+
+function ActivitiesSection({ role, mode, onSeeAll }) {
+  const all = ROLE_PENDING[role] || [];
+  const studied = STUDIED_ROLES.includes(role) && all.length > 0;
+
+  // Ruolo non ancora studiato → attività placeholder (vuote) + nota
+  if (!studied) {
+    return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
+      React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
+      React.createElement('div', { style: { border: '1px dashed #d9d9d9', borderRadius: 8, background: '#fafafa', padding: '36px 24px' } },
+        React.createElement(antd.Empty, {
+          image: antd.Empty.PRESENTED_IMAGE_SIMPLE,
+          description: React.createElement('div', { style: { maxWidth: 440, margin: '0 auto', lineHeight: 1.6 } },
+            React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.65)', marginBottom: 4 } }, 'Studio del ruolo in corso'),
+            React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } },
+              'Card e attività per il ruolo ',
+              React.createElement('strong', null, role),
+              ' non sono ancora definite: lo studio del ruolo per questi dati va ancora effettuato con la UX research.'
+            )
+          ),
+        })
+      )
+    );
+  }
+
+  // Strada 2 — scroll infinito sulla pagina "Per te": l'intera coda nella dashboard.
+  if (mode === 'scroll') {
+    return React.createElement(ActivitiesInfiniteFeed, { role });
+  }
+
+  // Feed dashboard: le più urgenti (priorità, ordine stabile), prime 6.
+  // Il totale resta nel "Vedi tutte (N)" → cronologia completa filtrabile.
+  const feed = all.slice()
+    .sort((a, b) => (PRIORITY_RANK[a.priority] == null ? 3 : PRIORITY_RANK[a.priority]) - (PRIORITY_RANK[b.priority] == null ? 3 : PRIORITY_RANK[b.priority]))
+    .slice(0, 6);
+
+  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
+    // Header: titolo (+ nota di design) a sinistra, "Vedi tutte (N)" all'estrema destra
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%' } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+        React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
+        React.createElement(DesignNoteBulb, { placement: 'bottomLeft', note: 'Le attività sono conseguenza della realizzazione dei flussi descritti dalle card delle metriche.' })
+      ),
+      React.createElement(Button, { type: 'link', onClick: onSeeAll, icon: React.createElement(icons.ArrowRightOutlined, { style: { fontSize: 12 } }), iconPosition: 'end', style: { padding: 0, height: 'auto' } },
+        'Vedi tutte (' + all.length + ')'
+      )
+    ),
+    // Card delle attività più urgenti
+    feed.length === 0
+      ? React.createElement('div', { style: { padding: '24px 0', textAlign: 'center', fontSize: 13, color: 'rgba(0,0,0,0.35)' } },
+          'Nessuna attività')
+      : React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+          feed.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
+        )
+  );
+}
+
+// ── Lista completa attività — corpo condiviso da Drawer (1) e schermata dedicata (3) ──
+// Riga conteggio + filtro categoria, poi lista completa.
+function ActivitiesFullList({ role }) {
+  const [filter, setFilter] = useState([]);
+  const pendingAll = ROLE_PENDING[role] || [];
+  const categories = Array.from(new Set(pendingAll.map((t) => t.category)));
+  const toggle = (c) => setFilter((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
+  const pending = filter.length === 0 ? pendingAll : pendingAll.filter((t) => filter.includes(t.category));
+
+  return React.createElement(Space, { direction: 'vertical', size: 16, style: { width: '100%' } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%' } },
+      React.createElement(Text, { type: 'secondary', style: { fontSize: 13 } }, pending.length + ' attività'),
+      React.createElement(ActivityFilter, { categories, selected: filter, onToggle: toggle, onClear: () => setFilter([]) })
+    ),
+    pending.length === 0
+      ? React.createElement('div', { style: { padding: '40px 0', textAlign: 'center', fontSize: 14, color: 'rgba(0,0,0,0.35)' } },
+          'Nessuna attività per i filtri selezionati')
+      : React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+          pending.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
+        )
+  );
+}
+
+// ── Strada 2 — scroll infinito sulla pagina "Per te" ─────────────────────────────
+// Titolo + badge conteggio + filtro su un'unica riga; la lista cresce a blocchi
+// mentre si scorre la PAGINA (sentinel + IntersectionObserver), non un'area dedicata.
+function ActivitiesInfiniteFeed({ role }) {
+  const PAGE = 5; // carica 5 record alla volta, con loading a ogni blocco
+  const [filter, setFilter] = useState([]);
+  const [visible, setVisible] = useState(PAGE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef(null);
+  const timerRef = useRef(null);
+  const all = ROLE_PENDING[role] || [];
+  const categories = Array.from(new Set(all.map((t) => t.category)));
+  const toggle = (c) => setFilter((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
+  const pending = filter.length === 0 ? all : all.filter((t) => filter.includes(t.category));
+  const shown = pending.slice(0, visible);
+
+  // Cambio filtro/ruolo → riparti dal primo blocco
+  useEffect(() => { setVisible(PAGE); setLoadingMore(false); }, [filter.join('|'), role]);
+
+  // Infinite scroll di pagina: il sentinel entra nel viewport → loading 600ms → +5 voci
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !loadingMore && visible < pending.length) {
+        setLoadingMore(true);
+        timerRef.current = setTimeout(() => {
+          setVisible((v) => Math.min(v + PAGE, pending.length));
+          setLoadingMore(false);
+        }, 600);
+      }
+    }, { rootMargin: '120px' });
+    io.observe(el);
+    return () => { io.disconnect(); if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [pending.length, filter.join('|'), loadingMore, visible]);
+
+  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
+    // Unica riga: titolo + badge (sinistra) · filtro (destra)
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%' } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+        React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
+        React.createElement(Badge, { count: pending.length, overflowCount: 999, color: '#3E00FB' }),
+        React.createElement(DesignNoteBulb, { placement: 'bottomLeft', note: 'Le attività sono conseguenza della realizzazione dei flussi descritti dalle card delle metriche.' })
+      ),
+      React.createElement(ActivityFilter, { categories, selected: filter, onToggle: toggle, onClear: () => setFilter([]) })
+    ),
+    pending.length === 0
+      ? React.createElement('div', { style: { padding: '40px 0', textAlign: 'center', fontSize: 14, color: 'rgba(0,0,0,0.35)' } },
+          'Nessuna attività per i filtri selezionati')
+      : React.createElement(React.Fragment, null,
+          React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+            shown.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
+          ),
+          shown.length < pending.length
+            ? React.createElement('div', { ref: sentinelRef, style: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px 0', minHeight: 44 } },
+                loadingMore ? React.createElement(Spin, { size: 'small' }) : null)
+            : null
+        )
+  );
+}
+
+// Skeleton lista attività — riga conteggio+filtro + N card placeholder
+function TaskListSkeleton({ count }) {
+  return React.createElement(Space, { direction: 'vertical', size: 16, style: { width: '100%' } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+      React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 90, height: 16 } }),
+      React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 150, height: 32 } })
+    ),
+    React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+      ...Array.from({ length: count || 8 }).map((_, i) =>
+        React.createElement(Card, { key: i, bordered: false, style: { border: '1px solid #f0f0f0' }, styles: { body: { padding: '12px 16px' } } },
+          React.createElement(Skeleton, { active: true, avatar: { size: 36, shape: 'square' }, title: { width: 200 }, paragraph: { rows: 1, width: 260 } })
+        )
+      )
+    )
+  );
+}
+
+// ── Schermata dedicata a tutte le attività (vista a sé, full width) ──────────────
+// Usata dalle strade "Schermata dedicata" (3, lista) e "Triage" (4, raggruppata).
+function ActivitiesScreen({ role, variant, loading, onBack }) {
+  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 20, width: '100%' } },
+    React.createElement(Button, {
+      type: 'text', icon: React.createElement(ArrowLeftOutlined), onClick: onBack,
+      style: { paddingLeft: 0, alignSelf: 'flex-start' },
+    }, 'Torna alla dashboard'),
+    React.createElement(Title, { level: 3, style: { margin: 0 } }, 'Le tue attività'),
+    loading
+      ? React.createElement(TaskListSkeleton, { count: 8 })
+      : React.createElement(ActivitiesFullList, { role })
+  );
+}
+
+// ── Barra di valutazione (strumento di prototipo) ────────────────────────────────
+// Commuta dal vivo il pattern di accesso alla lista completa attività.
+function SeeAllModeLab({ mode, onChange }) {
+  return React.createElement('div', {
+    style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '8px 12px',
+      border: '1px dashed #d9d9d9', borderRadius: 8, background: '#fafafa' },
+  },
+    React.createElement(Text, { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(0,0,0,0.45)' } },
+      'Valutazione · «Vedi tutte»'),
+    React.createElement(Segmented, {
+      value: mode, onChange,
+      options: [
+        { label: 'Drawer full screen', value: 'drawer-full' },
+        { label: 'Scroll infinito', value: 'scroll' },
+        { label: 'Schermata dedicata', value: 'screen' },
+      ],
+    }),
+    React.createElement(DesignNoteBulb, {
+      placement: 'bottomRight',
+      note: 'Controllo di prototipo per confrontare i tre pattern di accesso alla lista completa attività. Valuta soprattutto sul ruolo Operation Manager (coda lunga).',
+    })
+  );
+}
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+function ContentSkeleton() {
+  return React.createElement(Space, { direction: 'vertical', size: 32, style: { width: '100%' } },
+    React.createElement(Card, { bordered: false, style: { border: '1px solid #f0f0f0' }, styles: { body: { padding: '16px' } } },
+      React.createElement(Space, { size: 24, align: 'center' },
+        React.createElement(Skeleton.Avatar, { active: true, size: 88 }),
+        React.createElement('div', { style: { flex: 1 } }, React.createElement(Skeleton, { active: true, paragraph: { rows: 2 } })),
+        React.createElement(Skeleton.Button, { active: true, style: { width: 120, height: 32 } })
+      )
+    ),
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 10 } },
+      ...[0,1,2,3,4].map((i) =>
+        React.createElement(Card, { key: i, bordered: false, style: { flex: '1 1 0', minWidth: 180, border: '1px solid #f0f0f0' }, styles: { body: { padding: 0 } } },
+          React.createElement('div', { style: { padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center' } },
+            React.createElement(Skeleton.Avatar, { active: true, size: 16 }),
+            React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 120, height: 14 } })),
+          React.createElement('div', { style: { padding: '20px 12px' } },
+            React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 80, height: 28 } })),
+          React.createElement('div', { style: { padding: '0 12px 12px' } },
+            React.createElement('div', { style: { borderTop: '1px solid #f0f0f0', margin: '0 0 12px' } }),
+            React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 70, height: 16 } }))
+        )
+      )
+    ),
+    React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 120, height: 20 } }),
+    React.createElement('div', { style: { display: 'flex', gap: 16 } },
+      ...[0,1,2,3].map((i) =>
+        React.createElement(Card, { key: i, bordered: false, style: { flex: 1, border: '1px solid #f0f0f0' }, styles: { body: { padding: 16 } } },
+          React.createElement(Space, { size: 12 },
+            React.createElement(Skeleton.Avatar, { active: true, shape: 'square', size: 40 }),
+            React.createElement('div', { style: { flex: 1 } },
+              React.createElement(Skeleton, { active: true, title: { width: 120 }, paragraph: { rows: 1, width: 80 } }))
+          )
+        )
+      )
+    ),
+    React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 130, height: 20 } }),
+    React.createElement('div', { style: { display: 'flex', gap: 8 } },
+      ...[0,1].map((col) =>
+        React.createElement('div', { key: col, style: { flex: 1 } },
+          React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
+            ...[0,1,2,3,4].map((i) =>
+              React.createElement(Card, { key: i, bordered: false, style: { border: '1px solid #f0f0f0' }, styles: { body: { padding: '12px 16px' } } },
+                React.createElement(Skeleton, { active: true, avatar: { size: 32, shape: 'square' }, title: { width: 180 }, paragraph: { rows: 1, width: 220 } })
+              )
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+// ── App Root ──────────────────────────────────────────────────────────────────
+function AppRoot() {
+  const [role, setRole] = useState(localStorage.getItem('gravity_proto_role') || 'Operation Manager');
+  const [tenantKey, setTenantKey] = useState('gravity');
+  const [loading, setLoading] = useState(true);
+  const [tenantLoading, setTenantLoading] = useState(false);
+  const [avatarSrc, setAvatarSrc] = useState(null);
+  const [seeAllOpen, setSeeAllOpen] = useState(false);            // drawer full-screen (strada 1)
+  const [seeAllMode, setSeeAllMode] = useState(() => {
+    const saved = localStorage.getItem('gravity_proto_seeall');
+    return ['drawer-full', 'scroll', 'screen'].includes(saved) ? saved : 'drawer-full';
+  });
+  const [view, setView] = useState('dashboard');                  // 'dashboard' | 'activities' (strada 3)
+  const [activitiesLoading, setActivitiesLoading] = useState(false); // skeleton ingresso schermata dedicata
+  // Area app esplorativa: nascondibile per test layout. Stato in memoria →
+  // si ripristina (le app riappaiono) al reload della pagina.
+  const [appsHidden, setAppsHidden] = useState(false);
+  const [appsView, setAppsView] = useState('apps');               // 'apps' | 'calendar'
+
+  const tenant = TENANTS[tenantKey];
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 200);
+    return () => clearTimeout(t);
+  }, []);
+
+  const handleRoleChange = (r) => {
+    localStorage.setItem('gravity_proto_role', r);
+    setSeeAllOpen(false);
+    setView('dashboard');
+    setLoading(true);
+    setTimeout(() => { setRole(r); setLoading(false); }, 600);
+  };
+
+  const handleTenantChange = (k) => {
+    if (k === 'alessi' || k === 'movingup') {
+      const tenantParam = k === 'alessi' ? 'alessi-pubblicita' : 'moving-up';
+      setTenantLoading(true);
+      window.location.href = '../single-signon/index.html?tenant=' + tenantParam;
+      return;
+    }
+    setSeeAllOpen(false);
+    setView('dashboard');
+    setLoading(true);
+    setTimeout(() => { setTenantKey(k); setLoading(false); }, 200);
+  };
+
+  // "Vedi tutte" → comportamento dipendente dalla strada in valutazione
+  // (scroll infinito non passa di qui: la lista è già inline nella dashboard).
+  const handleSeeAll = () => {
+    if (seeAllMode === 'screen') {
+      setView('activities');
+      window.scrollTo(0, 0);
+      setActivitiesLoading(true);
+      setTimeout(() => setActivitiesLoading(false), 500);
+    } else setSeeAllOpen(true);
+  };
+
+  const changeSeeAllMode = (m) => {
+    setSeeAllMode(m);
+    localStorage.setItem('gravity_proto_seeall', m);
+    setSeeAllOpen(false);
+    setView('dashboard');
+  };
+
+  const dashboard = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 32, width: '100%' } },
+    React.createElement(HeaderCard, { role, tenant, avatarSrc, onAvatarChange: setAvatarSrc }),
+    React.createElement(MetricRow, { role }),
+    // Due colonne: sinistra "Le tue attività", destra "Le tue app".
+    // Area app esplorativa: hover → spiegazione + button per nasconderla.
+    // Nascosta → attività full width (si ripristina al reload).
+    appsHidden
+      ? React.createElement(ActivitiesSection, { role, mode: seeAllMode, onSeeAll: handleSeeAll })
+      : React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start', width: '100%' } },
+          React.createElement('div', { style: { flex: '1 1 0', minWidth: 320 } },
+            React.createElement(ActivitiesSection, { role, mode: seeAllMode, onSeeAll: handleSeeAll })
+          ),
+          // Area app esplorativa: nota + nascondi sull'icona Coffee del titolo
+          React.createElement('div', { style: { flex: '0 1 500px', minWidth: 320 } },
+            React.createElement(ProductsSection, {
+              role, onHide: () => setAppsHidden(true),
+              appsView, onToggleView: () => setAppsView((v) => v === 'apps' ? 'calendar' : 'apps'),
+            })
+          )
+        )
+  );
+
+  let content = loading
+      ? React.createElement(ContentSkeleton)
+      : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 24, width: '100%' } },
+          React.createElement(SeeAllModeLab, { mode: seeAllMode, onChange: changeSeeAllMode }),
+          view === 'activities'
+            ? React.createElement(ActivitiesScreen, { role, variant: seeAllMode, loading: activitiesLoading, onBack: () => setView('dashboard') })
+            : dashboard
+        );
+
+  return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
+    React.createElement(App, null,
+      React.createElement(Layout, { style: { minHeight: '100vh', background: '#f5f5f5' } },
+        React.createElement(GravityNavbarTenant, {
+          role, onRoleChange: handleRoleChange,
+          tenantKey, onTenantChange: handleTenantChange, tenantLoading,
+          avatarSrc,
+        }),
+        React.createElement(Layout.Content, {
+          style: { padding: '16px 80px', background: '#f5f5f5', overflowY: 'auto' },
+        },
+          content,
+          React.createElement('div', { style: { height: 24 } })
+        ),
+        // Strada 1 — Drawer "Vedi tutte" all'80% della schermata (DS: *Drawer* Placement=Right)
+        React.createElement(Drawer, {
+          title: 'Attività da fare',
+          placement: 'right',
+          width: '80%',
+          open: seeAllOpen,
+          onClose: () => setSeeAllOpen(false),
+          styles: { body: { padding: '24px 20px' } },
+        },
+          seeAllOpen
+            ? React.createElement(ActivitiesFullList, { role })
+            : null
+        )
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(AppRoot));
+</script>
+</body>
+</html>
