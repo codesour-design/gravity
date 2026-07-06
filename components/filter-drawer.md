@@ -8,7 +8,7 @@
 
 ## Componente condiviso: `window.GravityFilterDrawer`
 
-Sorgente: `prototipi/filter-drawer.js`.
+Sorgente: `prototype/_shared/filter-drawer.js`.
 
 ```html
 <script src="../../filter-drawer.js"></script>

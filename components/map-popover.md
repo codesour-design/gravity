@@ -6,7 +6,7 @@
 ## Filosofia
 
 Il **guscio** (contenitore, animazione, close, titolo, sottotitolo, azione) è condiviso in
-`prototipi/map-popover.js`; il **contenuto** (righe info) e la **posizione** restano per-app,
+`prototype/_shared/map-popover.js`; il **contenuto** (righe info) e la **posizione** restano per-app,
 passati come props/children. Non spostare logica di dominio dentro il guscio.
 
 ## Componente condiviso: `window.GravityMapPopover`

@@ -3,7 +3,7 @@
 > Questo file è la fonte di verità per **qualsiasi form dentro una Modal o un Drawer** (creazione,
 > modifica, duplicazione, collegamento...) in tutti i prototipi Gravity.
 > Regole ricavate lavorando su Planning → Duplica pianificazione / Nuova-Modifica pianificazione
-> (`prototipi/planning/index.html`, funzioni `DuplicateModal`, `PlanningFormDrawer`,
+> (`prototype/planning/index.html`, funzioni `DuplicateModal`, `PlanningFormDrawer`,
 > `TrattativaCascade`, `SaleTypeDates`). Applicale sempre, non solo in Planning.
 
 ---
@@ -175,9 +175,9 @@ della pianificazione che si sta duplicando):
 ## Riferimento implementativo
 
 Tutte le regole sopra sono applicate in:
-- `prototipi/planning/index.html` → `DuplicateModal` (Modal "Duplica pianificazione")
-- `prototipi/planning/index.html` → `PlanningFormDrawer` (Drawer "Nuova/Modifica pianificazione")
-- `prototipi/planning/index.html` → `TrattativaCascade` (tooltip su opzioni disabilitate)
+- `prototype/planning/index.html` → `DuplicateModal` (Modal "Duplica pianificazione")
+- `prototype/planning/index.html` → `PlanningFormDrawer` (Drawer "Nuova/Modifica pianificazione")
+- `prototype/planning/index.html` → `TrattativaCascade` (tooltip su opzioni disabilitate)
 
 Usa questi come riferimento concreto prima di costruire un nuovo form in Modal o Drawer altrove
 nell'app (Inventory, Campaigns, ecc.): le stesse regole si applicano, non solo a Planning.

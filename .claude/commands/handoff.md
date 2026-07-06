@@ -15,16 +15,16 @@ Il risultato è una variante del prototipo (`index--handoff.html`) che, sopra l'
   - **dropdown Modello** → tab Scenari / Dipendenze / Relazioni del dominio (Relazioni in ultima posizione);
 - **note di design inline** (icona caffè rossa `CoffeeOutlined`) ancorate ai punti UI di riferimento.
 
-Tutta la logica vive già nel motore condiviso **`prototipi/handoff.js`** — **NON va riscritto né duplicato**. La skill si limita a:
+Tutta la logica vive già nel motore condiviso **`prototype/_shared/handoff.js`** — **NON va riscritto né duplicato**. La skill si limita a:
 1. creare `index--handoff.html` (variante del prototipo) che carica il motore;
 2. scrivere la config `handoff-steps.js` (tour, componenti, note, modello);
 3. piazzare le note inline;
 4. verificare nel browser.
 
 **Riferimento canonico** (leggilo sempre prima di iniziare, è la fonte di verità del formato):
-- `prototipi/handoff.js` — il motore (schema degli oggetti globali, commentato in testa)
-- `prototipi/planning/handoff-steps.js` — config completa di esempio
-- `prototipi/planning/index--handoff.html` — wiring HTML + `HandoffDesignNote`
+- `prototype/_shared/handoff.js` — il motore (schema degli oggetti globali, commentato in testa)
+- `prototype/planning/handoff-steps.js` — config completa di esempio
+- `prototype/planning/index--handoff.html` — wiring HTML + `HandoffDesignNote`
 
 Segui le fasi nell'ordine. Non saltare passi.
 
@@ -34,7 +34,7 @@ Segui le fasi nell'ordine. Non saltare passi.
 
 Verifica prima di iniziare:
 
-- Esiste un **prototipo HTML finito** in `prototipi/<nome>/index.html` (o sottocartella), già funzionante nel browser.
+- Esiste un **prototipo HTML finito** in `prototype/<nome>/index.html` (o sottocartella), già funzionante nel browser.
 - Il prototipo usa la **navbar condivisa** `navbar.js`: il motore handoff si aggancia all'elemento `#gravity-bell-btn` (la campanella) per inserire la barra dev. Se la navbar non c'è, la barra dev non comparirà — segnalalo.
 - Il ruolo corrente è in `localStorage['gravity_proto_role']` (default `Tenant Admin`) — usato per filtrare i tour per ruolo.
 - Lavora **sul branch del prototipo**, mai su `main` (vedi CLAUDE.md).
@@ -46,7 +46,7 @@ Verifica prima di iniziare:
 Chiedi all'utente in un'unica risposta strutturata:
 
 **1 — Prototipo**
-Quale prototipo? Percorso del file (es. `prototipi/inventory/index.html`).
+Quale prototipo? Percorso del file (es. `prototype/inventory/index.html`).
 
 **2 — User story da documentare**
 Per ogni US (saranno i tour del dropdown "User story"):
@@ -104,8 +104,8 @@ Crea la variante handoff **a fianco** dell'`index.html` del prototipo, stessa ca
    ```html
    <script src="../handoff.js"></script>
    ```
-   Adatta il numero di `../` alla profondità della cartella: per `prototipi/<nome>/` è `../handoff.js`; per una sottocartella più profonda (`prototipi/.../<nome>/`) aggiungi i livelli necessari fino a `prototipi/handoff.js`. Stesso criterio per `navbar.js`.
-4. **Aggiungi il componente note inline** `HandoffDesignNote` (+ helper `_ghfRenderNoteBody`). Copialo **invariato** da `prototipi/planning/index--handoff.html` (icona `CoffeeOutlined` rossa `#FF4A1C`, popover su hover, body con `**grassetto**`, `==evidenziato==`, righe `- ` → lista).
+   Adatta il numero di `../` alla profondità della cartella: per `prototype/<nome>/` è `../_shared/handoff.js`; per una sottocartella più profonda (`prototype/.../<nome>/`) aggiungi i livelli necessari fino a `prototype/_shared/handoff.js`. Stesso criterio per `navbar.js`.
+4. **Aggiungi il componente note inline** `HandoffDesignNote` (+ helper `_ghfRenderNoteBody`). Copialo **invariato** da `prototype/planning/index--handoff.html` (icona `CoffeeOutlined` rossa `#FF4A1C`, popover su hover, body con `**grassetto**`, `==evidenziato==`, righe `- ` → lista).
 5. **Piazza le note inline** accanto agli elementi UI di riferimento, passando l'`id` della nota:
    ```jsx
    React.createElement('span', null,
@@ -229,7 +229,7 @@ Se una sezione non serve, **ometti** la variabile (il tab mostrerà "Nessun elem
 
 ## Regole
 
-- **Riusa il motore**: non duplicare né modificare `prototipi/handoff.js`. Se manca una capacità del motore, segnalalo invece di forkarlo.
+- **Riusa il motore**: non duplicare né modificare `prototype/_shared/handoff.js`. Se manca una capacità del motore, segnalalo invece di forkarlo.
 - **Solo nel file `--handoff`**: l'`index.html` originale resta pulito; note e tour vivono solo nella variante.
 - **Selettori stabili**: ancora tour e inspector a classi/id semantici (`.gv-*`, `.ss-*`, id), non a strutture fragili. Se un selettore utile non esiste, aggiungilo nel markup del prototipo.
 - **Token sempre**: nessun colore hard-coded fuori da quelli del brand (`#3E00FB`, `#FF4A1C`, ecc.). La tipografia la gestisce il tema.

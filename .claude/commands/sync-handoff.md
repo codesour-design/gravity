@@ -5,17 +5,17 @@ Usare dopo aver modificato un prototipo senza passare da un commit git (es. dura
 
 ## Steps
 
-1. Trova tutti i file `handoff-steps.js` in `prototipi/`
+1. Trova tutti i file `handoff-steps.js` in `prototype/`
 2. Per ognuno, rigenera `index--handoff.html` nella stessa cartella:
    - Copia il contenuto di `index.html`
    - Inietta prima di `</body>`:
      ```html
      <script src="./handoff-steps.js"></script>
-     <script src="[percorso relativo a prototipi/]/handoff.js"></script>
+     <script src="[percorso relativo a prototype/]/handoff.js"></script>
      ```
-   - Percorso relativo: conta i livelli di directory tra la cartella del prototipo e `prototipi/`
-     - `prototipi/nome/` → `../handoff.js`
-     - `prototipi/gruppo/nome/` → `../../handoff.js`
+   - Percorso relativo: conta i livelli di directory tra la cartella del prototipo e `prototype/`
+     - `prototype/nome/` → `../handoff.js`
+     - `prototype/gruppo/nome/` → `../../handoff.js`
 3. Mostra un riepilogo dei file rigenerati
 4. Non committare — lascia all'utente la decisione
 
