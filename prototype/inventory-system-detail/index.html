@@ -459,7 +459,7 @@
     .ant-tabs .ant-tabs-nav::before { border-bottom: none !important; }
 
     /* ── Detail V2 — header card + sidebar DataCard (template Shaker UI) ── */
-    .imp-detail-shell { padding: 20px 32px 40px; max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    .imp-detail-shell { padding: 20px 32px 40px; width: 100%; display: flex; flex-direction: column; gap: 16px; }
     .gv-detail-header { background: #fff; border-radius: 8px; border: 1px solid #F0F0F0; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
     .gv-back { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: #3E00FB; cursor: pointer; text-decoration: none; transition: opacity .15s; }
     .gv-back:hover { opacity: .75; }
@@ -1833,6 +1833,15 @@ function ListView({ impianti, viewMode, setViewMode, onDetail }) {
 // ─────────────────────────────────────────────────────────
 const CANALI_OPTS  = [{ value: 'OOH', label: 'OOH' }, { value: 'DOOH', label: 'DOOH' }];
 const VENDITA_OPTS = ['Flat','CPM','Revenue share','Forfait settimanale','Forfait mensile'].map(v => ({ value: v, label: v }));
+// IVA: il cliente lavora sul prezzo lordo (IVA inclusa) + aliquota; imponibile e IVA sono derivati.
+const ALIQUOTA_IVA_OPTS = [
+  { value: 22, label: '22% (ordinaria)' },
+  { value: 10, label: '10%' },
+  { value: 4,  label: '4%' },
+  { value: 0,  label: 'Esente / non imp.' },
+];
+const parseEuro = (s) => { if (s == null || s === '') return 0; const n = parseFloat(String(s).replace(/\./g, '').replace(',', '.')); return isNaN(n) ? 0 : n; };
+const fmtEuro = (n) => { const v = Math.round((Number(n) || 0) * 100) / 100; const [int, dec] = v.toFixed(2).split('.'); return int.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + dec; };
 const STATO_COLORS = { 'Attivo': '#1677FF', 'Inizializzato': '#FAAD14', 'In Manutenzione': '#FA8C16', 'Rimosso': 'rgba(0,0,0,0.45)' };
 // Stati selezionabili nel modale "Nuovo evento" + mappatura al Badge della timeline
 const NEW_EVENT_STATI = ['Inizializzato', 'Attivo', 'In Manutenzione', 'Rimosso'];
@@ -2371,7 +2380,13 @@ const COVER_STRIPS = [
   { flex: 0.9, bg: 'linear-gradient(160deg,#3a2010 0%,#5a3018 100%)' },
   { flex: 0.9, bg: 'linear-gradient(160deg,#0a1020 0%,#1a2030 100%)' },
 ];
-const FOTO_IMPIANTO = [
+const FOTO_IMPIANTO = ((window.__resources && [
+  window.__resources.foto0, window.__resources.foto1, window.__resources.foto2,
+  window.__resources.foto3, window.__resources.foto4, window.__resources.foto5,
+].filter(Boolean)) || []).length ? [
+  window.__resources.foto0, window.__resources.foto1, window.__resources.foto2,
+  window.__resources.foto3, window.__resources.foto4, window.__resources.foto5,
+] : [
   '../_shared/assets/system-photos/6x3-poster-asti-1024x731.jpg',
   '../_shared/assets/system-photos/Affissioni-poster-Milano.jpg',
   '../_shared/assets/system-photos/Pescara_Piccola.jpg',
@@ -2556,7 +2571,7 @@ function FormFaceCard({ name, face, onEdit, onRemove, onCreatePosteriore }) {
     );
   const accent = (FACE_TIPO_STYLE[face.tipo] || FACE_TIPO_STYLE['Anteriore']).color;
   return React.createElement(Card, {
-    style: { borderRadius: 8, border: '1px solid #f0f0f0', borderLeft: '3px solid ' + accent, height: '100%' },
+    style: { borderRadius: 8, border: '1px solid #f0f0f0', height: '100%' },
     styles: { body: { padding: '10px 14px' } },
   },
     // Intestazione su una riga
@@ -2673,6 +2688,46 @@ function FormAssetCard({ asset, onView, onRemove }) {
           '+ ' + overflow + ' camp' + (overflow === 1 ? 'o' : 'i'))
       : null,
   );
+}
+
+function AssetAccordion({ list, onView, onRemove }) {
+  const val = (kind, v) => {
+    if (v == null || v === '' || (Array.isArray(v) && !v.length)) return null;
+    if (kind === 'tags' || kind === 'list') return React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } }, v.map((x, i) => React.createElement(Tag, { key: i, style: { margin: 0, fontSize: 12, border: '1px solid #d9d9d9', background: '#fafafa', color: 'rgba(0,0,0,0.75)' } }, x)));
+    if (kind === 'date') return v && v.format ? v.format('DD/MM/YYYY') : String(v);
+    return String(v);
+  };
+  const cellsOf = (a) => { const def = getAssetType(a.tipo) || { fields: [] }; const v = a.vals || {}; return def.fields.filter(f => f.key !== 'nome' && f.key !== 'desc' && f.key !== 'stato').map(f => ({ label: f.label, node: val(f.kind, v[f.key]) })).filter(c => c.node != null); };
+  const titleOf = (a) => ((getAssetType(a.tipo) || {}).category === 'Dispositivo') ? ((a.vals || {}).nome || a.tipo) : a.tipo;
+  const statusDot = (a) => { const v = a.vals || {}; return ((getAssetType(a.tipo) || {}).category === 'Dispositivo' && v.stato) ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: DEVICE_STATO_COLORS[v.stato] || '#d9d9d9' } }), v.stato) : null; };
+  const actions = (a) => (onView || onRemove) ? React.createElement(Dropdown, { menu: { items: [
+      ...(onView ? [{ key: 'view', label: 'Visualizza', icon: React.createElement(EyeOutlined), onClick: () => onView(a) }] : []),
+      ...(onRemove ? [{ key: 'rm', label: 'Elimina', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => onRemove(a.id) }] : []),
+    ] }, trigger: ['click'] }, React.createElement(MoreOutlined, { style: { fontSize: 16, color: '#595959', cursor: 'pointer' }, onClick: (e) => e.stopPropagation() })) : null;
+  return React.createElement(antd.Collapse, {
+    accordion: true, defaultActiveKey: list[0] && list[0].id,
+    style: { background: '#fff', borderRadius: 8 },
+    items: list.map(a => {
+      const cells = cellsOf(a);
+      const v = a.vals || {};
+      return {
+        key: a.id,
+        label: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 } },
+          React.createElement('span', { style: { fontWeight: 600 } }, titleOf(a)),
+          ((getAssetType(a.tipo) || {}).category === 'Dispositivo') ? React.createElement(Tag, { style: { margin: 0 } }, a.tipo) : null,
+          statusDot(a)),
+        extra: actions(a),
+        children: React.createElement('div', null,
+          v.desc ? React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.55)', marginBottom: cells.length ? 12 : 0 } }, v.desc) : null,
+          cells.length
+            ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 24, rowGap: 10 } },
+                cells.map((c, i) => React.createElement('div', { key: i, style: { display: 'flex', gap: 8, fontSize: 13, alignItems: 'flex-start' } },
+                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', minWidth: 130, flexShrink: 0 } }, c.label),
+                  React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)' } }, c.node))))
+            : React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)', fontSize: 13 } }, 'Nessun dato')),
+      };
+    }),
+  });
 }
 
 function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
@@ -2831,6 +2886,52 @@ function openDocPreview(file) {
 // Scheda impianto (V2) — ridisegno: shell fedele al form, edit inline per sezione,
 // tutti i dati con UX/UI del design system. Una sola sorgente dati + draft per l'edit.
 // ─────────────────────────────────────────────────────────
+// ── Componente Figma: Tab Contents / Systems — variante History ──────────
+// Timeline dello storico eventi: colonna data/ora a destra, pallino sulla linea
+// (il più recente = anello vuoto, i precedenti = pieni viola), titolo + eventuale
+// badge di stato, descrizione, avatar + agente. Paginazione con "Carica altri".
+function SystemHistoryTimeline({ events }) {
+  const [visible, setVisible] = useState(5);
+  const items = events.slice(0, visible);
+  return React.createElement('div', { style: { padding: '4px 0 0' } },
+    React.createElement('div', { style: { display: 'flex', flexDirection: 'column' } },
+      items.map((ev, i) =>
+        React.createElement('div', { key: i, style: { display: 'flex', gap: 16 } },
+          // Colonna data / ora (a sinistra, allineata a destra)
+          React.createElement('div', { style: { width: 88, flexShrink: 0, textAlign: 'right', paddingTop: 2, fontSize: 12.5, color: 'rgba(0,0,0,0.45)', lineHeight: '18px' } },
+            React.createElement('div', null, ev.date),
+            React.createElement('div', null, ev.time),
+          ),
+          // Colonna timeline (pallino + linea di connessione)
+          React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 } },
+            React.createElement('div', { style: { width: 9, height: 9, borderRadius: '50%', border: '2px solid #3E00FB', background: i === 0 ? '#3E00FB' : '#fff', boxSizing: 'border-box', flexShrink: 0, marginTop: 5 } }),
+            i < items.length - 1
+              ? React.createElement('div', { style: { width: 1, flex: 1, background: '#EDEDED' } })
+              : null,
+          ),
+          // Colonna contenuto
+          React.createElement('div', { style: { flex: 1, minWidth: 0, paddingBottom: 22 } },
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
+              React.createElement('span', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, ev.title),
+              ev.badge ? React.createElement(Badge, { status: ev.badge.status, text: ev.badge.label }) : null,
+            ),
+            React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', marginTop: 2 } }, ev.desc),
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginTop: 6, fontSize: 12, color: 'rgba(0,0,0,0.55)' } },
+              React.createElement('span', { style: { width: 20, height: 20, borderRadius: '50%', background: '#3E00FB', color: '#fff', fontSize: 9, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, ev.agentInitial),
+              ev.agent,
+            ),
+          ),
+        )
+      ),
+    ),
+    visible < events.length
+      ? React.createElement('div', { style: { paddingLeft: 104, marginTop: 4 } },
+          React.createElement(Button, { icon: React.createElement(SyncOutlined), onClick: () => setVisible(c => Math.min(c + 5, events.length)) }, 'Carica altri'),
+        )
+      : null,
+  );
+}
+
 function ImpiantoDetailV2({ imp, onBack }) {
   const displayName = imp.nome || imp.code || imp.id || 'Impianto';
   const addr = (imp.indirizzo || 'Via Maqueda, 148').split(',');
@@ -2847,12 +2948,61 @@ function ImpiantoDetailV2({ imp, onBack }) {
     dittaCA: 'Edil Costruzioni S.r.l.', tecniche: 'Saldature con elettrodi basici', dataFine: '15/10/2024',
     larghezza: '1250', altezza: '1800', profondita: '280', areaIngombro: '225', altTerra: '350', tipoAltezza: 'Alto', copertura: 'Riparato',
     alias: 'Pensilina Libertà — Centro', circuiti: ['Premium City', 'Arredo Urbano'], qualita: 4,
-    vendita: 'Long term', prezzoNetto: '1.200,00', prezzoLordo: '1.500,00', scontoModuli: true, scontoPct: 10,
+    vendita: 'Long term', prezzoLordo: '1.500,00', aliquotaIva: 22, scontoModuli: true, scontoPct: 10,
   });
-  const [active, setActive] = useState('identita');
+  const [active, setActive] = useState('dashboard');
+  const [dashPreset, setDashPreset] = useState('12m');
+  const [dashRange, setDashRange] = useState(null); // [dayjs, dayjs] intervallo personalizzato
   const [editSec, setEditSec] = useState(null);
   const [draft, setDraft] = useState(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const [coverIdx, setCoverIdx] = useState(0);
+  const [assetView, setAssetView] = useState('card');
+  const nPhotos = FOTO_IMPIANTO.length;
+  const goPhoto = (dir) => setPhotoIdx(i => (i + dir + nPhotos) % nPhotos);
+  const [editFormOpen, setEditFormOpen] = useState(false);
+
+  // Nuovo evento — modale + eventi aggiunti dall'utente (prependati alla timeline)
+  const [newEventOpen, setNewEventOpen] = useState(false);
+  const [extraEvents,  setExtraEvents]  = useState([]);
+  const [neTipo,       setNeTipo]       = useState(null);  // 'cambio-stato' | 'verifica' | 'manutenzione'
+  const [neStato,      setNeStato]      = useState(null);
+  const [neEsito,      setNeEsito]      = useState(null);
+  const [neResponsabile, setNeResponsabile] = useState('');
+  const [neNote,       setNeNote]       = useState('');
+  const [neData,       setNeData]       = useState(null);
+  const [neSquadra,    setNeSquadra]    = useState('');
+  const [neTipoInt,    setNeTipoInt]    = useState(null);
+  const [neComponente, setNeComponente] = useState('');
+  const openNewEvent = () => { setNeTipo(null); setNeStato(null); setNeEsito(null); setNeResponsabile(''); setNeNote(''); setNeData(null); setNeSquadra(''); setNeTipoInt(null); setNeComponente(''); setNewEventOpen(true); };
+  const newEventValid = neTipo === 'cambio-stato' ? !!neStato : !!neTipo;
+  const saveNewEvent = () => {
+    if (!neTipo) { antdMsg.warning('Seleziona la tipologia di evento'); return; }
+    const base = neData || dayjs();
+    let title, desc = neNote || '', badge = null;
+    const withParts = (parts) => { const p = parts.filter(Boolean); return p.length ? (desc ? desc + ' · ' : '') + p.join(' · ') : desc; };
+    if (neTipo === 'cambio-stato') {
+      if (!neStato) { antdMsg.warning('Seleziona lo stato'); return; }
+      title = 'Stato cambiato in';
+      badge = { label: neStato, status: STATO_BADGE[neStato] || 'default' };
+    } else if (neTipo === 'verifica') {
+      title = 'Verifica';
+      desc = withParts(['Esito: ' + (neEsito || '—'), neResponsabile && 'Responsabile: ' + neResponsabile]);
+    } else {
+      title = 'Intervento di manutenzione';
+      desc = withParts([neSquadra && 'Squadra: ' + neSquadra, neTipoInt && 'Intervento: ' + neTipoInt, neComponente && 'Componente: ' + neComponente]);
+      badge = { label: 'In Manutenzione', status: 'warning' };
+    }
+    const ev = {
+      date: base.format('DD/MM/YYYY'), time: dayjs().format('HH:mm'),
+      title, desc: desc || '—', badge,
+      agent: 'Elena Faraci', agentInitial: 'EF',
+    };
+    setExtraEvents(prev => [ev, ...prev]);
+    setNewEventOpen(false);
+    antdMsg.success('Evento aggiunto alla timeline');
+  };
 
   const isEdit = (s) => editSec === s;
   const startEdit = (s) => { setDraft({ ...data }); setEditSec(s); };
@@ -2860,8 +3010,11 @@ function ImpiantoDetailV2({ imp, onBack }) {
   const saveEdit = () => { setData(draft); setDraft(null); setEditSec(null); antdMsg.success('Modifiche salvate'); };
   const gv = (k) => (editSec && draft ? draft[k] : data[k]);
   const sv = (k) => (v) => setDraft(d => ({ ...d, [k]: v }));
+  // Salva attivo solo se il draft differisce dai dati salvati
+  const isDirty = () => !!draft && Object.keys(draft).some(k => draft[k] !== data[k]);
 
   const SECTIONS = [
+    { id: 'dashboard',   label: 'Dashboard' },
     { id: 'identita',    label: 'Anagrafica e ubicazione' },
     { id: 'iter',        label: 'Iter autorizzativo' },
     { id: 'tecnici',     label: 'Dati tecnici' },
@@ -2892,16 +3045,16 @@ function ImpiantoDetailV2({ imp, onBack }) {
 
   const col = (...kids) => React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 20 } }, ...kids);
   const grid = (cols, ...kids) => React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + cols + ', 1fr)', gap: '18px 20px' } }, ...kids);
-  const card = (sec, title, desc, editable, body) => React.createElement('div', { style: { background: '#fff', border: '1px solid #E8E8E8', borderRadius: 10, marginBottom: 16, overflow: 'hidden' } },
+  const card = (sec, title, desc, editable, body, extra) => React.createElement('div', { style: { background: '#fff', border: '1px solid #EAECEF', borderRadius: 12, marginBottom: 16, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' } },
     React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '16px 20px', borderBottom: '1px solid #F5F5F5' } },
       React.createElement('div', null,
         React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, title),
         desc ? React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', marginTop: 2 } }, desc) : null),
-      editable ? (isEdit(sec)
+      extra || (editable ? (isEdit(sec)
         ? React.createElement(Space, null,
             React.createElement(Button, { size: 'small', onClick: cancelEdit }, 'Annulla'),
-            React.createElement(Button, { type: 'primary', size: 'small', icon: React.createElement(SaveOutlined), onClick: saveEdit }, 'Salva'))
-        : React.createElement(Button, { size: 'small', icon: React.createElement(EditOutlined), onClick: () => startEdit(sec) }, 'Modifica')) : null),
+            React.createElement(Button, { type: 'primary', size: 'small', icon: React.createElement(SaveOutlined), disabled: !isDirty(), onClick: saveEdit }, 'Salva'))
+        : React.createElement(Button, { size: 'small', icon: React.createElement(EditOutlined), onClick: () => startEdit(sec) }, 'Modifica')) : null)),
     React.createElement('div', { style: { padding: '20px' } }, body));
   const subTitle = (t) => React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.75)', marginBottom: 12 } }, t);
 
@@ -2912,11 +3065,26 @@ function ImpiantoDetailV2({ imp, onBack }) {
     { permitType: 'autorizzazione', documentType: 'Autorizzazione', authorizationCategory: 'Pubblicità permanente', documentId: 'AUT-2024-0098', state: 'Valida', isActive: true },
   ];
   const facce = FACCE.slice(0, imp.faces || 2);
-  const cespiti = [
+  const isFirstImp = imp.id === 'I001';
+  const cespiti = isFirstImp ? [
+    { id: 'c1', tipo: 'Fondazione', vals: { tipoFond: 'Plinti', dimFond: '5,50 × 3,20 × 0,80 m', dataInizio: '01/09/2024', dataFine: '10/09/2024' } },
+    { id: 'c2', tipo: 'Pali', vals: { tipoPali: 'Ipe300', numPali: 4, diametroPali: '300', altezzaPali: '600', interassePali: '250 cm', numPunzPali: '013201 - 014001', dittaPali: 'Edil Costruzioni S.r.l.', dataMontPali: '15/09/2024' } },
+    { id: 'c3', tipo: 'Cornice', vals: { tipoCornice: 'Doppia', dittaCornice: 'START Affissioni', dataMontCornice: '16/09/2024' } },
+    { id: 'c4', tipo: 'Pannelli', vals: { tipoPannelli: 'Alluminio', barreAntivento: 3, dittaPannelli: 'START Affissioni', dataMontPann: '20/09/2024' } },
+    { id: 'c5', tipo: 'Extra struttura', vals: { numStaffeMuro: '12 tassellate + 4', dataCollStaffe: '18/09/2024', strutTerrazze: 'Pali', dataMontTerrazze: '19/09/2024', numPesiStrutt: 8, kgPesiCadauno: 25 } },
+  ] : [
     { id: 'c1', tipo: 'Fondazione', vals: { tipoFond: 'Plinti', dimFond: '5,50 × 3,20 × 0,80 m', dataFine: '10/09/2024' } },
     { id: 'c2', tipo: 'Pali', vals: { tipoPali: 'Ipe300', numPali: 4, dittaPali: 'Edil Costruzioni S.r.l.' } },
   ];
-  const dispositivi = [
+  const dispositivi = isFirstImp ? [
+    { id: 'd1', tipo: 'Player multimediale', vals: { nome: 'Player faccia A', stato: 'Connesso', desc: 'Player DOOH faccia anteriore', mac: ['00:1B:44:11:3A:B7'], serial: ['SN-204813', 'SN-204814'], ip: '192.168.1.20', teamviewer: ['1 234 567 890'], anydesk: ['123 456 789'], sw: 'v2.4.1' } },
+    { id: 'd2', tipo: 'Modem / Router', vals: { nome: 'Router principale', stato: 'Connesso', desc: 'Connettività di sito', mac: ['00:1B:44:11:3A:C2'], ip: '192.168.1.1', sim: '8939 1010 0000 1234 567', operatore: 'TIM', telefono: ['+39 333 1234567', '+39 320 7654321'], teamviewer: ['1 111 222 333'] } },
+    { id: 'd3', tipo: 'Sensore', vals: { nome: 'Sensore affluenza', stato: 'Connesso', desc: 'Conteggio pedoni', idSensore: ['SENS-0012', 'SENS-0013'], tipoSensore: 'conteggio', mac: ['00:1B:44:11:3A:C9'], unita: 'persone/h' } },
+    { id: 'd4', tipo: 'Telecamera', vals: { nome: 'Cam frontale', stato: 'Connesso', desc: 'Monitoraggio impianto', ip: '192.168.1.30', mac: ['00:1B:44:11:3A:D4'], risoluzione: '1920×1080', rtsp: 'rtsp://192.168.1.30/stream', serial: ['SN-77120'] } },
+    { id: 'd5', tipo: 'Schermo / Display', vals: { nome: 'Display LED faccia A', stato: 'Connesso', desc: 'Schermo LED esterno', dimensione: 75, risoluzione: '3840×2160', luminosita: 5000, serial: ['SN-55012', 'SN-55013'] } },
+    { id: 'd6', tipo: 'Centralina', vals: { nome: 'Centralina illuminazione', stato: 'In manutenzione', desc: 'Gestione faretti e sensori', serial: ['SN-30041'], mac: ['00:1B:44:11:3A:E5'], firmware: 'fw 1.8.0', ip: '192.168.1.40' } },
+    { id: 'd7', tipo: 'Altro', vals: { nome: 'UPS di sito', stato: 'Connesso', desc: 'Gruppo di continuità 1500VA' } },
+  ] : [
     { id: 'd1', tipo: 'Player multimediale', vals: { nome: 'Player faccia A', ip: '192.168.1.20', sw: 'v2.4.1', serial: ['SN-204813'] } },
   ];
   const squadreAff = [{ squadra: 'START Affissioni', tipo: ['Prebagnato'], costo: 35, preincoll: 15 }];
@@ -2934,22 +3102,137 @@ function ImpiantoDetailV2({ imp, onBack }) {
   const servChips = (nome) => { const m = SQUADRE_AFF.find(s => s.nome === nome) || {}; return (m.servizi || []).map((s, i) => React.createElement(Tag, { key: i, style: { margin: 0 } }, s)); };
   const fmtAssetVal = (kind, val) => (val == null || val === '' || (Array.isArray(val) && !val.length)) ? null : (Array.isArray(val) ? val.join(', ') : String(val));
   const assetRows = (a) => { const def = getAssetType(a.tipo) || { fields: [] }; const v = a.vals || {}; return def.fields.filter(f => f.key !== 'nome').map(f => ({ label: f.label, value: fmtAssetVal(f.kind, v[f.key]) })).filter(r => r.value != null); };
-  const miniCard = (accent, headerLeft, headerRight, rows) => React.createElement('div', { style: { border: '1px solid #f0f0f0', borderLeft: '3px solid ' + accent, borderRadius: 8, padding: '12px 14px', height: '100%' } },
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 } }, headerLeft, headerRight),
-    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
-      rows.filter(r => r.value != null && r.value !== '').map((r, i) => React.createElement('div', { key: i, style: { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 } },
-        React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, r.label),
-        React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)', textAlign: 'right' } }, r.value))))) ;
+  const miniCard = (accent, headerLeft, headerRight, rows) => React.createElement('div', { style: { border: '1px solid #f0f0f0', borderRadius: 10, background: '#fff', padding: '16px 18px', height: '100%' } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 } },
+      React.createElement('span', { style: { width: 28, height: 28, borderRadius: '50%', background: '#F2EEFF', color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
+        React.createElement(icons.TeamOutlined, { style: { fontSize: 14 } })),
+      headerLeft, headerRight),
+    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } },
+      rows.filter(r => r.value != null && r.value !== '').map((r, i) => React.createElement('div', { key: i, style: { display: 'flex', gap: 8, fontSize: 13, alignItems: 'flex-start' } },
+        React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', minWidth: 130, flexShrink: 0 } }, r.label),
+        React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)' } }, r.value))))) ;
 
   // ── Sezioni ──
   const sectionContent = () => {
-    if (active === 'identita') return card('identita', 'Anagrafica e ubicazione', 'Identità e posizione geografica dell\'impianto.', true,
-      col(
-        grid(4, fS('identita', 'canale', 'Canale', CANALI_OPTS), fT('identita', 'nome', 'Nome impianto'), fT('identita', 'tipologia', 'Tipologia'), fT('identita', 'formato', 'Formato')),
-        grid(4, fT('identita', 'via', 'Via'), fT('identita', 'civico', 'Civico'), fT('identita', 'cap', 'CAP'), fT('identita', 'citta', 'Città')),
-        grid(4, fT('identita', 'provincia', 'Provincia'), fT('identita', 'regione', 'Regione'), fT('identita', 'nazione', 'Nazione'), fT('identita', 'zona', 'Zona')),
-        grid(4, fT('identita', 'lat', 'Latitudine'), fT('identita', 'lng', 'Longitudine'), fS('identita', 'proprieta', 'Proprietà', PROPRIETA_OPTS), fT('identita', 'proprietario', 'Proprietario')),
-      ));
+    const kpiCard = (eyebrowIcon, eyebrow, value, delta) => React.createElement('div', { style: { border: '1px solid #F0F0F0', borderRadius: 10, background: '#fff', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+        React.createElement(eyebrowIcon, { style: { fontSize: 15, color: 'rgba(0,0,0,0.45)' } }),
+        React.createElement('span', { style: { fontSize: 13.5, fontWeight: 600, color: 'rgba(0,0,0,0.65)', flex: 1 } }, eyebrow),
+        React.createElement(icons.InfoCircleOutlined, { style: { fontSize: 13, color: 'rgba(0,0,0,0.25)' } })),
+      React.createElement('div', { style: { fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em', color: 'rgba(0,0,0,0.88)', lineHeight: 1.05 } }, value),
+      delta ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5 } },
+        React.createElement(delta.up ? icons.ArrowUpOutlined : icons.ArrowDownOutlined, { style: { fontSize: 11, color: delta.up ? '#52C41A' : '#F5222D' } }),
+        React.createElement('span', { style: { fontWeight: 600, color: delta.up ? '#52C41A' : '#F5222D' } }, delta.v),
+        React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, delta.cmp || 'vs anno prec.')) : null);
+    const occData = [48, 55, 52, 61, 58, 66, 63, 70, 68, 74, 71, 72];
+    const occMonths = ['G', 'F', 'M', 'A', 'M', 'G', 'L', 'A', 'S', 'O', 'N', 'D'];
+    // Istogramma verticale condiviso (occupazione, fasce d'età)
+    const vBars = (data, labels, opts) => {
+      const o = opts || {};
+      const max = o.max || Math.max(...data);
+      return React.createElement('div', { style: { display: 'flex', alignItems: 'flex-end', gap: 8, height: 170, paddingTop: 6, borderBottom: '1px solid #EEE' } },
+        data.map((v, i) => React.createElement('div', { key: i, style: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: 6, height: '100%' } },
+          o.showValue ? React.createElement('div', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.5)' } }, v + (o.suffix || '')) : null,
+          React.createElement('div', { style: { width: '100%', maxWidth: 34, height: (v / max * 100) + '%', borderRadius: '6px 6px 0 0', background: 'linear-gradient(180deg,#6B3FFF,#3E00FB)' } }),
+          React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } }, labels[i]))));
+    };
+    const occupancyChart = vBars(occData, occMonths, { max: 100, showValue: false });
+    // ── Dashboard · metriche OTS & audience (mock) ──
+    const nf = (n) => n.toLocaleString('it-IT');
+    const valUnit = (main, unit) => React.createElement('span', { style: { display: 'inline-flex', alignItems: 'baseline', gap: 3 } },
+      main, React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.45)' } }, unit));
+    // Line chart (SVG) — OTS trend
+    const otsTrend = [39.2, 41.5, 40.8, 44.1, 43.6, 46.9, 45.7, 48.3, 47.6, 49.8, 48.9, 48.5];
+    const otsDates = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+    const lineChart = (data, labels, yMax, yStep) => {
+      const W = 720, H = 300, padL = 40, padR = 14, padT = 12, padB = 28;
+      const iw = W - padL - padR, ih = H - padT - padB;
+      const xf = (i) => padL + (data.length === 1 ? iw / 2 : i / (data.length - 1) * iw);
+      const yf = (v) => padT + ih - (v / yMax) * ih;
+      const gl = []; for (let g = 0; g <= yMax; g += yStep) gl.push(g);
+      const pts = data.map((v, i) => xf(i) + ',' + yf(v)).join(' ');
+      return React.createElement('svg', { viewBox: '0 0 ' + W + ' ' + H, preserveAspectRatio: 'none', style: { width: '100%', height: 260, display: 'block' } },
+        gl.map((g, i) => React.createElement('g', { key: 'g' + i },
+          React.createElement('line', { x1: padL, x2: W - padR, y1: yf(g), y2: yf(g), stroke: '#EEE', strokeWidth: 1 }),
+          React.createElement('text', { x: padL - 8, y: yf(g) + 4, textAnchor: 'end', fontSize: 11, fill: 'rgba(0,0,0,0.35)' }, g))),
+        labels.map((lb, i) => React.createElement('text', { key: 'x' + i, x: xf(i), y: H - 8, textAnchor: 'middle', fontSize: 10.5, fill: 'rgba(0,0,0,0.35)' }, lb)),
+        React.createElement('polyline', { points: pts, fill: 'none', stroke: '#3E00FB', strokeWidth: 2.5, strokeLinejoin: 'round', strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke' }),
+        data.map((v, i) => React.createElement('circle', { key: 'c' + i, cx: xf(i), cy: yf(v), r: 3.5, fill: '#fff', stroke: '#3E00FB', strokeWidth: 2 })));
+    };
+    const otsTrendChart = lineChart(otsTrend, otsDates, 55, 10);
+    // Donut chart (SVG) — Top 5 campagne per OTS
+    const DONUT_COLORS = ['#2F54EB', '#3DD9A0', '#FAAD14', '#4B5B6B', '#E8664E'];
+    const topCampagne = [
+      { label: 'Vodafone \u00b7 Spring Promo', v: 62000 },
+      { label: 'IKEA \u00b7 Black Friday', v: 54000 },
+      { label: 'Conad \u00b7 Back to School', v: 41000 },
+      { label: 'Enel \u00b7 Energia Verde', v: 33000 },
+      { label: 'Sky \u00b7 Nuova Stagione', v: 27000 },
+    ];
+    const donut = (segs) => {
+      const total = segs.reduce((s, d) => s + d.v, 0);
+      const cx = 110, cy = 110, r = 92, ri = 58;
+      let acc = -Math.PI / 2;
+      const pol = (ang, rr) => [cx + rr * Math.cos(ang), cy + rr * Math.sin(ang)];
+      const arcs = segs.map((d) => {
+        const frac = d.v / total, a0 = acc, a1 = acc + frac * 2 * Math.PI; acc = a1;
+        const large = frac > 0.5 ? 1 : 0;
+        const [x0, y0] = pol(a0, r), [x1, y1] = pol(a1, r), [x2, y2] = pol(a1, ri), [x3, y3] = pol(a0, ri);
+        const path = 'M ' + x0 + ' ' + y0 + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2 + ' A ' + ri + ' ' + ri + ' 0 ' + large + ' 0 ' + x3 + ' ' + y3 + ' Z';
+        const mid = (a0 + a1) / 2; const lp = pol(mid, (r + ri) / 2);
+        return { path: path, color: d.color, lx: lp[0], ly: lp[1], v: d.v };
+      });
+      return React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap', justifyContent: 'center' } },
+        React.createElement('svg', { viewBox: '0 0 220 220', style: { width: 220, height: 220, flexShrink: 0 } },
+          arcs.map((a, i) => React.createElement('path', { key: 'p' + i, d: a.path, fill: a.color })),
+          arcs.map((a, i) => React.createElement('text', { key: 'l' + i, x: a.lx, y: a.ly + 4, textAnchor: 'middle', fontSize: 12, fontWeight: 700, fill: '#fff' }, nf(a.v)))),
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 11, minWidth: 200 } },
+          segs.map((d, i) => React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 } },
+            React.createElement('span', { style: { width: 11, height: 11, borderRadius: '50%', background: d.color, flexShrink: 0 } }),
+            React.createElement('span', { style: { color: 'rgba(0,0,0,0.75)', flex: 1 } }, d.label),
+            React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, nf(d.v))))));
+    };
+    const topCampagneChart = donut(topCampagne.map((d, i) => ({ label: d.label, v: d.v, color: DONUT_COLORS[i] })));
+    // Alternativa: classifica a barre orizzontali (sfumature del primary)
+    const rankBars = (segs) => {
+      const max = Math.max(...segs.map(d => d.v));
+      return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 4 } },
+        segs.map((d, i) => React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 12 } },
+          React.createElement('span', { style: { width: 16, flexShrink: 0, fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,0.3)', textAlign: 'center' } }, i + 1),
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 5 } },
+              React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, d.label),
+              React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, nf(d.v))),
+            React.createElement('div', { style: { height: 8, background: '#F2F3F5', borderRadius: 4, overflow: 'hidden' } },
+              React.createElement('div', { style: { width: (d.v / max * 100) + '%', height: '100%', borderRadius: 4, background: 'rgba(62,0,251,' + (1 - i * 0.15).toFixed(2) + ')' } }))))));
+    };
+    const topCampagneRanked = rankBars(topCampagne);
+    const splitBar = (segs) => React.createElement('div', null,
+      React.createElement('div', { style: { display: 'flex', height: 28, borderRadius: 8, overflow: 'hidden' } },
+        segs.map((s, i) => React.createElement('div', { key: i, style: { width: s.v + '%', background: s.color } }))),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 12 } },
+        segs.map((s, i) => React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 7, fontSize: 13 } },
+          React.createElement('span', { style: { width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 } }),
+          React.createElement('span', { style: { color: 'rgba(0,0,0,0.65)' } }, s.label),
+          React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, s.v + '%')))));
+    const etaData = [
+      { label: '18\u201324', v: 14 }, { label: '25\u201334', v: 26 }, { label: '35\u201344', v: 23 },
+      { label: '45\u201354', v: 19 }, { label: '55\u201364', v: 12 }, { label: '65+', v: 6 },
+    ];
+    const etaChart = vBars(etaData.map(d => d.v), etaData.map(d => d.label), { showValue: true, suffix: '%' });
+    if (active === 'identita') return React.createElement(React.Fragment, null,
+      card('identita', 'Informazioni generali', 'Canale, tipologia, formato e proprietario dell\'impianto.', true,
+        col(
+          grid(4, fS('identita', 'canale', 'Canale', CANALI_OPTS), fT('identita', 'tipologia', 'Tipologia'), fT('identita', 'formato', 'Formato'), fT('identita', 'nome', 'Nome impianto')),
+          grid(4, fS('identita', 'proprieta', 'Proprietà', PROPRIETA_OPTS), fT('identita', 'proprietario', 'Proprietario')),
+        )),
+      card('identita', 'Indirizzo e coordinate', 'Indirizzo completo e coordinate geografiche dell\'impianto.', true,
+        col(
+          grid(4, fT('identita', 'via', 'Via'), fT('identita', 'civico', 'Civico'), fT('identita', 'cap', 'CAP'), fT('identita', 'citta', 'Città')),
+          grid(4, fT('identita', 'provincia', 'Provincia'), fT('identita', 'regione', 'Regione'), fT('identita', 'nazione', 'Nazione'), fT('identita', 'zona', 'Zona')),
+          grid(4, fT('identita', 'lat', 'Latitudine'), fT('identita', 'lng', 'Longitudine')),
+        )),
+    );
     if (active === 'iter') return React.createElement(React.Fragment, null,
       card('iter-permessi', 'Concessioni e autorizzazioni', 'Titoli relativi all\'esposizione sullo spazio.', false,
         React.createElement(Row, { gutter: [16, 16] }, permits.map((p, i) => React.createElement(Col, { span: 12, key: i }, React.createElement(PermitCard, p))))),
@@ -2978,19 +3261,40 @@ function ImpiantoDetailV2({ imp, onBack }) {
         )),
       card('tecnici-facce', 'Facce', facce.length + (facce.length === 1 ? ' faccia' : ' facce'), false,
         React.createElement(Row, { gutter: [16, 16] }, facce.map(fc => React.createElement(Col, { span: 8, key: fc.id },
-          miniCard('#1677FF',
-            React.createElement('span', { style: { fontSize: 14, fontWeight: 600, flex: 1 } }, 'Faccia ' + fc.id),
-            React.createElement(Tag, { color: fc.tipo === 'anteriore' ? 'cyan' : 'orange', style: { margin: 0 } }, fc.tipo),
-            [{ label: 'Formato', value: fc.formato }, { label: 'Slot', value: fc.slot }, { label: 'Orientamento', value: fc.orientamento }, { label: 'Illuminazione', value: fc.illuminazione }, { label: 'Prezzo', value: '€ ' + fc.prezzo }]))))),
+          React.createElement(FormFaceCard, {
+            name: 'Faccia ' + fc.id,
+            face: {
+              tipo: fc.tipo === 'anteriore' ? 'Anteriore' : 'Posteriore',
+              visMarcia: fc.tipo === 'anteriore',
+              slot: fc.slot, vendita: 'Standard',
+              formL: (fc.formato || '').replace(' m', '').split(' x ')[0], formH: (fc.formato || '').replace(' m', '').split(' x ')[1],
+              orient: parseInt(fc.orientamento, 10), cono: parseInt(String(fc.conoVisibilita).replace(/[^0-9]/g, ''), 10),
+              prezzo: fc.prezzo,
+              illumStato: 'Acceso', illumMezzo: 'Faretti', illumNFaretti: parseInt(fc.illuminazione, 10) || null,
+            },
+            onEdit: () => antdMsg.info('Modifica faccia'),
+            onRemove: () => antdMsg.info('Elimina faccia'),
+          }))))),
     );
-    if (active === 'cespiti') return React.createElement(React.Fragment, null,
-      card('cespiti-c', 'Cespiti', cespiti.length + ' cespiti', false,
-        React.createElement(Row, { gutter: [16, 16] }, cespiti.map(a => React.createElement(Col, { span: 8, key: a.id },
-          miniCard('#1677FF', React.createElement('span', { style: { fontSize: 14, fontWeight: 600, flex: 1 } }, a.tipo), null, assetRows(a)))))),
-      card('cespiti-d', 'Dispositivi', dispositivi.length + ' dispositivi', false,
-        React.createElement(Row, { gutter: [16, 16] }, dispositivi.map(a => React.createElement(Col, { span: 8, key: a.id },
-          miniCard('#3E00FB', React.createElement('span', { style: { fontSize: 14, fontWeight: 600, flex: 1 } }, (a.vals || {}).nome || a.tipo), React.createElement(Tag, { style: { margin: 0 } }, a.tipo), assetRows(a)))))),
-    );
+    if (active === 'cespiti') {
+      const val = (kind, v) => {
+        if (v == null || v === '' || (Array.isArray(v) && !v.length)) return null;
+        if (kind === 'tags' || kind === 'list') return React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } }, v.map((x, i) => React.createElement(Tag, { key: i, style: { margin: 0, fontSize: 12, border: '1px solid #d9d9d9', background: '#fafafa', color: 'rgba(0,0,0,0.75)' } }, x)));
+        if (kind === 'date') return v && v.format ? v.format('DD/MM/YYYY') : String(v);
+        return String(v);
+      };
+      const cellsOf = (a) => { const def = getAssetType(a.tipo) || { fields: [] }; const v = a.vals || {}; return def.fields.filter(f => f.key !== 'nome' && f.key !== 'desc' && f.key !== 'stato').map(f => ({ label: f.label, node: val(f.kind, v[f.key]) })).filter(c => c.node != null); };
+      const titleOf = (a) => ((getAssetType(a.tipo) || {}).category === 'Dispositivo') ? ((a.vals || {}).nome || a.tipo) : a.tipo;
+      const statusDot = (a) => { const v = a.vals || {}; return ((getAssetType(a.tipo) || {}).category === 'Dispositivo' && v.stato) ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: DEVICE_STATO_COLORS[v.stato] || '#d9d9d9' } }), v.stato) : null; };
+      const viewCard = (list) => React.createElement(Row, { gutter: [16, 16] }, list.map(a => React.createElement(Col, { span: 8, key: a.id }, React.createElement(FormAssetCard, { asset: a, onView: () => antdMsg.info('Visualizza'), onRemove: () => antdMsg.info('Elimina') }))));
+      const viewAccordion = (list) => React.createElement(antd.Collapse, { accordion: true, defaultActiveKey: list[0] && list[0].id, style: { background: '#fff', borderRadius: 8 }, items: list.map(a => ({ key: a.id, label: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } }, React.createElement('span', { style: { fontWeight: 600 } }, titleOf(a)), React.createElement(Tag, { style: { margin: 0 } }, a.tipo), statusDot(a)), children: (() => { const cells = cellsOf(a); return cells.length ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 24, rowGap: 10 } }, cells.map((c, i) => React.createElement('div', { key: i, style: { display: 'flex', gap: 8, fontSize: 13, alignItems: 'flex-start' } }, React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', minWidth: 130, flexShrink: 0 } }, c.label), React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)' } }, c.node)))) : React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)', fontSize: 13 } }, 'Nessun dato'); })() })) });
+      const viewSpec = (list, accent) => React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } }, list.map(a => { const cells = cellsOf(a); return React.createElement('div', { key: a.id, style: { border: '1px solid #f0f0f0', borderLeft: '3px solid ' + accent, borderRadius: 8, padding: '14px 16px' } }, React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: cells.length ? 12 : 0, paddingBottom: cells.length ? 10 : 0, borderBottom: cells.length ? '1px solid #f5f5f5' : 'none' } }, React.createElement('span', { style: { fontSize: 15, fontWeight: 600 } }, titleOf(a)), React.createElement(Tag, { style: { margin: 0 } }, a.tipo), statusDot(a)), cells.length ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px 20px' } }, cells.map((c, i) => React.createElement('div', { key: i, style: { display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 } }, React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, c.label), React.createElement('div', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.85)' } }, c.node)))) : null); }));
+      const renderGroup = (list, accent) => assetView === 'card' ? viewCard(list) : assetView === 'accordion' ? viewAccordion(list) : viewSpec(list, accent);
+      const switcher = () => React.createElement(Segmented, { size: 'small', value: assetView, onChange: setAssetView, options: [{ label: 'Card', value: 'card' }, { label: 'Accordion', value: 'accordion' }, { label: 'Griglia attributi', value: 'grid' }] });
+      return React.createElement(React.Fragment, null,
+        card('cespiti-c', 'Cespiti', cespiti.length + ' cespiti', false, React.createElement(AssetAccordion, { list: cespiti })),
+        card('cespiti-d', 'Dispositivi', dispositivi.length + ' dispositivi', false, React.createElement(AssetAccordion, { list: dispositivi })));
+    }
     if (active === 'squadre') return React.createElement(React.Fragment, null,
       card('sq-aff', 'Affissione', squadreAff.length + (squadreAff.length === 1 ? ' squadra' : ' squadre'), false,
         React.createElement(Row, { gutter: [16, 16] }, squadreAff.map((s, i) => React.createElement(Col, { span: 8, key: i },
@@ -3001,11 +3305,124 @@ function ImpiantoDetailV2({ imp, onBack }) {
           miniCard('#3E00FB', React.createElement('span', { style: { fontSize: 14, fontWeight: 600, flex: 1 } }, s.squadra), null,
             [{ label: 'Tipo intervento', value: s.tipoInt }, { label: 'Oggetto', value: s.oggetto }]))))),
     );
+    if (active === 'dashboard') {
+      // ── Filtro temporale · dataset per periodo (mock) ──
+      const DASH_PERIODS = {
+        '30g': {
+          label: 'Ultimi 30 giorni', cmp: 'vs 30 gg prec.',
+          kpi: [
+            ['Occupazione', '81%', { v: '2,40 %', up: true }],
+            ['Ricavo periodo', '€ 950', { v: '5,20 %', up: true }],
+            ['In pianificazione', '3', { v: '1,00 %', up: true }],
+            ['OTS', valUnit('49.100', '/14 gg'), { v: '3,80 %', up: true }],
+            ['Permanenza sul cono', valUnit('4,4', 's'), { v: '1,20 %', up: true }],
+            ['OTS / Execution', '31%', { v: '6,50 %', up: true }],
+          ],
+          trend: { data: [46.2, 47.1, 45.8, 48.0, 47.4, 48.9, 47.7, 49.2, 48.4, 49.1], labels: ['1', '4', '7', '10', '13', '16', '19', '22', '25', '28'], desc: 'OTS medie giornaliere (in migliaia), ultimi 30 giorni.' },
+          campagne: topCampagne.slice(0, 2),
+          aud: { ped: 41, uomini: 53, eta: [13, 27, 24, 19, 11, 6] },
+        },
+        '90g': {
+          label: 'Ultimi 90 giorni', cmp: 'vs 90 gg prec.',
+          kpi: [
+            ['Occupazione', '77%', { v: '4,10 %', up: true }],
+            ['Ricavo periodo', '€ 2.780', { v: '7,30 %', up: true }],
+            ['In pianificazione', '7', { v: '2,00 %', up: true }],
+            ['OTS', valUnit('48.200', '/14 gg'), { v: '6,20 %', up: true }],
+            ['Permanenza sul cono', valUnit('4,3', 's'), { v: '0,80 %', up: false }],
+            ['OTS / Execution', '29%', { v: '12,40 %', up: false }],
+          ],
+          trend: { data: [44.8, 45.6, 46.9, 45.9, 47.2, 46.6, 48.1, 47.5, 48.8, 48.0, 49.0, 48.2], labels: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S12'], desc: 'OTS medie settimanali (in migliaia), ultimi 90 giorni.' },
+          campagne: topCampagne.slice(0, 4),
+          aud: { ped: 39, uomini: 54, eta: [14, 26, 24, 18, 12, 6] },
+        },
+        '12m': {
+          label: 'Ultimi 12 mesi', cmp: 'vs anno prec.',
+          kpi: [
+            ['Occupazione', fillPct + '%', { v: '15,34 %', up: true }],
+            ['Ricavo storico', '€ 11.200', { v: '9,10 %', up: true }],
+            ['In pianificazione', '14', { v: '4,00 %', up: true }],
+            ['OTS', valUnit('48.500', '/14 gg'), { v: '15,34 %', up: true }],
+            ['Permanenza sul cono', valUnit('4,2', 's'), { v: '2,00 %', up: false }],
+            ['OTS / Execution', '27%', { v: '74,02 %', up: false }],
+          ],
+          trend: { data: otsTrend, labels: otsDates, desc: 'OTS medie per quattordicina (in migliaia), ultimi 12 mesi.' },
+          campagne: topCampagne,
+          aud: { ped: 38, uomini: 54, eta: etaData.map(d => d.v) },
+        },
+      };
+      const P = dashRange
+        ? Object.assign({}, DASH_PERIODS['90g'], { label: dashRange[0].format('DD/MM/YYYY') + ' → ' + dashRange[1].format('DD/MM/YYYY'), cmp: 'vs periodo prec.' })
+        : DASH_PERIODS[dashPreset];
+      const KPI_ICONS = [icons.LineChartOutlined, icons.EuroCircleOutlined, icons.SendOutlined, icons.EyeOutlined, icons.ClockCircleOutlined, icons.ThunderboltOutlined];
+      const dashToolbar = React.createElement('div', { style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 16, background: '#fff', border: '1px solid #EAECEF', borderRadius: 12, padding: '12px 20px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' } },
+        React.createElement(icons.CalendarOutlined, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, flex: 1, minWidth: 180 } },
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap' } }, 'Periodo di analisi'),
+          React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, P.label + ' — tutte le metriche della dashboard si riferiscono a questo periodo')),
+        React.createElement(Segmented, {
+          value: dashRange ? 'custom' : dashPreset,
+          onChange: (v) => { if (v !== 'custom') { setDashPreset(v); setDashRange(null); } },
+          options: [{ label: '30 giorni', value: '30g' }, { label: '90 giorni', value: '90g' }, { label: '12 mesi', value: '12m' }].concat(dashRange ? [{ label: 'Personalizzato', value: 'custom' }] : []),
+        }),
+        React.createElement(DatePicker.RangePicker, { value: dashRange, onChange: (v) => setDashRange(v && v[0] && v[1] ? v : null), format: 'DD/MM/YYYY', style: { width: 248 }, placeholder: ['Inizio', 'Fine'], allowClear: true }));
+      return React.createElement(React.Fragment, null,
+        dashToolbar,
+        card('dash-kpi', 'Indicatori chiave', 'Performance, occupazione e metriche OTS · ' + P.label.toLowerCase() + '.', false,
+          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 } },
+            ...P.kpi.map((k, i) => kpiCard(KPI_ICONS[i], k[0], k[1], Object.assign({ cmp: P.cmp }, k[2]))))),
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 } },
+          card('dash-ots-trend', 'Trend OTS', P.trend.desc, false, lineChart(P.trend.data, P.trend.labels, 55, 10)),
+          card('dash-camp', 'Top campagne per OTS', 'Campagne che hanno misurato più OTS · ' + P.label.toLowerCase() + '.', false, rankBars(P.campagne))),
+        card('dash-audience', 'Audience', 'Composizione del pubblico esposto all\'impianto · ' + P.label.toLowerCase() + '.', false,
+          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 } },
+            React.createElement('div', null, subTitle('Pedoni vs veicoli'), splitBar([{ label: 'Pedoni', v: P.aud.ped, color: '#3E00FB' }, { label: 'Veicoli', v: 100 - P.aud.ped, color: '#B8A6FF' }])),
+            React.createElement('div', null, subTitle('Gender'), splitBar([{ label: 'Uomini', v: P.aud.uomini, color: '#3E00FB' }, { label: 'Donne', v: 100 - P.aud.uomini, color: '#FF7DB0' }])),
+            React.createElement('div', { style: { gridColumn: '1 / -1' } }, subTitle('Fasce d\'età'), vBars(P.aud.eta, etaData.map(d => d.label), { showValue: true, suffix: '%' })))),
+      );
+    }
     if (active === 'commerciale') return React.createElement(React.Fragment, null,
       card('comm-id', 'Identità commerciale', null, true,
-        grid(4, fT('comm-id', 'alias', 'Alias impianto'), fM('comm-id', 'circuiti', 'Circuiti', CIRCUITI_OPTS), fR('comm-id', 'qualita', 'Qualità impianto'))),
-      card('comm-mod', 'Modello commerciale', null, true,
-        grid(4, fS('comm-mod', 'vendita', 'Modello di vendita', [{ value: 'Standard', label: 'Standard' }, { value: 'Long term', label: 'Long term' }]), fT('comm-mod', 'prezzoNetto', 'Prezzo netto (€)'), fT('comm-mod', 'prezzoLordo', 'Prezzo lordo (€)'), fSwPct('comm-mod'))),
+        React.createElement('div', null,
+          React.createElement('div', { style: { display: 'flex', gap: 12, alignItems: 'stretch', height: 360, marginBottom: 22 } },
+            React.createElement('div', { style: { flex: 1, position: 'relative', borderRadius: 10, overflow: 'hidden', background: '#eef1f4' } },
+              React.createElement('img', { src: FOTO_IMPIANTO[photoIdx], onClick: () => setGalleryOpen(true), style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }, title: 'Apri galleria' }),
+              React.createElement('div', { style: { position: 'absolute', top: 12, right: 12, padding: '2px 10px', borderRadius: 12, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 12, lineHeight: '20px' } }, (photoIdx + 1) + ' / ' + nPhotos),
+              React.createElement(Button, { icon: React.createElement(ExpandOutlined), onClick: () => setGalleryOpen(true), style: { position: 'absolute', bottom: 12, right: 12 } }, 'Apri galleria')),
+            React.createElement('div', { style: { width: 92, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 } },
+              FOTO_IMPIANTO.map((src, i) => React.createElement('div', { key: i, onClick: () => setPhotoIdx(i), style: { flex: 1, minHeight: 0, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: i === photoIdx ? '2px solid #3E00FB' : '2px solid transparent', background: '#eef1f4' } },
+                React.createElement('img', { src: src, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: i === photoIdx ? 1 : 0.65 } }))))),
+          React.createElement('div', null,
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 } },
+              isEdit('comm-id')
+                ? React.createElement(Input, { value: gv('alias') || '', onChange: e => sv('alias')(e.target.value), style: { fontSize: 18, fontWeight: 600, maxWidth: 360 }, placeholder: 'Nome commerciale' })
+                : React.createElement('div', { style: { fontSize: 22, fontWeight: 600, color: 'rgba(0,0,0,0.88)', letterSpacing: '-0.01em' } }, gv('alias') || '—'),
+              React.createElement(Rate, { value: gv('qualita'), onChange: isEdit('comm-id') ? sv('qualita') : undefined, disabled: !isEdit('comm-id') })),
+            field('Circuiti',
+              isEdit('comm-id')
+                ? React.createElement(Select, { mode: 'multiple', value: gv('circuiti') || [], onChange: sv('circuiti'), options: CIRCUITI_OPTS, style: { minWidth: 260, maxWidth: 520 }, placeholder: 'Circuiti', allowClear: true })
+                : React.createElement('span', { style: { display: 'inline-flex', flexWrap: 'wrap', gap: 6 } }, (gv('circuiti') || []).map((c, i) => React.createElement(Tag, { key: i, style: { margin: 0 } }, c))))))),
+      (() => {
+        const lordo = parseEuro(gv('prezzoLordo'));
+        const aliq = Number(gv('aliquotaIva') ?? 22);
+        const imponibile = lordo / (1 + aliq / 100);
+        const ivaAmt = lordo - imponibile;
+        const compRow = (label, value, strong) => React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } },
+          React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, label),
+          React.createElement('div', { style: { fontSize: strong ? 17 : 14, fontWeight: strong ? 700 : 500, color: 'rgba(0,0,0,0.88)' } }, '\u20ac ' + value));
+        return card('comm-mod', 'Modello commerciale', null, true,
+          col(
+            grid(2,
+              fS('comm-mod', 'vendita', 'Modello di vendita', [{ value: 'Standard', label: 'Standard' }, { value: 'Long term', label: 'Long term' }]),
+              fSwPct('comm-mod')),
+            grid(2,
+              fT('comm-mod', 'prezzoLordo', 'Prezzo lordo \u2014 IVA inclusa (\u20ac)'),
+              fS('comm-mod', 'aliquotaIva', 'Aliquota IVA', ALIQUOTA_IVA_OPTS)),
+            React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px 20px', padding: '16px 18px', background: '#FAFAFA', border: '1px solid #F0F0F0', borderRadius: 10 } },
+              compRow('Imponibile (IVA escl.)', fmtEuro(imponibile)),
+              compRow('IVA (' + aliq + '%)', fmtEuro(ivaAmt)),
+              compRow('Totale (IVA incl.)', fmtEuro(lordo), true))));
+      })(),
       card('comm-mod-link', 'Moduli collegati', moduli.length + ' impianti', false,
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 } }, moduli.map(m => React.createElement('div', { key: m.id, style: { border: '1px solid #E8E8E8', borderRadius: 8, overflow: 'hidden' } },
           React.createElement('div', { style: { height: 100, background: '#F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center' } }, React.createElement(PictureOutlined, { style: { fontSize: 26, color: 'rgba(0,0,0,0.25)' } })),
@@ -3013,25 +3430,10 @@ function ImpiantoDetailV2({ imp, onBack }) {
             React.createElement('div', { style: { fontSize: 14, fontWeight: 600 } }, m.id + ' · ' + m.tipo),
             React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, m.indirizzo),
             React.createElement('div', { style: { marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 } }, React.createElement(ExpandOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Formato'), React.createElement('span', { style: { fontWeight: 500 } }, m.formato))))))),
-      card('comm-perf', 'Performance', null, false,
-        React.createElement('div', null,
-          React.createElement(Row, { gutter: [16, 16], style: { marginBottom: 16 } },
-            React.createElement(Col, { span: 8 }, React.createElement(InfoCard, { title: 'Tasso di riempimento', value: '72%', subtitle: '14 selezioni in pianificazione' })),
-            React.createElement(Col, { span: 8 }, React.createElement(InfoCard, { title: 'Ricavo storico', value: '€ 11.200', subtitle: 'Ultimi 12 mesi' }))),
-          subTitle('Storico di vendita'),
-          React.createElement(Table, { size: 'small', pagination: false, dataSource: salesHistory, columns: [
-            { title: 'Periodo', dataIndex: 'periodo', key: 'periodo' }, { title: 'Cliente', dataIndex: 'cliente', key: 'cliente' },
-            { title: 'Campagna', dataIndex: 'campagna', key: 'campagna' }, { title: 'Importo', dataIndex: 'importo', key: 'importo', align: 'right' },
-            { title: 'Stato', dataIndex: 'stato', key: 'stato', render: (s) => React.createElement(Tag, null, s) },
-          ] }))),
     );
     if (active === 'eventi') return card('eventi', 'Storico eventi', 'Cronologia di stati, verifiche e interventi.', false,
-      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 14 } }, MOCK_EVENTS.slice(0, 8).map((ev, i) => React.createElement('div', { key: i, style: { display: 'flex', gap: 12 } },
-        React.createElement('div', { style: { width: 90, flexShrink: 0, fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, ev.date),
-        React.createElement('div', { style: { flex: 1, borderLeft: '2px solid #f0f0f0', paddingLeft: 14 } },
-          React.createElement('div', { style: { fontSize: 14, fontWeight: 600 } }, ev.title, ev.badge ? React.createElement(Badge, { status: ev.badge.status, text: ev.badge.label, style: { marginLeft: 8 } }) : null),
-          React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.55)', marginTop: 2 } }, ev.desc),
-          React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)', marginTop: 2 } }, ev.agent + ' · ' + ev.time))))));
+      React.createElement(SystemHistoryTimeline, { events: [...extraEvents, ...MOCK_EVENTS] }),
+      React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openNewEvent }, 'Nuovo evento'));
     return null;
   };
 
@@ -3048,17 +3450,40 @@ function ImpiantoDetailV2({ imp, onBack }) {
   const kvRow = (label, value) => React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, padding: '3px 0' } },
     React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, label),
     React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)', textAlign: 'right' } }, value));
+  // Info trasversali: card riassuntive (stile dashboard) mostrate sotto l'header, utili in ogni tab
+  const lastEvent = [...extraEvents, ...MOCK_EVENTS][0] || {};
+  const lastEventLabel = (lastEvent.title || 'Evento') + (lastEvent.badge ? ' · ' + lastEvent.badge.label : '');
+  const dashStat = (eyebrowIcon, eyebrow, circleIcon, value, linkLabel, onLink) => React.createElement('div', { style: { border: '1px solid #F0F0F0', borderRadius: 10, background: '#fff', padding: '12px 14px', display: 'flex', flexDirection: 'column' } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 } },
+      React.createElement(eyebrowIcon, { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }),
+      React.createElement('span', { style: { fontSize: 12.5, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, eyebrow)),
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 11 } },
+      React.createElement('div', { style: { fontSize: 21, fontWeight: 700, letterSpacing: '-0.02em', color: 'rgba(0,0,0,0.88)', lineHeight: 1.05, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, value)));
   // coppia label:valore della riga meta dell'header (pattern componente Gravity)
   const mp = (label, value) => React.createElement('span', null,
     React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, label + ': '),
     React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, value || '—'));
+  const EDIT_SECTION_MAP = { identita: 'identita', iter: 'dati-amministrativi', tecnici: 'caratteristiche', cespiti: 'struttura', squadre: 'affissione', commerciale: 'commerciale' };
   const fillPct = 72;
+  const galleryHero = React.createElement('div', { style: { background: '#fff', border: '1px solid #F0F0F0', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.04)', padding: 14 } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px 12px', color: 'rgba(0,0,0,0.45)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' } },
+      React.createElement(PictureOutlined, { style: { fontSize: 14 } }), 'Galleria impianto',
+      React.createElement('span', { style: { marginLeft: 'auto', textTransform: 'none', letterSpacing: 0, fontWeight: 500, fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, nPhotos + ' foto')),
+    React.createElement('div', { style: { position: 'relative', width: '100%', height: 360, borderRadius: 12, overflow: 'hidden', background: '#eef1f4' } },
+      React.createElement('img', { src: FOTO_IMPIANTO[photoIdx], onClick: () => setGalleryOpen(true), style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'zoom-in' } }),
+      React.createElement('button', { onClick: () => goPhoto(-1), style: { position: 'absolute', top: '50%', left: 12, transform: 'translateY(-50%)', width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.45)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 } }, React.createElement(icons.LeftOutlined, { style: { fontSize: 15 } })),
+      React.createElement('button', { onClick: () => goPhoto(1), style: { position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)', width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.45)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 } }, React.createElement(icons.RightOutlined, { style: { fontSize: 15 } })),
+      React.createElement('div', { style: { position: 'absolute', top: 12, right: 12, padding: '2px 10px', borderRadius: 12, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 12, lineHeight: '20px' } }, (photoIdx + 1) + ' / ' + nPhotos),
+      React.createElement(Button, { icon: React.createElement(ExpandOutlined), onClick: () => setGalleryOpen(true), style: { position: 'absolute', bottom: 12, right: 12 } }, 'Apri galleria')),
+    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + nPhotos + ', 1fr)', gap: 10, marginTop: 10 } },
+      FOTO_IMPIANTO.map((src, i) => React.createElement('div', { key: i, onClick: () => setPhotoIdx(i), style: { height: 72, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: i === photoIdx ? '2px solid #3E00FB' : '2px solid transparent', background: '#eef1f4' } },
+        React.createElement('img', { src: src, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: i === photoIdx ? 1 : 0.7 } })))));
 
   return React.createElement('div', { className: 'imp-detail-page' },
-    React.createElement('div', { className: 'imp-detail-shell' },
+    React.createElement('div', { className: 'imp-detail-shell', style: { width: '100%' } },
 
       // ── Header card (template Shaker: back · "Impianto | Nome" + tag · azioni · riga meta) ──
-      React.createElement('div', { className: 'gv-detail-header' },
+      React.createElement('div', { className: 'gv-detail-header', style: { width: '100%' } },
         React.createElement('div', { style: { marginBottom: 10 } },
           React.createElement('a', { className: 'gv-back', onClick: onBack },
             React.createElement(ArrowLeftOutlined, { style: { fontSize: 11 } }), 'Torna al Parco Impianti')),
@@ -3068,70 +3493,120 @@ function ImpiantoDetailV2({ imp, onBack }) {
               'Impianto',
               React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)', fontWeight: 300, margin: '0 8px' } }, '|'),
               React.createElement('span', { style: { fontWeight: 400 } }, data.nome)),
-            React.createElement(Tag, { color: data.canale === 'DOOH' ? 'magenta' : 'green', style: { marginInlineEnd: 0 } }, data.canale)),
+            React.createElement(Tag, { color: data.canale === 'DOOH' ? 'magenta' : 'green', style: { marginInlineEnd: 0 } }, data.canale),
+            React.createElement(Badge, { status: STATO_BADGE[data.stato] || 'default', text: data.stato, style: { marginLeft: 4 } })),
           React.createElement(Space, { size: 8 },
-            React.createElement(Button, { icon: React.createElement(ExpandOutlined), onClick: () => setGalleryOpen(true) }, 'Galleria'),
             React.createElement(Dropdown, { menu: { items: [
               { key: 'dup', label: 'Duplica', icon: React.createElement(CopyOutlined), onClick: () => antdMsg.info('Duplica impianto') },
               { key: 'share', label: 'Condividi', icon: React.createElement(LinkOutlined), onClick: () => antdMsg.info('Condividi') },
-              { type: 'divider' },
-              { key: 'del', label: 'Elimina', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => antdMsg.info('Elimina impianto') },
-            ] } }, React.createElement(Button, { icon: React.createElement(MoreOutlined) })))),
-        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, marginTop: 10, fontSize: 13, flexWrap: 'wrap' } },
-          React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, '#' + imp.id),
-          React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
-            React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Stato:'),
-            React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: stateColor } }),
-            React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)' } }, data.stato)),
-          mp('Ubicazione', [data.via, data.civico].filter(Boolean).join(', ') + ' · ' + data.citta))),
+            ] } }, React.createElement(Button, { icon: React.createElement(DownOutlined) }, 'Azioni')),
+            React.createElement(Button, { type: 'primary', icon: React.createElement(EditOutlined), onClick: () => setEditFormOpen(true) }, 'Modifica impianto'))),
+        React.createElement('div', { style: { marginTop: 8, fontSize: 13, color: 'rgba(0,0,0,0.45)' } },
+          [data.via, data.civico].filter(Boolean).join(' ') + ' · ' + data.cap + ' ' + data.citta + ' (' + data.provincia + ') · ' + data.zona)),
+
+      // ── Info trasversali (stile dashboard, utili in ogni tab) ──
+      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, width: '100%' } },
+        dashStat(icons.LineChartOutlined, 'Occupazione', icons.PieChartOutlined, fillPct + '%', 'Vedi occupazione', () => setActive('dashboard')),
+        dashStat(icons.EuroCircleOutlined, 'Canone annuo', icons.EuroCircleOutlined, '€ 1.050,60', 'Vedi iter autorizzativo', () => setActive('iter')),
+        dashStat(icons.EyeOutlined, 'OTS', icons.EyeOutlined,
+          React.createElement('span', { style: { display: 'inline-flex', alignItems: 'baseline', gap: 3 } },
+            '48.500',
+            React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.45)' } }, '/giorno')),
+          'Vedi occupazione', () => setActive('dashboard')),
+        dashStat(icons.ClockCircleOutlined, 'Ultimo evento', icons.ClockCircleOutlined,
+          React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 15, fontWeight: 600 } },
+            React.createElement('span', { style: { color: 'rgba(0,0,0,0.88)', fontWeight: 500 } }, 'Stato'),
+            React.createElement('span', { style: { width: 9, height: 9, borderRadius: '50%', background: '#FA8C16', flexShrink: 0 } }),
+            'In Manutenzione'),
+          'Nuovo evento', openNewEvent)),
 
       // ── Body: brief sidebar + main ──
-      React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 16 } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 16, width: '100%' } },
         // Brief sidebar (DataCard stile pianificazione)
         React.createElement('div', { style: { width: 300, flexShrink: 0, position: 'sticky', top: 20, display: 'flex', flexDirection: 'column', gap: 8 } },
-          briefCard(icons.UserOutlined, 'Proprietario',
-            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
-              React.createElement(Avatar, { style: { backgroundColor: '#E6E8F0', color: '#3E00FB', fontWeight: 700, flexShrink: 0 } }, (data.proprietario[0] || 'A')),
-              React.createElement('div', { style: { minWidth: 0 } },
-                React.createElement('span', { className: 'data-card-value', style: { fontSize: 15 } }, data.proprietario),
-                React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', display: 'block', marginTop: 2 } }, data.proprieta + ' · P.IVA IT02576420817'))),
-            React.createElement(Button, { type: 'link', size: 'small', icon: React.createElement(icons.ExportOutlined), style: { padding: 0, height: 'auto' }, onClick: () => antdMsg.info('Vai al profilo proprietario') }, 'Vai al profilo')),
-
-          briefCard(icons.LineChartOutlined, 'Performance',
+          briefCard(icons.ProfileOutlined, 'Scheda impianto',
             React.createElement('div', null,
-              React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 } },
-                React.createElement('span', { className: 'data-card-value', style: { color: '#3E00FB' } }, fillPct + '%'),
-                React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, 'Riempimento')),
-              React.createElement('div', { style: { height: 6, borderRadius: 3, background: '#F0F0F0', overflow: 'hidden', marginBottom: 12 } },
-                React.createElement('div', { style: { width: fillPct + '%', height: '100%', background: '#3E00FB' } })),
-              kvRow('In pianificazione', '14 selezioni'),
-              kvRow('Ricavo storico', '€ 11.200'),
-              kvRow('Ultima vendita', 'Gen–Mar 2026'))),
+              React.createElement('div', { style: { position: 'relative', height: 150, borderRadius: 8, overflow: 'hidden', background: '#eef1f4', marginBottom: 14 } },
+                React.createElement('img', { src: FOTO_IMPIANTO[coverIdx], onClick: () => setGalleryOpen(true), style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }, title: 'Apri galleria' })),
+              kvRow('Tipologia', data.tipologia || '—'),
+              kvRow('Formato', data.formato || '—'),
+              kvRow('Facce', String(imp.faces || 2)),
+              kvRow('Canale', data.canale),
+              kvRow('Proprietario', data.proprietario),
+              kvRow('Stato', React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
+                React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: stateColor } }),
+                data.stato)))),
 
           briefCard(icons.EnvironmentOutlined, 'Ubicazione',
             React.createElement('div', null,
               React.createElement('div', { style: { height: 130, borderRadius: 8, overflow: 'hidden', background: '#eef1f4', marginBottom: 10 } },
                 React.createElement('iframe', { width: '100%', height: '100%', style: { border: 0, display: 'block', filter: 'grayscale(0.4)' }, src: mapSrc, title: 'Mappa impianto' })),
               React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, [data.via, data.civico].filter(Boolean).join(', ')),
-              React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, data.cap + ' ' + data.citta + ' (' + data.provincia + ') · ' + data.zona)),
-            React.createElement(Button, { type: 'link', size: 'small', icon: React.createElement(EnvironmentOutlined), style: { padding: 0, height: 'auto' }, onClick: () => antdMsg.info('Apri mappa') }, 'Apri mappa')),
-
-          briefCard(icons.ProfileOutlined, 'Caratteristiche',
-            React.createElement('div', null,
-              kvRow('Tipologia', data.tipologia || '—'),
-              kvRow('Formato', data.formato || '—'),
-              kvRow('Suolo', data.tipoSuolo + ' · ' + data.catSuolo),
-              kvRow('Cimasa', data.cimasa)))),
+              React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, data.cap + ' ' + data.citta + ' (' + data.provincia + ') · ' + data.zona)))),
 
         // Main: tabs + sezione attiva
         React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-          React.createElement(Tabs, { activeKey: active, onChange: (k) => { setActive(k); setEditSec(null); }, items: SECTIONS.map(s => ({ key: s.id, label: s.label })) }),
+          React.createElement('div', { style: { padding: '0 4px', marginBottom: 12 } },
+            React.createElement(Tabs, {
+              activeKey: active, onChange: (k) => { setActive(k); setEditSec(null); },
+              items: SECTIONS.map(s => ({ key: s.id, label: s.label })),
+            })),
           sectionContent()))),
 
     // Gallery
     React.createElement(Modal, { title: 'Galleria foto', open: galleryOpen, onCancel: () => setGalleryOpen(false), footer: null, width: 840 },
       React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 } },
         FOTO_IMPIANTO.map((src, i) => React.createElement('img', { key: i, src: src, style: { width: '100%', height: 180, objectFit: 'cover', borderRadius: 8, display: 'block' } })))),
+
+    // Nuovo evento modal — aggiunge un evento alla timeline
+    React.createElement(Modal, {
+      title: 'Nuovo evento', open: newEventOpen, width: 520,
+      onCancel: () => setNewEventOpen(false), onOk: saveNewEvent,
+      okText: 'Aggiungi', cancelText: 'Annulla', okButtonProps: { disabled: !newEventValid },
+    },
+      (() => {
+        const row = (label, control) => React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 } },
+          React.createElement('div', { style: { width: 140, textAlign: 'right', paddingTop: 5, fontSize: 14, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label),
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } }, control),
+        );
+        const specifici = neTipo === 'cambio-stato'
+          ? [row('Nuovo stato', React.createElement(Select, {
+              value: neStato, onChange: setNeStato, placeholder: 'Seleziona lo stato', style: { width: '100%' },
+              options: NEW_EVENT_STATI.map(s => ({
+                value: s,
+                label: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+                  React.createElement('span', { style: { width: 8, height: 8, borderRadius: '50%', backgroundColor: STATO_COLORS[s] || '#d9d9d9', flexShrink: 0 } }),
+                  s),
+              })),
+            }))]
+          : neTipo === 'verifica'
+          ? [
+              row('Esito', React.createElement(Select, { value: neEsito, onChange: setNeEsito, options: VERIFICA_ESITO_OPTS, placeholder: 'Seleziona l\'esito', style: { width: '100%' } })),
+              row('Responsabile', React.createElement(Input, { value: neResponsabile, onChange: e => setNeResponsabile(e.target.value), placeholder: 'Es. Ing. Mario Rossi' })),
+            ]
+          : neTipo === 'manutenzione'
+          ? [
+              row('Squadra', React.createElement(Select, { value: neSquadra || undefined, onChange: v => setNeSquadra(v || ''), options: SQUADRE_AFF_OPTS, placeholder: 'Seleziona la squadra', style: { width: '100%' }, showSearch: true, allowClear: true, optionFilterProp: 'label' })),
+              row('Tipo intervento', React.createElement(Select, { value: neTipoInt, onChange: setNeTipoInt, options: TIPO_MAN_OPTS, placeholder: 'Seleziona', style: { width: '100%' } })),
+              row('Componente interessato', React.createElement(Input, { value: neComponente, onChange: e => setNeComponente(e.target.value), placeholder: 'Es. pannello frontale, illuminazione…' })),
+            ]
+          : [];
+        return React.createElement('div', { style: { paddingTop: 8 } },
+          row('Tipologia evento', React.createElement(Select, { value: neTipo, onChange: setNeTipo, options: EVENT_TIPI, placeholder: 'Seleziona la tipologia', style: { width: '100%' } })),
+          ...specifici,
+          neTipo ? row('Data', React.createElement(DatePicker, { value: neData, onChange: setNeData, style: { width: '100%' }, placeholder: 'Seleziona data', format: 'DD/MM/YYYY' })) : null,
+          neTipo ? row('Note', React.createElement(Input.TextArea, { value: neNote, onChange: e => setNeNote(e.target.value), placeholder: 'Descrizione dell\'evento', autoSize: { minRows: 2, maxRows: 4 } })) : null,
+        );
+      })(),
+    ),
+    React.createElement(NewImpiantoFullDrawer, {
+      open: editFormOpen,
+      editMode: true,
+      initialSection: EDIT_SECTION_MAP[active] || 'identita',
+      onClose: () => setEditFormOpen(false),
+      initialValues: data,
+      onSave: (d) => { setData(prev => ({ ...prev, ...d })); },
+    }),
   );
 }
 
@@ -3410,88 +3885,56 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
   };
 
   const tabEvents = (() => {
-    const isDateFuture = dateStr => { const [d,m,y] = dateStr.split('/').map(Number); return new Date(y,m-1,d) > new Date(); };
-    const parseDate = dateStr => { const [d,m,y] = dateStr.split('/').map(Number); return new Date(y,m-1,d); };
-    const typeMatches = (ev, type) => {
-      if (!type) return true;
-      if (type === 'status') return !!ev.badge;
-      if (type === 'squad') return ev.title.toLowerCase().includes('squadra');
-      if (type === 'duty') return ev.title.toLowerCase().includes('incarico');
-      if (type === 'create') return ev.title.toLowerCase().includes('creat');
-      return true;
-    };
-    const agentMap = { marco: 'Marco Picceri', admin: 'System Admin', gloria: 'Gloria Russo' };
+    // Componente Figma: Tab Contents / Systems — variante History.
+    // Timeline pulita: colonna data/ora, pallino sulla linea (il più recente = anello
+    // vuoto, i precedenti = pieni viola), titolo + eventuale badge di stato, descrizione,
+    // avatar + agente. Nessuna toolbar di filtri: solo "Carica altri" in fondo.
     const allEvents = [...extraEvents, ...MOCK_EVENTS];
-    const filtered = allEvents.filter(ev => {
-      if (filterDateRange && filterDateRange[0] && filterDateRange[1]) {
-        const evDate = parseDate(ev.date);
-        const start = filterDateRange[0].toDate(); start.setHours(0,0,0,0);
-        const end   = filterDateRange[1].toDate(); end.setHours(23,59,59,999);
-        if (evDate < start || evDate > end) return false;
-      }
-      if (!typeMatches(ev, filterType)) return false;
-      if (filterAgent && ev.agent !== agentMap[filterAgent]) return false;
-      if (filterSearch && filterSearch.trim()) {
-        const q = filterSearch.trim().toLowerCase();
-        if (!ev.title.toLowerCase().includes(q) && !ev.desc.toLowerCase().includes(q)) return false;
-      }
-      return true;
-    });
+    const filtered = allEvents;
     const items = filtered.slice(0, visibleCount).map((ev, i, arr) => ({ ...ev, isFirstOfDate: i === 0 || arr[i-1].date !== ev.date }));
-    return React.createElement('div', { style: { padding: '0' } },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' } },
-        React.createElement(DatePicker.RangePicker, { style: { flex: 'none' }, placeholder: ['Data inizio', 'Data fine'], onChange: val => { setFilterDateRange(val); setVisibleCount(5); }, format: 'DD/MM/YYYY' }),
-        React.createElement(Select, { placeholder: 'Tipo evento', style: { width: 160 }, allowClear: true, value: filterType, onChange: val => { setFilterType(val || null); setVisibleCount(5); }, options: [
-          { value: 'status', label: 'Cambio stato' },
-          { value: 'squad', label: 'Squadra' },
-          { value: 'duty', label: 'Incarico' },
-          { value: 'create', label: 'Creazione' },
-        ]}),
-        React.createElement(Select, { placeholder: 'Agente', style: { width: 160 }, allowClear: true, value: filterAgent, onChange: val => { setFilterAgent(val || null); setVisibleCount(5); }, options: [
-          { value: 'marco', label: 'Marco Picceri' },
-          { value: 'gloria', label: 'Gloria Russo' },
-          { value: 'admin', label: 'System Admin' },
-        ]}),
-        React.createElement(Input, { placeholder: 'Cerca evento…', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.3)' } }), style: { width: 180 }, allowClear: true, value: filterSearch, onChange: e => { setFilterSearch(e.target.value); setVisibleCount(5); } }),
-        React.createElement(Button, { icon: React.createElement(PlusOutlined), style: { marginLeft: 'auto' }, onClick: openNewEvent }, 'Nuovo evento'),
-      ),
+    return React.createElement('div', { style: { padding: '4px 0 0' } },
       React.createElement('div', null,
         items.map((ev, i) =>
-          React.createElement('div', { key: i, style: { display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: 16, minHeight: 110, background: '#FFFFFF' } },
-            React.createElement('div', { style: { width: 223, flexShrink: 0, textAlign: 'right', paddingTop: 6 } },
+          React.createElement('div', { key: i, style: { display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: 16, minHeight: 108, background: '#FFFFFF' } },
+            // ── Colonna data / ora (allineata a destra)
+            React.createElement('div', { style: { width: 200, flexShrink: 0, textAlign: 'right', paddingTop: 2 } },
               ev.isFirstOfDate
-                ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, fontSize: 13, color: 'rgba(0,0,0,0.88)', marginBottom: 4, lineHeight: '20px' } },
-                    React.createElement(CalendarOutlined, { style: { fontSize: 14 } }),
+                ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, fontSize: 14, color: 'rgba(0,0,0,0.88)', marginBottom: 6, lineHeight: '22px' } },
+                    React.createElement(CalendarOutlined, { style: { fontSize: 14, color: 'rgba(0,0,0,0.45)' } }),
                     ev.date,
                   )
-                : React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', marginBottom: 4, lineHeight: '20px' } }, ev.date),
-              React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, fontSize: 13, color: 'rgba(0,0,0,0.88)', lineHeight: '20px' } },
-                React.createElement(ClockCircleOutlined, { style: { fontSize: 14 } }),
+                : React.createElement('div', { style: { fontSize: 14, color: 'rgba(0,0,0,0.88)', marginBottom: 6, lineHeight: '22px' } }, ev.date),
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, fontSize: 14, color: 'rgba(0,0,0,0.88)', lineHeight: '22px' } },
+                React.createElement(ClockCircleOutlined, { style: { fontSize: 14, color: 'rgba(0,0,0,0.45)' } }),
                 ev.time,
               ),
             ),
-            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: 13, flexShrink: 0 } },
-              React.createElement('div', { style: { width: 10, height: 10, borderRadius: '50%', backgroundColor: isDateFuture(ev.date) ? '#d9d9d9' : '#3E00FB', flexShrink: 0, marginTop: 8 } }),
+            // ── Colonna timeline (pallino + linea di connessione)
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', width: 14, flexShrink: 0 } },
+              i === 0
+                ? React.createElement('div', { style: { width: 12, height: 12, borderRadius: '50%', border: '2px solid #d9d9d9', background: '#fff', boxSizing: 'border-box', flexShrink: 0, marginTop: 5 } })
+                : React.createElement('div', { style: { width: 10, height: 10, borderRadius: '50%', backgroundColor: '#3E00FB', flexShrink: 0, marginTop: 6 } }),
               i < items.length - 1
-                ? React.createElement('div', { style: { width: 2, flex: 1, backgroundColor: '#d9d9d9', marginTop: 4 } })
+                ? React.createElement('div', { style: { width: 2, flex: 1, backgroundColor: '#e8e8e8', marginTop: 4 } })
                 : null,
             ),
-            React.createElement('div', { style: { flex: 1, paddingBottom: 24 } },
-              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' } },
-                React.createElement(Text, { strong: true, style: { fontSize: 14, lineHeight: '22px', color: 'rgba(0,0,0,0.88)' } }, ev.title),
+            // ── Colonna contenuto
+            React.createElement('div', { style: { flex: 1, paddingBottom: 28 } },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' } },
+                React.createElement(Text, { strong: true, style: { fontSize: 16, lineHeight: '24px', color: 'rgba(0,0,0,0.88)' } }, ev.title),
                 ev.badge ? React.createElement(Badge, { status: ev.badge.status, text: ev.badge.label }) : null,
               ),
-              React.createElement(Text, { style: { fontSize: 13, display: 'block', marginBottom: 16, lineHeight: '20px', color: 'rgba(0,0,0,0.88)' } }, ev.desc),
+              React.createElement(Text, { style: { fontSize: 14, display: 'block', marginBottom: 16, lineHeight: '22px', color: 'rgba(0,0,0,0.88)' } }, ev.desc),
               React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-                React.createElement(Avatar, { size: 24, style: { backgroundColor: '#3E00FB', fontSize: 11, flexShrink: 0 } }, ev.agentInitial),
-                React.createElement(Text, { strong: true, style: { fontSize: 13 } }, ev.agent),
+                React.createElement(Avatar, { size: 26, style: { backgroundColor: '#3E00FB', fontSize: 11, flexShrink: 0 } }, ev.agentInitial),
+                React.createElement(Text, { strong: true, style: { fontSize: 14, color: 'rgba(0,0,0,0.88)' } }, ev.agent),
               ),
             ),
           )
         ),
       ),
       visibleCount < filtered.length
-        ? React.createElement('div', { style: { paddingLeft: 245, marginTop: 8 } },
+        ? React.createElement('div', { style: { paddingLeft: 230, marginTop: 4 } },
             React.createElement(Button, { icon: React.createElement(SyncOutlined), onClick: () => setVisibleCount(c => Math.min(c + 5, filtered.length)) }, 'Carica altri'),
           )
         : null,
@@ -4069,7 +4512,7 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
             ]
           : neTipo === 'manutenzione'
           ? [
-              row('Squadra', React.createElement(Input, { value: neSquadra, onChange: e => setNeSquadra(e.target.value), placeholder: '—' })),
+              row('Squadra', React.createElement(Select, { value: neSquadra || undefined, onChange: v => setNeSquadra(v || ''), options: SQUADRE_AFF_OPTS, placeholder: 'Seleziona la squadra', style: { width: '100%' }, showSearch: true, allowClear: true, optionFilterProp: 'label' })),
               row('Tipo intervento', React.createElement(Select, { value: neTipoInt, onChange: setNeTipoInt, options: TIPO_MAN_OPTS, placeholder: 'Seleziona', style: { width: '100%' } })),
               row('Componente interessato', React.createElement(Input, { value: neComponente, onChange: e => setNeComponente(e.target.value), placeholder: 'Es. pannello frontale, illuminazione…' })),
             ]
@@ -4509,7 +4952,7 @@ const SQUADRE_AFF_OPTS = SQUADRE_AFF.map(s => ({ value: s.nome, label: s.codice 
 const TIPO_AFFISSIONE_OPTS = ['Prebagnato','Adesivo','Telo'].map(v=>({value:v,label:v}));
 const TIPO_AMM_OPTS        = ['Lineare','Degress','A quote costanti'].map(v=>({value:v,label:v}));
 
-function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
+function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, editMode = false, initialSection }) {
   const iv = initialValues;
   // ── Identità
   const [canale,    setCanale]    = useState(iv.canale    || null);
@@ -4520,6 +4963,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 
   React.useEffect(() => {
     if (!open) return;
+    if (initialSection) setActiveSection(initialSection);
     const v = initialValues;
     setCanale(v.canale || null);
     setNome(v.nome || '');
@@ -4797,6 +5241,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   const [vendita,        setVendita]        = useState(null);
   const [prezzoNetto,    setPrezzoNetto]    = useState(null);
   const [prezzoLordo,    setPrezzoLordo]    = useState(null);
+  const [aliquotaIva,    setAliquotaIva]    = useState(22);
   const [scontoModuli,    setScontoModuli]    = useState(false); // sconto se venduto a moduli
   const [scontoModuliPct, setScontoModuliPct] = useState(null);  // percentuale di sconto
   const [cimasa,         setCimasa]         = useState('');
@@ -4825,6 +5270,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 
   // ── Galleria
   const [fileList, setFileList] = useState([]);
+  const [coverPhoto, setCoverPhoto] = useState(null);
   const [iterDocs, setIterDocs] = useState([]);  // documenti dell'iter (concessioni, autorizzazioni, progetto) — box "Documenti"
   const [sciaDocs, setSciaDocs] = useState({});  // { urbanistica: [...], commerciale: [...] } — documenti per ogni SCIA, inline nello Step 3
   const [gcTemplateOpen, setGcTemplateOpen] = useState(false);  // modale "Scarica": scelta del modello regionale Genio Civile
@@ -4877,7 +5323,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
   // non ancora collegati, propone di collegarli prima di chiudere.
   const doSave = () => {
     if (onSave) { onSave(collectFormData()); }
-    antdMsg.success('Impianto creato con successo');
+    antdMsg.success(editMode ? 'Modifiche salvate' : 'Impianto creato con successo');
     onClose();
   };
   const handleCreate = () => {
@@ -4937,7 +5383,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     largImp, altImp, profImp, altTerra, tipoAltezza, areaEspositiva, riparato, facce,
     aliasImpianto, circuiti, qualita, moduliCollegati,
     proprieta, vendita,
-    prezzoNetto, prezzoLordo, scontoModuli, scontoModuliPct, cimasa,
+    prezzoNetto, prezzoLordo, aliquotaIva, scontoModuli, scontoModuliPct, cimasa,
     affissioni: affissioni.map(g => ({
       squadra: g.squadra,
       codice: (SQUADRE_AFF.find(s => s.nome === g.squadra) || {}).codice || null,
@@ -5275,15 +5721,16 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
     placement: 'right',
     width: '100%',
     destroyOnClose: true,
-    title: 'Nuovo Impianto',
-    footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+    title: editMode ? 'Modifica Impianto' : 'Nuovo Impianto',
+    footer: null,
+    extra: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
       React.createElement(Button, { onClick: onClose }, 'Annulla'),
       React.createElement(Button, {
         type: 'primary',
-        icon: React.createElement(PlusOutlined),
+        icon: React.createElement(editMode ? SaveOutlined : PlusOutlined),
         disabled: !canSave,
         onClick: handleCreate,
-      }, 'Crea Impianto'),
+      }, editMode ? 'Salva modifiche' : 'Crea Impianto'),
     ),
     styles: { body: { padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' } },
   },
@@ -5588,15 +6035,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
             ), 'Aggiungi i componenti strutturali dell\'impianto come fondazione, pali, cornice, pannelli, extra struttura.',
             cespiti.length > 0 ? cespiteAddBtn : null,
             cespiti.length > 0
-              ? React.createElement(Row, { gutter: [16, 16] },
-                  cespiti.map(a => React.createElement(Col, { span: 12, key: a.id },
-                    React.createElement(FormAssetCard, {
-                      asset: a,
-                      onView: () => openViewAsset(a),
-                      onRemove: () => removeAsset(a.id),
-                    }),
-                  )),
-                )
+              ? React.createElement(AssetAccordion, { list: cespiti, onView: openViewAsset, onRemove: removeAsset })
               : React.createElement(Empty, { description: "Aggiungi un cespite dell'impianto", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
                   cespiteAddBtn,
                 ),
@@ -5607,15 +6046,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
             ), 'Aggiungi i dispositivi connessi installati sull\'impianto come player, modem/router, sensori, telecamere, schermi, centraline.',
             dispositivi.length > 0 ? dispositivoAddBtn : null,
             dispositivi.length > 0
-              ? React.createElement(Row, { gutter: [16, 16] },
-                  dispositivi.map(a => React.createElement(Col, { span: 12, key: a.id },
-                    React.createElement(FormAssetCard, {
-                      asset: a,
-                      onView: () => openViewAsset(a),
-                      onRemove: () => removeAsset(a.id),
-                    }),
-                  )),
-                )
+              ? React.createElement(AssetAccordion, { list: dispositivi, onView: openViewAsset, onRemove: removeAsset })
               : React.createElement(Empty, { description: "Aggiungi un dispositivo connesso", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
                   dispositivoAddBtn,
                 ),
@@ -5669,10 +6100,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                     })),
                   cs('Tipo intervento', false, sel(g.tipo, (v) => setMan(i, 'tipo', v), TIPO_MAN_OPTS, 'Seleziona il tipo di intervento', { allowClear: true })),
                 ),
-                g2(
-                  cs('Data', false, dp(g.data, (v) => setMan(i, 'data', v))),
-                  cs('Oggetto', false, inp(g.oggetto, (v) => setMan(i, 'oggetto', v), 'Es. Sostituzione faretti')),
-                ),
+                cs('Oggetto', false, inp(g.oggetto, (v) => setMan(i, 'oggetto', v), 'Es. Sostituzione faretti')),
               )
             ),
             React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: 20 } },
@@ -5699,6 +6127,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               ),
             ),
             cs('Foto dell\'impianto', false,
+              React.createElement(React.Fragment, null,
+              React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 8 } }, 'Passa il mouse su una foto e tocca la ★ per impostarla come copertina.'),
               React.createElement(Upload, {
                 listType: 'picture-card',
                 fileList: fileList,
@@ -5706,12 +6136,20 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
                 beforeUpload: () => false,
                 accept: 'image/*',
                 multiple: true,
+                itemRender: (originNode, file) => {
+                  const isCover = (coverPhoto || (fileList[0] && fileList[0].uid)) === file.uid;
+                  return React.createElement('div', { style: { position: 'relative', width: '100%', height: '100%' } },
+                    originNode,
+                    React.createElement('button', { type: 'button', onClick: (e) => { e.stopPropagation(); setCoverPhoto(file.uid); }, title: isCover ? 'Immagine di copertina' : 'Imposta come copertina', style: { position: 'absolute', top: 6, left: 6, zIndex: 10, width: 24, height: 24, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isCover ? '#3E00FB' : 'rgba(0,0,0,0.55)', color: '#fff', padding: 0 } },
+                      React.createElement(isCover ? icons.StarFilled : icons.StarOutlined, { style: { fontSize: 12 } })),
+                    isCover ? React.createElement('div', { style: { position: 'absolute', bottom: 6, left: 6, right: 6, textAlign: 'center', fontSize: 10, fontWeight: 600, color: '#fff', background: 'rgba(62,0,251,0.9)', borderRadius: 4, padding: '1px 0', pointerEvents: 'none' } }, 'Copertina') : null);
+                },
               },
                 fileList.length < 20 && React.createElement('div', null,
                   React.createElement(PlusOutlined),
                   React.createElement('div', { style: { marginTop: 8, fontSize: 13 } }, 'Aggiungi foto'),
                 )
-              ),
+              )),
             ),
           ),
           box('Modello commerciale', 'Imposta la struttura di vendita e il listino prezzi dell\'impianto.',
@@ -5725,9 +6163,22 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
               React.createElement('div'),
             ),
             g2(
-              cs('Prezzo netto (€)',  false, num(prezzoNetto,   setPrezzoNetto,   { min: 0, precision: 2 })),
-              cs('Prezzo lordo (€)',  false, num(prezzoLordo,   setPrezzoLordo,   { min: 0, precision: 2 })),
+              cs('Prezzo lordo — IVA inclusa (€)', false, num(prezzoLordo, setPrezzoLordo, { min: 0, precision: 2 })),
+              cs('Aliquota IVA', false, sel(aliquotaIva, setAliquotaIva, ALIQUOTA_IVA_OPTS, 'Seleziona aliquota')),
             ),
+            (() => {
+              const lordo = Number(prezzoLordo) || 0;
+              const aliq = Number(aliquotaIva ?? 22);
+              const imp = lordo / (1 + aliq / 100);
+              const iva = lordo - imp;
+              const c = (label, value, strong) => React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } },
+                React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, label),
+                React.createElement('div', { style: { fontSize: strong ? 16 : 14, fontWeight: strong ? 700 : 500, color: 'rgba(0,0,0,0.88)' } }, '€ ' + fmtEuro(value)));
+              return React.createElement('div', { style: { marginTop: 4, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 20px', padding: '14px 16px', background: '#FAFAFA', border: '1px solid #F0F0F0', borderRadius: 8 } },
+                c('Imponibile (IVA escl.)', imp),
+                c('IVA (' + aliq + '%)', iva),
+                c('Totale (IVA incl.)', lordo, true));
+            })(),
             React.createElement('div', { style: { marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
               React.createElement(Checkbox, { checked: scontoModuli, onChange: e => setScontoModuli(e.target.checked) },
                 'Se venduto a moduli, applica uno sconto del'),
@@ -6017,12 +6468,12 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave }) {
 // APP
 // ─────────────────────────────────────────────────────────
 function App() {
-  const [page, setPage] = useState('map'); // 'map' | 'detail'
+  const [page, setPage] = useState('detail'); // 'map' | 'detail' — standalone: apre sul dettaglio
   const [modalOpen,      setModalOpen]      = useState(false);
   const [fullFormOpen,   setFullFormOpen]   = useState(false);
   const [prefillData,    setPrefillData]    = useState({});
   const [savedFormData,  setSavedFormData]  = useState(null);
-  const [detailImpianto, setDetailImpianto] = useState(null);
+  const [detailImpianto, setDetailImpianto] = useState(IMPIANTI[0]);
   const [cardImp,        setCardImp]        = useState(null);
   const [highlightedId, setHighlightedId] = useState(null);
   const [selectedIds,   setSelectedIds]   = useState(new Set());
