@@ -31,6 +31,24 @@ function ghfOpenMineDraft() {
   }
   ghfOpenMinePlanning();
 }
+// Apre il dropdown Azioni della riga il cui testo contiene rowText (usato per i tour Duplica/Elimina)
+function ghfOpenRowDropdown(rowText) {
+  var rows = document.querySelectorAll('.ant-table-tbody .ant-table-row');
+  for (var i = 0; i < rows.length; i++) {
+    if ((rows[i].textContent || '').indexOf(rowText) > -1) {
+      var btn = rows[i].querySelector('.gv-row-actions');
+      if (btn) btn.click();
+      return;
+    }
+  }
+}
+// Clicca la voce del dropdown Azioni (già aperto) il cui testo contiene `text`
+function ghfClickDropdownItem(text) {
+  var items = document.querySelectorAll('.ant-dropdown-menu-item');
+  for (var i = 0; i < items.length; i++) {
+    if ((items[i].textContent || '').indexOf(text) > -1) { items[i].click(); return; }
+  }
+}
 
 window.HANDOFF_META = {
   title:   'Planning',
@@ -56,10 +74,8 @@ window.HANDOFF_META = {
 // - note:     (opzionale) tooltip esplicativo sul perché è fuori sprint
 // ════════════════════════════════════════════════════════════════════════════
 window.HANDOFF_OUT_OF_SPRINT = [
-  // Menu azioni (lista + dettaglio) — solo "Visualizza" è in sprint
+  // Menu azioni (lista + dettaglio) — Duplica (GRP-480) ed Elimina (GRP-507) sono ora in sprint
   { selector: '.ant-dropdown-menu-item', text: 'Modifica',  note: 'Fuori sprint — nessuna user story per la modifica pianificazione' },
-  { selector: '.ant-dropdown-menu-item', text: 'Duplica',   note: 'Fuori sprint — nessuna user story per la duplicazione' },
-  { selector: '.ant-dropdown-menu-item', text: 'Elimina',   note: 'Fuori sprint — nessuna user story per l\'eliminazione' },
   { selector: '.ant-dropdown-menu-item', text: 'Condividi', note: 'Fuori sprint — condivisione pianificazione non in sprint' },
   // Bottone Condividi standalone nella colonna azioni della lista
   { selector: '.ant-table .anticon-share-alt', note: 'Fuori sprint — condivisione pianificazione non in sprint' },
@@ -71,8 +87,6 @@ window.HANDOFF_OUT_OF_SPRINT = [
   { selector: '.ss-face-price-wrap .anticon-info-circle', note: 'Fuori sprint — dettaglio calcolo prezzo (tooltip info) non in sprint' },
   { selector: '.ss-label-chip', note: 'Fuori sprint — etichette impianti non in sprint' },
   { selector: '.ss-label-btn',  note: 'Fuori sprint — assegnazione etichette impianti non in sprint' },
-  // Dettaglio — espansione interfaccia (schermo intero mappa)
-  { selector: '.ss-fullscreen-btn', note: 'Fuori sprint — modalità schermo intero non in sprint' },
 ];
 
 window.HANDOFF_SCREENS = {
@@ -504,6 +518,240 @@ window.HANDOFF_TOURS = [
           ],
           note: '◐ = solo se facce > 0 · Visualizza sempre attiva · Duplica sempre attiva in Completata',
         },
+      },
+    ],
+  },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // US#4 — Duplica Pianificazione (GRP-480) · Planner · Lista + Dettaglio
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id:          'duplica-pianificazione',
+    title:       'US#4 — Duplica Pianificazione',
+    description: '(GRP-480) Come **pianificatore** voglio duplicare una pianificazione, a prescindere dallo stato in cui si trova, così da riutilizzarne la selezione degli spazi per un\'altra pianificazione.',
+    roles:       ['Planner'],
+    startScreen: 'lista',
+    novita:      true,
+    steps: [
+      {
+        title:       'Azioni di riga',
+        description: 'Il bottone a **tre puntini** in fondo alla riga apre il dropdown Azioni. **Duplica** è disponibile anche dal dettaglio, tramite il button **"Azioni"**. Condizioni di stato per l\'abilitazione → US#1.2.',
+        selector:    '.gv-row-actions',
+        placement:   'left',
+      },
+      {
+        title:       'Menu azioni',
+        description: 'La voce **"Duplica"** è abilitata se la pianificazione ha **almeno una faccia impianto** selezionata (a prescindere dallo stato). Su questa riga, **In trattativa**, è sempre attiva.',
+        selector:    '.ant-dropdown-menu',
+        placement:   'left',
+        onEnter: function () {
+          ghfOpenRowDropdown('PLN — Brand Awareness Q2');
+        },
+        delay: 220,
+      },
+      {
+        title:       'Modale di duplicazione',
+        description: 'Il **nome della copia** viene precompilato con **"(copia)"** aggiunto al nome originale, ma resta **modificabile**. Il **canale è ereditato** dagli impianti duplicati e non è modificabile.',
+        selector:    '.ant-modal-content',
+        placement:   'left',
+        onEnter: function () {
+          ghfClickDropdownItem('Duplica');
+        },
+        delay: 240,
+        dev: [
+          { label: 'Componente', value: 'DuplicateModal' },
+        ],
+      },
+      {
+        title:       'Trattativa e campagna (facoltative)',
+        description: 'L\'utente può duplicare **senza** collegare trattativa/campagna (da associare in un secondo momento) oppure **impostarle subito**. Con trattativa scelta, la **campagna è filtrata per canale**: duplicando una pianificazione OOH si può collegare solo un\'altra campagna OOH. Selezionata la campagna, i campi **tipo di vendita e periodo scompaiono** e vengono sostituiti da un box con **inserzionista, canale, tipo di vendita e periodo ereditati** — stesso comportamento del drawer "Nuova pianificazione".',
+        selector:    '.ant-modal-content',
+        placement:   'left',
+      },
+      {
+        title:       'Banner periodo diverso',
+        description: 'Un **banner di warning** avvisa che, usando un periodo di esposizione diverso da quello originale, potrebbero **non risultare disponibili tutti gli impianti** della pianificazione di partenza. *(In futuro: un controllo più esaustivo nel dettaglio, es. "40 dei 50 impianti disponibili per questo periodo".)*',
+        selector:    '.ant-modal-content .ant-alert',
+        placement:   'top',
+      },
+      {
+        title:       'Duplicazione senza trattativa',
+        description: 'Se non si seleziona una trattativa, l\'utente compila manualmente **tipo di vendita** (standard / long term) e **periodo di esposizione** per la copia.',
+        selector:    '.ant-modal-content',
+        placement:   'left',
+      },
+    ],
+  },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // US#5 — Nuova Pianificazione (GRP-481) · Planner · Lista
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id:          'nuova-pianificazione',
+    title:       'US#5 — Nuova Pianificazione',
+    description: '(GRP-481) Come **pianificatore** voglio creare una nuova pianificazione, da eventualmente collegare a una trattativa e una campagna, così da cercare e selezionare gli impianti che mi interessano.',
+    roles:       ['Planner'],
+    startScreen: 'lista',
+    novita:      true,
+    steps: [
+      {
+        title:       'CTA "+ Nuova Pianificazione"',
+        description: 'Nell\'**header** della lista il bottone primary **"+ Nuova Pianificazione"** apre il drawer di creazione.',
+        selector:    '.gv-page-header .ant-btn-primary',
+        placement:   'bottom',
+      },
+      {
+        title:       'Drawer di creazione',
+        description: 'Il **drawer** richiede: **nome** della pianificazione, **trattativa**, **campagna**, **canale**, **tipo di vendita**, **periodo espositivo**.',
+        selector:    '.ant-drawer-content',
+        placement:   'left',
+        onEnter: function () {
+          var b = document.querySelector('.gv-page-header .ant-btn-primary');
+          if (b) b.click();
+        },
+        delay: 240,
+        dev: [
+          { label: 'Componente', value: 'PlanningFormDrawer (mode: create)' },
+        ],
+      },
+      {
+        title:       'Cascata trattativa → campagna',
+        description: 'Selezionata una trattativa, l\'utente sceglie **una campagna tra quelle non ancora associate** ad altre pianificazioni (le altre sono disabilitate con un tooltip che ne spiega il motivo).',
+        selector:    '.ant-drawer-content',
+        placement:   'left',
+      },
+      {
+        title:       'Campagna selezionata → dati ereditati',
+        description: 'Una volta scelta la campagna, il drawer **non mostra più** i campi canale/tipo di vendita/periodo: al loro posto compare un box con questi stessi dati **ereditati dalla campagna** collegata.',
+        selector:    '.ant-drawer-content',
+        placement:   'left',
+      },
+    ],
+  },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // US#6 — Elimina Pianificazione (GRP-507) · Planner · Lista
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id:          'elimina-pianificazione',
+    title:       'US#6 — Elimina Pianificazione',
+    description: '(GRP-507) Come **pianificatore** voglio eliminare una pianificazione esistente, così da rimuovere un\'entità inutilizzata o errata.',
+    roles:       ['Planner'],
+    startScreen: 'lista',
+    novita:      true,
+    steps: [
+      {
+        title:       'Azioni di riga',
+        description: 'Dal dropdown Azioni della riga, **"Elimina"** è abilitato **solo se** la pianificazione è in stato **Bozza** e **senza trattativa/campagna collegata** — altrimenti è disabilitato con un tooltip che ne spiega il motivo.',
+        selector:    '.gv-row-actions',
+        placement:   'left',
+      },
+      {
+        title:       'Voce "Elimina" nel menu',
+        description: 'La voce **"Elimina"** è marcata **danger** (icona e testo rossi). Su questa riga (Bozza, senza trattativa) è abilitata.',
+        selector:    '.ant-dropdown-menu',
+        placement:   'left',
+        onEnter: function () {
+          ghfOpenRowDropdown('Mondadori — Back to School');
+        },
+        delay: 220,
+      },
+      {
+        title:       'Conferma eliminazione',
+        description: 'Il click apre una **finestra di dialogo** di conferma: "Eliminare la pianificazione?" con azioni **"Elimina"** (danger) e "Annulla". Confermando, la pianificazione viene **rimossa definitivamente** dalla lista e appare un **toast** di successo.',
+        selector:    '.ant-modal-confirm-body-wrapper',
+        placement:   'top',
+        onEnter: function () {
+          ghfClickDropdownItem('Elimina');
+        },
+        delay: 240,
+        dev: [
+          { label: 'Componente', value: 'Modal.confirm — okText "Elimina" (danger), cancelText "Annulla"' },
+        ],
+      },
+    ],
+  },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // US#4 — Duplica Pianificazione (GRP-480) · Planner · Dettaglio
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id:          'duplica-pianificazione-dettaglio',
+    title:       'US#4 — Duplica Pianificazione (dal dettaglio)',
+    description: '(GRP-480) Come **pianificatore** voglio duplicare una pianificazione anche dal suo dettaglio, non solo dalla lista, così da non dover tornare indietro mentre la sto consultando.',
+    roles:       ['Planner'],
+    startScreen: 'selezione-spazi',
+    goTo:        ghfOpenMinePlanning,
+    novita:      true,
+    steps: [
+      {
+        title:       'Button "Azioni"',
+        description: 'Nell\'**header del dettaglio**, il button **"Azioni"** apre lo stesso dropdown della lista: Modifica, Duplica, Elimina (+ Condividi, fuori sprint).',
+        selector:    '.gv-btn-azioni',
+        placement:   'bottom',
+      },
+      {
+        title:       'Menu Azioni',
+        description: '**Duplica** è abilitato se la pianificazione ha **almeno una faccia impianto** selezionata, a prescindere dallo stato — stesse condizioni della lista → US#4.',
+        selector:    '.ant-dropdown-menu',
+        placement:   'bottom',
+        onEnter: function () {
+          var b = document.querySelector('.gv-btn-azioni');
+          if (b) b.click();
+        },
+        delay: 220,
+      },
+      {
+        title:       'Stesso modale di duplicazione',
+        description: 'Si apre la **stessa `DuplicateModal`** usata dalla lista, con gli stessi campi (nome copia, trattativa/campagna facoltative, banner periodo) → dettagli completi in US#4.',
+        selector:    '.ant-modal-content',
+        placement:   'left',
+        onEnter: function () {
+          ghfClickDropdownItem('Duplica');
+        },
+        delay: 240,
+      },
+    ],
+  },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // US#6 — Elimina Pianificazione (GRP-507) · Planner · Dettaglio
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    id:          'elimina-pianificazione-dettaglio',
+    title:       'US#6 — Elimina Pianificazione (dal dettaglio)',
+    description: '(GRP-507) Come **pianificatore** voglio eliminare una pianificazione anche dal suo dettaglio, non solo dalla lista, così da non dover tornare indietro mentre la sto consultando.',
+    roles:       ['Planner'],
+    startScreen: 'selezione-spazi',
+    goTo:        ghfOpenMineDraft,
+    novita:      true,
+    steps: [
+      {
+        title:       'Button "Azioni"',
+        description: 'Nell\'**header del dettaglio**, il button **"Azioni"** apre lo stesso dropdown della lista, incluso **"Elimina"**.',
+        selector:    '.gv-btn-azioni',
+        placement:   'bottom',
+      },
+      {
+        title:       'Voce "Elimina" nel menu',
+        description: '**Elimina** è abilitato **solo se** la pianificazione è in stato **Bozza** e **senza trattativa/campagna collegata** — stesse condizioni della lista → US#6.',
+        selector:    '.ant-dropdown-menu',
+        placement:   'bottom',
+        onEnter: function () {
+          var b = document.querySelector('.gv-btn-azioni');
+          if (b) b.click();
+        },
+        delay: 220,
+      },
+      {
+        title:       'Conferma eliminazione',
+        description: 'Si apre lo **stesso dialogo di conferma** della lista: "Eliminare la pianificazione?" con azioni "Elimina" (danger) e "Annulla".',
+        selector:    '.ant-modal-confirm-body-wrapper',
+        placement:   'top',
+        onEnter: function () {
+          ghfClickDropdownItem('Elimina');
+        },
+        delay: 240,
       },
     ],
   },

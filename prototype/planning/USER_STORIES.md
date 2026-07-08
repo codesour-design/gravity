@@ -85,6 +85,7 @@ Ruolo: **Planner** — responsabile della selezione degli spazi pubblicitari e d
 - [ ] Il mini-calendario naviga mese per mese e mostra il range di date della pianificazione
 - [ ] Il pannello brief si nasconde in modalità fullscreen senza perdere lo stato
 - [ ] Tornando dalla modalità fullscreen il pannello riappare con gli stessi dati
+- [ ] La modalità fullscreen espande solo l'area ricerca e mappa: la navbar resta sempre visibile in alto
 
 #### Schermate
 - `BriefPanelNR` — sidebar sinistra
@@ -250,3 +251,75 @@ Ruolo: **Planner** — responsabile della selezione degli spazi pubblicitari e d
 - `PlanningHeaderNR` — pulsante "Consegna in trattativa" + dropdown trattative
 - `Popconfirm` data consegna
 - Badge stato "Completata"
+
+---
+
+## US-04 — Duplicare una pianificazione (GRP-480) **NUOVO**
+
+**Come** planner
+**voglio** duplicare una pianificazione, a prescindere dallo stato in cui si trova,
+**così che** possa riutilizzarne la selezione degli spazi per un'altra pianificazione.
+
+#### Contesto e accesso
+
+L'utente può duplicare una pianificazione sia dalle azioni di riga (icona ellipsis → dropdown), sia dal dettaglio (button "Azioni" → dropdown).
+
+#### Criteri di accettazione
+
+- [ ] Il click su "Duplica" apre una modale di duplicazione
+- [ ] Il nome della copia è precompilato aggiungendo "(copia)" al nome originale; l'utente può sostituirlo con uno custom
+- [ ] L'utente può duplicare senza associare trattativa/campagna (da collegare in un secondo momento) oppure impostarle subito
+- [ ] La pianificazione duplicata è sempre in stato "Bozza"
+- [ ] Con trattativa selezionata, la campagna è scelta tramite select filtrata per **canale**: duplicando una pianificazione OOH si può collegare solo un'altra campagna OOH
+- [ ] Selezionata la campagna, i campi tipo di vendita e periodo **scompaiono** e la modale mostra un box con inserzionista, canale, tipo di vendita e periodo espositivo ereditati dalla campagna — stesso comportamento del drawer "Nuova pianificazione" (US-05)
+- [ ] Un banner avvisa che con un periodo di esposizione diverso da quello originale potrebbero non risultare disponibili tutti gli impianti della pianificazione di partenza (nota: in futuro un controllo più esaustivo, es. "per il periodo selezionato sono disponibili solo 40 dei 50 impianti originali")
+- [ ] Senza trattativa (o senza campagna selezionata), l'utente compila tipo di vendita (standard / long term) e periodo di esposizione
+- [ ] **Stato Bozza**: duplicabile solo se ha almeno una faccia impianto selezionata (a prescindere da trattativa collegata o meno)
+- [ ] **Stato In trattativa / Completata**: duplicabile senza condizioni
+
+#### Schermate
+- `DuplicateModal` — lista e dettaglio
+- Menu Azioni (riga e dettaglio)
+
+---
+
+## US-05 — Creare una nuova pianificazione (GRP-481) **NUOVO**
+
+**Come** planner
+**voglio** creare una nuova pianificazione, da eventualmente collegare a una trattativa e una campagna,
+**così che** possa cercare e selezionare gli impianti che mi interessano.
+
+#### Contesto e accesso
+
+L'utente crea una nuova pianificazione tramite il button primary "+ Nuova Pianificazione" nell'header della lista.
+
+#### Criteri di accettazione
+
+- [ ] Il click apre un drawer con: nome pianificazione, trattativa, campagna, canale, tipo di vendita, periodo espositivo
+- [ ] L'utente può creare la pianificazione e associare subito una trattativa
+- [ ] Selezionata la trattativa, l'utente sceglie una campagna tra quelle che non hanno già una pianificazione associata
+- [ ] Selezionata la campagna, il drawer non mostra più i campi canale/tipo di vendita/periodo espositivo: al loro posto compare un box con questi stessi dati ereditati dalla campagna
+
+#### Schermate
+- `PlanningFormDrawer` (mode: create)
+
+---
+
+## US-06 — Eliminare una pianificazione (GRP-507) **NUOVO**
+
+**Come** planner
+**voglio** eliminare una pianificazione esistente
+**così che** possa rimuovere un'entità inutilizzata o errata.
+
+#### Contesto e accesso
+
+L'utente elimina una pianificazione sia dalle azioni di riga (icona ellipsis → dropdown → voce "Elimina") sia dal dettaglio (button "Azioni" → dropdown), come per Duplica (US-04) — *nota: il testo di brief originale citava solo le azioni di riga, ma il componente `Azioni` del dettaglio espone la stessa voce.*
+
+#### Criteri di accettazione
+
+- [ ] Il click su "Elimina" apre una finestra di dialogo che richiede conferma prima di procedere
+- [ ] La pianificazione può essere eliminata **se e solo se** si trova in stato "Bozza" **e** non ha una trattativa/campagna collegata
+
+#### Schermate
+- Dialogo di conferma eliminazione (`Modal.confirm`)
+- Menu Azioni (riga e dettaglio)

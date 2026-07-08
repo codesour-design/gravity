@@ -3381,7 +3381,9 @@ function DuplicateModal({ open, source, usedCampagneByTrat, onClose, onDuplicate
         deducedRow('Tipo di vendita', saleTypeLabel({ category: channel, start: campObj.start, end: campObj.end })),
         deducedRow('Periodo di esposizione', `${campObj.start} → ${campObj.end}`),
       ),
-      React.createElement(SaleTypeDates, {
+      // Con campagna selezionata, tipo di vendita e periodo sono ereditati (box sopra):
+      // stesso comportamento del drawer "Nuova pianificazione" con campagna collegata.
+      !campObj && React.createElement(SaleTypeDates, {
         channel, saleType, onSaleType: setSaleType, range, onRange: setRange, disabledDate,
       }),
       React.createElement(Alert, {
@@ -4581,7 +4583,7 @@ function PlanningHeaderNR({ planning, onBack, isMine, isUnassigned, isPlanner, r
       },
     },
   },
-    React.createElement(Button, { size: 'large' }, 'Azioni', React.createElement(DownOutlined, { style: { fontSize: 11, marginLeft: 6 } })),
+    React.createElement(Button, { className: 'gv-btn-azioni', size: 'large' }, 'Azioni', React.createElement(DownOutlined, { style: { fontSize: 11, marginLeft: 6 } })),
   );
 
   return React.createElement('div', {
@@ -6631,7 +6633,8 @@ out geom;`;
 
   return React.createElement('div', {
     className: 'ss-root-nr' + (fsFlashing ? ' ss-root-nr--flashing' : ''),
-    style: fullscreen ? { position: 'fixed', inset: 0, zIndex: 200, background: '#F5F5F5', height: '100vh' } : {},
+    // In fullscreen si espande solo l'area sotto la navbar (73px): la navbar resta sempre visibile.
+    style: fullscreen ? { position: 'fixed', top: 73, left: 0, right: 0, bottom: 0, zIndex: 200, background: '#F5F5F5' } : {},
   },
     React.createElement('div', {
       className: 'ss-content-nr',
