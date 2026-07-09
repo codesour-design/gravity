@@ -97,6 +97,7 @@ profondità dentro un singolo prototipo** e questo CLAUDE.md padre fa da hub. No
 | PRD | `docs/product/PRD_Gravity_Platform_CodeSour.md` | domande di prodotto/requisiti |
 | Matrice ruoli/permessi per modulo (Inventory, Commercial/Campaign/Planning, Users/Tenant) | `docs/product/role-matrix.md` | progettando permessi o ruoli di un modulo |
 | Ricerca utente (interviste) | `docs/research/` | domande sui bisogni utente |
+| Design context del sito vetrina (registro, personas, anti-riferimenti, palette/tipografia/componenti) | `website/PRODUCT.md` · `website/DESIGN.md` | lavorando su `website/` (design o copy oltre a `contenuti.md`) |
 
 ## Workflow HTML → Figma
 

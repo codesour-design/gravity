@@ -415,7 +415,7 @@ const {
   message: antMessage,
 } = antd;
 const {
-  EyeOutlined, EyeInvisibleOutlined, UserOutlined, LockOutlined,
+  EyeOutlined, EyeInvisibleOutlined, UserOutlined, LockOutlined, MailOutlined,
   BellOutlined, RightOutlined, LeftOutlined, CheckOutlined,
   AppstoreOutlined, InboxOutlined, ShoppingOutlined, SendOutlined, SettingOutlined,
   GlobalOutlined, EnvironmentOutlined, SwapOutlined, InfoCircleOutlined, ArrowUpOutlined,
@@ -544,16 +544,29 @@ const VALID_PASSWORD = 'Gravity2024!';
 const NO_TENANT_EMAIL = 'noaccess@test.com'; // simula utente senza tenant
 
 function LoginScreen({ onLogin }) {
+  const [mode, setMode] = useState('login'); // 'login' | 'forgot' | 'sent'
+
   const [email, setEmail]         = useState('gloria@gravity.com');
   const [password, setPassword]   = useState('Gravity2024!');
   const [loading, setLoading]     = useState(false);
   const [pwVisible, setPwVisible] = useState(false);
   const [error, setError]         = useState(null);
 
+  const [forgotEmail, setForgotEmail]         = useState('');
+  const [forgotError, setForgotError]         = useState(null);
+  const [forgotLoading, setForgotLoading]     = useState(false);
+  const [resendCooldown, setResendCooldown]   = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown(s => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
   const canSubmit = email.trim().length > 3 && password.length >= 1;
 
   function handleSubmit() {
-    if (!canSubmit) return;
+    if (!canSubmit || loading) return;
     setError(null);
     setLoading(true);
     setTimeout(() => {
@@ -579,6 +592,143 @@ function LoginScreen({ onLogin }) {
   }
 
   function handleKey(e) { if (e.key === 'Enter') handleSubmit(); }
+
+  function handleForgotSubmit() {
+    if (forgotLoading) return;
+    const trimmed = forgotEmail.trim();
+    if (!trimmed) {
+      setForgotError('Inserisci la tua email aziendale.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setForgotError('Email non valida.');
+      return;
+    }
+    setForgotError(null);
+    setForgotLoading(true);
+    setTimeout(() => {
+      setForgotLoading(false);
+      setResendCooldown(30);
+      setMode('sent');
+    }, 900);
+  }
+
+  function handleForgotKey(e) { if (e.key === 'Enter') handleForgotSubmit(); }
+
+  function handleResend() {
+    if (resendCooldown > 0) return;
+    setResendCooldown(30);
+  }
+
+  function backToLogin() {
+    setMode('login');
+    setForgotEmail('');
+    setForgotError(null);
+    setResendCooldown(0);
+  }
+
+  if (mode === 'sent') {
+    return React.createElement('div', { className: 'login-bg' },
+      React.createElement('div', { className: 'login-card', style: { gap: 24, textAlign: 'center' } },
+
+        React.createElement(Logo, { typeH: 40, variant: 'type' }),
+
+        React.createElement('div', {
+          style: {
+            width: 56, height: 56,
+            borderRadius: '50%',
+            background: 'rgba(62,0,251,0.08)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto',
+          }
+        },
+          React.createElement(MailOutlined, { style: { fontSize: 26, color: 'var(--gravity-primary)' } })
+        ),
+
+        React.createElement('div', null,
+          React.createElement('h1', { className: 'login-title', style: { fontSize: 22, marginBottom: 8 } },
+            'Controlla la tua email'
+          ),
+          React.createElement('p', { className: 'login-sub' },
+            'Ti abbiamo inviato un link per reimpostare la password a ',
+            React.createElement('strong', { style: { overflowWrap: 'break-word' } }, forgotEmail.trim()),
+            '. Controlla anche lo spam: scade tra 30 minuti.'
+          )
+        ),
+
+        React.createElement(Button, {
+          type: 'primary', size: 'large', block: true,
+          onClick: backToLogin,
+        }, 'Torna al login'),
+
+        React.createElement('p', { className: 'login-footer' },
+          resendCooldown > 0
+            ? `Non hai ricevuto l'email? Puoi richiederla di nuovo tra ${resendCooldown}s.`
+            : React.createElement('a', {
+                onClick: handleResend,
+                style: { color: 'var(--gravity-primary)', cursor: 'pointer' },
+              }, 'Non hai ricevuto l\'email? Invia di nuovo')
+        )
+
+      )
+    );
+  }
+
+  if (mode === 'forgot') {
+    return React.createElement('div', { className: 'login-bg' },
+      React.createElement('div', { className: 'login-card' },
+
+        React.createElement(Logo, { typeH: 40, variant: 'type' }),
+
+        React.createElement('div', { className: 'login-head' },
+          React.createElement('h1', { className: 'login-title' }, 'Recupera password'),
+          React.createElement('p', { className: 'login-sub' },
+            'Inserisci la tua email aziendale: ti invieremo un link per reimpostarla.'
+          )
+        ),
+
+        React.createElement('div', { className: 'login-form' },
+
+          forgotError && React.createElement(Alert, {
+            type: 'error',
+            message: forgotError,
+            showIcon: true,
+            closable: true,
+            onClose: () => setForgotError(null),
+            style: { marginBottom: 4 },
+          }),
+
+          React.createElement(Input, {
+            size: 'large',
+            placeholder: 'Email aziendale',
+            type: 'email',
+            value: forgotEmail,
+            autoFocus: true,
+            status: forgotError ? 'error' : '',
+            prefix: React.createElement(MailOutlined, { style: { color: 'var(--gravity-text-tertiary)' } }),
+            onChange: e => { setForgotEmail(e.target.value); if (forgotError) setForgotError(null); },
+            onKeyDown: handleForgotKey,
+          }),
+
+          React.createElement(Button, {
+            type: 'primary', size: 'large', block: true,
+            loading: forgotLoading,
+            onClick: handleForgotSubmit,
+            style: { marginTop: 4 }
+          }, 'Invia link')
+
+        ),
+
+        React.createElement('p', { className: 'login-footer' },
+          React.createElement('a', {
+            onClick: backToLogin,
+            style: { color: 'var(--gravity-primary)', cursor: 'pointer' },
+          }, 'Torna al login')
+        )
+
+      )
+    );
+  }
 
   return React.createElement('div', { className: 'login-bg' },
     React.createElement('div', { className: 'login-card' },
@@ -635,15 +785,16 @@ function LoginScreen({ onLogin }) {
           type: 'primary', size: 'large', block: true,
           loading, disabled: !canSubmit,
           onClick: handleSubmit,
-          icon: React.createElement(RightOutlined),
           style: { marginTop: 4 }
         }, 'Accedi')
 
       ),
 
       React.createElement('p', { className: 'login-footer' },
-        'Problemi di accesso?', React.createElement('br'),
-        'Contatta l\'amministratore della tua organizzazione.'
+        React.createElement('a', {
+          onClick: () => setMode('forgot'),
+          style: { color: 'var(--gravity-primary)', cursor: 'pointer' },
+        }, 'Password dimenticata?')
       )
 
     )
@@ -749,7 +900,6 @@ function TenantSelectScreen({ email, onSelect }) {
         type: 'primary', size: 'large', block: true,
         disabled: !selected, loading,
         onClick: handleEnter,
-        icon: React.createElement(RightOutlined),
       }, 'Entra'),
 
       React.createElement('p', { className: 'login-footer' },
