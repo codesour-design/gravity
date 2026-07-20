@@ -420,6 +420,7 @@ const {
   AppstoreOutlined, InboxOutlined, ShoppingOutlined, SendOutlined, SettingOutlined,
   GlobalOutlined, EnvironmentOutlined, SwapOutlined, InfoCircleOutlined, ArrowUpOutlined,
   DownOutlined, CloseCircleOutlined, CloseCircleFilled, ExclamationCircleOutlined,
+  ClockCircleOutlined, CheckCircleFilled,
 } = icons;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -543,8 +544,8 @@ const VALID_EMAIL    = 'gloria@gravity.com';
 const VALID_PASSWORD = 'Gravity2024!';
 const NO_TENANT_EMAIL = 'noaccess@test.com'; // simula utente senza tenant
 
-function LoginScreen({ onLogin }) {
-  const [mode, setMode] = useState('login'); // 'login' | 'forgot' | 'sent'
+function LoginScreen({ onLogin, initialMode = 'login', onOpenResetLink, onOpenExpiredLink }) {
+  const [mode, setMode] = useState(initialMode); // 'login' | 'forgot' | 'sent'
 
   const [email, setEmail]         = useState('gloria@gravity.com');
   const [password, setPassword]   = useState('Gravity2024!');
@@ -668,6 +669,24 @@ function LoginScreen({ onLogin }) {
                 onClick: handleResend,
                 style: { color: 'var(--gravity-primary)', cursor: 'pointer' },
               }, 'Non hai ricevuto l\'email? Invia di nuovo')
+        ),
+
+        React.createElement(Divider, { style: { margin: '4px 0' } }),
+
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+          React.createElement(Typography.Text, { type: 'secondary', style: { fontSize: 11 } },
+            'Demo — simula l\'apertura del link ricevuto via email:'
+          ),
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'center', gap: 16 } },
+            React.createElement('a', {
+              onClick: onOpenResetLink,
+              style: { color: 'var(--gravity-primary)', cursor: 'pointer', fontSize: 12 },
+            }, 'Apri link valido'),
+            React.createElement('a', {
+              onClick: onOpenExpiredLink,
+              style: { color: 'var(--gravity-text-tertiary)', cursor: 'pointer', fontSize: 12 },
+            }, 'Apri link scaduto')
+          )
         )
 
       )
@@ -842,6 +861,193 @@ function NoTenantScreen({ email, onBack }) {
         React.createElement('a', { href: 'mailto:support@gravity.com', style: { color: 'var(--gravity-primary)' } }, 'support@gravity.com'),
         '.'
       )
+
+    )
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCHERMATA 1c — REIMPOSTA PASSWORD (link email)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PasswordRequirement({ met, label }) {
+  return React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+    React.createElement(CheckCircleFilled, {
+      style: { fontSize: 13, color: met ? '#52C41A' : 'var(--gravity-text-tertiary)', opacity: met ? 1 : 0.4 }
+    }),
+    React.createElement('span', { style: { fontSize: 12, color: met ? 'var(--gravity-text)' : 'var(--gravity-text-tertiary)' } }, label)
+  );
+}
+
+function ResetPasswordScreen({ onSuccess }) {
+  const [mode, setMode] = useState('form'); // 'form' | 'success'
+
+  const [password, setPassword]               = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwVisible, setPwVisible]   = useState(false);
+  const [pw2Visible, setPw2Visible] = useState(false);
+  const [loading, setLoading]       = useState(false);
+
+  const reqLength = password.length >= 8;
+  const reqUpper  = /[A-Z]/.test(password);
+  const reqNumber = /[0-9]/.test(password);
+  const allMet = reqLength && reqUpper && reqNumber;
+  const showMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const canSubmit = allMet && confirmPassword.length > 0 && !showMismatch;
+
+  function handleSubmit() {
+    if (!canSubmit || loading) return;
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setMode('success');
+    }, 900);
+  }
+
+  function handleKey(e) { if (e.key === 'Enter') handleSubmit(); }
+
+  if (mode === 'success') {
+    return React.createElement('div', { className: 'login-bg' },
+      React.createElement('div', { className: 'login-card', style: { gap: 24, textAlign: 'center' } },
+
+        React.createElement(Logo, { typeH: 40, variant: 'type' }),
+
+        React.createElement('div', {
+          style: {
+            width: 56, height: 56,
+            borderRadius: '50%',
+            background: 'rgba(82,196,26,0.08)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto',
+          }
+        },
+          React.createElement(CheckOutlined, { style: { fontSize: 24, color: '#52C41A' } })
+        ),
+
+        React.createElement('div', null,
+          React.createElement('h1', { className: 'login-title', style: { fontSize: 22, marginBottom: 8 } },
+            'Password aggiornata'
+          ),
+          React.createElement('p', { className: 'login-sub' },
+            'La tua password è stata reimpostata con successo. Accedi con le tue nuove credenziali.'
+          )
+        ),
+
+        React.createElement(Button, {
+          type: 'primary', size: 'large', block: true,
+          onClick: onSuccess,
+        }, 'Accedi ora')
+
+      )
+    );
+  }
+
+  return React.createElement('div', { className: 'login-bg' },
+    React.createElement('div', { className: 'login-card' },
+
+      React.createElement(Logo, { typeH: 40, variant: 'type' }),
+
+      React.createElement('div', { className: 'login-head' },
+        React.createElement('h1', { className: 'login-title' }, 'Reimposta password'),
+        React.createElement('p', { className: 'login-sub' },
+          'Scegli una nuova password per il tuo account Gravity.'
+        )
+      ),
+
+      React.createElement('div', { className: 'login-form' },
+
+        React.createElement(Input, {
+          size: 'large',
+          placeholder: 'Nuova password',
+          type: pwVisible ? 'text' : 'password',
+          value: password,
+          autoFocus: true,
+          onChange: e => setPassword(e.target.value),
+          onKeyDown: handleKey,
+          prefix: React.createElement(LockOutlined, { style: { color: 'var(--gravity-text-tertiary)' } }),
+          suffix: React.createElement(Button, {
+            type: 'text', size: 'small', tabIndex: -1,
+            icon: React.createElement(pwVisible ? EyeInvisibleOutlined : EyeOutlined),
+            onClick: () => setPwVisible(v => !v),
+            style: { color: 'var(--gravity-text-tertiary)' }
+          }),
+        }),
+
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 4, padding: '0 4px' } },
+          React.createElement(PasswordRequirement, { met: reqLength, label: 'Almeno 8 caratteri' }),
+          React.createElement(PasswordRequirement, { met: reqUpper,  label: 'Almeno una lettera maiuscola' }),
+          React.createElement(PasswordRequirement, { met: reqNumber, label: 'Almeno un numero' })
+        ),
+
+        React.createElement(Input, {
+          size: 'large',
+          placeholder: 'Conferma nuova password',
+          type: pw2Visible ? 'text' : 'password',
+          value: confirmPassword,
+          status: showMismatch ? 'error' : '',
+          onChange: e => setConfirmPassword(e.target.value),
+          onKeyDown: handleKey,
+          prefix: React.createElement(LockOutlined, { style: { color: 'var(--gravity-text-tertiary)' } }),
+          suffix: React.createElement(Button, {
+            type: 'text', size: 'small', tabIndex: -1,
+            icon: React.createElement(pw2Visible ? EyeInvisibleOutlined : EyeOutlined),
+            onClick: () => setPw2Visible(v => !v),
+            style: { color: 'var(--gravity-text-tertiary)' }
+          }),
+        }),
+
+        showMismatch && React.createElement(Typography.Text, { type: 'danger', style: { fontSize: 12 } },
+          'Le password non coincidono.'
+        ),
+
+        React.createElement(Button, {
+          type: 'primary', size: 'large', block: true,
+          loading, disabled: !canSubmit,
+          onClick: handleSubmit,
+          style: { marginTop: 4 }
+        }, 'Reimposta password')
+
+      )
+
+    )
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCHERMATA 1d — LINK SCADUTO
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ExpiredLinkScreen({ onRequestNewLink }) {
+  return React.createElement('div', { className: 'login-bg' },
+    React.createElement('div', { className: 'login-card', style: { gap: 24, textAlign: 'center' } },
+
+      React.createElement(Logo, { typeH: 40, variant: 'type' }),
+
+      React.createElement('div', {
+        style: {
+          width: 56, height: 56,
+          borderRadius: '50%',
+          background: 'rgba(255,74,28,0.08)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto',
+        }
+      },
+        React.createElement(ClockCircleOutlined, { style: { fontSize: 24, color: '#FF4A1C' } })
+      ),
+
+      React.createElement('div', null,
+        React.createElement('h1', { className: 'login-title', style: { fontSize: 22, marginBottom: 8 } },
+          'Link scaduto'
+        ),
+        React.createElement('p', { className: 'login-sub' },
+          'Il link per reimpostare la password non è più valido: è scaduto o è già stato utilizzato. Richiedine uno nuovo per continuare.'
+        )
+      ),
+
+      React.createElement(Button, {
+        type: 'primary', size: 'large', block: true,
+        onClick: onRequestNewLink,
+      }, 'Richiedi nuovo link')
 
     )
   );
@@ -1095,14 +1301,26 @@ function MiniCalendar() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Stato schermate: 'login' → 'tenant-select' → 'welcome'
+// Link email: 'reset-password' (link valido) · 'expired-link' (link scaduto/già usato)
 
 function App() {
-  const paramTenant = new URLSearchParams(window.location.search).get('tenant');
+  const params = new URLSearchParams(window.location.search);
+  const paramTenant = params.get('tenant');
+  const resetParam  = params.get('reset'); // demo: ?reset=1 → link valido, ?reset=expired → link scaduto
   const initialTenant = paramTenant ? TENANTS.find(t => t.id === paramTenant) : null;
 
-  const [screen, setScreen]           = useState(initialTenant ? 'welcome' : 'login');
+  const initialScreen = initialTenant
+    ? 'welcome'
+    : resetParam === 'expired'
+      ? 'expired-link'
+      : resetParam
+        ? 'reset-password'
+        : 'login';
+
+  const [screen, setScreen]           = useState(initialScreen);
   const [loggedEmail, setLoggedEmail] = useState(initialTenant ? 'gloria@gravity.com' : null);
   const [activeTenant, setActiveTenant] = useState(initialTenant || null);
+  const [loginInitialMode, setLoginInitialMode] = useState('login');
   const [msgApi, ctxHolder] = antMessage.useMessage();
 
   const loggedUser = { name: 'Gloria', surname: 'Bonanno', initials: 'GB' };
@@ -1126,6 +1344,7 @@ function App() {
   function handleLogout() {
     setLoggedEmail(null);
     setActiveTenant(null);
+    setLoginInitialMode('login');
     setScreen('login');
   }
 
@@ -1134,20 +1353,42 @@ function App() {
     setScreen('tenant-select');
   }
 
+  function handleOpenResetLink() { setScreen('reset-password'); }
+  function handleOpenExpiredLink() { setScreen('expired-link'); }
+
+  function handleResetSuccess() {
+    setLoginInitialMode('login');
+    setScreen('login');
+  }
+
+  function handleRequestNewLinkFromExpired() {
+    setLoginInitialMode('forgot');
+    setScreen('login');
+  }
+
   return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
     React.createElement(React.Fragment, null,
       ctxHolder,
       screen === 'login'
-        ? React.createElement(LoginScreen, { onLogin: handleLogin })
+        ? React.createElement(LoginScreen, {
+            onLogin: handleLogin,
+            initialMode: loginInitialMode,
+            onOpenResetLink: handleOpenResetLink,
+            onOpenExpiredLink: handleOpenExpiredLink,
+          })
         : screen === 'no-tenant'
           ? React.createElement(NoTenantScreen, { email: loggedEmail, onBack: handleLogout })
           : screen === 'tenant-select'
             ? React.createElement(TenantSelectScreen, { email: loggedEmail, onSelect: handleTenantSelect })
-            : React.createElement(WelcomeScreen, {
-              tenant: activeTenant,
-              onLogout: handleLogout,
-              onSwitchTenant: handleSwitchTenant,
-            })
+            : screen === 'reset-password'
+              ? React.createElement(ResetPasswordScreen, { onSuccess: handleResetSuccess })
+              : screen === 'expired-link'
+                ? React.createElement(ExpiredLinkScreen, { onRequestNewLink: handleRequestNewLinkFromExpired })
+                : React.createElement(WelcomeScreen, {
+                  tenant: activeTenant,
+                  onLogout: handleLogout,
+                  onSwitchTenant: handleSwitchTenant,
+                })
     )
   );
 }
