@@ -43,10 +43,6 @@ window.GRAVITY_PROTOTYPES = {
     label: 'Inventario mappa', status: 'in-progress',
     entry: 'inventory-map/index.html',
   },
-  'inventory-system-detail': {
-    label: 'Dettaglio impianto', status: 'in-progress',
-    entry: 'inventory-system-detail/index.html',
-  },
   'inventory-system-detail--administrative': {
     label: 'Dettaglio impianto (amministrativi)', status: 'in-progress',
     entry: 'inventory-system-detail--administrative/index.html',
