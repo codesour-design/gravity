@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entity Card — Shaker UI</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@ant-design/icons@5/dist/index.umd.js"></script>
+  <script src="../prototype/_shared/tokens.js"></script>
+  <script src="../prototype/_shared/entity-card.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      color: rgba(0,0,0,0.88);
+      background: #fff;
+      font-size: 14px;
+      line-height: 1.5714;
+    }
+
+    /* ── Header ──────────────────────────────────────── */
+    .doc-header {
+      position: sticky; top: 0; z-index: 100;
+      height: 64px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(5,5,5,0.06);
+      display: flex; align-items: center;
+      padding: 0 24px; gap: 32px;
+    }
+    .doc-logo {
+      display: flex; align-items: center; gap: 6px;
+      text-decoration: none; flex-shrink: 0;
+    }
+    .doc-logo img { height: 22px; }
+    .doc-logo .sep { color: rgba(0,0,0,0.2); font-weight: 300; font-size: 18px; margin: 0 2px; }
+    .doc-logo .site { color: rgba(0,0,0,0.65); font-weight: 500; font-size: 14px; }
+    .doc-nav { display: flex; gap: 4px; }
+    .doc-nav a {
+      color: rgba(0,0,0,0.65); text-decoration: none;
+      padding: 6px 12px; border-radius: 6px; font-size: 14px;
+      transition: all .15s;
+    }
+    .doc-nav a:hover { color: rgba(0,0,0,0.88); background: rgba(0,0,0,0.04); }
+    .doc-nav a.active { color: #3E00FB; font-weight: 500; }
+
+    /* ── Layout ──────────────────────────────────────── */
+    .doc-body { display: flex; min-height: calc(100vh - 64px); }
+
+    /* ── Sidebar ─────────────────────────────────────── */
+    .doc-sidebar {
+      width: 232px; flex-shrink: 0;
+      padding: 16px 0 32px;
+      border-right: 1px solid rgba(5,5,5,0.06);
+      position: sticky; top: 64px;
+      height: calc(100vh - 64px);
+      overflow-y: auto;
+    }
+    .sb-group {
+      padding: 12px 20px 4px;
+      font-size: 11px; font-weight: 600;
+      color: rgba(0,0,0,0.4);
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .sb-item {
+      display: block; padding: 6px 20px 6px 18px;
+      font-size: 14px; color: rgba(0,0,0,0.65);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      transition: all .15s;
+    }
+    .sb-item:hover { color: rgba(0,0,0,0.88); background: rgba(0,0,0,0.02); }
+    .sb-item.active { color: #3E00FB; font-weight: 500; border-left-color: #3E00FB; background: rgba(62,0,251,0.04); }
+    .sb-item.disabled { opacity: .35; pointer-events: none; }
+
+    /* ── Main content ────────────────────────────────── */
+    .doc-main { flex: 1; min-width: 0; padding: 40px 64px 80px; }
+    .doc-inner { max-width: 820px; }
+
+    .comp-title { font-size: 30px; font-weight: 600; line-height: 38px; margin: 0 0 8px; }
+    .comp-desc { font-size: 15px; color: rgba(0,0,0,0.65); line-height: 1.65; margin: 0 0 20px; }
+
+.sec-title {
+      font-size: 22px; font-weight: 600;
+      margin: 40px 0 16px; padding-bottom: 12px;
+      border-bottom: 1px solid rgba(5,5,5,0.06);
+    }
+    .sec-text { font-size: 14px; color: rgba(0,0,0,0.65); line-height: 1.7; margin: 0 0 12px; }
+    .sec-list {
+      font-size: 14px; color: rgba(0,0,0,0.65);
+      line-height: 1.7; padding-left: 20px; margin: 0 0 24px;
+    }
+    .sec-list li { margin-bottom: 4px; }
+    .sec-list li strong { color: rgba(0,0,0,0.88); }
+
+    /* ── Demo grid ───────────────────────────────────── */
+    .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .demo-grid.full { grid-template-columns: 1fr; }
+
+    /* ── Demo block ──────────────────────────────────── */
+    .demo-block { border: 1px solid rgba(5,5,5,0.06); border-radius: 8px; overflow: hidden; }
+
+    .demo-preview {
+      padding: 32px 24px; background: #fff;
+      display: flex; align-items: flex-start; justify-content: center;
+    }
+    .demo-preview.pad-sm { padding: 24px; }
+
+    .demo-bar {
+      border-top: 1px solid rgba(5,5,5,0.06);
+      background: #fafafa; padding: 10px 14px;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .demo-bar-info { flex: 1; min-width: 0; }
+    .demo-bar-title { font-size: 13px; font-weight: 600; color: rgba(0,0,0,0.88); margin-bottom: 2px; }
+    .demo-bar-desc  { font-size: 12px; color: rgba(0,0,0,0.45); line-height: 1.5; }
+    .demo-bar-btn {
+      flex-shrink: 0; padding-top: 2px;
+      border: none; background: none; cursor: pointer;
+      color: rgba(0,0,0,0.4); padding: 4px 6px; border-radius: 4px;
+      font-size: 12px; transition: all .15s; display: flex; align-items: center; gap: 4px;
+      font-family: inherit;
+    }
+    .demo-bar-btn:hover { color: rgba(0,0,0,0.88); background: rgba(0,0,0,0.06); }
+
+    /* ── Usage chips ────────────────────────────────── */
+    .demo-usage {
+      display: flex; align-items: center; gap: 6px;
+      flex-wrap: wrap; margin-top: 7px;
+    }
+    .demo-usage-label {
+      font-size: 11px; color: rgba(0,0,0,0.3);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .demo-usage-chip {
+      font-size: 11px; padding: 1px 7px; border-radius: 3px; line-height: 18px;
+      background: #fafafa; border: 1px solid rgba(0,0,0,0.1);
+      color: rgba(0,0,0,0.55); white-space: nowrap;
+    }
+    .demo-usage-chip strong {
+      font-weight: 600; color: rgba(0,0,0,0.65);
+    }
+
+    /* ── Story name chip ────────────────────────────── */
+    .demo-story-chip {
+      font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+      font-size: 11px; font-style: normal; font-weight: 400;
+      padding: 1px 6px; border-radius: 3px; line-height: 18px;
+      background: rgba(62,0,251,0.06);
+      color: #3E00FB;
+      border: 1px solid rgba(62,0,251,0.14);
+      white-space: nowrap; vertical-align: middle;
+      margin-left: 6px;
+    }
+
+    /* ── Sidebar sub-items (stories) ─────────────────── */
+    .sb-subitem {
+      display: block; padding: 4px 20px 4px 30px;
+      font-size: 12px; color: rgba(0,0,0,0.5);
+      font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      transition: all .15s;
+    }
+    .sb-subitem:hover { color: rgba(0,0,0,0.88); background: rgba(0,0,0,0.02); }
+
+    .demo-code { display: none; border-top: 1px solid rgba(5,5,5,0.06); }
+    .demo-code.open { display: block; }
+    .demo-code pre {
+      margin: 0; padding: 18px 20px;
+      background: #14141f;
+      color: #cdd3de;
+      font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+      font-size: 12.5px; line-height: 1.65;
+      overflow-x: auto; tab-size: 2; white-space: pre;
+    }
+
+    /* ── API table ───────────────────────────────────── */
+    .api-sub { font-size: 16px; font-weight: 600; margin: 28px 0 10px; color: rgba(0,0,0,0.88); }
+    .api-wrap {
+      overflow-x: auto; margin-bottom: 32px;
+      border: 1px solid rgba(5,5,5,0.06); border-radius: 8px;
+    }
+    .api-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .api-table th {
+      text-align: left; padding: 10px 16px;
+      font-size: 12px; font-weight: 600; color: rgba(0,0,0,0.65);
+      background: #fafafa; border-bottom: 1px solid rgba(5,5,5,0.08);
+      white-space: nowrap;
+    }
+    .api-table td {
+      padding: 9px 16px; vertical-align: top;
+      border-bottom: 1px solid rgba(5,5,5,0.04); line-height: 1.55;
+    }
+    .api-table tr:last-child td { border-bottom: none; }
+    .api-table tr:hover td { background: rgba(0,0,0,0.01); }
+    .api-table code {
+      font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+      font-size: 12px; background: rgba(0,0,0,0.05);
+      padding: 1px 5px; border-radius: 3px; color: rgba(0,0,0,0.85);
+    }
+    .api-table .c-prop { white-space: nowrap; }
+    .api-table .c-prop code { color: #3E00FB; background: rgba(62,0,251,0.07); }
+    .api-table .c-type code { color: #c7254e; white-space: nowrap; }
+    .api-table .c-req  { color: #FF4A1C; font-size: 12px; font-weight: 700; text-align: center; }
+    .api-table .c-def  { color: rgba(0,0,0,0.4); font-size: 12px; }
+    .api-table .c-def code { color: rgba(0,0,0,0.55); background: rgba(0,0,0,0.04); }
+
+    /* ── Anatomy ─────────────────────────────────── */
+    .anatomy-wrap {
+      margin-bottom: 40px;
+      display: flex;
+      justify-content: center;
+      padding: 40px 32px;
+      background: #fafafa;
+      border: 1px solid rgba(5,5,5,0.06);
+      border-radius: 8px;
+    }
+    .anatomy-card {
+      width: 100%;
+      max-width: 360px;
+      border: 1px solid rgba(5,5,5,0.12);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+    .anatomy-zone {
+      padding: 14px 16px 12px;
+      border-bottom: 1px dashed rgba(5,5,5,0.1);
+    }
+    .anatomy-zone:last-child { border-bottom: none; }
+    .anatomy-zone-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: #3E00FB;
+      margin-bottom: 9px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .anatomy-zone.opt .anatomy-zone-label { color: rgba(0,0,0,0.3); }
+    .anatomy-opt-tag {
+      font-size: 9px;
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+      background: rgba(0,0,0,0.05);
+      color: rgba(0,0,0,0.35);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    .anatomy-header-inner { display: flex; align-items: flex-start; gap: 8px; }
+    .anatomy-fake-title { font-size: 13px; font-weight: 600; color: rgba(0,0,0,0.65); }
+    .anatomy-fake-badges { display: flex; gap: 4px; margin-top: 5px; }
+    .anatomy-fake-badge {
+      font-size: 11px; padding: 1px 7px; border-radius: 3px;
+      border: 1px solid rgba(62,0,251,0.3);
+      color: #3E00FB; background: rgba(62,0,251,0.05);
+    }
+    .anatomy-fake-badge.b2 {
+      border-color: rgba(0,0,0,0.15);
+      color: rgba(0,0,0,0.4);
+      background: transparent;
+    }
+    .anatomy-fake-menu { font-size: 15px; color: rgba(0,0,0,0.25); margin-top: -2px; }
+    .anatomy-fake-image {
+      background: #f5f5f5; border-radius: 4px; aspect-ratio: 16/9;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px;
+    }
+    .anatomy-fake-image strong { font-size: 12px; color: rgba(0,0,0,0.3); font-weight: 600; }
+    .anatomy-fake-image span  { font-size: 11px; color: rgba(0,0,0,0.2); }
+    .anatomy-body-fields { display: flex; flex-direction: column; gap: 6px; }
+    .anatomy-field { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+    .anatomy-field-icon { color: rgba(0,0,0,0.2); font-size: 13px; line-height: 1; }
+    .anatomy-field-lbl  { color: rgba(0,0,0,0.4); }
+    .anatomy-field-val  { color: rgba(0,0,0,0.6); }
+    .anatomy-props {
+      margin-top: 9px;
+      font-size: 11px;
+      font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+      color: rgba(0,0,0,0.3);
+      line-height: 1.6;
+    }
+    .anatomy-fake-footer { display: flex; gap: 8px; justify-content: flex-end; }
+    .anatomy-fake-btn {
+      font-size: 12px; padding: 4px 12px; border-radius: 4px;
+      border: 1px solid rgba(0,0,0,0.15); color: rgba(0,0,0,0.55);
+    }
+    .anatomy-fake-btn.primary {
+      background: #3E00FB; color: #fff; border-color: #3E00FB;
+    }
+  </style>
+</head>
+<body>
+
+<header class="doc-header">
+  <a class="doc-logo" href="#">
+    <img src="../brand/Gravity_type.svg" alt="Gravity">
+    <span class="sep">/</span>
+    <span class="site">Shaker UI</span>
+  </a>
+  <nav class="doc-nav">
+    <a href="index.html" class="active">Components</a>
+    <a href="#">Design Tokens</a>
+  </nav>
+</header>
+
+<div class="doc-body">
+  <nav class="doc-sidebar">
+    <div class="sb-group">Overview</div>
+    <a href="index.html" class="sb-item">Components</a>
+
+    <div class="sb-group" style="margin-top:8px">Data Display</div>
+    <a href="entity-card.html" class="sb-item active">Entity Card</a>
+    <a href="#story-Default"                class="sb-subitem">Default</a>
+    <a href="#story-WithStatusDot"          class="sb-subitem">WithStatusDot</a>
+    <a href="#story-TwoColumnBody"          class="sb-subitem">TwoColumnBody</a>
+    <a href="#story-MultipleBadgesAndMenu"  class="sb-subitem">MultipleBadgesAndMenu</a>
+    <a href="#story-FooterWithActions"      class="sb-subitem">FooterWithActions</a>
+    <a href="#story-BadgeVariants"          class="sb-subitem">BadgeVariants</a>
+    <a href="#story-SystemInGrantDetail"    class="sb-subitem">SystemInGrantDetail</a>
+    <a class="sb-item disabled" style="margin-top:2px">Status Badge</a>
+
+    <div class="sb-group" style="margin-top:8px">Navigation</div>
+    <a class="sb-item disabled">Navbar</a>
+
+    <div class="sb-group" style="margin-top:8px">Overlay</div>
+    <a class="sb-item disabled">Map Popover</a>
+    <a class="sb-item disabled">Filter Drawer</a>
+  </nav>
+
+  <main class="doc-main">
+    <div class="doc-inner">
+
+      <h1 class="comp-title">Entity Card</h1>
+      <p class="comp-desc">
+        Parametric card for displaying Gravity domain entities — installations, campaigns,
+        connected systems. Composed of a header (title + badges), optional image, structured
+        body fields, and an optional footer action bar.
+      </p>
+      <h2 class="sec-title">When To Use</h2>
+      <p class="sec-text">
+        Use <strong>Entity Card</strong> to display a compact, scannable summary of a domain object
+        in grids or lists where multiple entities need to be compared at a glance.
+      </p>
+      <ul class="sec-list">
+        <li><strong>Header</strong> — title, one or more colour-coded badges, optional kebab menu</li>
+        <li><strong>Image</strong> — optional slot with configurable aspect ratio or fixed height</li>
+        <li><strong>Body</strong> — icon + label + value fields in 1 or 2 columns</li>
+        <li><strong>Footer</strong> — optional action bar: any React node</li>
+      </ul>
+
+      <h2 class="sec-title">Anatomy</h2>
+      <p class="sec-text">
+        The card stacks four vertical slots. Only <strong>title</strong> is required —
+        every other slot is omitted from the DOM when its prop is not provided.
+      </p>
+      <div class="anatomy-wrap">
+        <div class="anatomy-card">
+
+          <div class="anatomy-zone">
+            <div class="anatomy-zone-label">Header</div>
+            <div class="anatomy-header-inner">
+              <div style="flex:1">
+                <div class="anatomy-fake-title">Entity title</div>
+                <div class="anatomy-fake-badges">
+                  <span class="anatomy-fake-badge">Badge</span>
+                  <span class="anatomy-fake-badge b2">Badge</span>
+                </div>
+              </div>
+              <div class="anatomy-fake-menu">⋮</div>
+            </div>
+            <div class="anatomy-props">title · badge / badges · showMenu</div>
+          </div>
+
+          <div class="anatomy-zone opt">
+            <div class="anatomy-zone-label">Image <span class="anatomy-opt-tag">optional</span></div>
+            <div class="anatomy-fake-image">
+              <strong>Image</strong>
+              <span>aspectRatio · heightPx</span>
+            </div>
+            <div class="anatomy-props">image.id · image.placeholder · image.aspectRatio · image.heightPx</div>
+          </div>
+
+          <div class="anatomy-zone">
+            <div class="anatomy-zone-label">Body</div>
+            <div class="anatomy-body-fields">
+              <div class="anatomy-field">
+                <span class="anatomy-field-icon">◻</span>
+                <span class="anatomy-field-lbl">Label:</span>
+                <span class="anatomy-field-val">Value</span>
+              </div>
+              <div class="anatomy-field">
+                <span class="anatomy-field-icon">◻</span>
+                <span class="anatomy-field-lbl">Label:</span>
+                <span class="anatomy-field-val">Value</span>
+              </div>
+            </div>
+            <div class="anatomy-props">fields[n].icon · fields[n].label · fields[n].value / valueNode · bodyColumns</div>
+          </div>
+
+          <div class="anatomy-zone opt">
+            <div class="anatomy-zone-label">Footer <span class="anatomy-opt-tag">optional</span></div>
+            <div class="anatomy-fake-footer">
+              <span class="anatomy-fake-btn">Action</span>
+              <span class="anatomy-fake-btn primary">Primary</span>
+            </div>
+            <div class="anatomy-props">footer</div>
+          </div>
+
+        </div>
+      </div>
+
+      <h2 class="sec-title">Stories</h2>
+      <div class="demo-grid" id="grid-2col"></div>
+      <div class="demo-grid full" id="grid-full"></div>
+
+      <h2 class="sec-title">API</h2>
+
+      <h3 class="api-sub">GravityEntityCard</h3>
+      <div class="api-wrap" id="t-main"></div>
+
+      <h3 class="api-sub">badge / badges[n]</h3>
+      <div class="api-wrap" id="t-badge"></div>
+
+      <h3 class="api-sub">fields[n]</h3>
+      <div class="api-wrap" id="t-field"></div>
+
+      <h3 class="api-sub">image</h3>
+      <div class="api-wrap" id="t-image"></div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  var h   = React.createElement;
+  var GEC = window.GravityEntityCard;
+  var dot = GEC.statusDot;
+  var CP  = antd.ConfigProvider;
+  var Btn = antd.Button;
+  var theme = window.GRAVITY_THEME || {};
+
+  /* ── wrap node in theme provider + sizing div ─── */
+  function wrap(node, full) {
+    return h(CP, { theme: theme },
+      h('div', { style: { width: '100%', maxWidth: full ? '100%' : '300px' } }, node)
+    );
+  }
+
+  /* ── build a demo block ─────────────────────────── */
+  function demo(opts) {
+    var block   = document.createElement('div');
+    block.className = 'demo-block';
+    if (opts.storyName) block.id = 'story-' + opts.storyName;
+
+    var preview = document.createElement('div');
+    preview.className = 'demo-preview' + (opts.full ? ' pad-sm' : '');
+
+    var bar = document.createElement('div');
+    bar.className = 'demo-bar';
+
+    var info = document.createElement('div');
+    info.className = 'demo-bar-info';
+    var tt = document.createElement('div'); tt.className = 'demo-bar-title';
+    tt.textContent = opts.title;
+    if (opts.storyName) {
+      var chip = document.createElement('code'); chip.className = 'demo-story-chip';
+      chip.textContent = opts.storyName; tt.appendChild(chip);
+    }
+    var dd = document.createElement('div'); dd.className = 'demo-bar-desc';  dd.textContent = opts.desc;
+    info.appendChild(tt); info.appendChild(dd);
+    if (opts.usedIn && opts.usedIn.length) {
+      var usageRow = document.createElement('div'); usageRow.className = 'demo-usage';
+      var lbl = document.createElement('span'); lbl.className = 'demo-usage-label'; lbl.textContent = 'Used in';
+      usageRow.appendChild(lbl);
+      opts.usedIn.forEach(function (u) {
+        var chip = document.createElement('span'); chip.className = 'demo-usage-chip';
+        chip.innerHTML = '<strong>' + u.module + '</strong> · ' + u.context;
+        usageRow.appendChild(chip);
+      });
+      info.appendChild(usageRow);
+    }
+
+    var btn = document.createElement('button');
+    btn.className = 'demo-bar-btn';
+    btn.title = 'Toggle code';
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M5.854 4.146a.5.5 0 0 1 0 .708L3.707 7l2.147 2.146a.5.5 0 0 1-.708.708l-2.5-2.5a.5.5 0 0 1 0-.708l2.5-2.5a.5.5 0 0 1 .708 0zm4.292 0a.5.5 0 0 1 .708 0l2.5 2.5a.5.5 0 0 1 0 .708l-2.5 2.5a.5.5 0 0 1-.708-.708L12.293 7 10.146 5.146a.5.5 0 0 1 0-.708z"/></svg>&nbsp;Code';
+
+    bar.appendChild(info);
+    bar.appendChild(btn);
+
+    var codeDiv = document.createElement('div');
+    codeDiv.className = 'demo-code';
+    var pre = document.createElement('pre');
+    pre.textContent = opts.code;
+    codeDiv.appendChild(pre);
+
+    btn.addEventListener('click', function () { codeDiv.classList.toggle('open'); });
+
+    block.appendChild(preview);
+    block.appendChild(bar);
+    block.appendChild(codeDiv);
+
+    ReactDOM.createRoot(preview).render(wrap(opts.node, opts.full));
+    return block;
+  }
+
+  /* ── Demo 1: Basic ─────────────────────────────── */
+  var d1 = demo({
+    storyName: 'Default',
+    title: 'Basic',
+    desc: 'Header, image placeholder and structured fields.',
+    usedIn: [
+      { module: 'Inventory Systems', context: 'Scheda impianto base' },
+      { module: 'Inventory Systems', context: 'Card permit in system detail' },
+      { module: 'Inventory Systems', context: 'Squadre di affissione' },
+    ],
+    node: h(GEC, {
+      title: 'Impianto Via Maqueda 148',
+      badge: { text: 'PA-001', variant: 'default' },
+      image: { id: 'd1', placeholder: 'foto impianto' },
+      fields: [
+        { icon: 'TagOutlined',         label: 'Tipologia:', value: 'Pensilina' },
+        { icon: 'EnvironmentOutlined', label: 'Comune:',    value: 'Palermo' },
+        { icon: 'ExpandOutlined',      label: 'Formato:',   value: '140×200 cm' },
+      ],
+    }),
+    code:
+'var GEC = window.GravityEntityCard;\n' +
+'\n' +
+'React.createElement(GEC, {\n' +
+'  title: \'Impianto Via Maqueda 148\',\n' +
+'  badge: { text: \'PA-001\', variant: \'default\' },\n' +
+'  image: { id: \'imp-001\', placeholder: \'foto impianto\' },\n' +
+'  fields: [\n' +
+'    { icon: \'TagOutlined\',         label: \'Tipologia:\', value: \'Pensilina\' },\n' +
+'    { icon: \'EnvironmentOutlined\', label: \'Comune:\',    value: \'Palermo\' },\n' +
+'    { icon: \'ExpandOutlined\',      label: \'Formato:\',   value: \'140×200 cm\' },\n' +
+'  ],\n' +
+'})',
+  });
+
+  /* ── Demo 2: Status dot ────────────────────────── */
+  var d2 = demo({
+    storyName: 'WithStatusDot',
+    title: 'Status Dot',
+    desc: 'Use GravityEntityCard.statusDot() for colour-coded state in a field.',
+    usedIn: [
+      { module: 'Inventory Systems', context: 'Stato impianto (Attivo / In Manutenzione)' },
+      { module: 'Planning', context: 'Disponibilità impianto nella selezione' },
+    ],
+    node: h(GEC, {
+      title: 'Impianto Viale Libertà 22',
+      badge: { text: 'OOH', variant: 'ooh' },
+      fields: [
+        { icon: 'TagOutlined',      label: 'Tipologia:', value: 'Poster' },
+        { icon: 'AimOutlined',      label: 'Stato:',     valueNode: dot('#52C41A', 'Disponibile') },
+        { icon: 'CalendarOutlined', label: 'Dal:',       value: '01/08/2025' },
+      ],
+    }),
+    code:
+'var GEC = window.GravityEntityCard;\n' +
+'var statusDot = GEC.statusDot;\n' +
+'\n' +
+'React.createElement(GEC, {\n' +
+'  title: \'Impianto Viale Libertà 22\',\n' +
+'  badge: { text: \'OOH\', variant: \'ooh\' },\n' +
+'  fields: [\n' +
+'    { icon: \'TagOutlined\',      label: \'Tipologia:\', value: \'Poster\' },\n' +
+'    { icon: \'AimOutlined\',      label: \'Stato:\',\n' +
+'      valueNode: statusDot(\'#52C41A\', \'Disponibile\') },\n' +
+'    { icon: \'CalendarOutlined\', label: \'Dal:\',       value: \'01/08/2025\' },\n' +
+'  ],\n' +
+'})',
+  });
+
+  /* ── Demo 3: Two-column body ───────────────────── */
+  var d3 = demo({
+    storyName: 'TwoColumnBody',
+    title: 'Two-Column Body',
+    desc: 'bodyColumns: 2 for information-dense entities.',
+    usedIn: [
+      { module: 'Inventory Systems', context: 'Dettaglio faccia impianto' },
+    ],
+    node: h(GEC, {
+      title: 'Impianto Piazza Verdi 3',
+      badge: { text: 'DOOH', variant: 'dooh' },
+      bodyColumns: 2,
+      fields: [
+        { icon: 'TagOutlined',         label: 'Tipologia:',   value: 'LED Screen' },
+        { icon: 'EnvironmentOutlined', label: 'Comune:',      value: 'Milano' },
+        { icon: 'ExpandOutlined',      label: 'Formato:',     value: '200×300 cm' },
+        { icon: 'EyeOutlined',         label: 'Visibilità:',  value: '2.400/g' },
+        { icon: 'WifiOutlined',        label: 'Connessione:', value: '4G LTE' },
+        { icon: 'CalendarOutlined',    label: 'Dal:',         value: '01/08/2025' },
+      ],
+    }),
+    code:
+'React.createElement(GEC, {\n' +
+'  title: \'Impianto Piazza Verdi 3\',\n' +
+'  badge: { text: \'DOOH\', variant: \'dooh\' },\n' +
+'  bodyColumns: 2,\n' +
+'  fields: [\n' +
+'    { icon: \'TagOutlined\',         label: \'Tipologia:\',   value: \'LED Screen\' },\n' +
+'    { icon: \'EnvironmentOutlined\', label: \'Comune:\',      value: \'Milano\' },\n' +
+'    { icon: \'ExpandOutlined\',      label: \'Formato:\',     value: \'200×300 cm\' },\n' +
+'    { icon: \'EyeOutlined\',         label: \'Visibilità:\',  value: \'2.400/g\' },\n' +
+'    { icon: \'WifiOutlined\',        label: \'Connessione:\', value: \'4G LTE\' },\n' +
+'    { icon: \'CalendarOutlined\',    label: \'Dal:\',         value: \'01/08/2025\' },\n' +
+'  ],\n' +
+'})',
+  });
+
+  /* ── Demo 4: Multiple badges + menu ────────────── */
+  var d4 = demo({
+    storyName: 'MultipleBadgesAndMenu',
+    title: 'Multiple Badges & Menu',
+    desc: 'badges[] for multiple classifiers. showMenu adds the kebab ⋮ in the header.',
+    usedIn: [
+      { module: 'Inventory Systems', context: 'Card impianto con canale + tipologia' },
+      { module: 'Planning', context: 'Card impianto nella selezione' },
+    ],
+    node: h(GEC, {
+      title: 'LED Wall Centrale',
+      badges: [
+        { text: 'DOOH',    variant: 'dooh' },
+        { text: 'Premium', variant: 'primary' },
+      ],
+      showMenu: true,
+      fields: [
+        { icon: 'TagOutlined',         label: 'Tipologia:', value: 'LED Wall' },
+        { icon: 'EnvironmentOutlined', label: 'Comune:',    value: 'Roma' },
+        { icon: 'AimOutlined',         label: 'Stato:',     valueNode: dot('#1677FF', 'Riservato') },
+      ],
+    }),
+    code:
+'React.createElement(GEC, {\n' +
+'  title: \'LED Wall Centrale\',\n' +
+'  badges: [\n' +
+'    { text: \'DOOH\',    variant: \'dooh\' },\n' +
+'    { text: \'Premium\', variant: \'primary\' },\n' +
+'  ],\n' +
+'  showMenu: true,\n' +
+'  fields: [\n' +
+'    { icon: \'TagOutlined\',         label: \'Tipologia:\', value: \'LED Wall\' },\n' +
+'    { icon: \'EnvironmentOutlined\', label: \'Comune:\',    value: \'Roma\' },\n' +
+'    { icon: \'AimOutlined\',         label: \'Stato:\',\n' +
+'      valueNode: GEC.statusDot(\'#1677FF\', \'Riservato\') },\n' +
+'  ],\n' +
+'})',
+  });
+
+  /* ── Demo 5: Footer with actions (full-width) ─── */
+  var d5 = demo({
+    storyName: 'FooterWithActions',
+    full: true,
+    title: 'Footer with Actions',
+    desc: 'footer accepts any React node. The primary action disables when the system is unavailable.',
+    usedIn: [
+      { module: 'Planning', context: 'Floating card su marker — Aggiungi / Rimuovi' },
+      { module: 'Inventory Systems', context: '"Vai al dettaglio" in card mappa' },
+    ],
+    node: h('div', { style: { display: 'flex', gap: '16px', maxWidth: '640px' } },
+      h(GEC, {
+        key: 'available',
+        title: 'Impianto PA-001',
+        badge: { text: 'OOH', variant: 'ooh' },
+        fields: [
+          { icon: 'TagOutlined', label: 'Tipologia:', value: 'Pensilina' },
+          { icon: 'AimOutlined', label: 'Stato:',     valueNode: dot('#52C41A', 'Disponibile') },
+        ],
+        footer: h('div', { style: { display: 'flex', gap: '8px', width: '100%' } },
+          h(Btn, { size: 'small', style: { flex: 1 } }, 'Dettagli'),
+          h(Btn, { size: 'small', type: 'primary', style: { flex: 1 } }, 'Prenota'),
+        ),
+      }),
+      h(GEC, {
+        key: 'unavailable',
+        title: 'Impianto MI-034',
+        badge: { text: 'DOOH', variant: 'dooh' },
+        fields: [
+          { icon: 'TagOutlined', label: 'Tipologia:', value: 'LED Screen' },
+          { icon: 'AimOutlined', label: 'Stato:',     valueNode: dot('#EB2F96', 'In Opzione') },
+        ],
+        footer: h('div', { style: { display: 'flex', gap: '8px', width: '100%' } },
+          h(Btn, { size: 'small', style: { flex: 1 } }, 'Dettagli'),
+          h(Btn, { size: 'small', type: 'primary', disabled: true, style: { flex: 1 } }, 'Prenota'),
+        ),
+      }),
+    ),
+    code:
+'// Disponibile — entrambe le azioni attive\n' +
+'React.createElement(GEC, {\n' +
+'  title: \'Impianto PA-001\',\n' +
+'  badge: { text: \'OOH\', variant: \'ooh\' },\n' +
+'  fields: [\n' +
+'    { icon: \'TagOutlined\', label: \'Tipologia:\', value: \'Pensilina\' },\n' +
+'    { icon: \'AimOutlined\', label: \'Stato:\',\n' +
+'      valueNode: GEC.statusDot(\'#52C41A\', \'Disponibile\') },\n' +
+'  ],\n' +
+'  footer: React.createElement(\'div\',\n' +
+'    { style: { display: \'flex\', gap: \'8px\', width: \'100%\' } },\n' +
+'    React.createElement(antd.Button, { size: \'small\', style: { flex: 1 } }, \'Dettagli\'),\n' +
+'    React.createElement(antd.Button,\n' +
+'      { size: \'small\', type: \'primary\', style: { flex: 1 } }, \'Prenota\'),\n' +
+'  ),\n' +
+'})\n' +
+'\n' +
+'// Non disponibile — azione primaria disabilitata\n' +
+'React.createElement(GEC, {\n' +
+'  title: \'Impianto MI-034\',\n' +
+'  badge: { text: \'DOOH\', variant: \'dooh\' },\n' +
+'  fields: [\n' +
+'    { icon: \'TagOutlined\', label: \'Tipologia:\', value: \'LED Screen\' },\n' +
+'    { icon: \'AimOutlined\', label: \'Stato:\',\n' +
+'      valueNode: GEC.statusDot(\'#EB2F96\', \'In Opzione\') },\n' +
+'  ],\n' +
+'  footer: React.createElement(\'div\',\n' +
+'    { style: { display: \'flex\', gap: \'8px\', width: \'100%\' } },\n' +
+'    React.createElement(antd.Button, { size: \'small\', style: { flex: 1 } }, \'Dettagli\'),\n' +
+'    React.createElement(antd.Button,\n' +
+'      { size: \'small\', type: \'primary\', disabled: true, style: { flex: 1 } }, \'Prenota\'),\n' +
+'  ),\n' +
+'})',
+  });
+
+  /* ── Demo 7: System in Grant / Authorization Detail ── */
+  function addrNode(line1, line2) {
+    return h('span', { style: { display: 'flex', flexDirection: 'column', lineHeight: '18px' } },
+      h('span', { style: { color: 'rgba(0,0,0,0.65)' } }, line1),
+      h('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: '11px' } }, line2)
+    );
+  }
+
+  function sysGrantCard(key, title, channel, type, addr, zone, format, faces, slots) {
+    return h(GEC, {
+      key: key,
+      title: title,
+      showMenu: true,
+      badges: [
+        { text: channel, variant: channel === 'DOOH' ? 'dooh' : 'ooh' },
+        { text: type,    variant: 'default' },
+      ],
+      image: { id: key, placeholder: 'foto impianto', heightPx: 160 },
+      fields: [
+        { icon: 'EnvironmentOutlined', label: 'Indirizzo:',     valueNode: addrNode(addr, zone) },
+        { icon: 'GatewayOutlined',     label: 'Format:',        value: format },
+        { icon: 'BlockOutlined',       label: 'Face Quantity:',  value: faces },
+        { icon: 'AppstoreOutlined',    label: 'Slots:',          value: slots },
+      ],
+    });
+  }
+
+  var d7 = demo({
+    storyName: 'SystemInGrantDetail',
+    full: true,
+    title: 'System in Grant / Authorization Detail',
+    desc: 'Channel and type go as badges in the header. Address uses valueNode for the two-line format (main + zone). Used in grant/authorization detail to list connected systems.',
+    usedIn: [
+      { module: 'Inventory Systems', context: 'Grid impianti collegati a concessione' },
+      { module: 'Inventory Systems', context: 'Floating card su marker mappa impianti' },
+      { module: 'Planning', context: 'Floating card su marker mappa pianificazione' },
+    ],
+    node: h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '16px', width: '100%' } },
+      sysGrantCard('sg1', 'Sistema Via Maqueda 45', 'OOH',  'Pensilina',  'Via Maqueda 45, 90134 Palermo',     'Zona Centro Storico',     '140 cm × 200 cm', '2', '4'),
+      sysGrantCard('sg2', 'Sistema Via Casalini',   'DOOH', 'Poster',     'Via Casalini, 90136 Palermo PA',    'Rotonda Nord Ovest',      '150 cm × 200 cm', '1', '6'),
+      sysGrantCard('sg3', 'LED Wall Piazza Verdi',  'DOOH', 'LED Screen', 'Piazza Verdi 3, 90138 Palermo PA',  'Ingresso Teatro Massimo', '300 cm × 400 cm', '1', '12'),
+    ),
+    code:
+'var GEC = window.GravityEntityCard;\n' +
+'\n' +
+'// Indirizzo a due righe tramite valueNode\n' +
+'var addrNode = React.createElement(\'span\',\n' +
+'  { style: { display: \'flex\', flexDirection: \'column\', lineHeight: \'18px\' } },\n' +
+'  React.createElement(\'span\', { style: { color: \'rgba(0,0,0,0.65)\' } },\n' +
+'    \'Via Casalini, 90136 Palermo PA\'),\n' +
+'  React.createElement(\'span\', { style: { color: \'rgba(0,0,0,0.45)\', fontSize: \'11px\' } },\n' +
+'    \'Rotonda Nord Ovest\')\n' +
+');\n' +
+'\n' +
+'React.createElement(GEC, {\n' +
+'  title: \'Sistema Via Casalini\',\n' +
+'  showMenu: true,\n' +
+'  badges: [\n' +
+'    { text: \'DOOH\',   variant: \'dooh\' },\n' +
+'    { text: \'Poster\', variant: \'default\' },\n' +
+'  ],\n' +
+'  image: { id: \'sg-1\', placeholder: \'foto impianto\', heightPx: 160 },\n' +
+'  fields: [\n' +
+'    { icon: \'EnvironmentOutlined\', label: \'Indirizzo:\',    valueNode: addrNode },\n' +
+'    { icon: \'GatewayOutlined\',     label: \'Format:\',       value: \'150 cm × 200 cm\' },\n' +
+'    { icon: \'BlockOutlined\',       label: \'Face Quantity:\', value: \'1\' },\n' +
+'    { icon: \'AppstoreOutlined\',    label: \'Slots:\',         value: \'6\' },\n' +
+'  ],\n' +
+'})',
+  });
+
+  /* ── Demo 6: Badge palette (full-width) ─────────── */
+  var VARIANTS = ['default','primary','ooh','dooh','success','warning','error','blue'];
+  var VLABELS  = { default:'Default', primary:'Primary', ooh:'OOH', dooh:'DOOH', success:'Success', warning:'Warning', error:'Error', blue:'Blue' };
+
+  var d6 = demo({
+    storyName: 'BadgeVariants',
+    full: true,
+    title: 'Badge Variants',
+    desc: 'All available badge variants. Use ooh / dooh for channel, primary for Gravity identity.',
+    node: h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', width: '100%' } },
+      VARIANTS.map(function (v) {
+        return h(GEC, { key: v, title: VLABELS[v], badge: { text: v, variant: v } });
+      })
+    ),
+    code:
+'// Variants: default | primary | ooh | dooh | success | warning | error | blue\n' +
+'React.createElement(GEC, {\n' +
+'  title: \'Canale OOH\',\n' +
+'  badge: { text: \'OOH\', variant: \'ooh\' },\n' +
+'})\n' +
+'React.createElement(GEC, {\n' +
+'  title: \'Canale DOOH\',\n' +
+'  badge: { text: \'DOOH\', variant: \'dooh\' },\n' +
+'})',
+  });
+
+  /* ── Mount demos ────────────────────────────────── */
+  var g2 = document.getElementById('grid-2col');
+  var gf = document.getElementById('grid-full');
+  [d1, d2, d3, d4].forEach(function (d) { g2.appendChild(d); });
+  [d5, d6, d7].forEach(function (d) { gf.appendChild(d); });
+
+  /* ── API tables ─────────────────────────────────── */
+  var COLS = [
+    { label: 'Property',    w: '170px' },
+    { label: 'Type',        w: '190px' },
+    { label: '',            w: '32px'  },
+    { label: 'Default',     w: '90px'  },
+    { label: 'Description', w: null    },
+  ];
+
+  function tbl(rows) {
+    var table = document.createElement('table');
+    table.className = 'api-table';
+    var thead = document.createElement('thead');
+    var hr = document.createElement('tr');
+    COLS.forEach(function (c) {
+      var th = document.createElement('th');
+      th.textContent = c.label;
+      if (c.w) th.style.width = c.w;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    rows.forEach(function (row) {
+      var tr = document.createElement('tr');
+      row.forEach(function (cell, i) {
+        var td = document.createElement('td');
+        if (i === 0) { td.className = 'c-prop'; td.innerHTML = '<code>' + cell + '</code>'; }
+        else if (i === 1) { td.className = 'c-type'; td.innerHTML = '<code>' + cell + '</code>'; }
+        else if (i === 2) { td.className = 'c-req'; td.innerHTML = cell ? '<span style="color:#FF4A1C">&#10006;</span>' : ''; }
+        else if (i === 3) { td.className = 'c-def'; td.innerHTML = cell ? '<code>' + cell + '</code>' : '—'; }
+        else { td.innerHTML = cell; }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
+  }
+
+  // required=true, default=''
+  function r(def) { return [true, def || '']; }
+  function o(def) { return [false, def || '']; }
+
+  document.getElementById('t-main').appendChild(tbl([
+    ['title',       'string',           ...r(''),       'Primary title shown in the header.'],
+    ['badge',       'Badge',            ...o(''),       'Single badge. Alternative to <code>badges</code>.'],
+    ['badges',      'Badge[]',          ...o(''),       'Array of badges. Alternative to <code>badge</code>.'],
+    ['showMenu',    'boolean',          ...o('false'),  'Shows the kebab ⋮ in the header.'],
+    ['image',       'Image',            ...o(''),       'Image slot. See <em>image</em> object below.'],
+    ['fields',      'Field[]',          ...o('[]'),     'Body fields. See <em>fields[n]</em> below.'],
+    ['bodyColumns', '1 | 2',            ...o('1'),      'Number of columns in the body.'],
+    ['footer',      'React.ReactNode',  ...o(''),       'Footer content. Any React node.'],
+    ['style',       'CSSProperties',    ...o(''),       'Extra inline style on the outer wrapper.'],
+    ['className',   'string',           ...o(''),       'Extra CSS class on the outer wrapper.'],
+  ]));
+
+  document.getElementById('t-badge').appendChild(tbl([
+    ['text',    'string',       ...r(''),         'Badge label.'],
+    ['variant', 'BadgeVariant', ...o('"default"'), '<code>default</code> <code>primary</code> <code>ooh</code> <code>dooh</code> <code>success</code> <code>warning</code> <code>error</code> <code>blue</code>'],
+  ]));
+
+  document.getElementById('t-field').appendChild(tbl([
+    ['label',     'string',          ...r(''),  'Field label, colon included — e.g. <code>"Tipologia:"</code>.'],
+    ['icon',      'string | null',   ...o(''),  'Ant Design icon name, e.g. <code>"TagOutlined"</code>. <code>null</code> for no icon.'],
+    ['value',     'string',          ...o(''),  'Text value. Omit when using <code>valueNode</code>.'],
+    ['valueNode', 'React.ReactNode', ...o(''),  'Complex value node (e.g. <code>GEC.statusDot()</code>). Takes precedence over <code>value</code>.'],
+    ['valueStyle','CSSProperties',   ...o(''),  'Extra inline style applied to the text value node.'],
+  ]));
+
+  document.getElementById('t-image').appendChild(tbl([
+    ['id',          'string', ...r(''),        'Unique key for the image slot.'],
+    ['placeholder', 'string', ...o('"Immagine"'), 'Empty-state label.'],
+    ['aspectRatio', 'string', ...o('"16/9"'),  'CSS <code>aspect-ratio</code> of the image container.'],
+    ['heightPx',    'number', ...o(''),        'Fixed height in px. Alternative to <code>aspectRatio</code>.'],
+  ]));
+
+
+})();
+</script>
+
+</body>
+</html>
