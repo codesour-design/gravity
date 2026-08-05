@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; -webkit-font-smoothing: antialiased; }
+  a { color: #3E00FB; text-decoration: none; }
+  a:hover { color: #6B3FFF; }
+  doc-page:not(:defined) { visibility: hidden; }
+</style>
+<script src="./doc-page.js"></script>
+</helmet>
+
+<doc-page margin="0.7in">
+
+  <div slot="header" style="display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #F0F0F0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;">
+    <span style="font-family: Oswald, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #3E00FB;">Gravity · Inventory Systems</span>
+    <span style="font-size: 10px; color: rgba(0,0,0,0.45);">Protocollo moderatore — uso interno</span>
+  </div>
+
+  <div slot="footer" style="display: flex; align-items: baseline; justify-content: space-between; padding-top: 8px; border-top: 1px solid #F0F0F0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; font-size: 10px; color: rgba(0,0,0,0.45);">
+    <span>Test di usabilità · sessione moderata 30 min</span>
+    <span>CodeSour Tech</span>
+  </div>
+
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; color: rgba(0,0,0,0.88); font-size: 11pt; line-height: 1.55;">
+
+    <div style="border-bottom: 2px solid #3E00FB; padding-bottom: 16px; margin-bottom: 22px;">
+      <div style="font-family: Oswald, sans-serif; font-size: 11pt; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: #3E00FB; margin-bottom: 6px;">Protocollo di test</div>
+      <h1 style="font-family: Oswald, sans-serif; font-size: 30pt; font-weight: 600; line-height: 1.1; letter-spacing: -0.01em; margin: 0 0 10px; text-transform: uppercase;">Usabilità · Inventory Systems</h1>
+      <p style="margin: 0; font-size: 11pt; color: rgba(0,0,0,0.65);">Sessioni moderate think aloud da 30 minuti sul prototipo parco impianti. Primo giro con il team interno di sviluppo: serve a tarare task, tempi e strumenti prima dei test con media owner reali.</p>
+      <div style="display: flex; gap: 18px; margin-top: 12px; font-size: 10pt; color: rgba(0,0,0,0.45);">
+        <span>6 task</span><span>30 minuti</span><span>Moderato · think aloud</span><span>Focus: form Nuovo Impianto e edit scheda</span>
+      </div>
+    </div>
+
+    <h2 style="font-family: Oswald, sans-serif; font-size: 15pt; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0 0 10px;">1 · Obiettivi di ricerca</h2>
+    <p style="margin: 0 0 12px; color: rgba(0,0,0,0.65);">Il prototipo copre tre momenti: trovare un impianto (mappa, ricerca, filtri, lista), censirne uno nuovo (drawer a sei sezioni con RBAC per ruolo) e mantenerlo nel tempo (scheda con modifica per sezione e storico eventi). Il test verifica se la seconda e la terza reggono senza accompagnamento.</p>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px;">
+      <tbody>
+        <tr style="break-inside: avoid;"><td style="width: 44px; vertical-align: top; padding: 7px 0; border-bottom: 1px solid #F0F0F0; font-family: monospace; font-size: 9pt; font-weight: 700; color: #3E00FB;">RQ1</td><td style="padding: 7px 0; border-bottom: 1px solid #F0F0F0; font-size: 10.5pt;">Il form Nuovo Impianto è percorribile in una sola sessione, o le persone si aspettano di poter salvare in bozza e riprendere?</td></tr>
+        <tr style="break-inside: avoid;"><td style="vertical-align: top; padding: 7px 0; border-bottom: 1px solid #F0F0F0; font-family: monospace; font-size: 9pt; font-weight: 700; color: #3E00FB;">RQ2</td><td style="padding: 7px 0; border-bottom: 1px solid #F0F0F0; font-size: 10.5pt;">Le sei sezioni (anagrafica → iter → tecnici → cespiti → squadre → commerciale) corrispondono al modello mentale del ciclo di vita di un impianto?</td></tr>
+        <tr style="break-inside: avoid;"><td style="vertical-align: top; padding: 7px 0; border-bottom: 1px solid #F0F0F0; font-family: monospace; font-size: 9pt; font-weight: 700; color: #3E00FB;">RQ3</td><td style="padding: 7px 0; border-bottom: 1px solid #F0F0F0; font-size: 10.5pt;"><strong>La modifica per sezione della scheda è scopribile e prevedibile?</strong> Le persone capiscono cosa stanno salvando e cosa succede alle modifiche pendenti quando cambiano sezione.</td></tr>
+        <tr style="break-inside: avoid;"><td style="vertical-align: top; padding: 7px 0; border-bottom: 1px solid #F0F0F0; font-family: monospace; font-size: 9pt; font-weight: 700; color: #3E00FB;">RQ4</td><td style="padding: 7px 0; border-bottom: 1px solid #F0F0F0; font-size: 10.5pt;">Il vocabolario di dominio è condiviso: canale, faccia, cimasa, concessione contro autorizzazione, stato amministrativo contro stato commerciale.</td></tr>
+        <tr style="break-inside: avoid;"><td style="vertical-align: top; padding: 7px 0; font-family: monospace; font-size: 9pt; font-weight: 700; color: #3E00FB;">RQ5</td><td style="padding: 7px 0; font-size: 10.5pt;">Ricerca unificata e filtri avanzati portano all'impianto giusto senza aiuto, e la relazione mappa/lista è chiara.</td></tr>
+      </tbody>
+    </table>
+    <div style="break-inside: avoid; border: 1px solid #FFD591; background: #FFF7E6; border-radius: 6px; padding: 10px 12px; margin-bottom: 22px; font-size: 10pt; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Bias da dichiarare nel report.</strong> I partecipanti di questo primo giro sono il team di sviluppo: conoscono il dominio e in parte il prototipo. I risultati valgono per scoperta di bug di interazione e taratura del protocollo, non come misura di apprendibilità.</div>
+
+    <h2 style="font-family: Oswald, sans-serif; font-size: 15pt; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0 0 10px;">2 · Setup e agenda</h2>
+    <div style="break-inside: avoid; border: 1px solid #F0F0F0; border-radius: 6px; padding: 12px 14px; margin-bottom: 10px;">
+      <div style="font-size: 9pt; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: rgba(0,0,0,0.35); margin-bottom: 5px;">Condizioni</div>
+      <div style="font-size: 10.5pt; color: rgba(0,0,0,0.65);">Prototipo inventory-systems, desktop ≥ 1440px, ruolo demo Admin tenant salvo diversa indicazione. Cache geocoding già popolata prima della sessione: la barra di progresso iniziale non deve entrare nel tempo di task.</div>
+    </div>
+    <div style="break-inside: avoid; border: 1px solid #F0F0F0; border-radius: 6px; padding: 12px 14px; margin-bottom: 14px;">
+      <div style="font-size: 9pt; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: rgba(0,0,0,0.35); margin-bottom: 5px;">Regole del moderatore</div>
+      <div style="font-size: 10.5pt; color: rgba(0,0,0,0.65);">Nessun aiuto nei primi 90 secondi. Poi un solo suggerimento generico ("dove cercheresti?"); se serve un secondo aiuto la task vale <em>con aiuto</em>. Interrompere a 4 minuti e segnare fallimento. Rilanci utili: "cosa ti aspetti che succeda?", "cosa stai cercando adesso?", "questo era quello che pensavi?".</div>
+    </div>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 22px; font-size: 10.5pt;">
+      <thead><tr style="background: #FAFAFA;"><th style="text-align: left; padding: 7px 10px; border-bottom: 1px solid #F0F0F0; font-size: 9pt; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0,0,0,0.45); width: 70px;">Min</th><th style="text-align: left; padding: 7px 10px; border-bottom: 1px solid #F0F0F0; font-size: 9pt; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0,0,0,0.45);">Momento</th></tr></thead>
+      <tbody>
+        <tr><td style="padding: 7px 10px; border-bottom: 1px solid #F0F0F0; color: rgba(0,0,0,0.45);">0–3</td><td style="padding: 7px 10px; border-bottom: 1px solid #F0F0F0;">Introduzione, consenso alla registrazione, "non stiamo testando te"</td></tr>
+        <tr><td style="padding: 7px 10px; border-bottom: 1px solid #F0F0F0; color: rgba(0,0,0,0.45);">3–6</td><td style="padding: 7px 10px; border-bottom: 1px solid #F0F0F0;">Task 1 — ricerca (riscaldamento)</td></tr>
+        <tr><td style="padding: 7px 10px; border-bottom: 1px solid #F0F0F0; color: rgba(0,0,0,0.45);">6–15</td><td style="padding: 7px 10px; border-bottom: 1px solid #F0F0F0;">Task 2 e 3 — creazione impianto</td></tr>
+        <tr><td style="padding: 7px 10px; border-bottom: 1px solid #F0F0F0; color: rgba(0,0,0,0.45);">15–25</td><td style="padding: 7px 10px; border-bottom: 1px solid #F0F0F0;">Task 4, 5 e 6 — scheda impianto e modifica</td></tr>
+        <tr><td style="padding: 7px 10px; color: rgba(0,0,0,0.45);">25–30</td><td style="padding: 7px 10px;">SUS, domande finali, chiusura</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="font-family: Oswald, sans-serif; font-size: 15pt; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0 0 10px;">3 · Metriche per ogni task</h2>
+    <p style="margin: 0 0 22px; color: rgba(0,0,0,0.65); font-size: 10.5pt;"><strong style="color: rgba(0,0,0,0.88);">Esito</strong> successo / con aiuto / fallimento · <strong style="color: rgba(0,0,0,0.88);">Tempo</strong> dal via al criterio di successo · <strong style="color: rgba(0,0,0,0.88);">Errori</strong> azioni sbagliate o tornate indietro · <strong style="color: rgba(0,0,0,0.88);">Click</strong> reali contro percorso atteso · <strong style="color: rgba(0,0,0,0.88);">SEQ</strong> "quanto è stato difficile?" da 1 a 7, subito dopo la task.</p>
+
+    <h2 style="break-before: page; font-family: Oswald, sans-serif; font-size: 15pt; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0 0 14px;">4 · Le sei task</h2>
+
+    <div style="break-inside: avoid; border: 1px solid #F0F0F0; border-radius: 6px; overflow: hidden; margin-bottom: 14px;">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: #FAFAFA; border-bottom: 1px solid #F0F0F0;">
+        <span style="font-family: Oswald, sans-serif; font-size: 14pt; font-weight: 600; color: #3E00FB;">T1</span>
+        <span style="font-size: 11pt; font-weight: 600;">Trovare l'impianto giusto</span>
+        <span style="margin-left: auto; font-size: 9pt; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Ricerca · ~3 min</span>
+      </div>
+      <div style="padding: 12px 14px; font-size: 10.5pt;">
+        <p style="margin: 0 0 8px;"><strong>Scenario da leggere.</strong> «Un cliente al telefono ti chiede quali pensiline illuminate avete in zona Politeama. Trovale sul prototipo e aprine una per guardarne i dettagli.»</p>
+        <p style="margin: 0 0 8px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> Arriva alla scheda di una pensilina della zona Politeama avendo ristretto il set con ricerca o filtri, non scorrendo a caso la mappa.</p>
+        <p style="margin: 0 0 8px; padding: 9px 11px; background: #F9F5FF; border-radius: 5px; color: rgba(0,0,0,0.65); font-size: 10pt;"><strong style="color: #3E00FB;">Da osservare.</strong> Parte dalla barra di ricerca o da "Filtri avanzati"? Si accorge dei chip dei filtri attivi? Passa in vista Lista o resta in Mappa? Cosa si aspetta che faccia "Cerca" quando la zona è già un tag?</p>
+        <p style="margin: 0; font-size: 10pt; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Post-task.</strong> Come hai deciso da dove partire? · Guardando la mappa, quanti impianti pensavi rispondessero alla richiesta?</p>
+      </div>
+    </div>
+
+    <div style="break-inside: avoid; border: 1px solid #F0F0F0; border-radius: 6px; overflow: hidden; margin-bottom: 14px;">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: #FAFAFA; border-bottom: 1px solid #F0F0F0;">
+        <span style="font-family: Oswald, sans-serif; font-size: 14pt; font-weight: 600; color: #3E00FB;">T2</span>
+        <span style="font-size: 11pt; font-weight: 600;">Censire un nuovo impianto</span>
+        <span style="margin-left: auto; font-size: 9pt; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Creazione · ~5 min</span>
+      </div>
+      <div style="padding: 12px 14px; font-size: 10.5pt;">
+        <p style="margin: 0 0 8px;"><strong>Scenario da leggere.</strong> «È stata installata una nuova pensilina in Via Roma 250 a Palermo, formato 120×180 cm. Inseriscila a sistema portandoti al punto in cui potresti salvarla.»</p>
+        <p style="margin: 0 0 8px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> Il pulsante "Crea Impianto" diventa attivo e la persona sa dire quali campi lo hanno sbloccato.</p>
+        <p style="margin: 0 0 8px; padding: 9px 11px; background: #F9F5FF; border-radius: 5px; color: rgba(0,0,0,0.65); font-size: 10pt;"><strong style="color: #3E00FB;">Da osservare.</strong> Capisce la catena canale → tipologia → formato, o prova a compilare il formato per primo? Legge gli asterischi nel menu di sinistra come campi mancanti? Cerca il salva in fondo alla pagina invece che in alto a destra? Sfoglia tutte e sei le sezioni prima di salvare, cioè teme di aver saltato qualcosa di obbligatorio?</p>
+        <p style="margin: 0; font-size: 10pt; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Post-task.</strong> Quanto ti è sembrato lungo? · Quali sezioni ti aspettavi obbligatorie e quali rimandabili? · In una giornata reale avresti tutti questi dati sottomano nello stesso momento?</p>
+      </div>
+    </div>
+
+    <div style="break-inside: avoid; border: 1px solid #F0F0F0; border-radius: 6px; overflow: hidden; margin-bottom: 14px;">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: #FAFAFA; border-bottom: 1px solid #F0F0F0;">
+        <span style="font-family: Oswald, sans-serif; font-size: 14pt; font-weight: 600; color: #3E00FB;">T3</span>
+        <span style="font-size: 11pt; font-weight: 600;">Iter autorizzativo e seconda faccia</span>
+        <span style="margin-left: auto; font-size: 9pt; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Creazione · ~4 min</span>
+      </div>
+      <div style="padding: 12px 14px; font-size: 10.5pt;">
+        <p style="margin: 0 0 8px;"><strong>Scenario da leggere.</strong> «Prima di salvare: la pensilina è su suolo pubblico con concessione comunale, ed espone su due lati. Registra la concessione e aggiungi la faccia posteriore.»</p>
+        <p style="margin: 0 0 8px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> Una concessione presente in Iter autorizzativo e due facce in Dati tecnici, senza chiedere al moderatore dove stanno.</p>
+        <p style="margin: 0 0 8px; padding: 9px 11px; background: #F9F5FF; border-radius: 5px; color: rgba(0,0,0,0.65); font-size: 10pt;"><strong style="color: #3E00FB;">Da osservare.</strong> Distingue concessione, autorizzazione e permesso, o li tratta come sinonimi? Trova l'azione "crea posteriore" sulla card della faccia anteriore? Si aspetta che orientamento e coordinate della posteriore siano ereditati, e se ne accorge?</p>
+        <p style="margin: 0; font-size: 10pt; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Post-task.</strong> Con parole tue: che differenza c'è tra concessione e autorizzazione? · Se domani sposti l'impianto di dieci metri, quante cose devi aggiornare?</p>
+      </div>
+    </div>
+
+    <div style="break-inside: avoid; border: 1.5px solid #C5B4FF; border-radius: 6px; overflow: hidden; margin-bottom: 14px;">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: #F0EAFF; border-bottom: 1px solid #C5B4FF;">
+        <span style="font-family: Oswald, sans-serif; font-size: 14pt; font-weight: 600; color: #3E00FB;">T4</span>
+        <span style="font-size: 11pt; font-weight: 600;">Correggere un dato nella scheda</span>
+        <span style="margin-left: auto; font-size: 9pt; letter-spacing: 0.05em; text-transform: uppercase; color: #3E00FB;">Scheda · ~4 min · task chiave</span>
+      </div>
+      <div style="padding: 12px 14px; font-size: 10.5pt;">
+        <p style="margin: 0 0 8px;"><strong>Scenario da leggere.</strong> «Il tecnico ti avvisa che il civico è sbagliato: non è 250 ma 252. Apri la scheda dell'impianto e correggilo.»</p>
+        <p style="margin: 0 0 8px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> Il campo è aggiornato e salvato dalla barra flottante, e la persona sa dire che ha salvato.</p>
+        <p style="margin: 0 0 8px; padding: 9px 11px; background: #F9F5FF; border-radius: 5px; color: rgba(0,0,0,0.65); font-size: 10pt;"><strong style="color: #3E00FB;">Ipotesi da falsificare.</strong> La modifica per sezione non è scopribile: in lettura non c'è un segnale forte di "questo si può cambiare". Cronometrare quanto passa prima che trovi l'ingresso in modifica; annotare se prima prova a cliccare sul valore, se cerca una matita globale in alto, o se torna al form di creazione. Verificare se l'evidenziazione dei campi modificati viene notata e letta come "non ancora salvato".</p>
+        <p style="margin: 0; font-size: 10pt; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Post-task.</strong> Cosa hai salvato esattamente: quel campo, quella sezione o tutta la scheda? · Come faresti a tornare indietro?</p>
+      </div>
+    </div>
+
+    <div style="break-inside: avoid; border: 1.5px solid #C5B4FF; border-radius: 6px; overflow: hidden; margin-bottom: 14px;">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: #F0EAFF; border-bottom: 1px solid #C5B4FF;">
+        <span style="font-family: Oswald, sans-serif; font-size: 14pt; font-weight: 600; color: #3E00FB;">T5</span>
+        <span style="font-size: 11pt; font-weight: 600;">Cambiare idea a metà modifica</span>
+        <span style="margin-left: auto; font-size: 9pt; letter-spacing: 0.05em; text-transform: uppercase; color: #3E00FB;">Scheda · ~4 min · task chiave</span>
+      </div>
+      <div style="padding: 12px 14px; font-size: 10.5pt;">
+        <p style="margin: 0 0 8px;"><strong>Scenario da leggere.</strong> «Vuoi alzare la qualità dell'impianto nel profilo commerciale. Inizia a modificarla, poi passa a controllare i dati tecnici e infine decidi di lasciare tutto com'era.»</p>
+        <p style="margin: 0 0 8px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> La scheda torna allo stato iniziale e la persona sa dire con certezza che nulla è stato salvato.</p>
+        <p style="margin: 0 0 8px; padding: 9px 11px; background: #F9F5FF; border-radius: 5px; color: rgba(0,0,0,0.65); font-size: 10pt;"><strong style="color: #3E00FB;">Ipotesi da falsificare.</strong> L'ambito del salvataggio è ambiguo: con una sezione in modifica, cambiare sezione lascia incerti se le modifiche siano perse, in sospeso o salvate. Osservare se cercano una conferma, se rileggono la sezione per controllare, se provano a modificare due sezioni insieme.</p>
+        <p style="margin: 0; font-size: 10pt; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Post-task.</strong> Quando hai cambiato sezione, le tue modifiche esistevano ancora? · Cosa ti saresti aspettato che il sistema ti dicesse?</p>
+      </div>
+    </div>
+
+    <div style="break-inside: avoid; border: 1px solid #F0F0F0; border-radius: 6px; overflow: hidden; margin-bottom: 22px;">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: #FAFAFA; border-bottom: 1px solid #F0F0F0;">
+        <span style="font-family: Oswald, sans-serif; font-size: 14pt; font-weight: 600; color: #3E00FB;">T6</span>
+        <span style="font-size: 11pt; font-weight: 600;">Programmare una manutenzione</span>
+        <span style="margin-left: auto; font-size: 9pt; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Scheda · ~3 min</span>
+      </div>
+      <div style="padding: 12px 14px; font-size: 10.5pt;">
+        <p style="margin: 0 0 8px;"><strong>Scenario da leggere.</strong> «Domani mattina la squadra va a sistemare il vetro rotto di questa pensilina. Lascia traccia dell'intervento a sistema.»</p>
+        <p style="margin: 0 0 8px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> Un evento con data futura compare nello storico dell'impianto.</p>
+        <p style="margin: 0 0 8px; padding: 9px 11px; background: #F9F5FF; border-radius: 5px; color: rgba(0,0,0,0.65); font-size: 10pt;"><strong style="color: #3E00FB;">Da osservare.</strong> Cerca in "Storico eventi" o va prima in "Squadre"? Legge la timeline come cronologia passata e quindi non la associa a qualcosa di programmato? Capisce perché gli eventi futuri stanno in cima?</p>
+        <p style="margin: 0; font-size: 10pt; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Post-task.</strong> Dove ti aspettavi di trovare questa azione? · Chi altro in azienda dovrebbe vedere questo evento?</p>
+      </div>
+    </div>
+
+    <h2 style="font-family: Oswald, sans-serif; font-size: 15pt; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0 0 10px;">5 · SUS finale</h2>
+    <p style="margin: 0 0 8px; color: rgba(0,0,0,0.65); font-size: 10.5pt;">Dieci affermazioni, risposta da 1 (fortemente in disaccordo) a 5 (fortemente d'accordo). Somministrare subito dopo l'ultima task, prima delle domande aperte.</p>
+    <ol style="margin: 0 0 8px; padding-left: 20px; font-size: 10.5pt;">
+      <li style="margin-bottom: 3px;">Penso che userei volentieri questo sistema di frequente.</li>
+      <li style="margin-bottom: 3px;">Ho trovato il sistema inutilmente complesso.</li>
+      <li style="margin-bottom: 3px;">Ho trovato il sistema facile da usare.</li>
+      <li style="margin-bottom: 3px;">Penso che avrei bisogno del supporto di una persona tecnica per riuscire a usare il sistema.</li>
+      <li style="margin-bottom: 3px;">Ho trovato le varie funzioni del sistema ben integrate tra loro.</li>
+      <li style="margin-bottom: 3px;">Ho trovato troppe incoerenze nel sistema.</li>
+      <li style="margin-bottom: 3px;">Immagino che la maggior parte delle persone imparerebbe a usare il sistema molto rapidamente.</li>
+      <li style="margin-bottom: 3px;">Ho trovato il sistema molto macchinoso da usare.</li>
+      <li style="margin-bottom: 3px;">Mi sono sentito sicuro nell'usare il sistema.</li>
+      <li>Ho avuto bisogno di imparare molte cose prima di riuscire a usare il sistema.</li>
+    </ol>
+    <p style="margin: 0 0 22px; font-size: 10pt; color: rgba(0,0,0,0.45);">Punteggio: dispari (voto − 1) + pari (5 − voto), somma × 2,5. Con il team interno serve come baseline, non come giudizio.</p>
+
+    <h2 style="font-family: Oswald, sans-serif; font-size: 15pt; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0 0 10px;">6 · Griglia di sintesi</h2>
+    <p style="margin: 0 0 10px; color: rgba(0,0,0,0.65); font-size: 10.5pt;">Una riga per task, compilata a fine giro su tutti i partecipanti.</p>
+    <table style="width: 100%; border-collapse: collapse; font-size: 10pt;">
+      <thead><tr style="background: #FAFAFA;">
+        <th style="text-align: left; padding: 7px 8px; border: 1px solid #F0F0F0; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(0,0,0,0.45); width: 44px;">Task</th>
+        <th style="text-align: left; padding: 7px 8px; border: 1px solid #F0F0F0; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(0,0,0,0.45);">Problema principale osservato</th>
+        <th style="text-align: left; padding: 7px 8px; border: 1px solid #F0F0F0; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(0,0,0,0.45); width: 70px;">Successo</th>
+        <th style="text-align: left; padding: 7px 8px; border: 1px solid #F0F0F0; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(0,0,0,0.45); width: 62px;">Tempo</th>
+        <th style="text-align: left; padding: 7px 8px; border: 1px solid #F0F0F0; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(0,0,0,0.45); width: 52px;">SEQ</th>
+        <th style="text-align: left; padding: 7px 8px; border: 1px solid #F0F0F0; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(0,0,0,0.45); width: 58px;">Gravità</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding: 16px 8px; border: 1px solid #F0F0F0; color: rgba(0,0,0,0.65);">T1</td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td></tr>
+        <tr><td style="padding: 16px 8px; border: 1px solid #F0F0F0; color: rgba(0,0,0,0.65);">T2</td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td></tr>
+        <tr><td style="padding: 16px 8px; border: 1px solid #F0F0F0; color: rgba(0,0,0,0.65);">T3</td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td></tr>
+        <tr><td style="padding: 16px 8px; border: 1px solid #F0F0F0; color: rgba(0,0,0,0.65);">T4</td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td></tr>
+        <tr><td style="padding: 16px 8px; border: 1px solid #F0F0F0; color: rgba(0,0,0,0.65);">T5</td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td></tr>
+        <tr><td style="padding: 16px 8px; border: 1px solid #F0F0F0; color: rgba(0,0,0,0.65);">T6</td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td><td style="border: 1px solid #F0F0F0;"></td></tr>
+      </tbody>
+    </table>
+    <p style="margin: 8px 0 0; font-size: 10pt; color: rgba(0,0,0,0.45);">Gravità: 1 cosmetico · 2 fastidio · 3 blocca il compito · 4 rischio di dato sbagliato a sistema.</p>
+
+  </div>
+</doc-page>
+</x-dc>
+</body>
+</html>

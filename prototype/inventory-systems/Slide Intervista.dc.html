@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #F5F5F5; -webkit-font-smoothing: antialiased; }
+  a { color: #3E00FB; text-decoration: none; }
+  a:hover { color: #6B3FFF; }
+</style>
+</helmet>
+
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+  <section data-label="Copertina" data-screen-label="01" data-speaker-notes="Accogliere, ringraziare. Chiedere il consenso alla registrazione. Ricordare: stiamo testando il prototipo, non la persona." style="width: 1920px; height: 1080px; background: #FFFFFF; display: flex; flex-direction: column; justify-content: center; padding: 0 160px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; box-sizing: border-box; gap: 32px;">
+    <span style="font-family: Oswald, sans-serif; font-size: 28px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: #3E00FB;">Gravity Platform · Inventory</span>
+    <h1 style="font-family: Oswald, sans-serif; font-size: 148px; font-weight: 600; line-height: 0.95; letter-spacing: -0.02em; margin: 0; text-transform: uppercase; color: rgba(0,0,0,0.88);">Sessione di<br />test</h1>
+    <p style="margin: 0; font-size: 34px; line-height: 1.5; color: rgba(0,0,0,0.55); max-width: 26ch;">Sei compiti sul prototipo del parco impianti. Circa trenta minuti.</p>
+    <div style="width: 180px; height: 6px; background: #3E00FB; margin-top: 8px;"></div>
+  </section>
+
+  <section data-label="Come funziona" data-screen-label="02" data-speaker-notes="Leggere i cinque punti. Insistere sul pensare ad alta voce: è il dato principale. Chiedere se ci sono domande prima di iniziare." style="width: 1920px; height: 1080px; background: #FFFFFF; display: flex; flex-direction: column; justify-content: center; padding: 0 160px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; box-sizing: border-box; gap: 56px;">
+    <h2 style="font-family: Oswald, sans-serif; font-size: 76px; font-weight: 600; letter-spacing: -0.01em; margin: 0; text-transform: uppercase; color: rgba(0,0,0,0.88);">Come funziona</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px 48px;">
+      <div style="display: flex; gap: 20px; align-items: flex-start;"><span style="font-family: Oswald, sans-serif; font-size: 40px; font-weight: 600; color: #3E00FB; line-height: 1;">01</span><span style="font-size: 32px; line-height: 1.45; color: rgba(0,0,0,0.75);">Non stiamo testando te. Se qualcosa non funziona, è colpa del prototipo.</span></div>
+      <div style="display: flex; gap: 20px; align-items: flex-start;"><span style="font-family: Oswald, sans-serif; font-size: 40px; font-weight: 600; color: #3E00FB; line-height: 1;">02</span><span style="font-size: 32px; line-height: 1.45; color: rgba(0,0,0,0.75);">Pensa ad alta voce: cosa cerchi, cosa ti aspetti, cosa ti sorprende.</span></div>
+      <div style="display: flex; gap: 20px; align-items: flex-start;"><span style="font-family: Oswald, sans-serif; font-size: 40px; font-weight: 600; color: #3E00FB; line-height: 1;">03</span><span style="font-size: 32px; line-height: 1.45; color: rgba(0,0,0,0.75);">Non ti aiuterò subito: fa parte del gioco vederti cercare.</span></div>
+      <div style="display: flex; gap: 20px; align-items: flex-start;"><span style="font-family: Oswald, sans-serif; font-size: 40px; font-weight: 600; color: #3E00FB; line-height: 1;">04</span><span style="font-size: 32px; line-height: 1.45; color: rgba(0,0,0,0.75);">È un prototipo: alcuni dati sono finti e qualcosa non risponderà.</span></div>
+      <div style="display: flex; gap: 20px; align-items: flex-start;"><span style="font-family: Oswald, sans-serif; font-size: 40px; font-weight: 600; color: #3E00FB; line-height: 1;">05</span><span style="font-size: 32px; line-height: 1.45; color: rgba(0,0,0,0.75);">Dopo ogni compito ti chiedo quanto è stato difficile, da 1 a 7.</span></div>
+      <div style="display: flex; gap: 20px; align-items: flex-start;"><span style="font-family: Oswald, sans-serif; font-size: 40px; font-weight: 600; color: #3E00FB; line-height: 1;">06</span><span style="font-size: 32px; line-height: 1.45; color: rgba(0,0,0,0.75);">Puoi fermarti quando vuoi.</span></div>
+    </div>
+  </section>
+
+  <section data-label="T1 · Ricerca" data-screen-label="03" data-speaker-notes="Successo: arriva alla scheda di una pensilina in zona Politeama avendo ristretto il set con ricerca o filtri. Osservare: parte dalla barra o dai filtri avanzati? Nota i chip attivi? Passa in Lista? Stop a 4 minuti." style="width: 1920px; height: 1080px; background: #FFFFFF; display: flex; align-items: center; padding: 0 160px; gap: 96px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; width: 300px;">
+      <span style="font-family: Oswald, sans-serif; font-size: 200px; font-weight: 600; line-height: 0.8; letter-spacing: -0.04em; color: #3E00FB;">1</span>
+      <span style="font-size: 24px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Ricerca</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 36px; flex: 1;">
+      <h2 style="font-family: Oswald, sans-serif; font-size: 60px; font-weight: 600; letter-spacing: -0.01em; margin: 0; text-transform: uppercase; color: rgba(0,0,0,0.88);">Trovare l'impianto giusto</h2>
+      <p style="margin: 0; font-size: 44px; line-height: 1.4; color: rgba(0,0,0,0.75); text-wrap: pretty;">Un cliente al telefono ti chiede quali <strong style="color: rgba(0,0,0,0.88);">pensiline illuminate</strong> avete in <strong style="color: rgba(0,0,0,0.88);">zona Politeama</strong>.</p>
+      <p style="margin: 0; font-size: 34px; line-height: 1.45; color: rgba(0,0,0,0.45);">Trovale sul prototipo e apri la scheda di una di queste.</p>
+    </div>
+  </section>
+
+  <section data-label="T2 · Creazione" data-screen-label="04" data-speaker-notes="Successo: il pulsante Crea Impianto diventa attivo e sa dire quali campi lo hanno sbloccato. Osservare: capisce canale → tipologia → formato? Cerca il salva in fondo? Sfoglia tutte le sezioni per paura di saltarne una? Stop a 5 minuti." style="width: 1920px; height: 1080px; background: #FFFFFF; display: flex; align-items: center; padding: 0 160px; gap: 96px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; width: 300px;">
+      <span style="font-family: Oswald, sans-serif; font-size: 200px; font-weight: 600; line-height: 0.8; letter-spacing: -0.04em; color: #3E00FB;">2</span>
+      <span style="font-size: 24px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Creazione</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 36px; flex: 1;">
+      <h2 style="font-family: Oswald, sans-serif; font-size: 60px; font-weight: 600; letter-spacing: -0.01em; margin: 0; text-transform: uppercase; color: rgba(0,0,0,0.88);">Censire un nuovo impianto</h2>
+      <p style="margin: 0; font-size: 44px; line-height: 1.4; color: rgba(0,0,0,0.75); text-wrap: pretty;">È stata installata una nuova <strong style="color: rgba(0,0,0,0.88);">pensilina in Via Roma 250</strong>, Palermo, formato <strong style="color: rgba(0,0,0,0.88);">120×180 cm</strong>.</p>
+      <p style="margin: 0; font-size: 34px; line-height: 1.45; color: rgba(0,0,0,0.45);">Inseriscila a sistema, fino al punto in cui potresti salvarla.</p>
+    </div>
+  </section>
+
+  <section data-label="T3 · Creazione" data-screen-label="05" data-speaker-notes="Successo: una concessione in Iter autorizzativo e due facce in Dati tecnici, senza chiedere dove stanno. Osservare: distingue concessione da autorizzazione? Trova crea posteriore? Si accorge dei campi ereditati? Stop a 4 minuti." style="width: 1920px; height: 1080px; background: #FFFFFF; display: flex; align-items: center; padding: 0 160px; gap: 96px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; width: 300px;">
+      <span style="font-family: Oswald, sans-serif; font-size: 200px; font-weight: 600; line-height: 0.8; letter-spacing: -0.04em; color: #3E00FB;">3</span>
+      <span style="font-size: 24px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Creazione</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 36px; flex: 1;">
+      <h2 style="font-family: Oswald, sans-serif; font-size: 60px; font-weight: 600; letter-spacing: -0.01em; margin: 0; text-transform: uppercase; color: rgba(0,0,0,0.88);">Concessione e seconda faccia</h2>
+      <p style="margin: 0; font-size: 44px; line-height: 1.4; color: rgba(0,0,0,0.75); text-wrap: pretty;">La pensilina è su <strong style="color: rgba(0,0,0,0.88);">suolo pubblico con concessione comunale</strong> ed espone su <strong style="color: rgba(0,0,0,0.88);">due lati</strong>.</p>
+      <p style="margin: 0; font-size: 34px; line-height: 1.45; color: rgba(0,0,0,0.45);">Prima di salvare, registra la concessione e aggiungi la faccia posteriore.</p>
+    </div>
+  </section>
+
+  <section data-label="T4 · Scheda" data-screen-label="06" data-speaker-notes="TASK CHIAVE. Successo: campo aggiornato e salvato dalla barra flottante, e sa dire che ha salvato. Cronometrare quanto passa prima che trovi l'ingresso in modifica; annotare se clicca sul valore, cerca una matita in alto, o torna al form di creazione. Stop a 4 minuti." style="width: 1920px; height: 1080px; background: #FFFFFF; display: flex; align-items: center; padding: 0 160px; gap: 96px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; width: 300px;">
+      <span style="font-family: Oswald, sans-serif; font-size: 200px; font-weight: 600; line-height: 0.8; letter-spacing: -0.04em; color: #3E00FB;">4</span>
+      <span style="font-size: 24px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Scheda impianto</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 36px; flex: 1;">
+      <h2 style="font-family: Oswald, sans-serif; font-size: 60px; font-weight: 600; letter-spacing: -0.01em; margin: 0; text-transform: uppercase; color: rgba(0,0,0,0.88);">Correggere un dato</h2>
+      <p style="margin: 0; font-size: 44px; line-height: 1.4; color: rgba(0,0,0,0.75); text-wrap: pretty;">Il tecnico ti avvisa che il civico è sbagliato: <strong style="color: rgba(0,0,0,0.88);">non è 250 ma 252</strong>.</p>
+      <p style="margin: 0; font-size: 34px; line-height: 1.45; color: rgba(0,0,0,0.45);">Apri la scheda dell'impianto e correggilo.</p>
+    </div>
+  </section>
+
+  <section data-label="T5 · Scheda" data-screen-label="07" data-speaker-notes="TASK CHIAVE. Successo: la scheda torna allo stato iniziale e sa dire con certezza che nulla è stato salvato. Osservare se cerca una conferma, se rilegge per controllare, se prova a modificare due sezioni insieme. Stop a 4 minuti." style="width: 1920px; height: 1080px; background: #FFFFFF; display: flex; align-items: center; padding: 0 160px; gap: 96px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; width: 300px;">
+      <span style="font-family: Oswald, sans-serif; font-size: 200px; font-weight: 600; line-height: 0.8; letter-spacing: -0.04em; color: #3E00FB;">5</span>
+      <span style="font-size: 24px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Scheda impianto</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 36px; flex: 1;">
+      <h2 style="font-family: Oswald, sans-serif; font-size: 60px; font-weight: 600; letter-spacing: -0.01em; margin: 0; text-transform: uppercase; color: rgba(0,0,0,0.88);">Cambiare idea a metà</h2>
+      <p style="margin: 0; font-size: 44px; line-height: 1.4; color: rgba(0,0,0,0.75); text-wrap: pretty;">Vuoi alzare la <strong style="color: rgba(0,0,0,0.88);">qualità</strong> dell'impianto nel profilo commerciale. Inizia a modificarla, poi passa a controllare i dati tecnici.</p>
+      <p style="margin: 0; font-size: 34px; line-height: 1.45; color: rgba(0,0,0,0.45);">Alla fine decidi di lasciare tutto com'era.</p>
+    </div>
+  </section>
+
+  <section data-label="T6 · Scheda" data-screen-label="08" data-speaker-notes="Successo: un evento con data futura compare nello storico dell'impianto. Osservare: cerca in Storico eventi o in Squadre? Capisce perché i futuri stanno in cima? Stop a 3 minuti." style="width: 1920px; height: 1080px; background: #FFFFFF; display: flex; align-items: center; padding: 0 160px; gap: 96px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; width: 300px;">
+      <span style="font-family: Oswald, sans-serif; font-size: 200px; font-weight: 600; line-height: 0.8; letter-spacing: -0.04em; color: #3E00FB;">6</span>
+      <span style="font-size: 24px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Scheda impianto</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 36px; flex: 1;">
+      <h2 style="font-family: Oswald, sans-serif; font-size: 60px; font-weight: 600; letter-spacing: -0.01em; margin: 0; text-transform: uppercase; color: rgba(0,0,0,0.88);">Programmare una manutenzione</h2>
+      <p style="margin: 0; font-size: 44px; line-height: 1.4; color: rgba(0,0,0,0.75); text-wrap: pretty;">Domani mattina la squadra va a sistemare il <strong style="color: rgba(0,0,0,0.88);">vetro rotto</strong> di questa pensilina.</p>
+      <p style="margin: 0; font-size: 34px; line-height: 1.45; color: rgba(0,0,0,0.45);">Lascia traccia dell'intervento a sistema.</p>
+    </div>
+  </section>
+
+  <section data-label="Chiusura" data-screen-label="09" data-speaker-notes="Somministrare il SUS (10 item, 1-5), poi le due domande aperte. Chiedere il permesso di ricontattare per il secondo giro." style="width: 1920px; height: 1080px; background: #3E00FB; display: flex; flex-direction: column; justify-content: center; padding: 0 160px; gap: 48px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; box-sizing: border-box;">
+    <h2 style="font-family: Oswald, sans-serif; font-size: 100px; font-weight: 600; letter-spacing: -0.01em; margin: 0; text-transform: uppercase; color: #FFFFFF;">Ultime due domande</h2>
+    <div style="display: flex; flex-direction: column; gap: 26px;">
+      <span style="font-size: 44px; line-height: 1.4; color: rgba(255,255,255,0.92);">Cosa cambieresti per primo?</span>
+      <span style="font-size: 44px; line-height: 1.4; color: rgba(255,255,255,0.92);">Qual è stato il momento in cui non sapevi cosa fare?</span>
+    </div>
+    <span style="font-size: 30px; color: rgba(255,255,255,0.6); margin-top: 16px;">Grazie del tempo.</span>
+  </section>
+
+</x-import>
+</x-dc>
+</body>
+</html>
