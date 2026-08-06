@@ -3211,28 +3211,10 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
   const closeDetailTour = () => { setDetailTourOpen(false); localStorage.setItem(DETAIL_TOUR_KEY, '1'); };
   const detailTourSteps = [
     {
-      title: 'Scheda impianto',
-      description: 'Questa è la vista dettaglio di un impianto. Qui trovi il riepilogo anagrafico, i KPI principali e tutta la documentazione tecnica e commerciale.',
-      target: () => document.getElementById('grav-tour-detail-header'),
-      placement: 'bottom',
-    },
-    {
-      title: 'Indicatori principali',
-      description: 'Occupazione, canone annuo, audience giornaliera e ultimo evento sono sempre visibili in cima, indipendentemente dalla tab attiva.',
-      target: () => document.getElementById('grav-tour-detail-kpi'),
-      placement: 'bottom',
-    },
-    {
       title: 'Navigazione per sezioni',
       description: 'Le tab organizzano le informazioni per argomento: Dashboard, Dettaglio tecnico, Iter autorizzativo, Cespiti, Squadre, Commerciale e Timeline eventi.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
-    },
-    {
-      title: 'Modifica i dati',
-      description: 'Per aggiornare qualsiasi dato dell\'impianto — anagrafica, misure, prezzi, permessi — usa il tasto Modifica. Il form di modifica apre la sezione pertinente.',
-      target: () => document.getElementById('grav-tour-detail-edit'),
-      placement: 'bottomRight',
     },
   ];
 
