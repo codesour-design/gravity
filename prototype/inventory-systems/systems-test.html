@@ -498,7 +498,7 @@ const {
   CalendarOutlined, SyncOutlined, AimOutlined, EuroCircleOutlined, BankOutlined, FormatPainterOutlined,
   UploadOutlined, LockOutlined, UnlockOutlined, CarOutlined, LinkOutlined,
   BulbFilled, GatewayOutlined, QuestionCircleOutlined, DownloadOutlined, GlobalOutlined,
-  ShopOutlined, BorderOutlined, FlagOutlined, BlockOutlined,
+  ShopOutlined, BorderOutlined, FlagOutlined, BlockOutlined, CheckOutlined,
 } = icons;
 
 // ─────────────────────────────────────────────────────────
@@ -1678,18 +1678,33 @@ const STATO_ADMIN = [
   { label: 'Rimosso',         color: 'rgba(0,0,0,0.45)' },
 ];
 const PREZZI = [1200, 1800, 2400, 3200, 4800, 5600, 6500, 7800, 8200, 9600];
+// Fonte unica per i campi mock non presenti nel dataset: stessa funzione usata da lista E dettaglio.
+const mockDerived = (imp) => {
+  const n = idNum(imp);
+  return {
+    vendita:     n % 3 === 0 ? 'Long term' : 'Standard',
+    prezzo:      PREZZI[n % PREZZI.length],
+    utenza:      String(n * 2371 % 900000 + 100000),
+    cimasa:      'CIM-' + String(n * 1483 % 9000 + 1000).padStart(5, '0'),
+    faretti:     (n % 4) + 2,
+    dispositivi: (n % 4) + 1,
+  };
+};
 const FIXED_LEFT  = new Set(['canale', 'tipologia', 'formato']);
 const FIXED_RIGHT = new Set(['prezzo_totale', 'stato']);
+
+const IMP_STORE_KEY = 'gravity_impianti_v2';
+const loadStoredImpianti = () => {
+  try { const s = localStorage.getItem(IMP_STORE_KEY); if (s) return JSON.parse(s); } catch(e) {}
+  return null;
+};
 
 const ALL_COLUMNS = {
     canale: {
       title: 'Canale', dataIndex: 'canale', width: 90,
-      render: (_, r) => {
-        const isDooh = idNum(r) % 2 === 0;
-        return isDooh
-          ? React.createElement(Tag, { color: 'magenta', style: { marginInlineEnd: 0 } }, 'DOOH')
-          : React.createElement(Tag, { color: 'green',   style: { marginInlineEnd: 0 } }, 'OOH');
-      },
+      render: (_, r) => r.canale === 'DOOH'
+        ? React.createElement(Tag, { color: 'magenta', style: { marginInlineEnd: 0 } }, 'DOOH')
+        : React.createElement(Tag, { color: 'green',   style: { marginInlineEnd: 0 } }, 'OOH'),
     },
     tipologia: {
       title: 'Tipologia', dataIndex: 'tipo', width: 170,
@@ -1715,7 +1730,7 @@ const ALL_COLUMNS = {
       title: 'Illuminazione', dataIndex: 'illuminato', width: 130,
       render: (v, r) => {
         if (!v) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)', fontSize: 13 } }, 'Spento');
-        const faretti = (idNum(r) % 4) + 2;
+        const faretti = mockDerived(r).faretti;
         return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, color: 'rgba(0,0,0,0.65)' } },
           React.createElement(BulbOutlined, { style: { color: '#FAAD14', fontSize: 13 } }),
           `${faretti} faretti`,
@@ -1723,38 +1738,30 @@ const ALL_COLUMNS = {
       },
     },
     fornitore: {
-      title: 'Fornitore', dataIndex: 'fornitore', width: 160,
-      render: (_, r) => {
-        const n = idNum(r) % 4;
-        if (n === 0) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Proprietario');
-        return React.createElement(Button, { type: 'link', style: { padding: 0, height: 'auto', fontSize: 13 } }, FORNITORI_LIST[(n - 1) % 3]);
-      },
+      title: 'Fornitore', dataIndex: 'media_owner', width: 160,
+      render: (_, r) => r.media_owner === 'Proprietario'
+        ? React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Proprietario')
+        : React.createElement(Button, { type: 'link', style: { padding: 0, height: 'auto', fontSize: 13 } }, r.media_owner),
     },
     vendita: {
       title: 'Modello di vendita', dataIndex: 'vendita', width: 130,
-      render: (_, r) => {
-        const isLongterm = idNum(r) % 3 === 0;
-        return isLongterm
-          ? React.createElement(Tag, { color: 'purple', style: { marginInlineEnd: 0 } }, 'Longterm')
-          : React.createElement(Tag, { color: 'blue',   style: { marginInlineEnd: 0 } }, 'Standard');
-      },
+      render: (_, r) => mockDerived(r).vendita === 'Long term'
+        ? React.createElement(Tag, { color: 'purple', style: { marginInlineEnd: 0 } }, 'Long term')
+        : React.createElement(Tag, { color: 'blue',   style: { marginInlineEnd: 0 } }, 'Standard'),
     },
     prezzo_totale: {
       title: 'Prezzo totale', dataIndex: 'prezzo', width: 120,
       render: (_, r) => {
-        const p = PREZZI[idNum(r) % PREZZI.length];
+        const p = mockDerived(r).prezzo;
         return React.createElement('span', { style: { fontWeight: 500 } }, `€\u202F${p.toLocaleString('it-IT')}`);
       },
     },
     stato: {
-      title: 'Stato', dataIndex: 'stato', width: 160,
-      render: (_, r) => {
-        const s = STATO_ADMIN[idNum(r) % 4];
-        return React.createElement(Badge, { color: s.color, text: s.label });
-      },
+      title: 'Stato', dataIndex: 'stato_amm', width: 160,
+      render: (_, r) => React.createElement(Badge, { color: STATO_COLORS[r.stato_amm] || '#d9d9d9', text: r.stato_amm || 'Attivo' }),
     },
     dispositivi:    { title: 'Dispositivi', dataIndex: 'dispositivi', width: 100,
-      render: (_, r) => React.createElement('span', { style: { fontWeight: 600 } }, (idNum(r) % 4) + 1) },
+      render: (_, r) => React.createElement('span', { style: { fontWeight: 600 } }, mockDerived(r).dispositivi) },
     indirizzo:      { title: 'Indirizzo',      dataIndex: 'indirizzo',      width: 200, ellipsis: true,
       render: v => React.createElement('span', { style: { fontWeight: 500 } }, v) },
     coordinate:     { title: 'Coordinate',     dataIndex: 'coordinate',     width: 160,
@@ -1764,11 +1771,11 @@ const ALL_COLUMNS = {
     regione:        { title: 'Regione',   dataIndex: 'regione',   width: 120, render: () => 'Sicilia' },
     nazione:        { title: 'Nazione',   dataIndex: 'nazione',   width: 100, render: () => 'Italia' },
     suolo:          { title: 'Suolo',     dataIndex: 'suolo',     width: 110,
-      render: (_, r) => React.createElement('span', { style: { color: 'rgba(0,0,0,0.65)' } }, idNum(r) % 3 === 0 ? 'Privato' : 'Pubblico') },
+      render: (_, r) => React.createElement('span', { style: { color: 'rgba(0,0,0,0.65)' } }, r.suolo) },
     utenza:         { title: 'Utenza',  dataIndex: 'utenza',  width: 100,
-      render: (_, r) => React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, String(idNum(r) * 2371 % 900000 + 100000)) },
+      render: (_, r) => React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, mockDerived(r).utenza) },
     cimasa:         { title: 'Cimasa', dataIndex: 'cimasa',  width: 100,
-      render: (_, r) => React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, String(idNum(r) * 1483 % 9000 + 1000)) },
+      render: (_, r) => React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, mockDerived(r).cimasa) },
     autorizzazione: { title: 'Autorizzazione', dataIndex: 'autorizzazione', width: 200,
       render: (_, r) => {
         const n = idNum(r);
@@ -3062,23 +3069,61 @@ function ModuliLinkDrawer({ open, onClose, onSubmit, existingIds, currentId }) {
           })));
 }
 
-function ImpiantoDetailV2({ imp, onBack }) {
+function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
   const displayName = imp.nome || imp.code || imp.id || 'Impianto';
   const addr = (imp.indirizzo || 'Via Maqueda, 148').split(',');
+  const iv = imp._formData || {};
   const [data, setData] = useState({
-    canale: imp.canale || 'OOH', nome: displayName, tipologia: imp.tipo || '', formato: imp.formato || '',
-    stato: imp.stato_amm || 'Attivo', proprieta: 'Comune', proprietario: 'AMAT S.p.A.',
-    via: (addr[0] || '').trim(), civico: (addr[1] || '36').trim(), cap: '90133', citta: 'Palermo',
-    provincia: 'PA', regione: 'Sicilia', nazione: 'Italia', zona: imp.zona || 'Centro Storico',
-    lat: imp.lat ? String(imp.lat) : '38.1182', lng: imp.lng ? String(imp.lng) : '13.3608',
-    tipoSuolo: 'Pubblico', catSuolo: 'Urbano', utenza: 'DB45PL', cimasa: 'CIM-2024-00847',
-    progettista: 'Studio Tecnico Russo & Partners', progetto: '1305', ddl: 'Ing. Paolo Greco', rsc: 'Arch. Marta Vitale',
-    laboratorio: 'LabStrutture Palermo', geologo: 'Dott. Andrea Rizzo', collaudatore: 'Ing. Sergio Lombardo',
-    dataCollaudo: '02/09/2022', calcestruzzo: 'RCK > 25 MPA', acciaioCarp: 'S355JR - IPE 200', acciaioArm: 'FEB 44 K',
-    dittaCA: 'Edil Costruzioni S.r.l.', tecniche: 'Saldature con elettrodi basici', dataFine: '15/10/2024',
-    larghezza: '1250', altezza: '1800', profondita: '280', areaIngombro: '225', altTerra: '350', tipoAltezza: 'Alto', copertura: 'Riparato',
-    alias: 'Pensilina Libertà — Centro', circuiti: ['Premium City', 'Arredo Urbano'], qualita: 4,
-    vendita: 'Long term', prezzoLordo: '1.500,00', aliquotaIva: 22, scontoModuli: true, scontoPct: 10,
+    canale:       iv.canale       || imp.canale      || 'OOH',
+    nome:         iv.nome         || displayName,
+    tipologia:    iv.tipologia    || imp.tipo         || '',
+    formato:      iv.formato      || imp.formato      || '',
+    stato:        iv.stato        || imp.stato_amm    || 'Attivo',
+    proprieta:    iv.proprieta    || (imp.suolo === 'Privato' ? 'Privata' : 'Comune'),
+    proprietario: iv.proprietario || imp.media_owner  || 'Proprietario',
+    via:          iv.via          || (addr[0] || '').trim(),
+    civico:       iv.civico       || (addr[1] || '36').trim(),
+    cap:          iv.cap          || '90133',
+    citta:        iv.citta        || 'Palermo',
+    provincia:    iv.provincia    || 'PA',
+    regione:      iv.regione      || 'Sicilia',
+    nazione:      iv.nazione      || 'Italia',
+    zona:         iv.zona         || imp.zona         || 'Centro Storico',
+    lat:          iv.lat          || (imp.lat ? String(imp.lat) : '38.1182'),
+    lng:          iv.lng          || (imp.lng ? String(imp.lng) : '13.3608'),
+    tipoSuolo:    iv.tipoSuolo    || imp.suolo        || 'Pubblico',
+    catSuolo:     iv.catSuolo     || 'Urbano',
+    utenza:       iv.utenza       || mockDerived(imp).utenza,
+    cimasa:       iv.cimasa       || mockDerived(imp).cimasa,
+    progettista:  iv.progettista  || 'Studio Tecnico Russo & Partners',
+    progetto:     iv.progetto     || '1305',
+    ddl:          iv.ddl          || 'Ing. Paolo Greco',
+    rsc:          iv.rsc          || 'Arch. Marta Vitale',
+    laboratorio:  iv.laboratorio  || 'LabStrutture Palermo',
+    geologo:      iv.geologo      || 'Dott. Andrea Rizzo',
+    collaudatore: iv.collaudatore || 'Ing. Sergio Lombardo',
+    dataCollaudo: iv.dataCollaudo || '02/09/2022',
+    calcestruzzo: iv.calcestruzzo || 'RCK > 25 MPA',
+    acciaioCarp:  iv.acciaioCarp  || 'S355JR - IPE 200',
+    acciaioArm:   iv.acciaioArm   || 'FEB 44 K',
+    dittaCA:      iv.dittaCA      || iv.progDittaCA  || 'Edil Costruzioni S.r.l.',
+    tecniche:     iv.tecniche     || iv.tecnicheGc   || 'Saldature con elettrodi basici',
+    dataFine:     iv.dataFine     || iv.progDataFine || '15/10/2024',
+    larghezza:    iv.larghezza    || iv.largImp      || '1250',
+    altezza:      iv.altezza      || iv.altImp       || '1800',
+    profondita:   iv.profondita   || iv.profImp      || '280',
+    areaIngombro: iv.areaIngombro || '225',
+    altTerra:     iv.altTerra     || '350',
+    tipoAltezza:  iv.tipoAltezza  || 'Alto',
+    copertura:    iv.copertura    || (iv.riparato != null ? (iv.riparato ? 'Riparato' : 'Esposto') : 'Riparato'),
+    alias:        iv.alias        || iv.aliasImpianto || 'Pensilina Libertà — Centro',
+    circuiti:     iv.circuiti     || ['Premium City', 'Arredo Urbano'],
+    qualita:      iv.qualita      != null ? iv.qualita      : 4,
+    vendita:      iv.vendita      || mockDerived(imp).vendita,
+    prezzoLordo:  iv.prezzoLordo  || mockDerived(imp).prezzo.toLocaleString('it-IT') + ',00',
+    aliquotaIva:  iv.aliquotaIva  != null ? iv.aliquotaIva  : 22,
+    scontoModuli: iv.scontoModuli != null ? iv.scontoModuli : true,
+    scontoPct:    iv.scontoPct    != null ? iv.scontoPct    : 10,
   });
   const [active, setActive] = useState('dashboard');
   const [dashPreset, setDashPreset] = useState('anno');
@@ -4015,7 +4060,25 @@ function ImpiantoDetailV2({ imp, onBack }) {
       initialSection: EDIT_SECTION_MAP[active] || 'identita',
       onClose: () => setEditFormOpen(false),
       initialValues: data,
-      onSave: (d) => { setData(prev => ({ ...prev, ...d })); },
+      onSave: (d) => {
+        const prevStato = data.stato;
+        setData(prev => ({ ...prev, ...d }));
+        if (onUpdate) onUpdate(imp.id, d);
+        if (d.stato === 'In Manutenzione' && prevStato !== 'In Manutenzione') {
+          const parts = [
+            d.manSquadra    && 'Squadra: '    + d.manSquadra,
+            d.manTipoInt    && 'Intervento: ' + d.manTipoInt,
+            d.manComponente && 'Componente: ' + d.manComponente,
+          ].filter(Boolean);
+          const desc = parts.length ? (d.manNote ? d.manNote + ' · ' : '') + parts.join(' · ') : d.manNote || '—';
+          setExtraEvents(prev => [{
+            date: dayjs().format('DD/MM/YYYY'), time: dayjs().format('HH:mm'),
+            title: 'Intervento di manutenzione', desc,
+            badge: { label: 'In Manutenzione', status: 'warning' },
+            agent: 'Elena Faraci', agentInitial: 'EF',
+          }, ...prev]);
+        }
+      },
     }),
 
     // Drawer: collega concessione / autorizzazione
@@ -5196,6 +5259,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [tipologia, setTipologia] = useState(iv.tipologia || null);
   const [formato,   setFormato]   = useState(iv.formato   || null);
   const [stato,     setStato]     = useState(iv.stato     || null);
+  const [manModalOpen,  setManModalOpen]  = useState(false);
+  const [manTipoInt,    setManTipoInt]    = useState(null);
+  const [manSquadra,    setManSquadra]    = useState('');
+  const [manComponente, setManComponente] = useState('');
+  const [manNote,       setManNote]       = useState('');
 
   React.useEffect(() => {
     if (!open) return;
@@ -5205,6 +5273,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setNome(v.nome || '');
     setTipologia(v.tipologia || null);
     setStato(v.stato || null);
+    setManModalOpen(false); setManTipoInt(null); setManSquadra(''); setManComponente(''); setManNote('');
     setVia(v.via || '');
     setCivico(v.civico || '');
     setCap(v.cap || '');
@@ -5532,8 +5601,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [linkDrawerOpen,  setLinkDrawerOpen]  = useState(false);
   const [linkSelectedIds, setLinkSelectedIds] = useState([]);
   const [linkSearch,      setLinkSearch]      = useState('');
-  const [saveLinkOpen,    setSaveLinkOpen]    = useState(false);
-  const [saveLinkChosen,  setSaveLinkChosen]  = useState([]);
   const [proprieta,      setProprieta]      = useState(null);
   const [vendita,        setVendita]        = useState(null);
   const [prezzoNetto,    setPrezzoNetto]    = useState(null);
@@ -5634,13 +5701,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     antdMsg.success(editMode ? 'Modifiche salvate' : 'Impianto creato con successo');
     onClose();
   };
-  const handleCreate = () => {
-    const candidates = moduliCompatibili.filter(imp => !moduliCollegati.includes(imp.id));
-    if (candidates.length > 0) { setSaveLinkChosen(candidates.map(i => i.id)); setSaveLinkOpen(true); }
-    else doSave();
-  };
-  const confirmSaveLink = () => { setModuliCollegati(prev => [...new Set([...prev, ...saveLinkChosen])]); setSaveLinkOpen(false); setTimeout(doSave, 0); };
-  const skipSaveLink = () => { setSaveLinkOpen(false); setTimeout(doSave, 0); };
+  const handleCreate = () => { doSave(); };
 
   const debRef = useRef(null);
   const [activeSection, setActiveSection] = useState('identita');
@@ -5688,6 +5749,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   const collectFormData = () => ({
     canale, nome, tipologia, formato, stato,
+    manTipoInt, manSquadra, manComponente, manNote,
     via, civico, cap, citta, provincia, regione, nazione, lat, lng,
     tipoSuolo, catSuolo, utenza, zona: zn,
     largImp, altImp, profImp, altTerra, tipoAltezza, areaEspositiva, riparato, facce,
@@ -6037,7 +6099,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       React.createElement(Button, { onClick: onClose }, 'Annulla'),
       React.createElement(Button, {
         type: 'primary',
-        icon: React.createElement(editMode ? SaveOutlined : PlusOutlined),
+        icon: React.createElement(editMode ? SaveOutlined : CheckOutlined),
         disabled: !canSave,
         onClick: handleCreate,
       }, editMode ? 'Salva modifiche' : 'Crea Impianto'),
@@ -6126,7 +6188,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                   ],
                 })
               ),
-              cs('Stato', true, sel(stato, setStato, STATI_AMM_OPTS, 'Seleziona lo stato',
+              cs('Stato', true, sel(stato, v => {
+                setStato(v);
+                if (v === 'In Manutenzione') {
+                  setManTipoInt(null); setManSquadra(''); setManComponente(''); setManNote('');
+                  setManModalOpen(true);
+                }
+              }, STATI_AMM_OPTS, 'Seleziona lo stato',
                 { status: showErrors && !stato ? 'error' : undefined })),
             ),
           ),
@@ -6734,36 +6802,35 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           ),
     ),
 
-    // Modal "salva e collega" — proposto al salvataggio se ci sono impianti compatibili non ancora collegati
+    // Modale dettagli manutenzione — si apre quando l'utente seleziona "In Manutenzione"
     React.createElement(Modal, {
-      title: 'Collegare come moduli?', open: saveLinkOpen,
-      onCancel: skipSaveLink,
+      title: 'Dettagli manutenzione',
+      open: manModalOpen, width: 480,
+      onCancel: () => setManModalOpen(false),
       footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8 } },
-        React.createElement(Button, { onClick: skipSaveLink }, 'Salta'),
-        React.createElement(Button, { type: 'primary', icon: React.createElement(LinkOutlined), disabled: saveLinkChosen.length === 0, onClick: confirmSaveLink },
-          saveLinkChosen.length > 0 ? 'Collega (' + saveLinkChosen.length + ')' : 'Collega'),
+        React.createElement(Button, { onClick: () => setManModalOpen(false) }, 'Salta'),
+        React.createElement(Button, { type: 'primary', onClick: () => setManModalOpen(false) }, 'Registra'),
       ),
     },
-      React.createElement('div', { style: { fontSize: 14, color: 'rgba(0,0,0,0.65)', marginBottom: 16 } },
-        'Sono presenti impianti dello stesso tipo e formato che potresti vendere insieme a questo come moduli. Seleziona quelli da collegare:'),
-      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '40vh', overflow: 'auto' } },
-        moduliCompatibili.filter(imp => !moduliCollegati.includes(imp.id)).map(imp => {
-          const sel = saveLinkChosen.includes(imp.id);
-          return React.createElement('div', {
-            key: imp.id,
-            onClick: () => setSaveLinkChosen(prev => prev.includes(imp.id) ? prev.filter(x => x !== imp.id) : [...prev, imp.id]),
-            style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid ' + (sel ? '#3E00FB' : '#E8E8E8'), borderRadius: 8, cursor: 'pointer', background: sel ? '#F5F2FF' : '#fff' },
-          },
-            React.createElement(Checkbox, { checked: sel }),
-            React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-              React.createElement('div', { style: { fontSize: 14, fontWeight: 600 } }, imp.id + ' · ' + imp.tipo),
-              React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, imp.indirizzo),
-            ),
-            React.createElement(Tag, { style: { margin: 0 } }, imp.formato),
-          );
-        }),
-      ),
-    )
+      (() => {
+        const row = (label, control) => React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 } },
+          React.createElement('div', { style: { width: 160, textAlign: 'right', paddingTop: 5, fontSize: 14, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label),
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } }, control),
+        );
+        return React.createElement('div', { style: { paddingTop: 8 } },
+          React.createElement('div', { style: { marginBottom: 20, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
+            'Lo stato è stato impostato su ', React.createElement('strong', null, 'In Manutenzione'), '. Puoi aggiungere i dettagli dell\'intervento — verranno registrati nella cronologia al salvataggio.'),
+          row('Tipo intervento', React.createElement(Select, { value: manTipoInt, onChange: setManTipoInt, options: TIPO_MAN_OPTS, placeholder: 'Seleziona', style: { width: '100%' }, allowClear: true })),
+          row('Squadra', React.createElement(Select, {
+            value: manSquadra || undefined, onChange: v => setManSquadra(v || ''),
+            options: SQUADRE_AFF_OPTS, placeholder: 'Seleziona la squadra',
+            style: { width: '100%' }, showSearch: true, allowClear: true, optionFilterProp: 'label',
+          })),
+          row('Componente interessato', React.createElement(Input, { value: manComponente, onChange: e => setManComponente(e.target.value), placeholder: 'Es. pannello frontale, illuminazione…' })),
+          row('Note', React.createElement(Input.TextArea, { value: manNote, onChange: e => setManNote(e.target.value), placeholder: 'Descrizione dell\'intervento', autoSize: { minRows: 2, maxRows: 4 } })),
+        );
+      })(),
+    ),
   );
 }
 
@@ -6866,7 +6933,10 @@ function App() {
   }, [availableLabels, implantiLabels, pickerOpenId, showNewForm, newLabelName, newLabelColor, toggleImpLabel, closePicker, createLabel]);
 
   // ── Geocoding ─────────────────────────────────────────
-  const [geocodedImpianti,  setGeocodedImpianti]  = useState(IMPIANTI);
+  const [geocodedImpianti,  setGeocodedImpianti]  = useState(() => loadStoredImpianti() || IMPIANTI);
+  useEffect(() => {
+    try { localStorage.setItem(IMP_STORE_KEY, JSON.stringify(geocodedImpianti)); } catch(e) {}
+  }, [geocodedImpianti]);
   const [newlyCreatedId,    setNewlyCreatedId]    = useState(null);
   const [geocodingProgress, setGeocodingProgress] = useState(null);
 
@@ -6876,7 +6946,7 @@ function App() {
     try { cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch(e) {}
 
     const applyCache = (c) => {
-      setGeocodedImpianti(IMPIANTI.map(imp =>
+      setGeocodedImpianti(prev => prev.map(imp =>
         c[imp.id] ? { ...imp, lat: c[imp.id].lat, lng: c[imp.id].lng } : imp
       ));
     };
@@ -7146,13 +7216,53 @@ function App() {
     });
   }, []);
 
-
+  const handleUpdateImp = useCallback((id, formData) => {
+    const pLat = parseFloat(formData.lat), pLng = parseFloat(formData.lng);
+    const hasCoord = isFinite(pLat) && isFinite(pLng);
+    const illuminato = !!(formData.facce?.some(x => x.illumStato && x.illumStato !== 'Spento'));
+    setGeocodedImpianti(prev => prev.map(imp =>
+      imp.id !== id ? imp : {
+        ...imp,
+        tipo: formData.tipologia || imp.tipo,
+        canale: formData.canale || imp.canale,
+        indirizzo: [formData.via, formData.civico].filter(Boolean).join(', ') || imp.indirizzo,
+        zona: formData.zona || imp.zona,
+        lat: hasCoord ? pLat : imp.lat,
+        lng: hasCoord ? pLng : imp.lng,
+        faces: formData.facce?.length || imp.faces,
+        formato: formData.formato || imp.formato,
+        illuminato,
+        stato_amm: formData.stato || imp.stato_amm,
+        suolo: formData.tipoSuolo || imp.suolo,
+        media_owner: formData.proprietario || imp.media_owner,
+        nome: formData.nome || imp.nome,
+        _formData: formData,
+      }
+    ));
+    setDetailImpianto(prev => prev?.id === id ? {
+      ...prev,
+      tipo: formData.tipologia || prev.tipo,
+      canale: formData.canale || prev.canale,
+      indirizzo: [formData.via, formData.civico].filter(Boolean).join(', ') || prev.indirizzo,
+      zona: formData.zona || prev.zona,
+      lat: hasCoord ? pLat : prev.lat,
+      lng: hasCoord ? pLng : prev.lng,
+      faces: formData.facce?.length || prev.faces,
+      formato: formData.formato || prev.formato,
+      illuminato,
+      stato_amm: formData.stato || prev.stato_amm,
+      suolo: formData.tipoSuolo || prev.suolo,
+      media_owner: formData.proprietario || prev.media_owner,
+      nome: formData.nome || prev.nome,
+      _formData: formData,
+    } : prev);
+  }, []);
 
   return React.createElement('div', { className: 'app-shell' },
     React.createElement(window.GravityNavbar, null),
 
     page === 'detail'
-      ? React.createElement(ImpiantoDetailV2, { imp: detailImpianto, onBack: () => setPage('map') })
+      ? React.createElement(ImpiantoDetailV2, { imp: detailImpianto, onBack: () => setPage('map'), onUpdate: handleUpdateImp })
       : false ? React.createElement(ImpiantoDetailPage, { imp: detailImpianto, onBack: () => setPage('map'), onEdit: () => {
           if (savedFormData) {
             setPrefillData(savedFormData);
@@ -7449,6 +7559,11 @@ function App() {
             stato: 'Disponibile',
             illuminato: !!(data.facce && data.facce.some(x => x.illumStato && x.illumStato !== 'Spento')),
             stato_amm: data.stato || 'Attivo',
+            suolo: data.tipoSuolo || 'Pubblico',
+            media_owner: data.proprietario || 'Proprietario',
+            nome: data.nome || null,
+            code: 'PA-N' + String(Date.now()).slice(-4),
+            _formData: data,
           };
           setGeocodedImpianti(prev => [newImp, ...prev]);
           setNewlyCreatedId(newImp.id);
