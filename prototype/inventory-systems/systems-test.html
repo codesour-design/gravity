@@ -1887,11 +1887,27 @@ function ListView({ impianti, viewMode, setViewMode, onDetail, newlyCreatedId })
     { key: 'stato', fixed: 'right', ...ALL_COLUMNS['stato'] },
     {
       key: '_actions', dataIndex: '_actions', title: '', width: 48, fixed: 'right',
-      render: () => React.createElement(Button, {
-        type: 'text', size: 'small',
-        icon: React.createElement(EllipsisOutlined, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)' } }),
-        style: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
-      }),
+      render: (_, record) => React.createElement(Dropdown, {
+        menu: { items: [
+          { key: 'delete', label: 'Elimina impianto', icon: React.createElement(DeleteOutlined), danger: true,
+            onClick: () => antd.Modal.confirm({
+              title: 'Elimina impianto',
+              content: 'Questa azione è irreversibile. Vuoi procedere con l\'eliminazione?',
+              okText: 'Elimina',
+              okButtonProps: { danger: true },
+              cancelText: 'Annulla',
+              onOk: () => antdMsg.success('Impianto eliminato'),
+            }),
+          },
+        ] },
+        trigger: ['click'],
+      },
+        React.createElement(Button, {
+          type: 'text', size: 'small',
+          icon: React.createElement(EllipsisOutlined, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)' } }),
+          style: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
+        }),
+      ),
     },
   ];
   const totalWidth = columns.reduce((s, c) => s + (c.width || 200), 0);
@@ -4036,6 +4052,17 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
             React.createElement(Dropdown, { menu: { items: [
               { key: 'dup', label: 'Duplica', icon: React.createElement(CopyOutlined), onClick: () => antdMsg.info('Duplica impianto') },
               { key: 'share', label: 'Condividi', icon: React.createElement(LinkOutlined), onClick: () => antdMsg.info('Condividi') },
+              { type: 'divider' },
+              { key: 'delete', label: 'Elimina impianto', icon: React.createElement(DeleteOutlined), danger: true,
+                onClick: () => antd.Modal.confirm({
+                  title: 'Elimina impianto',
+                  content: 'Questa azione è irreversibile. Vuoi procedere con l\'eliminazione?',
+                  okText: 'Elimina',
+                  okButtonProps: { danger: true },
+                  cancelText: 'Annulla',
+                  onOk: () => antdMsg.success('Impianto eliminato'),
+                }),
+              },
             ] } }, React.createElement(Button, { icon: React.createElement(DownOutlined) }, 'Azioni')),
             React.createElement(Button, { id: 'grav-tour-detail-edit', type: 'primary', icon: React.createElement(EditOutlined), onClick: () => setEditFormOpen(true) }, 'Modifica impianto'))),
         React.createElement('div', { style: { marginTop: 8, fontSize: 13, color: 'rgba(0,0,0,0.45)' } },
