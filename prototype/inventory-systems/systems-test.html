@@ -3211,8 +3211,38 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
   const closeDetailTour = () => { setDetailTourOpen(false); localStorage.setItem(DETAIL_TOUR_KEY, '1'); };
   const detailTourSteps = [
     {
-      title: 'Navigazione per sezioni',
-      description: 'Le tab organizzano le informazioni per argomento: Dashboard, Dettaglio tecnico, Iter autorizzativo, Cespiti, Squadre, Commerciale e Timeline eventi.',
+      title: 'Dati Amministrativi',
+      description: 'Concessioni, autorizzazioni e stato dell\'iter autorizzativo collegati all\'impianto.',
+      target: () => document.getElementById('grav-tour-detail-tabs'),
+      placement: 'bottom',
+    },
+    {
+      title: 'Dati Tecnici',
+      description: 'Specifiche costruttive: dimensioni, illuminazione, numero di facce, orientamento e fotografie.',
+      target: () => document.getElementById('grav-tour-detail-tabs'),
+      placement: 'bottom',
+    },
+    {
+      title: 'Cespiti e Dispositivi',
+      description: 'Cespiti patrimoniali e dispositivi hardware installati sull\'impianto.',
+      target: () => document.getElementById('grav-tour-detail-tabs'),
+      placement: 'bottom',
+    },
+    {
+      title: 'Assegnazione Squadre',
+      description: 'Squadre affidatarie responsabili della manutenzione ordinaria e straordinaria.',
+      target: () => document.getElementById('grav-tour-detail-tabs'),
+      placement: 'bottom',
+    },
+    {
+      title: 'Profilo Commerciale',
+      description: 'Modello di vendita, prezzi, sconti e disponibilità commerciale dell\'impianto.',
+      target: () => document.getElementById('grav-tour-detail-tabs'),
+      placement: 'bottom',
+    },
+    {
+      title: 'Storico Eventi',
+      description: 'Timeline completa di cambi di stato, manutenzioni e note operative.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
     },
