@@ -1670,6 +1670,7 @@ const DEFAULT_COLS = ['canale', 'tipologia', 'formato', 'faces', 'illuminato', '
 
 // ── Helpers e costanti per mock data — definiti una volta sola fuori dal componente ──
 const idNum = r => { const m = String(r.id).match(/\d+/); return m ? parseInt(m[0], 10) : 0; }; // 1–100 (robusto per id tipo "NEW-…")
+const dash = () => React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—');
 const FORNITORI_LIST = ['IGPDecaux', 'Clear Channel', 'Verticals'];
 const STATO_ADMIN = [
   { label: 'Attivo',          color: '#1677FF' },
@@ -1729,6 +1730,14 @@ const ALL_COLUMNS = {
     illuminato: {
       title: 'Illuminazione', dataIndex: 'illuminato', width: 130,
       render: (v, r) => {
+        if (r._formData) {
+          if (!v) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)', fontSize: 13 } }, 'Spento');
+          const faretti = r._formData.facce && r._formData.facce[0] && r._formData.facce[0].illumNFaretti;
+          return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, color: 'rgba(0,0,0,0.65)' } },
+            React.createElement(BulbOutlined, { style: { color: '#FAAD14', fontSize: 13 } }),
+            faretti ? `${faretti} faretti` : 'Illuminato',
+          );
+        }
         if (!v) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)', fontSize: 13 } }, 'Spento');
         const faretti = mockDerived(r).faretti;
         return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, color: 'rgba(0,0,0,0.65)' } },
@@ -1739,19 +1748,31 @@ const ALL_COLUMNS = {
     },
     fornitore: {
       title: 'Fornitore', dataIndex: 'media_owner', width: 160,
-      render: (_, r) => r.media_owner === 'Proprietario'
-        ? React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Proprietario')
-        : React.createElement(Button, { type: 'link', style: { padding: 0, height: 'auto', fontSize: 13 } }, r.media_owner),
+      render: (_, r) => {
+        if (r._formData) return r.media_owner ? React.createElement(Button, { type: 'link', style: { padding: 0, height: 'auto', fontSize: 13 } }, r.media_owner) : dash();
+        return r.media_owner === 'Proprietario'
+          ? React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Proprietario')
+          : React.createElement(Button, { type: 'link', style: { padding: 0, height: 'auto', fontSize: 13 } }, r.media_owner);
+      },
     },
     vendita: {
       title: 'Modello di vendita', dataIndex: 'vendita', width: 130,
-      render: (_, r) => mockDerived(r).vendita === 'Long term'
-        ? React.createElement(Tag, { color: 'purple', style: { marginInlineEnd: 0 } }, 'Long term')
-        : React.createElement(Tag, { color: 'blue',   style: { marginInlineEnd: 0 } }, 'Standard'),
+      render: (_, r) => {
+        const v = r._formData ? r._formData.vendita : mockDerived(r).vendita;
+        if (!v) return dash();
+        return v === 'Long term'
+          ? React.createElement(Tag, { color: 'purple', style: { marginInlineEnd: 0 } }, 'Long term')
+          : React.createElement(Tag, { color: 'blue',   style: { marginInlineEnd: 0 } }, 'Standard');
+      },
     },
     prezzo_totale: {
       title: 'Prezzo totale', dataIndex: 'prezzo', width: 120,
       render: (_, r) => {
+        if (r._formData) {
+          const v = r._formData.prezzoLordo;
+          if (!v) return dash();
+          return React.createElement('span', { style: { fontWeight: 500 } }, `€ ${String(v)}`);
+        }
         const p = mockDerived(r).prezzo;
         return React.createElement('span', { style: { fontWeight: 500 } }, `€\u202F${p.toLocaleString('it-IT')}`);
       },
@@ -1761,23 +1782,44 @@ const ALL_COLUMNS = {
       render: (_, r) => React.createElement(Badge, { color: STATO_COLORS[r.stato_amm] || '#d9d9d9', text: r.stato_amm || 'Attivo' }),
     },
     dispositivi:    { title: 'Dispositivi', dataIndex: 'dispositivi', width: 100,
-      render: (_, r) => React.createElement('span', { style: { fontWeight: 600 } }, mockDerived(r).dispositivi) },
+      render: (_, r) => {
+        if (r._formData) {
+          const n = Array.isArray(r._formData.assets) ? r._formData.assets.length : 0;
+          return n > 0 ? React.createElement('span', { style: { fontWeight: 600 } }, n) : dash();
+        }
+        return React.createElement('span', { style: { fontWeight: 600 } }, mockDerived(r).dispositivi);
+      } },
     indirizzo:      { title: 'Indirizzo',      dataIndex: 'indirizzo',      width: 200, ellipsis: true,
       render: v => React.createElement('span', { style: { fontWeight: 500 } }, v) },
     coordinate:     { title: 'Coordinate',     dataIndex: 'coordinate',     width: 160,
       render: (_, r) => r.lat && r.lng ? React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 11, color: 'rgba(0,0,0,0.45)' } }, `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}`) : '—' },
-    citta:          { title: 'Città',     dataIndex: 'citta',     width: 120, render: () => 'Palermo' },
-    provincia:      { title: 'Provincia', dataIndex: 'provincia', width: 130, render: () => 'Palermo' },
-    regione:        { title: 'Regione',   dataIndex: 'regione',   width: 120, render: () => 'Sicilia' },
-    nazione:        { title: 'Nazione',   dataIndex: 'nazione',   width: 100, render: () => 'Italia' },
+    citta:          { title: 'Città',     dataIndex: 'citta',     width: 120, render: (_, r) => r._formData ? (r._formData.citta || dash()) : 'Palermo' },
+    provincia:      { title: 'Provincia', dataIndex: 'provincia', width: 130, render: (_, r) => r._formData ? (r._formData.provincia || dash()) : 'Palermo' },
+    regione:        { title: 'Regione',   dataIndex: 'regione',   width: 120, render: (_, r) => r._formData ? (r._formData.regione || dash()) : 'Sicilia' },
+    nazione:        { title: 'Nazione',   dataIndex: 'nazione',   width: 100, render: (_, r) => r._formData ? (r._formData.nazione || dash()) : 'Italia' },
     suolo:          { title: 'Suolo',     dataIndex: 'suolo',     width: 110,
       render: (_, r) => React.createElement('span', { style: { color: 'rgba(0,0,0,0.65)' } }, r.suolo) },
     utenza:         { title: 'Utenza',  dataIndex: 'utenza',  width: 100,
-      render: (_, r) => React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, mockDerived(r).utenza) },
+      render: (_, r) => {
+        if (r._formData) return r._formData.utenza ? React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, r._formData.utenza) : dash();
+        return React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, mockDerived(r).utenza);
+      } },
     cimasa:         { title: 'Cimasa', dataIndex: 'cimasa',  width: 100,
-      render: (_, r) => React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, mockDerived(r).cimasa) },
+      render: (_, r) => {
+        if (r._formData) return r._formData.cimasa ? React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, r._formData.cimasa) : dash();
+        return React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, mockDerived(r).cimasa);
+      } },
     autorizzazione: { title: 'Autorizzazione', dataIndex: 'autorizzazione', width: 200,
       render: (_, r) => {
+        if (r._formData) {
+          const auts = Array.isArray(r._formData.autorizzazioni) ? r._formData.autorizzazioni : [];
+          if (auts.length === 0) return dash();
+          const monoStyle = { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 11, marginInlineEnd: 0 };
+          return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+            React.createElement(Tag, { style: monoStyle }, auts[0]),
+            auts.length > 1 && React.createElement(Tag, { style: { ...monoStyle, color: 'rgba(0,0,0,0.45)', borderColor: '#D9D9D9', background: '#FAFAFA' } }, `+${auts.length - 1}`)
+          );
+        }
         const n = idNum(r);
         const code1 = `AUT-PA-${2018 + (n % 6)}/${String(n * 13 % 900 + 100).padStart(4,'0')}`;
         const code2 = `AUT-PA-${2018 + ((n + 2) % 6)}/${String((n + 41) * 13 % 900 + 100).padStart(4,'0')}`;
@@ -1802,6 +1844,15 @@ const ALL_COLUMNS = {
     },
     concessione:    { title: 'Concessione',    dataIndex: 'concessione',    width: 200,
       render: (_, r) => {
+        if (r._formData) {
+          const concs = Array.isArray(r._formData.concessioni) ? r._formData.concessioni : [];
+          if (concs.length === 0) return dash();
+          const monoStyle = { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 11, marginInlineEnd: 0 };
+          return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+            React.createElement(Tag, { style: monoStyle }, concs[0]),
+            concs.length > 1 && React.createElement(Tag, { style: { ...monoStyle, color: 'rgba(0,0,0,0.45)', borderColor: '#D9D9D9', background: '#FAFAFA' } }, `+${concs.length - 1}`)
+          );
+        }
         const n = idNum(r);
         const code = `CONC-PA-${2019 + (n % 5)}/${String(n * 17 % 900 + 100).padStart(4,'0')}`;
         return React.createElement(Tag, { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 11, marginInlineEnd: 0 } }, code);
@@ -6146,7 +6197,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                   { status: showErrors && !canale ? 'error' : undefined })
               ),
               cs('Tipologia', true,
-                sel(tipologia, v => { setTipologia(v); setFormato(null); setFacce(buildFacceForTipo(v)); }, tipologieOpts,
+                sel(tipologia, v => { setTipologia(v); setFormato(null); }, tipologieOpts,
                   canale ? 'Seleziona la tipologia' : 'Prima seleziona il canale',
                   { disabled: !canale, showSearch: true, status: showErrors && !tipologia ? 'error' : undefined })
               ),
@@ -6383,7 +6434,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Facce',
               tipologia ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, facce.length + '/' + maxFacce) : null,
-            ), 'Le facce previste dalla tipologia sono create in automatico. Puoi modificarle o rimuoverle; se rimosse puoi riaggiungerle fino al numero massimo previsto.',
+            ), 'Aggiungi le facce dell\'impianto. Il numero massimo dipende dalla tipologia selezionata.',
             facce.length > 0 ? faceAddBtn : null,
             facce.length > 0
               ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 } },
@@ -6399,7 +6450,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                     });
                   }),
                 )
-              : React.createElement(Empty, { description: tipologia ? "Nessuna faccia: aggiungine fino al numero previsto dalla tipologia" : "Seleziona la tipologia per generare le facce previste", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+              : React.createElement(Empty, { description: tipologia ? "Nessuna faccia aggiunta" : "Seleziona prima la tipologia", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
                   faceAddBtn,
                 ),
           ),
@@ -7549,18 +7600,18 @@ function App() {
         {
           const newImp = {
             id: 'NEW-' + Date.now(),
-            tipo: data.tipologia || 'Speciale OOH',
-            canale: data.canale || 'OOH',
-            indirizzo: [data.via, data.civico].filter(Boolean).join(', ') || data.citta || 'Nuovo impianto',
-            zona: data.zona || data.citta || '—',
+            tipo: data.tipologia || null,
+            canale: data.canale || null,
+            indirizzo: [data.via, data.civico].filter(Boolean).join(', ') || data.citta || null,
+            zona: data.zona || data.citta || null,
             lat: lat, lng: lng,
-            faces: (data.facce && data.facce.length) || 1,
-            formato: data.formato || '',
-            stato: 'Disponibile',
-            illuminato: !!(data.facce && data.facce.some(x => x.illumStato && x.illumStato !== 'Spento')),
-            stato_amm: data.stato || 'Attivo',
-            suolo: data.tipoSuolo || 'Pubblico',
-            media_owner: data.proprietario || 'Proprietario',
+            faces: (data.facce && data.facce.length) || null,
+            formato: data.formato || null,
+            stato: null,
+            illuminato: data.facce ? !!(data.facce.some(x => x.illumStato && x.illumStato !== 'Spento')) : null,
+            stato_amm: data.stato || null,
+            suolo: data.tipoSuolo || null,
+            media_owner: data.proprietario || null,
             nome: data.nome || null,
             code: 'PA-N' + String(Date.now()).slice(-4),
             _formData: data,
