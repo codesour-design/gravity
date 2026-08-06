@@ -484,7 +484,7 @@
 <div id="root"></div>
 <script>
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
-const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Radio, Rate, Slider, Popconfirm } = antd;
+const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Radio, Rate, Slider, Popconfirm, Tour } = antd;
 const { Text } = Typography;
 const {
   SearchOutlined, BellOutlined, PlusOutlined, AppstoreOutlined, SendOutlined,
@@ -3198,6 +3198,44 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
   const goPhoto = (dir) => setPhotoIdx(i => (i + dir + nPhotos) % nPhotos);
   const [editFormOpen, setEditFormOpen] = useState(false);
 
+  // ── Tour guidato alla prima apertura del dettaglio ─────────────────────
+  const DETAIL_TOUR_KEY = 'grav-inv-tour-detail-v1';
+  const [detailTourOpen, setDetailTourOpen] = React.useState(false);
+  const [detailTourStep, setDetailTourStep] = React.useState(0);
+  React.useEffect(() => {
+    if (!localStorage.getItem(DETAIL_TOUR_KEY)) {
+      const t = setTimeout(() => setDetailTourOpen(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, []);
+  const closeDetailTour = () => { setDetailTourOpen(false); localStorage.setItem(DETAIL_TOUR_KEY, '1'); };
+  const detailTourSteps = [
+    {
+      title: 'Scheda impianto',
+      description: 'Questa è la vista dettaglio di un impianto. Qui trovi il riepilogo anagrafico, i KPI principali e tutta la documentazione tecnica e commerciale.',
+      target: () => document.getElementById('grav-tour-detail-header'),
+      placement: 'bottom',
+    },
+    {
+      title: 'Indicatori principali',
+      description: 'Occupazione, canone annuo, audience giornaliera e ultimo evento sono sempre visibili in cima, indipendentemente dalla tab attiva.',
+      target: () => document.getElementById('grav-tour-detail-kpi'),
+      placement: 'bottom',
+    },
+    {
+      title: 'Navigazione per sezioni',
+      description: 'Le tab organizzano le informazioni per argomento: Dashboard, Dettaglio tecnico, Iter autorizzativo, Cespiti, Squadre, Commerciale e Timeline eventi.',
+      target: () => document.getElementById('grav-tour-detail-tabs'),
+      placement: 'bottom',
+    },
+    {
+      title: 'Modifica i dati',
+      description: 'Per aggiornare qualsiasi dato dell'impianto — anagrafica, misure, prezzi, permessi — usa il tasto Modifica. Il form di modifica apre la sezione pertinente.',
+      target: () => document.getElementById('grav-tour-detail-edit'),
+      placement: 'bottomRight',
+    },
+  ];
+
   // Nuovo evento — modale + eventi aggiunti dall'utente (prependati alla timeline)
   const [newEventOpen, setNewEventOpen] = useState(false);
   const [extraEvents,  setExtraEvents]  = useState([]);
@@ -3970,7 +4008,7 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
     React.createElement('div', { className: 'imp-detail-shell', style: { width: '100%' } },
 
       // ── Header card (template Shaker: back · "Impianto | Nome" + tag · azioni · riga meta) ──
-      React.createElement('div', { className: 'gv-detail-header', style: { width: '100%' } },
+      React.createElement('div', { id: 'grav-tour-detail-header', className: 'gv-detail-header', style: { width: '100%' } },
         React.createElement('div', { style: { marginBottom: 10 } },
           React.createElement('a', { className: 'gv-back', onClick: onBack },
             React.createElement(ArrowLeftOutlined, { style: { fontSize: 11 } }), 'Torna al Parco Impianti')),
@@ -3987,12 +4025,12 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
               { key: 'dup', label: 'Duplica', icon: React.createElement(CopyOutlined), onClick: () => antdMsg.info('Duplica impianto') },
               { key: 'share', label: 'Condividi', icon: React.createElement(LinkOutlined), onClick: () => antdMsg.info('Condividi') },
             ] } }, React.createElement(Button, { icon: React.createElement(DownOutlined) }, 'Azioni')),
-            React.createElement(Button, { type: 'primary', icon: React.createElement(EditOutlined), onClick: () => setEditFormOpen(true) }, 'Modifica impianto'))),
+            React.createElement(Button, { id: 'grav-tour-detail-edit', type: 'primary', icon: React.createElement(EditOutlined), onClick: () => setEditFormOpen(true) }, 'Modifica impianto'))),
         React.createElement('div', { style: { marginTop: 8, fontSize: 13, color: 'rgba(0,0,0,0.45)' } },
           [data.via, data.civico].filter(Boolean).join(' ') + ' · ' + data.cap + ' ' + data.citta + ' (' + data.provincia + ') · ' + data.zona)),
 
       // ── Info trasversali (stile dashboard, utili in ogni tab) ──
-      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, width: '100%' } },
+      React.createElement('div', { id: 'grav-tour-detail-kpi', style: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, width: '100%' } },
         dashStat(icons.LineChartOutlined, 'Occupazione', icons.PieChartOutlined, fillPct + '%', 'Vedi occupazione', () => setActive('dashboard')),
         dashStat(icons.EuroCircleOutlined, 'Canone annuo', icons.EuroCircleOutlined, '€ 1.050,60', 'Vedi iter autorizzativo', () => setActive('iter')),
         dashStat(icons.EyeOutlined, 'OTS', icons.EyeOutlined,
@@ -4036,7 +4074,7 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
 
         // Main: tabs + sezione attiva
         React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-          React.createElement('div', { style: { padding: '0 4px', marginBottom: 12 } },
+          React.createElement('div', { id: 'grav-tour-detail-tabs', style: { padding: '0 4px', marginBottom: 12 } },
             React.createElement(Tabs, {
               activeKey: active, onChange: (k) => { setActive(k); setEditSec(null); },
               items: SECTIONS.map(s => ({ key: s.id, label: s.label })),
@@ -4170,6 +4208,14 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
         ),
       ),
     ),
+
+    React.createElement(Tour, {
+      open: detailTourOpen,
+      onClose: closeDetailTour,
+      current: detailTourStep,
+      onChange: setDetailTourStep,
+      steps: detailTourSteps,
+    }),
   );
 }
 
@@ -5394,6 +5440,38 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setTimeout(() => setFormato(v.formato || null), 0);
   }, [open]);
 
+  // ── Tour guidato alla prima apertura del form ──────────────────────────
+  const FORM_TOUR_KEY = 'grav-inv-tour-form-v1';
+  const [formTourOpen, setFormTourOpen] = React.useState(false);
+  const [formTourStep, setFormTourStep] = React.useState(0);
+  React.useEffect(() => {
+    if (open && !localStorage.getItem(FORM_TOUR_KEY)) {
+      const t = setTimeout(() => setFormTourOpen(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+  const closeFormTour = () => { setFormTourOpen(false); localStorage.setItem(FORM_TOUR_KEY, '1'); };
+  const formTourSteps = [
+    {
+      title: 'Sezioni del form',
+      description: 'Il form è diviso in sezioni tematiche: naviga liberamente tra di esse. Le sezioni con * contengono campi obbligatori che devono essere compilati prima di poter salvare.',
+      target: () => document.getElementById('grav-tour-form-nav'),
+      placement: 'right',
+    },
+    {
+      title: 'Campi obbligatori',
+      description: 'Per creare l'impianto servono: Canale, Tipologia, Formato, Via, Città e Stato. Tutti gli altri campi sono facoltativi e puoi compilarli in un secondo momento.',
+      target: () => document.getElementById('grav-tour-form-required'),
+      placement: 'right',
+    },
+    {
+      title: 'Salva l'impianto',
+      description: 'Il tasto si attiva quando tutti i campi obbligatori sono compilati. L'impianto appare subito nel parco con i soli dati inseriti — nessun dato fittizio viene aggiunto.',
+      target: () => document.getElementById('grav-tour-form-save'),
+      placement: 'bottomRight',
+    },
+  ];
+
   // ── Localizzazione
   const [addrSuggs,   setAddrSuggs]   = useState([]);
   const [via,         setVia]         = useState(iv.via       || '');
@@ -6138,7 +6216,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   };
   const hasRequired = { identita: true };
 
-  return React.createElement(Drawer, {
+  return React.createElement(React.Fragment, null, React.createElement(Drawer, {
     open: open,
     onClose: onClose,
     placement: 'right',
@@ -6149,6 +6227,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     extra: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
       React.createElement(Button, { onClick: onClose }, 'Annulla'),
       React.createElement(Button, {
+        id: 'grav-tour-form-save',
         type: 'primary',
         icon: React.createElement(editMode ? SaveOutlined : CheckOutlined),
         disabled: !canSave,
@@ -6160,7 +6239,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
     React.createElement('div', { className: 'create-body' },
 
-      React.createElement('nav', { className: 'create-nav' },
+      React.createElement('nav', { id: 'grav-tour-form-nav', className: 'create-nav' },
         React.createElement('div', { className: 'create-nav-label' }, 'Ruolo (demo)'),
         React.createElement(Select, {
           value: formRole, onChange: v => { setFormRole(v); setActiveSection('identita'); },
@@ -6186,7 +6265,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       ),
 
       React.createElement('div', { className: 'create-scroll' },
-        React.createElement('div', { className: 'create-content' },
+        React.createElement('div', { id: 'grav-tour-form-required', className: 'create-content' },
 
         // ── 1. Identità
         sec('identita', 'Anagrafica e ubicazione', 'Dati identificativi e posizione geografica dell\'impianto.',
@@ -6882,7 +6961,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         );
       })(),
     ),
-  );
+  , React.createElement(Tour, { open: formTourOpen, onClose: closeFormTour, steps: formTourSteps }));
 }
 
 // ─────────────────────────────────────────────────────────
@@ -6900,6 +6979,42 @@ function App() {
   const [expandedIds,   setExpandedIds]   = useState(new Set());
   const [viewMode,           setViewMode]           = useState('map');
   const [activeTab,          setActiveTab]          = useState('tutti');
+
+  // ── Tour guidato al primo accesso ──────────────────────────────────────
+  const TOUR_MAIN_KEY = 'grav-inv-tour-main-v1';
+  const [tourMainOpen, setTourMainOpen] = React.useState(false);
+  const [tourMainStep, setTourMainStep] = React.useState(0);
+  React.useEffect(() => {
+    if (!localStorage.getItem(TOUR_MAIN_KEY)) {
+      const t = setTimeout(() => setTourMainOpen(true), 1000);
+      return () => clearTimeout(t);
+    }
+  }, []);
+  const closeTourMain = () => { setTourMainOpen(false); localStorage.setItem(TOUR_MAIN_KEY, '1'); };
+  const tourMainSteps = [
+    {
+      title: 'Benvenuto in Inventory Systems',
+      description: 'Questo modulo raccoglie tutti gli impianti del tuo parco. Puoi visualizzarli su mappa o in lista, filtrarli per ogni caratteristica e crearne di nuovi.',
+    },
+    {
+      title: 'Crea un nuovo impianto',
+      description: 'Apre il form di creazione. Puoi compilare solo le sezioni che conosci — i dati mancanti si possono aggiungere in seguito modificando l'impianto.',
+      target: () => document.getElementById('grav-tour-new-btn'),
+      placement: 'bottomRight',
+    },
+    {
+      title: 'Cerca e filtra',
+      description: 'Cerca per zona o indirizzo. "Filtri avanzati" apre il pannello per filtrare per canale, tipologia, stato e molti altri criteri.',
+      target: () => document.getElementById('grav-tour-filter-bar'),
+      placement: 'bottom',
+    },
+    {
+      title: 'Vista mappa e lista',
+      description: 'Alterna tra mappa geolocalizzata — per capire la distribuzione territoriale — e lista tabulare con colonne personalizzabili.',
+      target: () => document.getElementById('grav-tour-view-toggle'),
+      placement: 'left',
+    },
+  ];
 
   // ── Ricerca zona ──────────────────────────────────────
   const [searchQuery,    setSearchQuery]    = useState('');
@@ -7369,7 +7484,7 @@ function App() {
           ),
 
           // Search bar — centro (unified bar)
-          React.createElement('div', { className: 'ss-searchbar-wrap', style: { width: 700, flex: 'none' } },
+          React.createElement('div', { className: 'ss-searchbar-wrap', id: 'grav-tour-filter-bar', style: { width: 700, flex: 'none' } },
 
             React.createElement('div', { className: 'ss-unified-bar' },
 
@@ -7505,6 +7620,7 @@ function App() {
                 }, 'Aggiungi'),
               ),
               React.createElement(Button, {
+                id: 'grav-tour-new-btn',
                 type: 'primary',
                 icon: React.createElement(PlusOutlined),
                 onClick: () => setFullFormOpen(true),
@@ -7557,6 +7673,7 @@ function App() {
 
             // View toggle — floating top-right
             React.createElement('div', {
+              id: 'grav-tour-view-toggle',
               style: { position: 'absolute', top: 16, right: 16, zIndex: 450 },
             },
               React.createElement(Segmented, {
@@ -7584,6 +7701,14 @@ function App() {
       values: draftFilters,
       onChange: setDraft,
       options: { allTypes: MACRO_TIPI, typeFormats: TIPO_FORMATI, allFormats: ALL_TIPO_FORMATI },
+    }),
+
+    React.createElement(Tour, {
+      open: tourMainOpen && page !== 'detail',
+      onClose: closeTourMain,
+      current: tourMainStep,
+      onChange: setTourMainStep,
+      steps: tourMainSteps,
     }),
 
     React.createElement(NewImpiantoFullDrawer, {
