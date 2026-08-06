@@ -87,7 +87,8 @@
     'billboard':        { ch: 'DOOH', file: 'Billboard' },
     'alux':             { ch: 'DOOH', file: 'Alux' },
     'totem':            { ch: 'DOOH', file: 'Totem' },
-    // 'speciale' → canale-dipendente (gestito sotto)
+    'speciale ooh':     { ch: 'OOH',  file: 'Special' },
+    'speciale dooh':    { ch: 'DOOH', file: 'SpecialDOOH' },
     // 'cartello' / 'insegna' → asset non ancora forniti dal design → null
   };
   function _normType(t) { return String(t || '').trim().toLowerCase().replace(/\s+/g, ' '); }
@@ -97,10 +98,6 @@
   // solo a "Speciale" (OOH→SpecialOOH, DOOH→SpecialDOOH); default OOH.
   function systypeIconSrc(type, channel) {
     var t = _normType(type);
-    if (t === 'speciale') {
-      var dooh = String(channel || '').toUpperCase() === 'DOOH';
-      return SYSTYPE_BASE + '/' + (dooh ? 'DOOH/SpecialDOOH' : 'OOH/Special') + '.svg';
-    }
     var e = SYSTYPE_ICON[t];
     return e ? (SYSTYPE_BASE + '/' + e.ch + '/' + e.file + '.svg') : null;
   }
