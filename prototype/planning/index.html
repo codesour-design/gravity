@@ -7066,7 +7066,7 @@ out geom;`;
               }),
             ),
             // Image
-            React.createElement('div', { style: { width: '100%', height: 96, overflow: 'hidden', flexShrink: 0 } },
+            React.createElement('div', { style: { width: '100%', aspectRatio: '16/9', overflow: 'hidden', flexShrink: 0 } },
               React.createElement('img', { src: FOTO_IMPIANTO[fotoIdx], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
             ),
             // Body
@@ -7092,8 +7092,9 @@ out geom;`;
             !readOnly && React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '11px 16px', borderTop: '1px solid #F5F5F5', background: '#FCFCFD' } },
               React.createElement(Button, {
                 size: 'small',
-                type: isSel ? 'default' : 'primary',
+                type: 'default',
                 danger: isSel,
+                icon: React.createElement(isSel ? DeleteOutlined : PlusOutlined),
                 onClick: () => toggleSys(sys),
               }, isSel ? 'Rimuovi dalla pianificazione' : 'Aggiungi alla pianificazione'),
             ),
