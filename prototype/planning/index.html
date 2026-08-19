@@ -653,9 +653,9 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
-    .ss-face-badge-all  { color: rgba(0,0,0,0.65); }
-    .ss-face-badge-part { color: rgba(0,0,0,0.45); }
-    .ss-face-badge-none { color: rgba(0,0,0,0.25); }
+    .ss-face-badge-all  { color: var(--gravity-primary); font-weight: 700; }
+    .ss-face-badge-part { color: rgba(0,0,0,0.55); }
+    .ss-face-badge-none { color: rgba(0,0,0,0.35); }
 
     /* Expand toggle */
     .ss-expand-btn {
@@ -1616,6 +1616,15 @@ const AVAIL_COLOR = {
   'In Option':'#EB2F96',
 };
 const STATE_LABELS = { Available: 'Disponibile', 'In Option': 'In Opzione', Reserved: 'Riservato' };
+
+const FOTO_IMPIANTO = [
+  '../_shared/assets/system-photos/6x3-poster-asti-1024x731.jpg',
+  '../_shared/assets/system-photos/Affissioni-poster-Milano.jpg',
+  '../_shared/assets/system-photos/Pescara_Piccola.jpg',
+  '../_shared/assets/system-photos/Realizzazione-Grandi-Impianti-pubblicitari-e-Cartellonistica-Lecce-scaled.jpg',
+  '../_shared/assets/system-photos/europemedia_affissioni_pubblicitarie_arredo_urbano_neovision.avif',
+  '../_shared/assets/system-photos/quali-sono-le-regole-del-codice-della-strada-per-la-pubblicita-lungo-le-strade-e-sui-veicoli.jpg',
+];
 
 const AGENTS = {
   giulia: { id:'giulia', name:'Giulia Romano', initials:'GR' },
@@ -6474,10 +6483,13 @@ out geom;`;
     // Formato del sistema (tutte le facce hanno lo stesso formato)
     const sysFmt = (sys.faceObjs||[])[0]?.format || '';
 
-    const faceBadgeText = `${availF}/${totalF} ${totalF === 1 ? 'faccia' : 'facce'}`;
-    const faceBadgeCls  = cs === 'none'  ? 'ss-face-badge ss-face-badge-none'
-                        : cs === 'all'   ? 'ss-face-badge ss-face-badge-all'
-                        : 'ss-face-badge ss-face-badge-part';
+    const selF = getSelFaces(sys).length;
+    const faceBadgeText = panelTab === 'selected'
+      ? `${selF}/${availF}`
+      : `${totalF} ${totalF === 1 ? 'faccia' : 'facce'}`;
+    const faceBadgeCls  = panelTab === 'selected'
+      ? (cs === 'all' ? 'ss-face-badge ss-face-badge-all' : 'ss-face-badge ss-face-badge-part')
+      : 'ss-face-badge ss-face-badge-none';
     const headCls = ['ss-sys-head', cs!=='none'?'ss-sys-selected':'', isHov?'ss-sys-hovered':''].filter(Boolean).join(' ');
     const TypeIconFn = TYPE_ICON[sys.type];          // fallback AntD (Cartello/Insegna)
     const typeIconUrl = GravityMap.systypeIconSrc(sys.type);
@@ -7014,6 +7026,7 @@ out geom;`;
           const faceObjs = sys.faceObjs || [];
           const fmt      = faceObjs[0]?.format || '';
           const pos      = focusCardPos;
+          const fotoIdx  = parseInt(sys.id.replace('SYS-', ''), 10) % FOTO_IMPIANTO.length;
           const CHANNEL_TAG_STYLE = {
             DOOH: { margin: 0, fontSize: 12, color: '#C41D7F', background: '#FFF0F6', border: '1px solid #FFADD2' },
             OOH:  { margin: 0, fontSize: 12, color: '#389E0D', background: '#F6FFED', border: '1px solid #B7EB8F' },
@@ -7051,6 +7064,10 @@ out geom;`;
                 onClick: () => setFocusedId(null),
                 style: { flexShrink: 0, marginTop: -2 },
               }),
+            ),
+            // Image
+            React.createElement('div', { style: { width: '100%', height: 96, overflow: 'hidden', flexShrink: 0 } },
+              React.createElement('img', { src: FOTO_IMPIANTO[fotoIdx], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
             ),
             // Body
             React.createElement('div', { style: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
