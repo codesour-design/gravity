@@ -654,7 +654,7 @@
       flex-shrink: 0;
     }
     .ss-face-badge-all  { color: var(--gravity-primary); font-weight: 700; }
-    .ss-face-badge-part { color: rgba(0,0,0,0.55); }
+    .ss-face-badge-part { color: rgba(0,0,0,0.35); }
     .ss-face-badge-none { color: rgba(0,0,0,0.35); }
 
     /* Expand toggle */
@@ -6485,7 +6485,7 @@ out geom;`;
 
     const selF = getSelFaces(sys).length;
     const faceBadgeText = panelTab === 'selected'
-      ? `${selF}/${availF}`
+      ? `${selF}/${availF} ${availF === 1 ? 'faccia' : 'facce'}`
       : `${totalF} ${totalF === 1 ? 'faccia' : 'facce'}`;
     const faceBadgeCls  = panelTab === 'selected'
       ? (cs === 'all' ? 'ss-face-badge ss-face-badge-all' : 'ss-face-badge ss-face-badge-part')
