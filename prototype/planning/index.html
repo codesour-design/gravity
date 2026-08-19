@@ -6487,9 +6487,7 @@ out geom;`;
     const faceBadgeText = panelTab === 'selected'
       ? `${selF}/${availF} ${availF === 1 ? 'faccia' : 'facce'}`
       : `${totalF} ${totalF === 1 ? 'faccia' : 'facce'}`;
-    const faceBadgeCls  = panelTab === 'selected'
-      ? (cs === 'all' ? 'ss-face-badge ss-face-badge-all' : 'ss-face-badge ss-face-badge-part')
-      : 'ss-face-badge ss-face-badge-none';
+    const faceBadgeCls  = 'ss-face-badge ss-face-badge-none';
     const headCls = ['ss-sys-head', cs!=='none'?'ss-sys-selected':'', isHov?'ss-sys-hovered':''].filter(Boolean).join(' ');
     const TypeIconFn = TYPE_ICON[sys.type];          // fallback AntD (Cartello/Insegna)
     const typeIconUrl = GravityMap.systypeIconSrc(sys.type);
