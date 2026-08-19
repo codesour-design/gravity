@@ -3257,36 +3257,47 @@ function ImpiantoDetailV2({ imp, onBack }) {
       description: 'Concessioni, autorizzazioni e stato dell\'iter autorizzativo collegati all\'impianto.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
     },
     {
       title: 'Dati Tecnici',
       description: 'Specifiche costruttive: dimensioni, illuminazione, numero di facce, orientamento e fotografie.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Cespiti e Dispositivi',
       description: 'Cespiti patrimoniali e dispositivi hardware installati sull\'impianto.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Assegnazione Squadre',
       description: 'Squadre affidatarie responsabili della manutenzione ordinaria e straordinaria.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Profilo Commerciale',
       description: 'Modello di vendita, prezzi, sconti e disponibilità commerciale dell\'impianto.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Storico Eventi',
       description: 'Timeline completa di cambi di stato, manutenzioni e note operative.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Fine' },
+      prevButtonProps: { children: 'Indietro' },
     },
   ];
 
@@ -5498,18 +5509,23 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       description: 'Il form è diviso in sezioni tematiche: naviga liberamente tra di esse. Le sezioni con * contengono campi obbligatori che devono essere compilati prima di poter salvare.',
       target: () => document.getElementById('grav-tour-form-nav'),
       placement: 'right',
+      nextButtonProps: { children: 'Avanti' },
     },
     {
       title: 'Campi obbligatori',
       description: 'Per creare l\'impianto servono: Canale, Tipologia, Formato, Via, Città e Stato. Tutti gli altri campi sono facoltativi e puoi compilarli in un secondo momento.',
       target: () => document.getElementById('grav-tour-form-required'),
       placement: 'right',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Salva l\'impianto',
       description: 'Il tasto si attiva quando tutti i campi obbligatori sono compilati.',
       target: () => document.getElementById('grav-tour-form-save'),
       placement: 'bottomRight',
+      nextButtonProps: { children: 'Fine' },
+      prevButtonProps: { children: 'Indietro' },
     },
   ];
 
@@ -7045,26 +7061,33 @@ function App() {
   const closeTourMain = () => { setTourMainOpen(false); localStorage.setItem(TOUR_MAIN_KEY, '1'); };
   const tourMainSteps = [
     {
-      title: 'Benvenuto in Inventory Systems',
+      title: 'Benvenuto nel tuo Parco Impianti',
       description: 'Questo modulo raccoglie tutti gli impianti del tuo parco. Puoi visualizzarli su mappa o in lista, filtrarli per ogni caratteristica e crearne di nuovi.',
+      nextButtonProps: { children: 'Avanti' },
     },
     {
       title: 'Crea un nuovo impianto',
       description: 'Apre il form di creazione. Puoi compilare solo le sezioni che conosci — i dati mancanti si possono aggiungere in seguito modificando l\'impianto.',
       target: () => document.getElementById('grav-tour-new-btn'),
       placement: 'bottomRight',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Cerca e filtra',
       description: 'Cerca per zona o indirizzo. "Filtri avanzati" apre il pannello per filtrare per canale, tipologia, stato e molti altri criteri.',
       target: () => document.getElementById('grav-tour-filter-bar'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Vista mappa e lista',
       description: 'Alterna tra mappa geolocalizzata — per capire la distribuzione territoriale — e lista tabulare con colonne personalizzabili.',
       target: () => document.getElementById('grav-tour-view-toggle'),
       placement: 'left',
+      nextButtonProps: { children: 'Fine' },
+      prevButtonProps: { children: 'Indietro' },
     },
   ];
 

@@ -7005,7 +7005,7 @@ out geom;`;
         // Google Maps container
         React.createElement('div', { ref: mapContainerRef, className: 'ss-gmap' }),
 
-        // ── Floating info card (focus su marker) — popover condiviso ─────────
+        // ── Floating info card (focus su marker) — stile EntityCard parco impianti ─────────
         (() => {
           if (!focusedId || !focusReady) return null;
           const sys = SEARCH_RESULTS.find(s => s.id === focusedId);
@@ -7013,35 +7013,73 @@ out geom;`;
           const isSel    = selectedSystemIds.has(sys.id);
           const faceObjs = sys.faceObjs || [];
           const fmt      = faceObjs[0]?.format || '';
-          const stateLabel = STATE_LABELS[sys.state] || sys.state;
-          const stateDot   = AVAIL_COLOR[sys.state] || '#BFBFBF';
-          const statoRight = (isSel && !isDelivered)
-            ? React.createElement(Tooltip, { title: 'Una volta consegnata la pianificazione in trattativa, questo spazio passerà da Disponibile a In Opzione.' },
-                React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'help' } },
-                  React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
-                  'Disponibile',
-                  React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)', margin: '0 1px' } }, '→'),
-                  React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: '#EB2F96', flexShrink: 0 } }),
-                  'In Opzione'))
-            : React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
-                React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: stateDot, flexShrink: 0 } }),
-                stateLabel);
-          return React.createElement(GravityMapPopover, {
-            position: focusCardPos,
-            onClose: () => setFocusedId(null),
-            title: sys.label ? `★ ${sys.label}` : sys.code,
-            subtitle: [sys.type, fmt].filter(Boolean).join(' · '),
-            action: readOnly ? null : {
-              label: isSel ? 'Rimuovi dalla pianificazione' : 'Aggiungi alla pianificazione',
-              danger: isSel,
-              onClick: () => toggleSys(sys),
+          const pos      = focusCardPos;
+          const CHANNEL_TAG_STYLE = {
+            DOOH: { margin: 0, fontSize: 12, color: '#C41D7F', background: '#FFF0F6', border: '1px solid #FFADD2' },
+            OOH:  { margin: 0, fontSize: 12, color: '#389E0D', background: '#F6FFED', border: '1px solid #B7EB8F' },
+          };
+          const rowEl = (IconComp, label, value) =>
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, lineHeight: '20px' } },
+              React.createElement(IconComp, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
+              React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label + ':'),
+              React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.65)' } }, value),
+            );
+          return React.createElement('div', {
+            style: {
+              position: 'absolute',
+              left: pos ? pos.x : '50%',
+              top: pos ? pos.y : undefined,
+              bottom: pos ? undefined : 24,
+              transform: pos ? 'translate(-50%, -100%)' : 'translateX(-50%)',
+              zIndex: 500, width: 260, borderRadius: 8, overflow: 'hidden',
+              border: '1px solid #F0F0F0', background: '#fff',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.14)',
+              fontFamily: "-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif",
+              animation: 'gmp-in .15s ease',
             },
+            onClick: e => e.stopPropagation(),
           },
-            sys.address && GravityMapPopover.Row({ key: 'addr', icon: 'EnvironmentOutlined',
-              label: sys.address + (sys.city ? `, ${sys.city.split(' ')[0]}` : '') }),
-            GravityMapPopover.Row({ key: 'faces', divider: true, icon: 'AppstoreOutlined', label: 'Facce',
-              right: `${faceObjs.length} ${faceObjs.length === 1 ? 'faccia' : 'facce'}` }),
-            GravityMapPopover.Row({ key: 'stato', icon: 'AimOutlined', label: 'Stato', right: statoRight })
+            // Header
+            React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, padding: '14px 16px', borderBottom: '1px solid #F5F5F5' } },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, minWidth: 0 } },
+                React.createElement('span', { style: { fontSize: 16, fontWeight: 600, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap' } }, sys.label || sys.code),
+                sys.label && React.createElement('span', { style: { fontSize: 12, padding: '0 7px', borderRadius: 4, lineHeight: '20px', border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', background: '#fafafa' } }, sys.code),
+              ),
+              React.createElement(Button, {
+                type: 'text', size: 'small',
+                icon: React.createElement(icons.CloseOutlined, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }),
+                onClick: () => setFocusedId(null),
+                style: { flexShrink: 0, marginTop: -2 },
+              }),
+            ),
+            // Body
+            React.createElement('div', { style: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
+              React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+                React.createElement(Tag, { style: CHANNEL_TAG_STYLE[sys.channel] || CHANNEL_TAG_STYLE.OOH }, sys.channel),
+                React.createElement(Tag, {
+                  icon: React.createElement('img', { src: GravityMap.systypeIconSrc(sys.type, sys.channel), style: { width: 12, height: 12, verticalAlign: 'middle', marginRight: 4 } }),
+                  style: { margin: 0, fontSize: 12, color: 'rgba(0,0,0,0.65)', background: '#fff', border: '1px solid #d9d9d9' },
+                }, sys.type),
+              ),
+              React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } },
+                React.createElement('div', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, sys.address),
+                React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, sys.city),
+                React.createElement('div', { style: { borderTop: '1px solid #F5F5F5', marginTop: 8 } }),
+              ),
+              React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 9 } },
+                rowEl(ExpandOutlined, 'Formato', fmt || '—'),
+                rowEl(AppstoreOutlined, 'Facce', `${faceObjs.length} ${faceObjs.length === 1 ? 'faccia' : 'facce'}`),
+              ),
+            ),
+            // Footer
+            !readOnly && React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '11px 16px', borderTop: '1px solid #F5F5F5', background: '#FCFCFD' } },
+              React.createElement(Button, {
+                size: 'small',
+                type: isSel ? 'default' : 'primary',
+                danger: isSel,
+                onClick: () => toggleSys(sys),
+              }, isSel ? 'Rimuovi dalla pianificazione' : 'Aggiungi alla pianificazione'),
+            ),
           );
         })(),
 
