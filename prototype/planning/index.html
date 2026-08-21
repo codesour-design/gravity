@@ -7041,20 +7041,10 @@ out geom;`;
           // Costruisce i children della checklist in un array esplicito per evitare
           // lo spread di condizionali misti dentro React.createElement
           const faceListItems = [];
-          if (!readOnly && availCount > 0) {
-            faceListItems.push(React.createElement('div', {
-              key: '__all',
-              style: { display: 'flex', justifyContent: 'flex-end', marginBottom: 2 },
-            },
-              React.createElement('span', {
-                style: { fontSize: 11, color: 'var(--gravity-primary)', cursor: 'pointer', userSelect: 'none' },
-                onClick: () => toggleSys(sys),
-              }, allAvailSel ? 'Deseleziona tutte' : 'Seleziona tutte'),
-            ));
-          }
           faceObjs.forEach(face => {
             const isFaceSel  = selectedFaceIds.has(face.id);
             const isDisabled = face.state === 'Reserved';
+            const { total }  = face.price ? computeFacePrice(face, planning) : { total: 0 };
             const rowChildren = [];
             if (!readOnly) {
               rowChildren.push(React.createElement(Checkbox, {
@@ -7070,6 +7060,7 @@ out geom;`;
               React.createElement('span', { key: 'st', style: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 } },
                 React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', background: AVAIL_COLOR[face.state] || '#D9D9D9', display: 'inline-block', flexShrink: 0 } }),
                 React.createElement('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } }, STATE_LABELS[face.state] || face.state),
+                face.price > 0 && React.createElement('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.65)', fontVariantNumeric: 'tabular-nums' } }, '· ' + formatEuro(total)),
               ),
             );
             faceListItems.push(React.createElement('div', {
