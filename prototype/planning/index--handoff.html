@@ -5896,8 +5896,10 @@ out geom;`;
   // Zoom minimo 16 per garantire l'uscita dai cluster.
   // Il popover appare alla fine dell'animazione (idle), con fallback.
   const [focusReady, setFocusReady] = useState(false);
+  const [popoverFacesOpen, setPopoverFacesOpen] = useState(false);
   React.useEffect(() => {
     if (!focusedId) { setFocusReady(false); return; }
+    setPopoverFacesOpen(false);
     const sys = SEARCH_RESULTS.find(s => s.id === focusedId);
     if (!sys?.lat || !sys?.lng) return;
     setFocusReady(false);
@@ -7118,10 +7120,26 @@ out geom;`;
               ),
               React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 9 } },
                 rowEl(ExpandOutlined, 'Formato', fmt || '—'),
-                rowEl(AppstoreOutlined, 'Facce', `${faceObjs.length} ${faceObjs.length === 1 ? 'faccia' : 'facce'}`),
+                React.createElement('div', {
+                  style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, lineHeight: '20px', cursor: 'pointer' },
+                  onClick: () => setPopoverFacesOpen(v => !v),
+                },
+                  React.createElement(AppstoreOutlined, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
+                  React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, 'Facce:'),
+                  React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.65)' } }, `${faceObjs.length} ${faceObjs.length === 1 ? 'faccia' : 'facce'}`),
+                  React.createElement(Button, {
+                    type: 'link',
+                    size: 'small',
+                    icon: React.createElement(popoverFacesOpen ? DownOutlined : RightOutlined, { style: { fontSize: 10 } }),
+                    style: { marginLeft: 'auto', padding: '0 2px', height: 'auto', lineHeight: 1, color: 'var(--gravity-primary)' },
+                    onClick: e => { e.stopPropagation(); setPopoverFacesOpen(v => !v); },
+                  }),
+                ),
               ),
-              // Checklist facce — children costruiti in array esplicito sopra
-              React.createElement.apply(React, ['div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } }].concat(faceListItems)),
+              // Accordion facce — visibile solo quando aperto
+              popoverFacesOpen && React.createElement.apply(React, ['div', {
+                style: { display: 'flex', flexDirection: 'column', gap: 2, borderTop: '1px solid #F5F5F5', paddingTop: 8 },
+              }].concat(faceListItems)),
             ),
           );
         })(),
