@@ -7015,26 +7015,23 @@ out geom;`;
         // Google Maps container
         React.createElement('div', { ref: mapContainerRef, className: 'ss-gmap' }),
 
-        // ── Floating info card (focus su marker) — stile EntityCard parco impianti ─────────
+        // ── Floating info card (focus su marker) — selezione facce ─────────────
         (() => {
           if (!focusedId || !focusReady) return null;
           const sys = SEARCH_RESULTS.find(s => s.id === focusedId);
           if (!sys) return null;
-          const isSel    = selectedSystemIds.has(sys.id);
-          const faceObjs = sys.faceObjs || [];
-          const fmt      = faceObjs[0]?.format || '';
-          const pos      = focusCardPos;
-          const fotoIdx  = parseInt(sys.id.replace('SYS-', ''), 10) % FOTO_IMPIANTO.length;
+          const faceObjs   = sys.faceObjs || [];
+          const availFaces = getAvailFaces(sys);
+          const selFaces   = getSelFaces(sys);
+          const selCount   = selFaces.length;
+          const availCount = availFaces.length;
+          const allAvailSel = availCount > 0 && availFaces.every(f => selectedFaceIds.has(f.id));
+          const pos        = focusCardPos;
+          const fotoIdx    = parseInt(sys.id.replace('SYS-', ''), 10) % FOTO_IMPIANTO.length;
           const CHANNEL_TAG_STYLE = {
             DOOH: { margin: 0, fontSize: 12, color: '#C41D7F', background: '#FFF0F6', border: '1px solid #FFADD2' },
             OOH:  { margin: 0, fontSize: 12, color: '#389E0D', background: '#F6FFED', border: '1px solid #B7EB8F' },
           };
-          const rowEl = (IconComp, label, value) =>
-            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, lineHeight: '20px' } },
-              React.createElement(IconComp, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
-              React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label + ':'),
-              React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.65)' } }, value),
-            );
           return React.createElement('div', {
             style: {
               position: 'absolute',
@@ -7042,7 +7039,7 @@ out geom;`;
               top: pos ? pos.y : undefined,
               bottom: pos ? undefined : 24,
               transform: pos ? 'translate(-50%, -100%)' : 'translateX(-50%)',
-              zIndex: 500, width: 260, borderRadius: 8, overflow: 'hidden',
+              zIndex: 500, width: 300, borderRadius: 8, overflow: 'hidden',
               border: '1px solid #F0F0F0', background: '#fff',
               boxShadow: '0 4px 20px rgba(0,0,0,0.14)',
               fontFamily: "-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif",
@@ -7050,51 +7047,111 @@ out geom;`;
             },
             onClick: e => e.stopPropagation(),
           },
-            // Header
-            React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, padding: '14px 16px', borderBottom: '1px solid #F5F5F5' } },
-              React.createElement('div', { style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, minWidth: 0 } },
-                React.createElement('span', { style: { fontSize: 16, fontWeight: 600, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap' } }, sys.label || sys.code),
-                sys.label && React.createElement('span', { style: { fontSize: 12, padding: '0 7px', borderRadius: 4, lineHeight: '20px', border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', background: '#fafafa' } }, sys.code),
+            // Header: nome + codice + indirizzo + close
+            React.createElement('div', {
+              style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, padding: '12px 14px', borderBottom: '1px solid #F5F5F5' },
+            },
+              React.createElement('div', { style: { minWidth: 0 } },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' } },
+                  React.createElement('span', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, sys.label || sys.code),
+                  sys.label && React.createElement('span', { style: { fontSize: 11, padding: '0 5px', borderRadius: 4, lineHeight: '18px', border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.45)', background: '#fafafa' } }, sys.code),
+                ),
+                React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', marginTop: 2 } },
+                  sys.address + (sys.city ? ', ' + sys.city : ''),
+                ),
               ),
               React.createElement(Button, {
                 type: 'text', size: 'small',
-                icon: React.createElement(icons.CloseOutlined, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }),
+                icon: React.createElement(icons.CloseOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.35)' } }),
                 onClick: () => setFocusedId(null),
                 style: { flexShrink: 0, marginTop: -2 },
               }),
             ),
-            // Image
-            React.createElement('div', { style: { width: '100%', aspectRatio: '16/9', overflow: 'hidden', flexShrink: 0 } },
+            // Image 16:9
+            React.createElement('div', { style: { width: '100%', aspectRatio: '16/9', overflow: 'hidden' } },
               React.createElement('img', { src: FOTO_IMPIANTO[fotoIdx], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
             ),
-            // Body
-            React.createElement('div', { style: { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 } },
-              React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
-                React.createElement(Tag, { style: CHANNEL_TAG_STYLE[sys.channel] || CHANNEL_TAG_STYLE.OOH }, sys.channel),
-                React.createElement(Tag, {
-                  icon: React.createElement('img', { src: GravityMap.systypeIconSrc(sys.type, sys.channel), style: { width: 12, height: 12, verticalAlign: 'middle', marginRight: 4 } }),
-                  style: { margin: 0, fontSize: 12, color: 'rgba(0,0,0,0.65)', background: '#fff', border: '1px solid #d9d9d9' },
-                }, sys.type),
-              ),
-              React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } },
-                React.createElement('div', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, sys.address),
-                React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, sys.city),
-                React.createElement('div', { style: { borderTop: '1px solid #F5F5F5', marginTop: 8 } }),
-              ),
-              React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 9 } },
-                rowEl(ExpandOutlined, 'Formato', fmt || '—'),
-                rowEl(AppstoreOutlined, 'Facce', `${faceObjs.length} ${faceObjs.length === 1 ? 'faccia' : 'facce'}`),
-              ),
+            // Tags: canale + tipologia
+            React.createElement('div', { style: { padding: '9px 14px', display: 'flex', gap: 6, borderBottom: '1px solid #F5F5F5' } },
+              React.createElement(Tag, { style: CHANNEL_TAG_STYLE[sys.channel] || CHANNEL_TAG_STYLE.OOH }, sys.channel),
+              React.createElement(Tag, {
+                icon: React.createElement('img', { src: GravityMap.systypeIconSrc(sys.type, sys.channel), style: { width: 12, height: 12, verticalAlign: 'middle', marginRight: 4 } }),
+                style: { margin: 0, fontSize: 12, color: 'rgba(0,0,0,0.65)', background: '#fff', border: '1px solid #d9d9d9' },
+              }, sys.type),
             ),
-            // Footer
-            !readOnly && React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '11px 16px', borderTop: '1px solid #F5F5F5', background: '#FCFCFD' } },
-              React.createElement(Button, {
-                size: 'small',
-                type: 'default',
-                danger: isSel,
-                icon: React.createElement(isSel ? DeleteOutlined : PlusOutlined),
-                onClick: () => toggleSys(sys),
-              }, isSel ? 'Rimuovi dalla pianificazione' : 'Aggiungi alla pianificazione'),
+            // Facce — intestazione sezione + righe
+            React.createElement('div', null,
+              React.createElement('div', {
+                style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px 4px' },
+              },
+                React.createElement('span', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '0.06em' } },
+                  `${faceObjs.length} ${faceObjs.length === 1 ? 'faccia' : 'facce'}`),
+                !readOnly && availCount > 0 && React.createElement('span', {
+                  style: { fontSize: 11, color: 'var(--gravity-primary)', cursor: 'pointer', userSelect: 'none' },
+                  onClick: () => toggleSys(sys),
+                }, allAvailSel ? 'Deseleziona tutte' : 'Seleziona tutte'),
+              ),
+              ...faceObjs.map(face => {
+                const isSel      = selectedFaceIds.has(face.id);
+                const isDisabled = face.state === 'Reserved';
+                const { total }  = face.price ? computeFacePrice(face, planning) : { total: 0 };
+                return React.createElement('div', {
+                  key: face.id,
+                  style: {
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '5px 14px',
+                    background: isSel ? 'rgba(62,0,251,0.04)' : 'transparent',
+                    cursor: isDisabled || readOnly ? 'default' : 'pointer',
+                    opacity: isDisabled ? 0.45 : 1,
+                  },
+                  onClick: () => !isDisabled && !readOnly && toggleFace(face),
+                },
+                  !readOnly && React.createElement(Checkbox, {
+                    checked: isSel, disabled: isDisabled,
+                    onChange: () => toggleFace(face),
+                    onClick: e => e.stopPropagation(),
+                    style: { flexShrink: 0 },
+                  }),
+                  React.createElement('span', {
+                    style: { fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.88)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, minWidth: 60 },
+                  },
+                    face.label,
+                    face.illuminated && React.createElement(BulbOutlined, { style: { fontSize: 10, color: 'var(--gravity-domain-partial)' } }),
+                  ),
+                  React.createElement('span', {
+                    style: { fontSize: 11, color: 'rgba(0,0,0,0.35)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+                  }, face.format),
+                  React.createElement('span', { style: { fontSize: 11, display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 } },
+                    React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', background: AVAIL_COLOR[face.state] || '#D9D9D9', display: 'inline-block' } }),
+                    face.price > 0 && React.createElement('span', { style: { color: 'rgba(0,0,0,0.55)', fontVariantNumeric: 'tabular-nums' } }, formatEuro(total)),
+                  ),
+                );
+              }),
+            ),
+            // Footer: conteggio selezione + azioni bulk
+            !readOnly && React.createElement('div', {
+              style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderTop: '1px solid #F5F5F5', background: '#FCFCFD', marginTop: 4 },
+            },
+              React.createElement('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } },
+                selCount === 0
+                  ? 'Nessuna faccia selezionata'
+                  : `${selCount} ${selCount === 1 ? 'faccia selezionata' : 'facce selezionate'}`,
+              ),
+              selCount > 0
+                ? React.createElement(Button, {
+                    size: 'small', type: 'link', danger: true,
+                    style: { padding: 0, fontSize: 11, height: 'auto' },
+                    onClick: () => setSelectedFaceIds(prev => {
+                      const next = new Set(prev);
+                      faceObjs.forEach(f => next.delete(f.id));
+                      return next;
+                    }),
+                  }, 'Rimuovi tutte')
+                : availCount > 0 && React.createElement(Button, {
+                    size: 'small', type: 'primary',
+                    icon: React.createElement(PlusOutlined),
+                    onClick: () => toggleSys(sys),
+                  }, availCount === 1 ? 'Aggiungi 1 faccia' : `Aggiungi ${availCount} facce`),
             ),
           );
         })(),
