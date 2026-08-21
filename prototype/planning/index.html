@@ -7025,9 +7025,6 @@ out geom;`;
           const fmt        = faceObjs[0]?.format || '';
           const pos        = focusCardPos;
           const fotoIdx    = parseInt(sys.id.replace('SYS-', ''), 10) % FOTO_IMPIANTO.length;
-          const availFaces = getAvailFaces(sys);
-          const availCount = availFaces.length;
-          const allAvailSel = availCount > 0 && availFaces.every(f => selectedFaceIds.has(f.id));
           const CHANNEL_TAG_STYLE = {
             DOOH: { margin: 0, fontSize: 12, color: '#C41D7F', background: '#FFF0F6', border: '1px solid #FFADD2' },
             OOH:  { margin: 0, fontSize: 12, color: '#389E0D', background: '#F6FFED', border: '1px solid #B7EB8F' },
