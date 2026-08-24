@@ -7072,8 +7072,8 @@ out geom;`;
               }));
             }
             rowChildren.push(
-              React.createElement('span', { key: 'lbl', style: { fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.88)', flex: 1, minWidth: 0 } }, face.label),
-              React.createElement('span', { key: 'st', style: { flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 } },
+              React.createElement('span', { key: 'lbl', style: { fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.88)', flexShrink: 0, minWidth: 60 } }, face.label),
+              React.createElement('span', { key: 'st', style: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 } },
                 React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', background: AVAIL_COLOR[face.state] || '#D9D9D9', display: 'inline-block', flexShrink: 0 } }),
                 React.createElement('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } }, STATE_LABELS[face.state] || face.state),
                 face.price > 0 && React.createElement('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.65)', fontVariantNumeric: 'tabular-nums' } }, '· ' + formatEuro(total)),
@@ -7118,10 +7118,10 @@ out geom;`;
                 style: { flexShrink: 0 },
               }),
             ),
-            // Body: immagine 16:9 fissa + info panel (si allunga con l'accordion)
-            React.createElement('div', { style: { display: 'flex', flexDirection: 'row', alignItems: 'flex-start' } },
-              // Immagine 16:9 — proporzioni fisse, la card cresce in altezza con l'accordion
-              React.createElement('div', { style: { width: 160, aspectRatio: '16/9', flexShrink: 0, overflow: 'hidden' } },
+            // Body: immagine + info affiancati, stessa altezza (align-items: stretch)
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'row', alignItems: 'stretch' } },
+              // Immagine — si allunga a coprire tutta l'altezza del pannello info
+              React.createElement('div', { style: { width: 160, flexShrink: 0, overflow: 'hidden' } },
                 React.createElement('img', { src: FOTO_IMPIANTO[fotoIdx], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
               ),
               // Info panel: tag, indirizzo, divider, data rows
@@ -7156,12 +7156,12 @@ out geom;`;
                     }),
                   ),
                 ),
+                // Accordion facce — visibile solo quando aperto
+                popoverFacesOpen && React.createElement.apply(React, ['div', {
+                  style: { display: 'flex', flexDirection: 'column', gap: 2, borderTop: '1px solid #f0f0f0', paddingTop: 8 },
+                }].concat(faceListItems)),
               ),
             ),
-            // Accordion facce — full-width sotto immagine+info, evita il cramping nella colonna stretta
-            popoverFacesOpen ? React.createElement.apply(React, ['div', {
-              style: { borderTop: '1px solid #f0f0f0', padding: '6px 12px 10px', display: 'flex', flexDirection: 'column', gap: 2 },
-            }].concat(faceListItems)) : null,
           );
         })(),
 
