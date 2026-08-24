@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #F5F5F5; -webkit-font-smoothing: antialiased; }
+  a { color: #3E00FB; text-decoration: none; }
+  a:hover { color: #6B3FFF; }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: #F5F5F5; padding: 56px 48px 96px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; color: rgba(0,0,0,0.88); font-size: 14px; line-height: 1.5714;">
+
+<section style="display: flex; flex-direction: column; gap: 20px;">
+  <div style="display: flex; align-items: baseline; gap: 14px;">
+    <span style="font-family: Oswald, sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(0,0,0,0.45);">Turno 1 — due formati</span>
+    <span style="font-size: 13px; color: rgba(0,0,0,0.45);">Stesso contenuto: 6 task, sessione moderata da 30 minuti su <em>inventory-systems</em>. <a href="#1a">1a</a> è il protocollo da stampare, <a href="#1b">1b</a> è la scheda di rilevazione da usare durante la sessione.</span>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 40px;">
+
+    <div id="1a" style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 4px; background: #3E00FB; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;">1a</span>
+        <span style="font-size: 13px; font-weight: 600;">Protocollo di test — documento stampabile</span>
+      </div>
+
+      <div style="width: 794px; background: #fff; border: 1px solid #F0F0F0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02); padding: 56px 64px 64px; display: flex; flex-direction: column; gap: 34px;">
+
+        <header style="display: flex; flex-direction: column; gap: 10px; border-bottom: 2px solid #3E00FB; padding-bottom: 20px;">
+          <span style="font-family: Oswald, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: #3E00FB;">Gravity Platform · Ricerca</span>
+          <h1 style="font-family: Oswald, sans-serif; font-size: 38px; font-weight: 600; line-height: 46px; letter-spacing: -0.02em; margin: 0; text-transform: uppercase;">Test di usabilità<br />Inventory · Systems</h1>
+          <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.65); max-width: 62ch; text-wrap: pretty;">Sessioni moderate think aloud da 30 minuti sul prototipo <em>parco impianti</em>. Primo giro con il team interno di sviluppo: serve a tarare task, tempi e strumenti prima dei test con media owner reali.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
+            <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 4px; border: 1px solid #D9D9D9; background: #FAFAFA; font-size: 12px; color: rgba(0,0,0,0.65);">6 task</span>
+            <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 4px; border: 1px solid #D9D9D9; background: #FAFAFA; font-size: 12px; color: rgba(0,0,0,0.65);">30 minuti</span>
+            <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 4px; border: 1px solid #D9D9D9; background: #FAFAFA; font-size: 12px; color: rgba(0,0,0,0.65);">Moderato · think aloud</span>
+            <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 4px; border: 1px solid #C5B4FF; background: #F0EAFF; font-size: 12px; color: #3E00FB;">Focus: form Nuovo Impianto + edit scheda</span>
+          </div>
+        </header>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="font-family: Oswald, sans-serif; font-size: 20px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0;">1 · Obiettivi di ricerca</h2>
+          <p style="margin: 0; font-size: 14px; color: rgba(0,0,0,0.65); max-width: 64ch; text-wrap: pretty;">Il prototipo copre tre momenti: trovare un impianto (mappa, ricerca, filtri, lista), censirne uno nuovo (drawer a sei sezioni con RBAC per ruolo) e mantenerlo nel tempo (scheda con modifica per sezione e storico eventi). Il test verifica se la seconda e la terza reggono senza accompagnamento.</p>
+          <div style="display: flex; flex-direction: column; gap: 0; border: 1px solid #F0F0F0; border-radius: 8px; overflow: hidden;">
+            <div style="display: flex; gap: 14px; padding: 12px 16px; border-bottom: 1px solid #F0F0F0;"><span style="font-family: 'SF Mono', monospace; font-size: 11px; font-weight: 700; color: #3E00FB; flex-shrink: 0; padding-top: 2px;">RQ1</span><span style="font-size: 13px; color: rgba(0,0,0,0.88);">Il form Nuovo Impianto è percorribile in una sola sessione, o le persone si aspettano di poter salvare in bozza e riprendere?</span></div>
+            <div style="display: flex; gap: 14px; padding: 12px 16px; border-bottom: 1px solid #F0F0F0;"><span style="font-family: 'SF Mono', monospace; font-size: 11px; font-weight: 700; color: #3E00FB; flex-shrink: 0; padding-top: 2px;">RQ2</span><span style="font-size: 13px; color: rgba(0,0,0,0.88);">Le sei sezioni (anagrafica → iter → tecnici → cespiti → squadre → commerciale) corrispondono al modello mentale del ciclo di vita di un impianto?</span></div>
+            <div style="display: flex; gap: 14px; padding: 12px 16px; border-bottom: 1px solid #F0F0F0; background: #F9F5FF;"><span style="font-family: 'SF Mono', monospace; font-size: 11px; font-weight: 700; color: #3E00FB; flex-shrink: 0; padding-top: 2px;">RQ3</span><span style="font-size: 13px; color: rgba(0,0,0,0.88);"><strong>La modifica per sezione della scheda è scopribile e prevedibile?</strong> Le persone capiscono cosa stanno salvando e cosa succede alle modifiche pendenti quando cambiano sezione.</span></div>
+            <div style="display: flex; gap: 14px; padding: 12px 16px; border-bottom: 1px solid #F0F0F0;"><span style="font-family: 'SF Mono', monospace; font-size: 11px; font-weight: 700; color: #3E00FB; flex-shrink: 0; padding-top: 2px;">RQ4</span><span style="font-size: 13px; color: rgba(0,0,0,0.88);">Il vocabolario di dominio è condiviso: canale, faccia, cimasa, concessione contro autorizzazione, stato amministrativo contro stato commerciale.</span></div>
+            <div style="display: flex; gap: 14px; padding: 12px 16px;"><span style="font-family: 'SF Mono', monospace; font-size: 11px; font-weight: 700; color: #3E00FB; flex-shrink: 0; padding-top: 2px;">RQ5</span><span style="font-size: 13px; color: rgba(0,0,0,0.88);">Ricerca unificata e filtri avanzati portano all'impianto giusto senza aiuto, e la relazione mappa/lista è chiara.</span></div>
+          </div>
+          <div style="display: flex; gap: 10px; padding: 12px 14px; border: 1px solid #FFD591; background: #FFF7E6; border-radius: 6px;">
+            <span style="font-size: 12px; color: rgba(0,0,0,0.65); text-wrap: pretty;"><strong style="color: rgba(0,0,0,0.88);">Bias da dichiarare nel report.</strong> I partecipanti di questo primo giro sono il team di sviluppo: conoscono il dominio e in parte il prototipo. I risultati valgono per scoperta di bug di interazione e taratura del protocollo, non come misura di apprendibilità.</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="font-family: Oswald, sans-serif; font-size: 20px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0;">2 · Setup e agenda</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div style="border: 1px solid #F0F0F0; border-radius: 8px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Condizioni</span>
+              <span style="font-size: 13px; color: rgba(0,0,0,0.65);">Prototipo <em>inventory-systems</em>, desktop ≥ 1440px, ruolo demo <strong>Admin tenant</strong> salvo diversa indicazione. Cache geocoding già popolata prima della sessione: la barra di progresso iniziale non deve entrare nel tempo di task.</span>
+            </div>
+            <div style="border: 1px solid #F0F0F0; border-radius: 8px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Regole del moderatore</span>
+              <span style="font-size: 13px; color: rgba(0,0,0,0.65);">Nessun aiuto nei primi 90 secondi. Poi un solo suggerimento generico ("dove cercheresti?"); se serve un secondo aiuto la task vale <em>con aiuto</em>. Interrompere a 4 minuti e segnare fallimento.</span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; border: 1px solid #F0F0F0; border-radius: 8px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 64px 1fr; gap: 0; background: #FAFAFA; border-bottom: 1px solid #F0F0F0; padding: 8px 16px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0,0,0,0.45);"><span>Min</span><span>Momento</span></div>
+            <div style="display: grid; grid-template-columns: 64px 1fr; padding: 9px 16px; border-bottom: 1px solid #F0F0F0; font-size: 13px;"><span style="color: rgba(0,0,0,0.45);">0–3</span><span>Introduzione, consenso alla registrazione, "non stiamo testando te"</span></div>
+            <div style="display: grid; grid-template-columns: 64px 1fr; padding: 9px 16px; border-bottom: 1px solid #F0F0F0; font-size: 13px;"><span style="color: rgba(0,0,0,0.45);">3–6</span><span>Task 1 — ricerca (riscaldamento)</span></div>
+            <div style="display: grid; grid-template-columns: 64px 1fr; padding: 9px 16px; border-bottom: 1px solid #F0F0F0; font-size: 13px;"><span style="color: rgba(0,0,0,0.45);">6–15</span><span>Task 2 e 3 — creazione impianto</span></div>
+            <div style="display: grid; grid-template-columns: 64px 1fr; padding: 9px 16px; border-bottom: 1px solid #F0F0F0; font-size: 13px; background: #F9F5FF;"><span style="color: rgba(0,0,0,0.45);">15–25</span><span>Task 4, 5 e 6 — scheda impianto e modifica</span></div>
+            <div style="display: grid; grid-template-columns: 64px 1fr; padding: 9px 16px; font-size: 13px;"><span style="color: rgba(0,0,0,0.45);">25–30</span><span>SUS, domande finali, chiusura</span></div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="font-family: Oswald, sans-serif; font-size: 20px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0;">3 · Metriche per ogni task</h2>
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;">
+            <div style="border: 1px solid #F0F0F0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 12px; font-weight: 600;">Esito</span><span style="font-size: 11px; color: rgba(0,0,0,0.45);">Successo · con aiuto · fallimento</span></div>
+            <div style="border: 1px solid #F0F0F0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 12px; font-weight: 600;">Tempo</span><span style="font-size: 11px; color: rgba(0,0,0,0.45);">Dal via al criterio di successo</span></div>
+            <div style="border: 1px solid #F0F0F0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 12px; font-weight: 600;">Errori</span><span style="font-size: 11px; color: rgba(0,0,0,0.45);">Azione sbagliata o tornata indietro</span></div>
+            <div style="border: 1px solid #F0F0F0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 12px; font-weight: 600;">Click</span><span style="font-size: 11px; color: rgba(0,0,0,0.45);">Reali contro percorso atteso</span></div>
+            <div style="border: 1px solid #F0F0F0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 12px; font-weight: 600;">SEQ</span><span style="font-size: 11px; color: rgba(0,0,0,0.45);">"Quanto è stato difficile?" 1–7</span></div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+          <h2 style="font-family: Oswald, sans-serif; font-size: 20px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0;">4 · Le sei task</h2>
+
+          <article style="border: 1px solid #F0F0F0; border-radius: 8px; overflow: hidden;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px; background: #FAFAFA; border-bottom: 1px solid #F0F0F0;">
+              <span style="font-family: Oswald, sans-serif; font-size: 18px; font-weight: 600; color: #3E00FB;">T1</span>
+              <span style="font-size: 14px; font-weight: 600;">Trovare l'impianto giusto</span>
+              <span style="margin-left: auto; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Ricerca · ~3 min</span>
+            </div>
+            <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.88); text-wrap: pretty;"><strong>Scenario.</strong> Un cliente al telefono ti chiede quali pensiline illuminate avete disponibili in zona Politeama. Trovale sul prototipo e aprine una per guardarne i dettagli.</p>
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> Arriva alla scheda di una pensilina della zona Politeama avendo ristretto il set (ricerca zona o filtri avanzati), non scorrendo a caso la mappa.</p>
+              <div style="display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; background: #F9F5FF; border-radius: 6px;">
+                <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #3E00FB;">Da osservare</span>
+                <span style="font-size: 12px; color: rgba(0,0,0,0.65);">Parte dalla barra di ricerca o da "Filtri avanzati"? Si accorge dei chip dei filtri attivi? Passa in vista Lista o resta in Mappa? Cosa si aspetta che faccia il pulsante "Cerca" quando la zona è già un tag?</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Post-task</span><span style="font-size: 12px; color: rgba(0,0,0,0.65);">Come hai deciso da dove partire? · Guardando la mappa, quanti impianti pensavi rispondessero alla richiesta?</span></div>
+            </div>
+          </article>
+
+          <article style="border: 1px solid #F0F0F0; border-radius: 8px; overflow: hidden;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px; background: #FAFAFA; border-bottom: 1px solid #F0F0F0;">
+              <span style="font-family: Oswald, sans-serif; font-size: 18px; font-weight: 600; color: #3E00FB;">T2</span>
+              <span style="font-size: 14px; font-weight: 600;">Censire un nuovo impianto</span>
+              <span style="margin-left: auto; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Creazione · ~5 min</span>
+            </div>
+            <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.88); text-wrap: pretty;"><strong>Scenario.</strong> È stata installata una nuova pensilina in Via Roma 250 a Palermo, formato 120×180 cm. Inseriscila a sistema portandoti al punto in cui potresti salvarla.</p>
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> Il pulsante "Crea Impianto" diventa attivo e la persona sa dire quali campi lo hanno sbloccato.</p>
+              <div style="display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; background: #F9F5FF; border-radius: 6px;">
+                <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #3E00FB;">Da osservare</span>
+                <span style="font-size: 12px; color: rgba(0,0,0,0.65);">Capisce la catena canale → tipologia → formato, o prova a compilare il formato per primo? Legge gli asterischi nel menu di sinistra come "campi mancanti"? Cerca il salva in fondo alla pagina invece che in alto a destra? Sfoglia tutte e sei le sezioni prima di salvare, cioè teme di aver saltato qualcosa di obbligatorio?</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Post-task</span><span style="font-size: 12px; color: rgba(0,0,0,0.65);">Quanto ti è sembrato lungo? · Quali sezioni ti aspettavi obbligatorie e quali rimandabili? · In una giornata reale, avresti tutti questi dati sottomano nello stesso momento?</span></div>
+            </div>
+          </article>
+
+          <article style="border: 1px solid #F0F0F0; border-radius: 8px; overflow: hidden;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px; background: #FAFAFA; border-bottom: 1px solid #F0F0F0;">
+              <span style="font-family: Oswald, sans-serif; font-size: 18px; font-weight: 600; color: #3E00FB;">T3</span>
+              <span style="font-size: 14px; font-weight: 600;">Iter autorizzativo e seconda faccia</span>
+              <span style="margin-left: auto; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Creazione · ~4 min</span>
+            </div>
+            <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.88); text-wrap: pretty;"><strong>Scenario.</strong> Prima di salvare: la pensilina è su suolo pubblico con concessione comunale, ed espone su due lati. Registra la concessione e aggiungi la faccia posteriore.</p>
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> Una concessione presente in <em>Iter autorizzativo</em> e due facce in <em>Dati tecnici</em>, senza chiedere al moderatore dove stanno.</p>
+              <div style="display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; background: #F9F5FF; border-radius: 6px;">
+                <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #3E00FB;">Da osservare</span>
+                <span style="font-size: 12px; color: rgba(0,0,0,0.65);">Distingue concessione, autorizzazione e permesso, o li tratta come sinonimi? Trova l'azione "crea posteriore" sulla card della faccia anteriore? Si aspetta che orientamento e coordinate della posteriore siano ereditati, e se ne accorge?</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Post-task</span><span style="font-size: 12px; color: rgba(0,0,0,0.65);">Con parole tue: che differenza c'è tra concessione e autorizzazione? · Se domani sposti l'impianto di dieci metri, quante cose devi aggiornare?</span></div>
+            </div>
+          </article>
+
+          <article style="border: 2px solid #C5B4FF; border-radius: 8px; overflow: hidden;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px; background: #F0EAFF; border-bottom: 1px solid #C5B4FF;">
+              <span style="font-family: Oswald, sans-serif; font-size: 18px; font-weight: 600; color: #3E00FB;">T4</span>
+              <span style="font-size: 14px; font-weight: 600;">Correggere un dato nella scheda</span>
+              <span style="margin-left: auto; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: #3E00FB;">Scheda · ~4 min · task chiave</span>
+            </div>
+            <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.88); text-wrap: pretty;"><strong>Scenario.</strong> Il tecnico ti avvisa che il civico è sbagliato: non è 250 ma 252. Apri la scheda dell'impianto e correggilo.</p>
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> Il campo è aggiornato e salvato dalla barra flottante, e la persona sa dire che ha salvato.</p>
+              <div style="display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; background: #F9F5FF; border-radius: 6px;">
+                <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #3E00FB;">Ipotesi da falsificare</span>
+                <span style="font-size: 12px; color: rgba(0,0,0,0.65);">La modifica per sezione non è scopribile: in lettura non c'è un segnale forte di "questo si può cambiare". Cronometrare quanto passa prima che trovi l'ingresso in modifica; annotare se prima prova a cliccare direttamente sul valore, se cerca una matita globale in alto, o se torna al form di creazione. Verificare anche se l'evidenziazione dei campi modificati viene notata e interpretata come "non ancora salvato".</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Post-task</span><span style="font-size: 12px; color: rgba(0,0,0,0.65);">Cosa hai salvato esattamente: quel campo, quella sezione o tutta la scheda? · Come faresti a tornare indietro?</span></div>
+            </div>
+          </article>
+
+          <article style="border: 2px solid #C5B4FF; border-radius: 8px; overflow: hidden;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px; background: #F0EAFF; border-bottom: 1px solid #C5B4FF;">
+              <span style="font-family: Oswald, sans-serif; font-size: 18px; font-weight: 600; color: #3E00FB;">T5</span>
+              <span style="font-size: 14px; font-weight: 600;">Cambiare idea a metà modifica</span>
+              <span style="margin-left: auto; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: #3E00FB;">Scheda · ~4 min · task chiave</span>
+            </div>
+            <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.88); text-wrap: pretty;"><strong>Scenario.</strong> Vuoi alzare la qualità dell'impianto nel profilo commerciale. Inizia a modificarla, poi passa a controllare i dati tecnici e infine decidi di lasciare tutto com'era.</p>
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> La scheda torna allo stato iniziale e la persona sa dire con certezza che nulla è stato salvato.</p>
+              <div style="display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; background: #F9F5FF; border-radius: 6px;">
+                <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #3E00FB;">Ipotesi da falsificare</span>
+                <span style="font-size: 12px; color: rgba(0,0,0,0.65);">L'ambito del salvataggio è ambiguo: con una sezione in modifica, cambiare sezione lascia le persone incerte se le modifiche siano state perse, tenute in sospeso o salvate. Osservare se cercano un avviso di conferma, se rileggono la sezione per controllare, se provano a modificare due sezioni insieme.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Post-task</span><span style="font-size: 12px; color: rgba(0,0,0,0.65);">Quando hai cambiato sezione, le tue modifiche esistevano ancora? · Cosa ti saresti aspettato che il sistema ti dicesse?</span></div>
+            </div>
+          </article>
+
+          <article style="border: 1px solid #F0F0F0; border-radius: 8px; overflow: hidden;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px; background: #FAFAFA; border-bottom: 1px solid #F0F0F0;">
+              <span style="font-family: Oswald, sans-serif; font-size: 18px; font-weight: 600; color: #3E00FB;">T6</span>
+              <span style="font-size: 14px; font-weight: 600;">Programmare una manutenzione</span>
+              <span style="margin-left: auto; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Scheda · ~3 min</span>
+            </div>
+            <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.88); text-wrap: pretty;"><strong>Scenario.</strong> Domani mattina la squadra va a sistemare il vetro rotto di questa pensilina. Lascia traccia dell'intervento a sistema.</p>
+              <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.65);"><strong style="color: rgba(0,0,0,0.88);">Criterio di successo.</strong> Un evento con data futura compare nello storico dell'impianto.</p>
+              <div style="display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; background: #F9F5FF; border-radius: 6px;">
+                <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #3E00FB;">Da osservare</span>
+                <span style="font-size: 12px; color: rgba(0,0,0,0.65);">Cerca in "Storico eventi" o va prima in "Squadre"? Legge la timeline come cronologia passata e quindi non la associa a qualcosa di programmato? Capisce perché gli eventi futuri stanno in cima?</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(0,0,0,0.35);">Post-task</span><span style="font-size: 12px; color: rgba(0,0,0,0.65);">Dove ti aspettavi di trovare questa azione? · Chi altro in azienda dovrebbe vedere questo evento?</span></div>
+            </div>
+          </article>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="font-family: Oswald, sans-serif; font-size: 20px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0;">5 · SUS finale</h2>
+          <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.65);">Dieci affermazioni, risposta da 1 (fortemente in disaccordo) a 5 (fortemente d'accordo). Somministrare subito dopo l'ultima task, prima delle domande aperte.</p>
+          <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: rgba(0,0,0,0.88);">
+            <li>Penso che userei volentieri questo sistema di frequente.</li>
+            <li>Ho trovato il sistema inutilmente complesso.</li>
+            <li>Ho trovato il sistema facile da usare.</li>
+            <li>Penso che avrei bisogno del supporto di una persona tecnica per riuscire a usare il sistema.</li>
+            <li>Ho trovato le varie funzioni del sistema ben integrate tra loro.</li>
+            <li>Ho trovato troppe incoerenze nel sistema.</li>
+            <li>Immagino che la maggior parte delle persone imparerebbe a usare il sistema molto rapidamente.</li>
+            <li>Ho trovato il sistema molto macchinoso da usare.</li>
+            <li>Mi sono sentito sicuro nell'usare il sistema.</li>
+            <li>Ho avuto bisogno di imparare molte cose prima di riuscire a usare il sistema.</li>
+          </ol>
+          <span style="font-size: 12px; color: rgba(0,0,0,0.45);">Punteggio: dispari (voto − 1) + pari (5 − voto), somma × 2,5. Con il team interno serve come baseline, non come giudizio.</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 style="font-family: Oswald, sans-serif; font-size: 20px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin: 0;">6 · Griglia di sintesi</h2>
+          <p style="margin: 0; font-size: 13px; color: rgba(0,0,0,0.65);">Una riga per task, compilata a fine giro su tutti i partecipanti.</p>
+          <div style="border: 1px solid #F0F0F0; border-radius: 8px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 48px 1fr 92px 78px 68px 60px; background: #FAFAFA; border-bottom: 1px solid #F0F0F0; padding: 9px 14px; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: rgba(0,0,0,0.45);"><span>Task</span><span>Problema principale osservato</span><span>Successo</span><span>Tempo med.</span><span>SEQ med.</span><span>Gravità</span></div>
+            <div style="display: grid; grid-template-columns: 48px 1fr 92px 78px 68px 60px; padding: 14px; gap: 8px; border-bottom: 1px solid #F0F0F0; font-size: 13px; color: rgba(0,0,0,0.25);"><span style="color: rgba(0,0,0,0.65);">T1</span><span> </span><span> </span><span> </span><span> </span><span> </span></div>
+            <div style="display: grid; grid-template-columns: 48px 1fr 92px 78px 68px 60px; padding: 14px; gap: 8px; border-bottom: 1px solid #F0F0F0; font-size: 13px; color: rgba(0,0,0,0.25);"><span style="color: rgba(0,0,0,0.65);">T2</span><span> </span><span> </span><span> </span><span> </span><span> </span></div>
+            <div style="display: grid; grid-template-columns: 48px 1fr 92px 78px 68px 60px; padding: 14px; gap: 8px; border-bottom: 1px solid #F0F0F0; font-size: 13px; color: rgba(0,0,0,0.25);"><span style="color: rgba(0,0,0,0.65);">T3</span><span> </span><span> </span><span> </span><span> </span><span> </span></div>
+            <div style="display: grid; grid-template-columns: 48px 1fr 92px 78px 68px 60px; padding: 14px; gap: 8px; border-bottom: 1px solid #F0F0F0; font-size: 13px; color: rgba(0,0,0,0.25);"><span style="color: rgba(0,0,0,0.65);">T4</span><span> </span><span> </span><span> </span><span> </span><span> </span></div>
+            <div style="display: grid; grid-template-columns: 48px 1fr 92px 78px 68px 60px; padding: 14px; gap: 8px; border-bottom: 1px solid #F0F0F0; font-size: 13px; color: rgba(0,0,0,0.25);"><span style="color: rgba(0,0,0,0.65);">T5</span><span> </span><span> </span><span> </span><span> </span><span> </span></div>
+            <div style="display: grid; grid-template-columns: 48px 1fr 92px 78px 68px 60px; padding: 14px; gap: 8px; font-size: 13px; color: rgba(0,0,0,0.25);"><span style="color: rgba(0,0,0,0.65);">T6</span><span> </span><span> </span><span> </span><span> </span><span> </span></div>
+          </div>
+          <span style="font-size: 12px; color: rgba(0,0,0,0.45);">Gravità: 1 cosmetico · 2 fastidio · 3 blocca il compito · 4 rischio di dato sbagliato a sistema.</span>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="1b" style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 4px; background: #3E00FB; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;">1b</span>
+        <span style="font-size: 13px; font-weight: 600;">Scheda di rilevazione — sei schede, una per partecipante</span>
+      </div>
+
+      <div style="width: 720px; background: #fff; border: 1px solid #F0F0F0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02); overflow: hidden;">
+
+        <div style="display: flex; align-items: flex-end; gap: 2px; padding: 8px 16px 0; background: #FAFAFA; border-bottom: 1px solid #F0F0F0;">
+          <sc-for list="{{ pTabs }}" as="pt" hint-placeholder-count="6">
+            <button onClick="{{ pt.onPick }}" style="{{ pt.style }}">
+              <span style="font-size: 13px; font-weight: 600; line-height: 1.2;">{{ pt.label }}</span>
+              <span style="font-size: 10px; opacity: 0.6; line-height: 1.2; max-width: 78px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ pt.sub }}</span>
+            </button>
+          </sc-for>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 16px; padding: 18px 24px; border-bottom: 1px solid #F0F0F0;">
+          <div style="display: flex; flex-direction: column; gap: 2px; flex: 1;">
+            <span style="font-family: Oswald, sans-serif; font-size: 20px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase;">Rilevazione sessione</span>
+            <span style="font-size: 12px; color: rgba(0,0,0,0.45);">Inventory · Systems — 6 task, 30 minuti · {{ schedaLabel }}</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 6px;">
+            <span style="font-family: 'SF Mono', monospace; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; color: {{ totaleColor }};">{{ totaleTempo }}</span>
+            <span style="font-size: 11px; color: rgba(0,0,0,0.35); text-transform: uppercase; letter-spacing: 0.06em;">tot</span>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: #FAFAFA; border-bottom: 1px solid #F0F0F0;">
+          <input placeholder="Partecipante" value="{{ partecipante }}" onChange="{{ onPartecipante }}" style="flex: 1; height: 32px; padding: 0 11px; border: 1px solid #D9D9D9; border-radius: 6px; font-size: 13px; font-family: inherit; color: rgba(0,0,0,0.88); outline: none; background: #fff;" />
+          <input placeholder="Ruolo / data" value="{{ contesto }}" onChange="{{ onContesto }}" style="flex: 1; height: 32px; padding: 0 11px; border: 1px solid #D9D9D9; border-radius: 6px; font-size: 13px; font-family: inherit; color: rgba(0,0,0,0.88); outline: none; background: #fff;" />
+          <button onClick="{{ onReset }}" style="height: 32px; padding: 0 12px; border: 1px solid #D9D9D9; border-radius: 6px; background: #fff; font-size: 13px; font-family: inherit; color: rgba(0,0,0,0.65); cursor: pointer;" style-hover="background: rgba(0,0,0,0.04);">Azzera</button>
+        </div>
+
+        <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="6">
+          <div style="border-bottom: 1px solid #F0F0F0; padding: 16px 24px; display: flex; flex-direction: column; gap: 12px;">
+
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <span style="font-family: Oswald, sans-serif; font-size: 18px; font-weight: 600; color: #3E00FB; width: 28px; flex-shrink: 0;">{{ t.code }}</span>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+                <span style="font-size: 14px; font-weight: 600; color: rgba(0,0,0,0.88);">{{ t.titolo }}</span>
+                <span style="font-size: 12px; color: rgba(0,0,0,0.55); text-wrap: pretty;">{{ t.scenario }}</span>
+                <span style="font-size: 11px; color: rgba(0,0,0,0.40); text-wrap: pretty;">Successo: {{ t.criterio }}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                <span style="font-family: 'SF Mono', monospace; font-size: 15px; font-weight: 600; color: {{ t.timeColor }}; min-width: 48px; text-align: right;">{{ t.tempo }}</span>
+                <button onClick="{{ t.onTimer }}" style="{{ t.timerStyle }}">{{ t.timerLabel }}</button>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-left: 40px;">
+              <div style="display: flex; gap: 4px;">
+                <button onClick="{{ t.onOk }}" style="{{ t.okStyle }}">Successo</button>
+                <button onClick="{{ t.onAid }}" style="{{ t.aidStyle }}">Con aiuto</button>
+                <button onClick="{{ t.onFail }}" style="{{ t.failStyle }}">Fallita</button>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 11px; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.05em;">Errori</span>
+                <button onClick="{{ t.onErrMinus }}" style="width: 24px; height: 24px; border: 1px solid #D9D9D9; border-radius: 4px; background: #fff; color: rgba(0,0,0,0.65); font-size: 14px; line-height: 1; cursor: pointer; font-family: inherit;">−</button>
+                <span style="font-family: 'SF Mono', monospace; font-size: 13px; min-width: 14px; text-align: center;">{{ t.errori }}</span>
+                <button onClick="{{ t.onErrPlus }}" style="width: 24px; height: 24px; border: 1px solid #D9D9D9; border-radius: 4px; background: #fff; color: rgba(0,0,0,0.65); font-size: 14px; line-height: 1; cursor: pointer; font-family: inherit;">+</button>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 11px; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.05em;">Click</span>
+                <input value="{{ t.click }}" onChange="{{ t.onClick }}" placeholder="{{ t.clickAttesi }}" style="width: 52px; height: 24px; padding: 0 7px; border: 1px solid #D9D9D9; border-radius: 4px; font-size: 12px; font-family: 'SF Mono', monospace; outline: none; color: rgba(0,0,0,0.88);" />
+                <span style="font-size: 11px; color: rgba(0,0,0,0.35);">attesi {{ t.clickAttesi }}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 5px;">
+                <span style="font-size: 11px; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.05em;">SEQ</span>
+                <sc-for list="{{ t.seqOpts }}" as="s" hint-placeholder-count="7">
+                  <button onClick="{{ s.onPick }}" style="{{ s.style }}">{{ s.n }}</button>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="padding-left: 40px; display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 11px; color: #3E00FB; text-wrap: pretty;">{{ t.osserva }}</span>
+              <textarea placeholder="Osservazioni, citazioni, risposte post-task" value="{{ t.note }}" onChange="{{ t.onNote }}" rows="2" style="width: 100%; padding: 8px 11px; border: 1px solid #D9D9D9; border-radius: 6px; font-size: 13px; font-family: inherit; line-height: 1.5; color: rgba(0,0,0,0.88); outline: none; resize: vertical;"></textarea>
+            </div>
+
+          </div>
+        </sc-for>
+
+        <div style="padding: 18px 24px; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+            <div style="border: 1px solid #F0F0F0; border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 11px; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.06em;">Successo</span>
+              <span style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: rgba(0,0,0,0.88);">{{ sommario.successo }}</span>
+            </div>
+            <div style="border: 1px solid #F0F0F0; border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 11px; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.06em;">Con aiuto</span>
+              <span style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: rgba(0,0,0,0.88);">{{ sommario.aiuto }}</span>
+            </div>
+            <div style="border: 1px solid #F0F0F0; border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 11px; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.06em;">Errori tot.</span>
+              <span style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: rgba(0,0,0,0.88);">{{ sommario.errori }}</span>
+            </div>
+            <div style="border: 1px solid #F0F0F0; border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 11px; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.06em;">SEQ medio</span>
+              <span style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: rgba(0,0,0,0.88);">{{ sommario.seq }}</span>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px; border: 1px solid #F0F0F0; border-radius: 8px; padding: 14px 16px;">
+            <span style="font-size: 12px; font-weight: 600; color: rgba(0,0,0,0.88);">Chiusura</span>
+            <span style="font-size: 12px; color: rgba(0,0,0,0.55); text-wrap: pretty;">SUS (10 item, 1–5) e due domande aperte: cosa cambieresti per primo · qual è stato il momento in cui non sapevi cosa fare.</span>
+            <textarea placeholder="Punteggio SUS e note finali" value="{{ chiusura }}" onChange="{{ onChiusura }}" rows="3" style="width: 100%; padding: 8px 11px; border: 1px solid #D9D9D9; border-radius: 6px; font-size: 13px; font-family: inherit; line-height: 1.5; color: rgba(0,0,0,0.88); outline: none; resize: vertical;"></textarea>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1700,&quot;height&quot;:1400}}">
+const TASKS = [
+  { code: 'T1', titolo: 'Trovare l\u0027impianto giusto', clickAttesi: 6,
+    scenario: 'Un cliente chiede quali pensiline illuminate avete in zona Politeama. Trovale e apri la scheda di una.',
+    criterio: 'arriva alla scheda avendo ristretto il set con ricerca o filtri.',
+    osserva: 'Parte da ricerca o da filtri avanzati? Nota i chip attivi? Passa in Lista?' },
+  { code: 'T2', titolo: 'Censire un nuovo impianto', clickAttesi: 14,
+    scenario: 'Nuova pensilina in Via Roma 250, Palermo, formato 120\u00d7180. Inseriscila fino al punto in cui potresti salvarla.',
+    criterio: '"Crea Impianto" attivo e sa dire quali campi lo hanno sbloccato.',
+    osserva: 'Capisce canale \u2192 tipologia \u2192 formato? Cerca il salva in fondo? Sfoglia tutte le sezioni per paura di saltarne una?' },
+  { code: 'T3', titolo: 'Iter autorizzativo e seconda faccia', clickAttesi: 12,
+    scenario: 'Suolo pubblico con concessione comunale, esposizione su due lati: registra la concessione e aggiungi la faccia posteriore.',
+    criterio: 'una concessione in Iter e due facce in Dati tecnici, senza chiedere aiuto.',
+    osserva: 'Distingue concessione da autorizzazione? Trova "crea posteriore"? Si accorge dei campi ereditati?' },
+  { code: 'T4', titolo: 'Correggere un dato nella scheda', clickAttesi: 5,
+    scenario: 'Il civico \u00e8 sbagliato: da 250 a 252. Apri la scheda e correggilo.',
+    criterio: 'campo aggiornato e salvato dalla barra flottante.',
+    osserva: 'Ipotesi: la modifica per sezione non \u00e8 scopribile. Cronometra il tempo prima di trovare l\u0027ingresso in modifica.' },
+  { code: 'T5', titolo: 'Cambiare idea a met\u00e0 modifica', clickAttesi: 8,
+    scenario: 'Inizia a modificare la qualit\u00e0 nel profilo commerciale, passa ai dati tecnici, poi lascia tutto com\u0027era.',
+    criterio: 'la scheda torna allo stato iniziale e sa dire che nulla \u00e8 stato salvato.',
+    osserva: 'Ipotesi: l\u0027ambito del salvataggio \u00e8 ambiguo. Cerca una conferma? Rilegge per controllare?' },
+  { code: 'T6', titolo: 'Programmare una manutenzione', clickAttesi: 7,
+    scenario: 'Domani la squadra sistema il vetro rotto: lascia traccia dell\u0027intervento a sistema.',
+    criterio: 'un evento con data futura nello storico dell\u0027impianto.',
+    osserva: 'Cerca in Storico eventi o in Squadre? Capisce perch\u00e9 i futuri stanno in cima?' },
+];
+
+const KEY = 'gravity_usab_inventory_v2';
+const N_PART = 6;
+const blankRows = () => TASKS.map(() => ({ esito: null, errori: 0, click: '', seq: null, note: '', sec: 0 }));
+const blankPart = () => ({ partecipante: '', contesto: '', chiusura: '', rows: blankRows() });
+
+class Component extends DCLogic {
+  state = {
+    p: 0,
+    part: Array.from({ length: N_PART }, blankPart),
+    runningIdx: null,
+  };
+
+  componentDidMount() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s && Array.isArray(s.part) && s.part.length === N_PART) this.setState({ part: s.part });
+      }
+    } catch (e) {}
+    this.timer = setInterval(() => {
+      if (this.state.runningIdx == null) return;
+      this.patch(this.state.runningIdx, r => ({ sec: r.sec + 1 }));
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  persist(part) {
+    try { localStorage.setItem(KEY, JSON.stringify({ part })); } catch (e) {}
+  }
+
+  patch(i, fn) {
+    this.setState(s => {
+      const part = s.part.map((pp, k) => (k === s.p
+        ? { ...pp, rows: pp.rows.map((r, j) => (j === i ? { ...r, ...fn(r) } : r)) }
+        : pp));
+      this.persist(part);
+      return { part };
+    });
+  }
+
+  setTop(key, v) {
+    this.setState(s => {
+      const part = s.part.map((pp, k) => (k === s.p ? { ...pp, [key]: v } : pp));
+      this.persist(part);
+      return { part };
+    });
+  }
+
+  fmt(sec) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  renderVals() {
+    const { p, part, runningIdx } = this.state;
+    const cur = part[p];
+    const rows = cur.rows;
+    const btn = (active, color) => 'height:26px;padding:0 11px;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;transition:background .15s,border-color .15s;'
+      + (active ? `border:1px solid ${color};background:${color};color:#fff;font-weight:600;` : 'border:1px solid #D9D9D9;background:#fff;color:rgba(0,0,0,0.65);font-weight:400;');
+
+    const tasks = TASKS.map((t, i) => {
+      const r = rows[i];
+      const running = runningIdx === i;
+      const over = r.sec > 240;
+      return {
+        code: t.code, titolo: t.titolo, scenario: t.scenario, criterio: t.criterio,
+        osserva: t.osserva, clickAttesi: String(t.clickAttesi),
+        tempo: this.fmt(r.sec),
+        timeColor: over ? '#FF4A1C' : running ? '#3E00FB' : 'rgba(0,0,0,0.45)',
+        timerLabel: running ? 'Stop' : r.sec > 0 ? 'Riprendi' : 'Avvia',
+        timerStyle: 'height:26px;padding:0 12px;border-radius:6px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid '
+          + (running ? '#FF4A1C' : '#3E00FB') + ';background:' + (running ? '#FF4A1C' : '#3E00FB') + ';color:#fff;',
+        onTimer: () => this.setState(s => ({ runningIdx: s.runningIdx === i ? null : i })),
+        errori: String(r.errori),
+        onErrMinus: () => this.patch(i, x => ({ errori: Math.max(0, x.errori - 1) })),
+        onErrPlus: () => this.patch(i, x => ({ errori: x.errori + 1 })),
+        click: r.click,
+        onClick: (e) => this.patch(i, () => ({ click: e.target.value })),
+        note: r.note,
+        onNote: (e) => this.patch(i, () => ({ note: e.target.value })),
+        okStyle: btn(r.esito === 'ok', '#52C41A'),
+        aidStyle: btn(r.esito === 'aid', '#FAAD14'),
+        failStyle: btn(r.esito === 'fail', '#FF4A1C'),
+        onOk: () => this.patch(i, x => ({ esito: x.esito === 'ok' ? null : 'ok' })),
+        onAid: () => this.patch(i, x => ({ esito: x.esito === 'aid' ? null : 'aid' })),
+        onFail: () => this.patch(i, x => ({ esito: x.esito === 'fail' ? null : 'fail' })),
+        seqOpts: [1, 2, 3, 4, 5, 6, 7].map(n => ({
+          n: String(n),
+          style: 'width:24px;height:24px;border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer;padding:0;'
+            + (r.seq === n ? 'border:1px solid #3E00FB;background:#3E00FB;color:#fff;font-weight:700;' : 'border:1px solid #D9D9D9;background:#fff;color:rgba(0,0,0,0.55);'),
+          onPick: () => this.patch(i, x => ({ seq: x.seq === n ? null : n })),
+        })),
+      };
+    });
+
+    const tot = rows.reduce((a, r) => a + r.sec, 0);
+    const seqVals = rows.filter(r => r.seq).map(r => r.seq);
+    return {
+      tasks,
+      pTabs: part.map((pp, k) => {
+        const done = pp.rows.filter(r => r.esito).length;
+        const active = k === p;
+        return {
+          label: 'P' + (k + 1),
+          sub: pp.partecipante ? pp.partecipante : done ? done + '/6' : '—',
+          style: 'display:flex;flex-direction:column;align-items:flex-start;gap:1px;height:42px;padding:0 14px;border-radius:6px 6px 0 0;border:none;cursor:pointer;font-family:inherit;text-align:left;transition:background .15s;'
+            + (active ? 'background:#fff;color:#3E00FB;box-shadow:inset 0 -2px 0 #3E00FB;' : 'background:transparent;color:rgba(0,0,0,0.55);'),
+          onPick: () => this.setState({ p: k, runningIdx: null }),
+        };
+      }),
+      schedaLabel: 'Scheda ' + (p + 1) + ' di ' + N_PART,
+      partecipante: cur.partecipante,
+      contesto: cur.contesto,
+      chiusura: cur.chiusura,
+      onPartecipante: (e) => this.setTop('partecipante', e.target.value),
+      onContesto: (e) => this.setTop('contesto', e.target.value),
+      onChiusura: (e) => this.setTop('chiusura', e.target.value),
+      onReset: () => {
+        this.setState(s => {
+          const part2 = s.part.map((pp, k) => (k === s.p ? { ...pp, chiusura: '', rows: blankRows() } : pp));
+          this.persist(part2);
+          return { part: part2, runningIdx: null };
+        });
+      },
+      totaleTempo: this.fmt(tot),
+      totaleColor: tot > 1800 ? '#FF4A1C' : 'rgba(0,0,0,0.88)',
+      sommario: {
+        successo: rows.filter(r => r.esito === 'ok').length + '/6',
+        aiuto: String(rows.filter(r => r.esito === 'aid').length),
+        errori: String(rows.reduce((a, r) => a + r.errori, 0)),
+        seq: seqVals.length ? (seqVals.reduce((a, b) => a + b, 0) / seqVals.length).toFixed(1) : '—',
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

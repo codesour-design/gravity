@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shaker UI — Gravity Component Library</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      color: rgba(0,0,0,0.88);
+      background: #fff;
+      font-size: 14px;
+      line-height: 1.5714;
+    }
+
+    /* ── Header ─────────────────────────────────────── */
+    .doc-header {
+      position: sticky; top: 0; z-index: 100;
+      height: 64px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(5,5,5,0.06);
+      display: flex; align-items: center;
+      padding: 0 24px; gap: 32px;
+    }
+    .doc-logo {
+      display: flex; align-items: center; gap: 6px;
+      text-decoration: none; flex-shrink: 0;
+    }
+    .doc-logo img { height: 22px; }
+    .doc-logo .sep { color: rgba(0,0,0,0.2); font-weight: 300; font-size: 18px; margin: 0 2px; }
+    .doc-logo .site { color: rgba(0,0,0,0.65); font-weight: 500; font-size: 14px; }
+    .doc-nav { display: flex; gap: 4px; }
+    .doc-nav a {
+      color: rgba(0,0,0,0.65); text-decoration: none;
+      padding: 6px 12px; border-radius: 6px; font-size: 14px;
+      transition: all .15s;
+    }
+    .doc-nav a:hover { color: rgba(0,0,0,0.88); background: rgba(0,0,0,0.04); }
+    .doc-nav a.active { color: #3E00FB; font-weight: 500; }
+
+    /* ── Layout ─────────────────────────────────────── */
+    .doc-body { display: flex; min-height: calc(100vh - 64px); }
+
+    /* ── Sidebar ────────────────────────────────────── */
+    .doc-sidebar {
+      width: 232px; flex-shrink: 0;
+      padding: 16px 0 32px;
+      border-right: 1px solid rgba(5,5,5,0.06);
+      position: sticky; top: 64px;
+      height: calc(100vh - 64px);
+      overflow-y: auto;
+    }
+    .sb-group {
+      padding: 12px 20px 4px;
+      font-size: 11px; font-weight: 600;
+      color: rgba(0,0,0,0.4);
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .sb-item {
+      display: block; padding: 6px 20px 6px 18px;
+      font-size: 14px; color: rgba(0,0,0,0.65);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      transition: all .15s;
+    }
+    .sb-item:hover { color: rgba(0,0,0,0.88); background: rgba(0,0,0,0.02); }
+    .sb-item.active { color: #3E00FB; font-weight: 500; border-left-color: #3E00FB; background: rgba(62,0,251,0.04); }
+    .sb-item.disabled { opacity: .35; pointer-events: none; }
+
+    /* ── Main ───────────────────────────────────────── */
+    .doc-main { flex: 1; min-width: 0; padding: 40px 64px 80px; }
+    .doc-inner { max-width: 960px; }
+
+    .page-title { font-size: 30px; font-weight: 600; line-height: 38px; margin: 0 0 8px; }
+    .page-desc {
+      font-size: 15px; color: rgba(0,0,0,0.65); line-height: 1.7;
+      margin: 0 0 40px; max-width: 560px;
+    }
+
+    .cat-title {
+      font-size: 18px; font-weight: 600;
+      margin: 0 0 16px; padding-bottom: 10px;
+      border-bottom: 1px solid rgba(5,5,5,0.06);
+    }
+
+    /* ── Component grid ─────────────────────────────── */
+    .comp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+    .comp-card {
+      border: 1px solid rgba(5,5,5,0.08);
+      border-radius: 8px; overflow: hidden;
+      text-decoration: none; color: inherit;
+      transition: border-color .15s, box-shadow .15s;
+      display: block; cursor: pointer;
+    }
+    a.comp-card:hover {
+      border-color: #3E00FB;
+      box-shadow: 0 0 0 1px rgba(62,0,251,0.12);
+    }
+    .comp-card.soon { pointer-events: none; opacity: .5; }
+
+    .comp-preview {
+      height: 120px; background: #fafafa;
+      border-bottom: 1px solid rgba(5,5,5,0.06);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .comp-info { padding: 14px 16px; }
+    .comp-name {
+      font-size: 14px; font-weight: 600; margin: 0 0 4px;
+      color: rgba(0,0,0,0.88);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .comp-name-text { flex: 1; }
+    .comp-status {
+      font-size: 11px; font-weight: 500;
+      padding: 1px 7px; border-radius: 3px;
+    }
+    .comp-status.stable {
+      background: #F6FFED; color: #389E0D; border: 1px solid #B7EB8F;
+    }
+    .comp-status.planned {
+      background: #fafafa; color: rgba(0,0,0,0.35); border: 1px solid #e8e8e8;
+    }
+    .comp-desc { font-size: 12px; color: rgba(0,0,0,0.45); line-height: 1.6; margin: 0; }
+
+    /* ── Mini previews ──────────────────────────────── */
+    /* Entity Card */
+    .prev-ec {
+      width: 88px;
+      background: #fff; border-radius: 5px;
+      border: 1px solid #e0e0e0; overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .prev-ec-head {
+      padding: 6px 8px 5px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .prev-ec-title { flex: 1; height: 5px; background: rgba(0,0,0,0.18); border-radius: 2px; }
+    .prev-ec-badge { width: 18px; height: 5px; background: rgba(62,0,251,0.3); border-radius: 2px; }
+    .prev-ec-img { height: 28px; background: #f0f0f0; }
+    .prev-ec-body { padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
+    .prev-ec-row { height: 4px; background: #e4e4e4; border-radius: 2px; }
+    .prev-ec-row.w75 { width: 75%; }
+    .prev-ec-row.w55 { width: 55%; }
+    /* Status Badge */
+    .prev-badge { display: flex; align-items: center; gap: 5px; }
+    .prev-badge-dot { width: 8px; height: 8px; border-radius: 50%; background: #52C41A; }
+    .prev-badge-text { width: 40px; height: 5px; background: #d0d0d0; border-radius: 2px; }
+    /* Navbar */
+    .prev-nav { width: 120px; height: 18px; background: #fff; border: 1px solid #e0e0e0; border-radius: 3px; display: flex; align-items: center; padding: 0 6px; gap: 4px; }
+    .prev-nav-dot { width: 14px; height: 4px; background: #3E00FB; border-radius: 1px; }
+    .prev-nav-item { width: 20px; height: 4px; background: #e0e0e0; border-radius: 1px; }
+    /* Map Popover */
+    .prev-popover { width: 64px; height: 52px; background: #fff; border-radius: 5px; border: 1px solid #e0e0e0; box-shadow: 0 2px 6px rgba(0,0,0,0.1); padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; }
+    .prev-popover-row { height: 4px; background: #e4e4e4; border-radius: 2px; }
+    .prev-popover-row.short { width: 60%; }
+    /* Filter Drawer */
+    .prev-drawer { width: 40px; height: 60px; background: #fff; border-radius: 0 4px 4px 0; border: 1px solid #e0e0e0; border-left: 3px solid #3E00FB; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+    .prev-drawer-row { height: 4px; background: #e4e4e4; border-radius: 2px; }
+    .prev-drawer-row.short { width: 60%; }
+  </style>
+</head>
+<body>
+
+<header class="doc-header">
+  <a class="doc-logo" href="index.html">
+    <img src="../brand/Gravity_type.svg" alt="Gravity">
+    <span class="sep">/</span>
+    <span class="site">Shaker UI</span>
+  </a>
+  <nav class="doc-nav">
+    <a href="index.html" class="active">Components</a>
+    <a href="#">Design Tokens</a>
+  </nav>
+</header>
+
+<div class="doc-body">
+  <nav class="doc-sidebar">
+    <div class="sb-group">Overview</div>
+    <a href="index.html" class="sb-item active">Components</a>
+
+    <div class="sb-group" style="margin-top:8px">Data Display</div>
+    <a href="entity-card.html" class="sb-item">Entity Card</a>
+    <a class="sb-item disabled">Status Badge</a>
+
+    <div class="sb-group" style="margin-top:8px">Navigation</div>
+    <a class="sb-item disabled">Navbar</a>
+
+    <div class="sb-group" style="margin-top:8px">Overlay</div>
+    <a class="sb-item disabled">Map Popover</a>
+    <a class="sb-item disabled">Filter Drawer</a>
+  </nav>
+
+  <main class="doc-main">
+    <div class="doc-inner">
+
+      <h1 class="page-title">Components</h1>
+      <p class="page-desc">
+        Shaker UI è la libreria di componenti di Gravity — costruita su Ant Design 5,
+        documentata per i prototipi HTML e strutturata per la migrazione a Storybook.
+        Ogni pagina componente espone le storie con nome canonico pronte per il porting.
+      </p>
+
+      <h2 class="cat-title">Data Display</h2>
+      <div class="comp-grid">
+
+        <a href="entity-card.html" class="comp-card">
+          <div class="comp-preview">
+            <div class="prev-ec">
+              <div class="prev-ec-head">
+                <div class="prev-ec-title"></div>
+                <div class="prev-ec-badge"></div>
+              </div>
+              <div class="prev-ec-img"></div>
+              <div class="prev-ec-body">
+                <div class="prev-ec-row"></div>
+                <div class="prev-ec-row w75"></div>
+                <div class="prev-ec-row w55"></div>
+              </div>
+            </div>
+          </div>
+          <div class="comp-info">
+            <div class="comp-name">
+              <span class="comp-name-text">Entity Card</span>
+              <span class="comp-status stable">Stable</span>
+            </div>
+            <p class="comp-desc">Compact card for domain entities — installations, campaigns, permits.</p>
+          </div>
+        </a>
+
+        <div class="comp-card soon">
+          <div class="comp-preview">
+            <div class="prev-badge">
+              <div class="prev-badge-dot"></div>
+              <div class="prev-badge-text"></div>
+            </div>
+          </div>
+          <div class="comp-info">
+            <div class="comp-name">
+              <span class="comp-name-text">Status Badge</span>
+              <span class="comp-status planned">Planned</span>
+            </div>
+            <p class="comp-desc">Colour-coded state indicator with dot and label.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <h2 class="cat-title">Navigation</h2>
+      <div class="comp-grid">
+
+        <div class="comp-card soon">
+          <div class="comp-preview">
+            <div class="prev-nav">
+              <div class="prev-nav-dot"></div>
+              <div class="prev-nav-item"></div>
+              <div class="prev-nav-item"></div>
+              <div class="prev-nav-item"></div>
+            </div>
+          </div>
+          <div class="comp-info">
+            <div class="comp-name">
+              <span class="comp-name-text">Navbar</span>
+              <span class="comp-status planned">Planned</span>
+            </div>
+            <p class="comp-desc">Horizontal app shell navigation with role-based sections.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <h2 class="cat-title">Overlay</h2>
+      <div class="comp-grid">
+
+        <div class="comp-card soon">
+          <div class="comp-preview">
+            <div class="prev-popover">
+              <div class="prev-popover-row"></div>
+              <div class="prev-popover-row short"></div>
+              <div class="prev-popover-row"></div>
+              <div class="prev-popover-row short"></div>
+            </div>
+          </div>
+          <div class="comp-info">
+            <div class="comp-name">
+              <span class="comp-name-text">Map Popover</span>
+              <span class="comp-status planned">Planned</span>
+            </div>
+            <p class="comp-desc">Floating info panel on map markers with system details.</p>
+          </div>
+        </div>
+
+        <div class="comp-card soon">
+          <div class="comp-preview">
+            <div class="prev-drawer">
+              <div class="prev-drawer-row"></div>
+              <div class="prev-drawer-row short"></div>
+              <div class="prev-drawer-row"></div>
+              <div class="prev-drawer-row short"></div>
+            </div>
+          </div>
+          <div class="comp-info">
+            <div class="comp-name">
+              <span class="comp-name-text">Filter Drawer</span>
+              <span class="comp-status planned">Planned</span>
+            </div>
+            <p class="comp-desc">Right-side panel for advanced multi-field filtering.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>
