@@ -7118,10 +7118,10 @@ out geom;`;
                 style: { flexShrink: 0 },
               }),
             ),
-            // Body: immagine + info affiancati, stessa altezza (align-items: stretch)
-            React.createElement('div', { style: { display: 'flex', flexDirection: 'row', alignItems: 'stretch' } },
-              // Immagine — si allunga a coprire tutta l'altezza del pannello info
-              React.createElement('div', { style: { width: 160, flexShrink: 0, overflow: 'hidden' } },
+            // Body: immagine 16:9 fissa + info panel (si allunga con l'accordion)
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'row', alignItems: 'flex-start' } },
+              // Immagine 16:9 — proporzioni fisse, la card cresce in altezza con l'accordion
+              React.createElement('div', { style: { width: 160, aspectRatio: '16/9', flexShrink: 0, overflow: 'hidden' } },
                 React.createElement('img', { src: FOTO_IMPIANTO[fotoIdx], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
               ),
               // Info panel: tag, indirizzo, divider, data rows
