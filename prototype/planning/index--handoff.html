@@ -7096,36 +7096,36 @@ out geom;`;
               top: pos ? pos.y : undefined,
               bottom: pos ? undefined : 24,
               transform: pos ? 'translate(-50%, -100%)' : 'translateX(-50%)',
-              zIndex: 500, width: 380, borderRadius: 12, overflow: 'hidden',
-              border: '1.5px solid rgba(62,0,251,0.15)', background: '#fff',
+              zIndex: 500, width: 380, borderRadius: 8,
+              border: '1px solid #f0f0f0', background: '#fff',
               boxShadow: '0 8px 32px rgba(62,0,251,0.18), 0 2px 8px rgba(0,0,0,0.10)',
               fontFamily: "-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif",
               animation: 'gmp-in .15s ease',
-              display: 'flex', flexDirection: 'column',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden',
             },
             onClick: e => e.stopPropagation(),
           },
             // Header full-width: titolo + codice + chiudi
-            React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, padding: '12px 10px 10px 14px', borderBottom: '1px solid #F5F5F5' } },
-              React.createElement('div', { style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, minWidth: 0 } },
-                React.createElement('span', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, sys.label || sys.code),
-                sys.label && React.createElement('span', { style: { fontSize: 11, padding: '0 6px', borderRadius: 4, lineHeight: '18px', border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.45)', background: '#fafafa' } }, sys.code),
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 10px 8px 12px', borderBottom: '1px solid #f0f0f0' } },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 } },
+                React.createElement('span', { style: { fontSize: 16, fontWeight: 600, color: 'rgba(0,0,0,0.88)', lineHeight: '24px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, sys.label || sys.code),
+                sys.label && React.createElement('span', { style: { fontSize: 11, padding: '0 6px', borderRadius: 4, lineHeight: '18px', border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.45)', background: '#fafafa', flexShrink: 0 } }, sys.code),
               ),
               React.createElement(Button, {
                 type: 'text', size: 'small',
                 icon: React.createElement(icons.CloseOutlined, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }),
                 onClick: () => setFocusedId(null),
-                style: { flexShrink: 0, marginTop: -2 },
+                style: { flexShrink: 0 },
               }),
             ),
-            // Sezione inferiore: immagine 16:9 sinistra + body destra
-            React.createElement('div', { style: { display: 'flex', flexDirection: 'row', alignItems: 'flex-start' } },
-              // Immagine 16:9
-              React.createElement('div', { style: { width: 160, aspectRatio: '16/9', flexShrink: 0, overflow: 'hidden' } },
+            // Body: immagine + info affiancati, stessa altezza (align-items: stretch)
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'row', alignItems: 'stretch' } },
+              // Immagine — si allunga a coprire tutta l'altezza del pannello info
+              React.createElement('div', { style: { width: 160, flexShrink: 0, overflow: 'hidden' } },
                 React.createElement('img', { src: FOTO_IMPIANTO[fotoIdx], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
               ),
-              // Body: tag canale/tipo, indirizzo, formato, facce
-              React.createElement('div', { style: { flex: 1, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '1px solid #F5F5F5', minWidth: 0 } },
+              // Info panel: tag, indirizzo, divider, data rows
+              React.createElement('div', { style: { flex: 1, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '1px solid #f0f0f0', minWidth: 0 } },
                 React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
                   React.createElement(Tag, { style: CHANNEL_TAG_STYLE[sys.channel] || CHANNEL_TAG_STYLE.OOH }, sys.channel),
                   React.createElement(Tag, {
@@ -7133,19 +7133,18 @@ out geom;`;
                     style: { margin: 0, fontSize: 12, color: 'rgba(0,0,0,0.65)', background: '#fff', border: '1px solid #d9d9d9' },
                   }, sys.type),
                 ),
-                React.createElement('div', { style: { borderTop: '1px solid #F5F5F5' } }),
                 React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 1 } },
-                  React.createElement('div', { style: { fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, sys.address),
-                  React.createElement('div', { style: { fontSize: 11, fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, sys.city),
+                  React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.65)', lineHeight: '20px' } }, sys.address),
+                  React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, sys.city),
                 ),
-                React.createElement('div', { style: { borderTop: '1px solid #F5F5F5' } }),
+                React.createElement('div', { style: { height: 1, background: '#f0f0f0', flexShrink: 0 } }),
                 React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 7 } },
                   rowEl(ExpandOutlined, 'Formato', fmt || '—'),
                   React.createElement('div', {
                     style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, lineHeight: '20px', cursor: 'pointer' },
                     onClick: () => setPopoverFacesOpen(v => !v),
                   },
-                    React.createElement(AppstoreOutlined, { style: { fontSize: 14, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
+                    React.createElement(AppstoreOutlined, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
                     React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, 'Facce:'),
                     React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.65)' } }, `${faceObjs.length} ${faceObjs.length === 1 ? 'faccia' : 'facce'}`),
                     React.createElement(Button, {
@@ -7159,7 +7158,7 @@ out geom;`;
                 ),
                 // Accordion facce — visibile solo quando aperto
                 popoverFacesOpen && React.createElement.apply(React, ['div', {
-                  style: { display: 'flex', flexDirection: 'column', gap: 2, borderTop: '1px solid #F5F5F5', paddingTop: 8 },
+                  style: { display: 'flex', flexDirection: 'column', gap: 2, borderTop: '1px solid #f0f0f0', paddingTop: 8 },
                 }].concat(faceListItems)),
               ),
             ),
