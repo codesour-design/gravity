@@ -602,6 +602,7 @@
     .ss-sys-head:hover { background: var(--gravity-bg-subtle); }
     .ss-sys-head.ss-sys-selected { background: #fff; }
     .ss-sys-head.ss-sys-hovered  { background: var(--gravity-bg-subtle); }
+    .ss-sys-head.ss-sys-focused  { background: rgba(62,0,251,0.04); box-shadow: inset 3px 0 0 var(--gravity-primary); }
 
     /* Left accent bar */
     .ss-sys-accent {
@@ -6424,6 +6425,13 @@ out geom;`;
     applyFocusOpacityRef.current(focusedId);
   }, [focusedId]);
 
+  // ── Effect: scroll sidebar al sistema focalizzato ────────────────────
+  React.useEffect(() => {
+    if (!focusedId) return;
+    const el = document.querySelector(`.ss-sys-row[data-sysid="${focusedId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [focusedId]);
+
   // ── Effect: aggiorna icona marker in hover ────────────────────────────
   React.useEffect(() => {
     const map = mapRef.current;
@@ -6490,7 +6498,8 @@ out geom;`;
       ? `${selF}/${availF} ${availF === 1 ? 'faccia' : 'facce'}`
       : `${totalF} ${totalF === 1 ? 'faccia' : 'facce'}`;
     const faceBadgeCls  = 'ss-face-badge ss-face-badge-none';
-    const headCls = ['ss-sys-head', cs!=='none'?'ss-sys-selected':'', isHov?'ss-sys-hovered':''].filter(Boolean).join(' ');
+    const isFoc   = focusedId === sys.id;
+    const headCls = ['ss-sys-head', cs!=='none'?'ss-sys-selected':'', isHov?'ss-sys-hovered':'', isFoc?'ss-sys-focused':''].filter(Boolean).join(' ');
     const TypeIconFn = TYPE_ICON[sys.type];          // fallback AntD (Cartello/Insegna)
     const typeIconUrl = GravityMap.systypeIconSrc(sys.type);
     const isLtOnly      = sys.saleModel === 'long_term_only';
@@ -6498,6 +6507,7 @@ out geom;`;
 
     return React.createElement('div', {
       key: sys.id,
+      'data-sysid': sys.id,
       className: 'ss-sys-row',
     },
       // ── head ──────────────────────────────────────────
@@ -6505,7 +6515,14 @@ out geom;`;
         className: headCls,
         onMouseEnter: () => setHoveredId(sys.id),
         onMouseLeave: () => setHoveredId(null),
-        onClick: () => { setFocusedId(prev => prev === sys.id ? null : sys.id); },
+        onClick: () => {
+          const newId = focusedId === sys.id ? null : sys.id;
+          setFocusedId(newId);
+          if (newId && mapRef.current) {
+            const entry = markersRef.current.find(e => e.sysId === newId);
+            if (entry) mapRef.current.panTo(entry.marker.getPosition());
+          }
+        },
       },
         // Checkbox a sinistra (nascosto in sola lettura)
         !readOnly && React.createElement(Checkbox, {
