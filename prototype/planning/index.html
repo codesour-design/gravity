@@ -7101,31 +7101,31 @@ out geom;`;
               boxShadow: '0 8px 32px rgba(62,0,251,0.18), 0 2px 8px rgba(0,0,0,0.10)',
               fontFamily: "-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif",
               animation: 'gmp-in .15s ease',
-              display: 'flex', flexDirection: 'row', alignItems: 'stretch',
+              display: 'flex', flexDirection: 'column',
             },
             onClick: e => e.stopPropagation(),
           },
-            // Colonna sinistra: immagine impianto
-            React.createElement('div', { style: { width: 120, flexShrink: 0, overflow: 'hidden' } },
-              React.createElement('img', { src: FOTO_IMPIANTO[fotoIdx], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
+            // Header full-width: titolo + codice + chiudi
+            React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, padding: '12px 10px 10px 14px', borderBottom: '1px solid #F5F5F5' } },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, minWidth: 0 } },
+                React.createElement('span', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, sys.label || sys.code),
+                sys.label && React.createElement('span', { style: { fontSize: 11, padding: '0 6px', borderRadius: 4, lineHeight: '18px', border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.45)', background: '#fafafa' } }, sys.code),
+              ),
+              React.createElement(Button, {
+                type: 'text', size: 'small',
+                icon: React.createElement(icons.CloseOutlined, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }),
+                onClick: () => setFocusedId(null),
+                style: { flexShrink: 0, marginTop: -2 },
+              }),
             ),
-            // Colonna destra: header + body
-            React.createElement('div', { style: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, borderLeft: '1px solid #F5F5F5' } },
-              // Header: titolo + codice + chiudi
-              React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, padding: '12px 10px 10px 14px', borderBottom: '1px solid #F5F5F5' } },
-                React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 } },
-                  React.createElement('span', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, sys.label || sys.code),
-                  sys.label && React.createElement('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)', lineHeight: '1.4' } }, sys.code),
-                ),
-                React.createElement(Button, {
-                  type: 'text', size: 'small',
-                  icon: React.createElement(icons.CloseOutlined, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }),
-                  onClick: () => setFocusedId(null),
-                  style: { flexShrink: 0, marginTop: -2 },
-                }),
+            // Sezione inferiore: immagine 16:9 sinistra + body destra
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'row', alignItems: 'flex-start' } },
+              // Immagine 16:9
+              React.createElement('div', { style: { width: 160, aspectRatio: '16/9', flexShrink: 0, overflow: 'hidden' } },
+                React.createElement('img', { src: FOTO_IMPIANTO[fotoIdx], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
               ),
               // Body: tag canale/tipo, indirizzo, formato, facce
-              React.createElement('div', { style: { padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 } },
+              React.createElement('div', { style: { flex: 1, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '1px solid #F5F5F5', minWidth: 0 } },
                 React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
                   React.createElement(Tag, { style: CHANNEL_TAG_STYLE[sys.channel] || CHANNEL_TAG_STYLE.OOH }, sys.channel),
                   React.createElement(Tag, {
