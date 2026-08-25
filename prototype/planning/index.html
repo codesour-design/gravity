@@ -5488,6 +5488,17 @@ function SelectSystems({ planning, onBack, onApply, planningsList, onDuplicate, 
       return next;
     });
   };
+  const toggleAllFaces = (sys) => {
+    if (readOnly) return;
+    const availFaces = (sys.faceObjs || []).filter(f => f.state !== 'Reserved');
+    const allSel = availFaces.length > 0 && availFaces.every(f => selectedFaceIds.has(f.id));
+    setSelectedFaceIds(prev => {
+      const next = new Set(prev);
+      if (allSel) availFaces.forEach(f => next.delete(f.id));
+      else availFaces.forEach(f => next.add(f.id));
+      return next;
+    });
+  };
   const toggleExpand = (sysId, e) => {
     e.stopPropagation();
     setExpandedSysIds(prev => {
@@ -5897,10 +5908,8 @@ out geom;`;
   // Zoom minimo 16 per garantire l'uscita dai cluster.
   // Il popover appare alla fine dell'animazione (idle), con fallback.
   const [focusReady, setFocusReady] = useState(false);
-  const [popoverFacesOpen, setPopoverFacesOpen] = useState(false);
   React.useEffect(() => {
     if (!focusedId) { setFocusReady(false); return; }
-    setPopoverFacesOpen(false);
     const sys = SEARCH_RESULTS.find(s => s.id === focusedId);
     if (!sys?.lat || !sys?.lng) return;
     setFocusReady(false);
@@ -7054,41 +7063,9 @@ out geom;`;
               React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label + ':'),
               React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.65)' } }, value),
             );
-          // Costruisce i children della checklist in un array esplicito per evitare
-          // lo spread di condizionali misti dentro React.createElement
-          const faceListItems = [];
-          faceObjs.forEach(face => {
-            const isFaceSel  = selectedFaceIds.has(face.id);
-            const isDisabled = face.state === 'Reserved';
-            const { total }  = face.price ? computeFacePrice(face, planning) : { total: 0 };
-            const rowChildren = [];
-            if (!readOnly) {
-              rowChildren.push(React.createElement(Checkbox, {
-                key: 'cb',
-                checked: isFaceSel, disabled: isDisabled,
-                onChange: () => toggleFace(face),
-                onClick: e => e.stopPropagation(),
-                style: { flexShrink: 0 },
-              }));
-            }
-            rowChildren.push(
-              React.createElement('span', { key: 'lbl', style: { fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.88)', flexShrink: 0, minWidth: 60 } }, face.label),
-              React.createElement('span', { key: 'st', style: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 } },
-                React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', background: AVAIL_COLOR[face.state] || '#D9D9D9', display: 'inline-block', flexShrink: 0 } }),
-                React.createElement('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } }, STATE_LABELS[face.state] || face.state),
-                face.price > 0 && React.createElement('span', { style: { fontSize: 11, color: 'rgba(0,0,0,0.65)', fontVariantNumeric: 'tabular-nums' } }, '· ' + formatEuro(total)),
-              ),
-            );
-            faceListItems.push(React.createElement('div', {
-              key: face.id,
-              style: {
-                display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0',
-                cursor: isDisabled || readOnly ? 'default' : 'pointer',
-                opacity: isDisabled ? 0.45 : 1,
-              },
-              onClick: () => !isDisabled && !readOnly && toggleFace(face),
-            }, ...rowChildren));
-          });
+          const availFaces = faceObjs.filter(f => f.state !== 'Reserved');
+          const selAvailCount = availFaces.filter(f => selectedFaceIds.has(f.id)).length;
+          const faceInfoText = `${availFaces.length}/${faceObjs.length} disponibili`;
           return React.createElement('div', {
             style: {
               position: 'absolute',
@@ -7140,28 +7117,41 @@ out geom;`;
                 React.createElement('div', { style: { height: 1, background: '#f0f0f0', flexShrink: 0 } }),
                 React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 7 } },
                   rowEl(ExpandOutlined, 'Formato', fmt || '—'),
-                  React.createElement('div', {
-                    style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, lineHeight: '20px', cursor: 'pointer' },
-                    onClick: () => setPopoverFacesOpen(v => !v),
-                  },
-                    React.createElement(AppstoreOutlined, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
-                    React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, 'Facce:'),
-                    React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.65)' } }, `${faceObjs.length} ${faceObjs.length === 1 ? 'faccia' : 'facce'}`),
-                    React.createElement(Button, {
-                      type: 'link',
-                      size: 'small',
-                      icon: React.createElement(popoverFacesOpen ? DownOutlined : RightOutlined, { style: { fontSize: 10 } }),
-                      style: { marginLeft: 'auto', padding: '0 2px', height: 'auto', lineHeight: 1, color: 'var(--gravity-primary)' },
-                      onClick: e => { e.stopPropagation(); setPopoverFacesOpen(v => !v); },
-                    }),
-                  ),
+                  rowEl(AppstoreOutlined, 'Facce', faceInfoText),
                 ),
-                // Accordion facce — visibile solo quando aperto
-                popoverFacesOpen && React.createElement.apply(React, ['div', {
-                  style: { display: 'flex', flexDirection: 'column', gap: 2, borderTop: '1px solid #f0f0f0', paddingTop: 8 },
-                }].concat(faceListItems)),
               ),
             ),
+            // Footer CTA — solo se non readOnly e ci sono facce disponibili
+            !readOnly && availFaces.length > 0 && (() => {
+              const allSel = selAvailCount === availFaces.length;
+              const remaining = availFaces.length - selAvailCount;
+              const toAdd = selAvailCount === 0 ? availFaces.length : remaining;
+              const label = allSel
+                ? 'Rimuovi selezione'
+                : `Aggiungi ${toAdd} ${toAdd === 1 ? 'faccia' : 'facce'}`;
+              const isDanger = allSel;
+              return React.createElement('div', {
+                style: {
+                  borderTop: '1px solid #f0f0f0',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                },
+              },
+                React.createElement('button', {
+                  style: {
+                    padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+                    background: isDanger ? '#FFF0F0' : '#fff',
+                    color: isDanger ? '#FF4D4F' : 'rgba(0,0,0,0.88)',
+                    border: isDanger ? '1px solid #FFA39E' : '1px solid #d9d9d9',
+                    fontSize: 14, fontWeight: 400, fontFamily: 'inherit',
+                    lineHeight: '22px',
+                    transition: 'opacity .1s',
+                  },
+                  onClick: e => { e.stopPropagation(); toggleAllFaces(sys); },
+                }, label),
+              );
+            })(),
           );
         })(),
 
