@@ -23,9 +23,9 @@
   };</script>
   <script src="../_shared/navbar.js"></script>
 
-  <!-- Google Maps + MarkerClusterer -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFkwneQjAMG1ozsc80YaQYZzyfhdsKmyI&libraries=places"></script>
-  <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; }
@@ -509,33 +509,6 @@ async function photonSuggestPOI(query, limit = 7) {
   } catch { return []; }
 }
 
-async function googleAutocompletePOI(query, service, limit = 7) {
-  if (!service) return [];
-  return new Promise(resolve => {
-    const palermoBounds = new google.maps.LatLngBounds(
-      new google.maps.LatLng(38.055, 13.285),
-      new google.maps.LatLng(38.245, 13.455)
-    );
-    service.getPlacePredictions(
-      { input: query, bounds: palermoBounds },
-      (predictions, status) => {
-        if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
-          resolve([]); return;
-        }
-        resolve(predictions.slice(0, limit).map(p => ({
-          id:      `gac-${p.place_id}`,
-          label:   p.structured_formatting?.main_text || p.description,
-          sub:     p.structured_formatting?.secondary_text || '',
-          lat:     null,
-          lng:     null,
-          placeId: p.place_id,
-          color:   '#FF4A1C',
-          icon:    '📍',
-        })));
-      }
-    );
-  });
-}
 
 const POI_SVG_PATHS = {
   ReadOutlined:         `<rect x="6" y="4" width="12" height="16" rx="1" fill="none" stroke="white" stroke-width="1.5"/><line x1="9" y1="8" x2="15" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="9" y1="11" x2="15" y2="11" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="9" y1="14" x2="13" y2="14" stroke="white" stroke-width="1.5" stroke-linecap="round"/>`,
@@ -555,7 +528,7 @@ function makePoiMarkerIcon(color, antIconName) {
   const rawPath = POI_SVG_PATHS[antIconName] || POI_SVG_PATHS.EnvironmentOutlined;
   const iconPath = rawPath.replace(/="white"/g, `="${color}"`);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28"><circle cx="12" cy="12" r="11" fill="white" stroke="white" stroke-width="2"/><circle cx="12" cy="12" r="11" fill="${color}" fill-opacity="0.15"/><g transform="translate(3.6,3.6) scale(0.7)">${iconPath}</g></svg>`;
-  return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), scaledSize: new google.maps.Size(22, 22), anchor: new google.maps.Point(11, 11) };
+  return L.icon({ iconUrl: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), iconSize: [22, 22], iconAnchor: [11, 11] });
 }
 
 async function photonReverse(lat, lng) {
@@ -868,7 +841,7 @@ function CollectionsListView({ onNewCollection, onEditCollection, collections, o
 // ─────────────────────────────────────────────────────────
 // COLLECTION MAP PICKER
 // ─────────────────────────────────────────────────────────
-function CollectionMapPicker({ open, autocompleteService, placesService, collPois, onAddPin, onRemovePin, allCollections }) {
+function CollectionMapPicker({ open, collPois, onAddPin, onRemovePin, allCollections }) {
   const mapRef           = useRef(null);
   const mapInst          = useRef(null);
   const pinMarkersRef    = useRef({});
@@ -888,23 +861,20 @@ function CollectionMapPicker({ open, autocompleteService, placesService, collPoi
   useEffect(() => {
     if (!mapRef.current || mapInst.current) return;
     try {
-      mapInst.current = new google.maps.Map(mapRef.current, {
-        center: { lat: 38.115, lng: 13.362 },
-        zoom: 12,
-        disableDefaultUI: true,
-        zoomControl: true,
-        zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
-        styles: [{ featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }],
-      });
+      mapInst.current = L.map(mapRef.current, { zoomControl: true }).setView([38.115, 13.362], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(mapInst.current);
       // click sulla mappa → pin + reverse geocoding
-      mapInst.current.addListener('click', (e) => onMapClickRef.current?.(e));
+      mapInst.current.on('click', (e) => onMapClickRef.current?.(e));
     } catch(err) { console.warn('CollectionMapPicker init:', err); }
   }, []);
 
   // aggiorna il riferimento al handler ad ogni render (accede all'ultimo stato)
   onMapClickRef.current = async (e) => {
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
     const result = await photonReverse(lat, lng);
     dropPin(result || { id: `click-${lat.toFixed(5)}-${lng.toFixed(5)}`, label: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, sub: '', lat, lng });
   };
@@ -914,25 +884,19 @@ function CollectionMapPicker({ open, autocompleteService, placesService, collPoi
     if (!mapInst.current) return;
     const currentIds = new Set((collPois || []).map(p => p.id));
     Object.keys(pinMarkersRef.current).forEach(id => {
-      if (!currentIds.has(id)) { pinMarkersRef.current[id].setMap(null); delete pinMarkersRef.current[id]; }
+      if (!currentIds.has(id)) { mapInst.current.removeLayer(pinMarkersRef.current[id]); delete pinMarkersRef.current[id]; }
     });
     (collPois || []).forEach(poi => {
       if (!pinMarkersRef.current[poi.id]) {
-        pinMarkersRef.current[poi.id] = new google.maps.Marker({
-          map: mapInst.current,
-          position: { lat: poi.lat, lng: poi.lng },
-          title: poi.label,
-          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#3E00FB', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
-        });
+        pinMarkersRef.current[poi.id] = L.circleMarker([poi.lat, poi.lng], {
+          radius: 8, fillColor: '#3E00FB', fillOpacity: 1, color: '#fff', weight: 2,
+        }).addTo(mapInst.current).bindTooltip(poi.label);
       }
     });
     if ((collPois || []).length === 1) {
-      mapInst.current.panTo({ lat: collPois[0].lat, lng: collPois[0].lng });
-      mapInst.current.setZoom(15);
+      mapInst.current.setView([collPois[0].lat, collPois[0].lng], 15);
     } else if ((collPois || []).length > 1) {
-      const bounds = new google.maps.LatLngBounds();
-      collPois.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
-      mapInst.current.fitBounds(bounds, 80);
+      mapInst.current.fitBounds(L.latLngBounds(collPois.map(p => [p.lat, p.lng])), { padding: [40, 40] });
     }
   }, [collPois]);
 
@@ -941,17 +905,13 @@ function CollectionMapPicker({ open, autocompleteService, placesService, collPoi
     setAddrQuery('');
     setAddrSuggs([]);
     setShowSugg(false);
-    if (pendingMarkerRef.current) { pendingMarkerRef.current.setMap(null); pendingMarkerRef.current = null; }
+    if (pendingMarkerRef.current) { mapInst.current.removeLayer(pendingMarkerRef.current); pendingMarkerRef.current = null; }
     setPendingPin(sugg);
     if (!mapInst.current) return;
-    pendingMarkerRef.current = new google.maps.Marker({
-      map: mapInst.current,
-      position: { lat: sugg.lat, lng: sugg.lng },
-      title: sugg.label,
-      icon: { path: google.maps.SymbolPath.CIRCLE, scale: 9, fillColor: '#3E00FB', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
-    });
-    mapInst.current.panTo({ lat: sugg.lat, lng: sugg.lng });
-    mapInst.current.setZoom(15);
+    pendingMarkerRef.current = L.circleMarker([sugg.lat, sugg.lng], {
+      radius: 9, fillColor: '#3E00FB', fillOpacity: 1, color: '#fff', weight: 2,
+    }).addTo(mapInst.current).bindTooltip(sugg.label);
+    mapInst.current.setView([sugg.lat, sugg.lng], 15);
   };
 
   const confirmPin = () => {
@@ -962,25 +922,12 @@ function CollectionMapPicker({ open, autocompleteService, placesService, collPoi
   };
 
   const dismissPin = () => {
-    if (pendingMarkerRef.current) { pendingMarkerRef.current.setMap(null); pendingMarkerRef.current = null; }
+    if (pendingMarkerRef.current) { mapInst.current.removeLayer(pendingMarkerRef.current); pendingMarkerRef.current = null; }
     setPendingPin(null);
   };
 
-  // ── Risolve placeId → coordinate (Google Places) ──────
   const resolveAndPin = (sugg) => {
-    if (sugg.placeId && placesService) {
-      placesService.getDetails(
-        { placeId: sugg.placeId, fields: ['geometry', 'name'] },
-        (place, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
-            dropPin({ id: sugg.id, label: place.name || sugg.label, sub: sugg.sub,
-              lat: place.geometry.location.lat(), lng: place.geometry.location.lng() });
-          }
-        }
-      );
-    } else if (sugg.lat != null && sugg.lng != null) {
-      dropPin(sugg);
-    }
+    if (sugg.lat != null && sugg.lng != null) dropPin(sugg);
   };
 
   useEffect(() => {
@@ -988,22 +935,13 @@ function CollectionMapPicker({ open, autocompleteService, placesService, collPoi
     setPendingPin(null);
     if (pendingMarkerRef.current) { pendingMarkerRef.current.setMap(null); pendingMarkerRef.current = null; }
     setTimeout(() => {
-      if (mapInst.current) google.maps.event.trigger(mapInst.current, 'resize');
+      if (mapInst.current) mapInst.current.invalidateSize();
     }, 300);
   }, [open]);
 
 
-  // ── Ricerca suggerimenti (Google Autocomplete → Photon fallback) ──
-  const fetchSuggestions = async (val) => {
-    let results = [];
-    if (autocompleteService) {
-      results = await googleAutocompletePOI(val, autocompleteService);
-    }
-    if (results.length === 0) {
-      results = await photonSuggestPOI(val, 7);
-    }
-    return results;
-  };
+  // ── Ricerca suggerimenti (Photon/OSM) ──
+  const fetchSuggestions = async (val) => photonSuggestPOI(val, 7);
 
   const handleAddrChange = (val) => {
     setAddrQuery(val);
@@ -1421,20 +1359,6 @@ function App() {
     !collPois.every((p, i) => p.id === (editingColl.pois || [])[i]?.id)
   ) : true;
 
-  // ── POI ────────────────────────────────────────────────
-  const placesServiceRef       = useRef(null);   // google.maps.places.PlacesService
-  const autocompleteServiceRef = useRef(null);   // google.maps.places.AutocompleteService
-
-  // ── Inizializza PlacesService (richiede libraries=places) ──
-  useEffect(() => {
-    try {
-      const el = document.createElement('div');
-      placesServiceRef.current = new google.maps.places.PlacesService(el);
-      autocompleteServiceRef.current = new google.maps.places.AutocompleteService();
-    } catch(e) {
-      console.warn('Places API non disponibile:', e);
-    }
-  }, []);
 
   return React.createElement('div', { className: 'app-shell' },
     React.createElement(window.GravityNavbar, null),
@@ -1622,8 +1546,6 @@ function App() {
             React.createElement('div', { className: 'coll-edit-main' },
               React.createElement(CollectionMapPicker, {
                 open: appView === 'edit',
-                autocompleteService: autocompleteServiceRef.current,
-                placesService: placesServiceRef.current,
                 collPois,
                 onAddPin: handleAddCollPin,
                 onRemovePin: handleRemoveCollPin,
