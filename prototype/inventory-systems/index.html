@@ -24,8 +24,9 @@
   <script src="../_shared/navbar.js"></script>
   <script src="../_shared/filter-drawer.js"></script>
 
-  <!-- Google Maps -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFkwneQjAMG1ozsc80YaQYZzyfhdsKmyI&libraries=places"></script>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="../_shared/map-interactions.js"></script>
   <script src="../_shared/map-popover.js"></script>
 
@@ -1080,25 +1081,36 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
     const imp = cardImpRef.current;
     const map = mapRef.current;
     if (!imp || !map) { setCardPx(null); return; }
-    const proj = map.getProjection();
-    const bounds = map.getBounds();
-    if (!proj || !bounds) { setCardPx(null); return; }
-    const scale = Math.pow(2, map.getZoom());
-    const nw = proj.fromLatLngToPoint(new google.maps.LatLng(bounds.getNorthEast().lat(), bounds.getSouthWest().lng()));
     const entry = markersRef.current[imp.id];
     const lat = entry ? entry.imp.lat : imp.lat;
     const lng = entry ? entry.imp.lng : imp.lng;
-    const pt = proj.fromLatLngToPoint(new google.maps.LatLng(lat, lng));
-    // Ancora il popover sopra il marker focalizzato (icona ×1.4) + 8px di gap
+    const pt = map.latLngToContainerPoint(L.latLng(lat, lng));
     const [, baseH] = GravityMap.getMarkerSize(map.getZoom());
     const markerH = Math.round(baseH * 1.4);
-    setCardPx({
-      x: Math.floor((pt.x - nw.x) * scale),
-      markerY: Math.floor((pt.y - nw.y) * scale),
-      markerH: markerH,
-      zoom: map.getZoom(),
-    });
+    setCardPx({ x: Math.floor(pt.x), markerY: Math.floor(pt.y), markerH, zoom: map.getZoom() });
   }, []);
+
+  const makeLeafletIcon = (src, zoom, flags) => {
+    const f = flags || {};
+    const sizes = [[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[12,18],[16,24],[20,30],[26,38],[32,47]];
+    let [w, h] = sizes[Math.min(Math.max(Math.round(zoom || 10), 0), 16)];
+    if (f.isFocused)      { w = Math.round(w * 1.4);  h = Math.round(h * 1.4); }
+    else if (f.isHovered) { w = Math.round(w * 1.12); h = Math.round(h * 1.12); }
+    const dimOpacity = (f.hasFocus && !f.isFocused && !f.isSelected) ? 0.2 : 1;
+    const svgContent = GravityMap.getCachedSvg ? GravityMap.getCachedSvg(src) : null;
+    let iconUrl = src;
+    if (svgContent) {
+      const vbMatch = /viewBox="([^"]*)"/i.exec(svgContent);
+      const viewBox = vbMatch ? vbMatch[1] : '0 0 78 120';
+      const inner = svgContent.replace(/<\?xml[^>]*\?>\s*/i,'').replace(/<svg[^>]*>/i,'').replace(/<\/svg>\s*$/i,'');
+      const focusDefs = f.isFocused ? '<defs><filter id="fs" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#3E00FB" flood-opacity="0.5"/></filter></defs>' : '';
+      const focusFilter = f.isFocused ? 'filter="url(#fs)"' : '';
+      const selRing = f.isSelected ? '<circle cx="58" cy="85" r="13" fill="#ffffff"/><circle cx="58" cy="85" r="11.5" fill="#3E00FB"/><path d="M52.8 85.2 L56.6 89 L63.4 80.6" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' : '';
+      const wrapped = '<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'" viewBox="'+viewBox+'" opacity="'+dimOpacity+'">'+focusDefs+'<g '+focusFilter+'>'+inner+'</g>'+selRing+'</svg>';
+      iconUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(wrapped);
+    }
+    return L.icon({ iconUrl, iconSize: [w, h], iconAnchor: [Math.round(w/2), Math.round(h*0.92)] });
+  };
 
   // ── Helper icona marker (stati di interazione, modulo condiviso) ──────────
   // Inventory non ha selezione visiva (decisione Fase 0): isSelected sempre false.
@@ -1111,11 +1123,11 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
     isSelected: false,
     hasFocus:   false,
   });
-  const iconFor = (imp) => GravityMap.makeMarkerIcon({
-    src:   markerSrcFor(imp),
-    zoom:  mapRef.current ? mapRef.current.getZoom() : 13,
-    flags: flagsFor(imp.id),
-  });
+  const iconFor = (imp) => makeLeafletIcon(
+    markerSrcFor(imp),
+    mapRef.current ? mapRef.current.getZoom() : 13,
+    flagsFor(imp.id),
+  );
   const zIndexFor = (id) => {
     const f = flagsFor(id);
     return f.isFocused ? 2000 : f.isHovered ? 500 : 1;
@@ -1125,14 +1137,14 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   refreshAllIconsRef.current = () => {
     Object.values(markersRef.current).forEach(({ marker, imp }) => {
       marker.setIcon(iconFor(imp));
-      marker.setZIndex(zIndexFor(imp.id));
+      marker.setZIndexOffset(zIndexFor(imp.id));
     });
   };
   const refreshIcon = (id) => {
     const entry = markersRef.current[id];
     if (!entry) return;
     entry.marker.setIcon(iconFor(entry.imp));
-    entry.marker.setZIndex(zIndexFor(id));
+    entry.marker.setZIndexOffset(zIndexFor(id));
   };
 
   // ── Dim: opacità ridotta sugli altri quando c'è un focus / card aperta ────
@@ -1140,7 +1152,6 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   applyDimRef.current = () => {
     const hasFocus = !!highlightedIdRef.current || !!cardImpRef.current;
     Object.values(markersRef.current).forEach(({ marker, imp }) => {
-      if (!marker.getMap()) return;
       const isFocused = imp.id === highlightedIdRef.current;
       marker.setOpacity(hasFocus && !isFocused ? 0.3 : 1);
     });
@@ -1151,45 +1162,69 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   applyClusteringRef.current = () => {
     const map = mapRef.current;
     if (!map) return;
-    clusterMarkersRef.current.forEach(m => m.setMap(null));
+
+    clusterMarkersRef.current.forEach(m => m.remove());
     clusterMarkersRef.current = [];
 
+    const GRID = 60;
+    const zoom = Math.round(map.getZoom() || 10);
     const byId = markersRef.current;
-    // Marker fuori dal filtro: nascosti e fuori dal clustering
+
+    // Nasconde i marker fuori filtro
     const active = [];
     Object.values(byId).forEach(({ marker, imp }) => {
       const inFilter = !filteredIdsRef.current || filteredIdsRef.current.has(imp.id);
       if (inFilter) active.push({ marker, imp });
-      else marker.setMap(null);
+      else marker.remove();
     });
 
-    const items = active.map(({ marker, imp }) => ({
-      id: imp.id,
-      position: { lat: marker.getPosition().lat(), lng: marker.getPosition().lng() },
-    }));
-    const res = GravityMap.computeGridClusters(map, items);
-
-    // Ridimensiona le icone dei marker VISIBILI allo zoom corrente (getMarkerSize)
-    if (res.mode === 'individual') {
-      active.forEach(({ marker, imp }) => { marker.setIcon(iconFor(imp)); marker.setMap(map); });
-    } else {
-      res.members.forEach(it => { const e = byId[it.id]; e.marker.setIcon(iconFor(e.imp)); e.marker.setMap(map); });
-      res.clusters.forEach(cl => {
-        cl.members.forEach(it => byId[it.id].marker.setMap(null));
-        const draw = (hovered) => {
-          const { url, size } = GravityMap.makeClusterSvg(cl.members.length, { hovered });
-          return { url, scaledSize: new google.maps.Size(size, size), anchor: new google.maps.Point(size / 2, size / 2) };
-        };
-        const cm = new google.maps.Marker({
-          position: cl.center, icon: draw(false), map,
-          zIndex: 10000 + cl.members.length,
-        });
-        cm.addListener('click',     () => GravityMap.fitBoundsToMembers(map, cl.members));
-        cm.addListener('mouseover', () => cm.setIcon(draw(true)));
-        cm.addListener('mouseout',  () => cm.setIcon(draw(false)));
-        clusterMarkersRef.current.push(cm);
-      });
+    // A zoom ≥ 15 sempre marker individuali
+    if (zoom >= 15) {
+      active.forEach(({ marker }) => { if (!map.hasLayer(marker)) marker.addTo(map); });
+      applyDimRef.current();
+      return;
     }
+
+    // Griglia
+    const cells = new Map();
+    active.forEach(({ marker, imp }) => {
+      const pt = map.project(L.latLng(imp.lat, imp.lng), zoom);
+      const key = Math.floor(pt.x / GRID) + '|' + Math.floor(pt.y / GRID);
+      if (!cells.has(key)) cells.set(key, []);
+      cells.get(key).push({ marker, imp, pt });
+    });
+
+    const singles = [];
+    const clusters = [];
+    cells.forEach(group => {
+      if (group.length <= 1) { singles.push(...group); return; }
+      const cx = group.reduce((s, g) => s + g.pt.x, 0) / group.length;
+      const cy = group.reduce((s, g) => s + g.pt.y, 0) / group.length;
+      const center = map.unproject(L.point(cx, cy), zoom);
+      clusters.push({ members: group, center: { lat: center.lat, lng: center.lng } });
+    });
+
+    singles.forEach(({ marker }) => { if (!map.hasLayer(marker)) marker.addTo(map); });
+
+    clusters.forEach(cl => {
+      cl.members.forEach(({ marker }) => marker.remove());
+      const toLeafletIcon = (hovered) => {
+        const { url, size } = GravityMap.makeClusterSvg(cl.members.length, { hovered });
+        return L.icon({ iconUrl: url, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
+      };
+      const cm = L.marker([cl.center.lat, cl.center.lng], {
+        icon: toLeafletIcon(false),
+        zIndexOffset: 1000 + cl.members.length,
+      }).addTo(map);
+      cm.on('click', () => {
+        const pts = cl.members.map(({ imp }) => [imp.lat, imp.lng]);
+        map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
+      });
+      cm.on('mouseover', () => cm.setIcon(toLeafletIcon(true)));
+      cm.on('mouseout',  () => cm.setIcon(toLeafletIcon(false)));
+      clusterMarkersRef.current.push(cm);
+    });
+
     applyDimRef.current();
   };
 
@@ -1206,44 +1241,39 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
 
-    const map = new google.maps.Map(containerRef.current, {
-      center: { lat: 38.1155, lng: 13.3615 },
+    const map = L.map(containerRef.current, {
+      center: [38.1155, 13.3615],
       zoom: 13,
-      styles: MAP_STYLES,
-      disableDefaultUI: true,
       zoomControl: true,
-      zoomControlOptions: { position: google.maps.ControlPosition.LEFT_TOP },
-      gestureHandling: 'greedy',
+      attributionControl: false,
     });
-    // Imposta subito il ref: iconFor() legge lo zoom reale già alla creazione
-    // (evita il fallback a zoom 13 e marker sottodimensionati al primo paint).
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 20,
+    }).addTo(map);
+
     mapRef.current = map;
 
     impianti.forEach(imp => {
-      const marker = new google.maps.Marker({
-        position: { lat: imp.lat, lng: imp.lng },
-        icon: iconFor(imp),
-      });
+      const marker = L.marker([imp.lat, imp.lng], { icon: iconFor(imp) });
 
-      // Hover: solo marker ingrandito (nessun popover). Il popover è al click.
-      marker.addListener('mouseover', () => {
+      marker.on('mouseover', () => {
         hoveredMarkerIdRef.current = imp.id;
         refreshIcon(imp.id);
       });
-      marker.addListener('mouseout', () => {
+      marker.on('mouseout', () => {
         hoveredMarkerIdRef.current = null;
         refreshIcon(imp.id);
       });
-      marker.addListener('click', () => { if (onMarkerClick) onMarkerClick(imp); else onSelect(imp.id); });
+      marker.on('click', () => { if (onMarkerClick) onMarkerClick(imp); else onSelect(imp.id); });
 
       markersRef.current[imp.id] = { marker, imp };
     });
 
-    // Clustering a griglia (motore condiviso): riapplica a ogni zoom e all'idle
-    // iniziale (la proiezione è disponibile solo dopo il primo idle).
-    map.addListener('zoom_changed', () => { if (applyClusteringRef.current) applyClusteringRef.current(); });
-    google.maps.event.addListenerOnce(map, 'idle', () => { if (applyClusteringRef.current) applyClusteringRef.current(); });
-    google.maps.event.addListener(map, 'bounds_changed', recalcCardPx);
+    map.on('zoomend', () => { if (applyClusteringRef.current) applyClusteringRef.current(); });
+    map.on('move', recalcCardPx);
+
+    if (applyClusteringRef.current) applyClusteringRef.current();
 
     return () => { mapRef.current = null; };
   }, []);
@@ -1255,11 +1285,11 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
     impianti.forEach(imp => {
       const entry = markersRef.current[imp.id];
       if (!entry) return;
-      const curr = entry.marker.getPosition();
+      const curr = entry.marker.getLatLng();
       if (!curr ||
-          Math.abs(curr.lat() - imp.lat) > 0.000005 ||
-          Math.abs(curr.lng() - imp.lng) > 0.000005) {
-        entry.marker.setPosition({ lat: imp.lat, lng: imp.lng });
+          Math.abs(curr.lat - imp.lat) > 0.000005 ||
+          Math.abs(curr.lng - imp.lng) > 0.000005) {
+        entry.marker.setLatLng([imp.lat, imp.lng]);
         entry.imp = { ...entry.imp, lat: imp.lat, lng: imp.lng };
         changed = true;
       }
@@ -1285,17 +1315,13 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
       const map = mapRef.current;
       const targetZoom = map.getZoom() < 15 ? 16 : map.getZoom();
       if (targetZoom !== map.getZoom()) map.setZoom(targetZoom);
-      // Porta il marker nella fascia alta (~24% dall'alto): centro calcolato
-      // in world coordinates, quindi deterministico (nessun listener 'idle').
       const h = containerRef.current ? containerRef.current.clientHeight : 0;
-      const proj = map.getProjection();
-      if (h && proj) {
-        const worldScale = Math.pow(2, targetZoom);
-        const pt = proj.fromLatLngToPoint(new google.maps.LatLng(imp.lat, imp.lng));
-        const shiftPx = h * 0.26;
-        map.panTo(proj.fromPointToLatLng(new google.maps.Point(pt.x, pt.y + shiftPx / worldScale)));
+      if (h) {
+        const pt = map.project(L.latLng(imp.lat, imp.lng), targetZoom);
+        const shiftedLatLng = map.unproject(L.point(pt.x, pt.y + h * 0.26), targetZoom);
+        map.panTo(shiftedLatLng);
       } else {
-        map.panTo({ lat: imp.lat, lng: imp.lng });
+        map.panTo([imp.lat, imp.lng]);
       }
     }
   }, [highlightedId, selectedIds, filteredIds, cardImp]);
@@ -1317,22 +1343,22 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   }, [cardImp, cardReady, cardPx, cardH]);
 
   // ── Popover: appare alla fine dell'animazione di zoom sul marker ─────────
-  // Il click avvia pan+zoom (effect highlight); attendiamo l'idle della mappa
+  // Il click avvia pan+zoom (effect highlight); attendiamo il moveend della mappa
   // prima di mostrare il popover, con fallback se non c'è movimento.
   useEffect(() => {
     if (!cardImp || !mapRef.current) { setCardReady(false); return; }
     const map = mapRef.current;
     setCardReady(false);
     const show = () => { recalcCardPx(); setCardReady(true); };
-    const l = google.maps.event.addListenerOnce(map, 'idle', show);
+    map.once('moveend', show);
     const t = setTimeout(show, 600);
-    return () => { google.maps.event.removeListener(l); clearTimeout(t); };
+    return () => { map.off('moveend', show); clearTimeout(t); };
   }, [cardImp, recalcCardPx]);
 
   // ── Fly to zona cercata ───────────────────────────────
   useEffect(() => {
     if (!flyToTarget || !mapRef.current) return;
-    mapRef.current.panTo({ lat: flyToTarget.lat, lng: flyToTarget.lng });
+    mapRef.current.panTo([flyToTarget.lat, flyToTarget.lng]);
     mapRef.current.setZoom(flyToTarget.zoom || 14);
   }, [flyToTarget]);
 
@@ -1340,70 +1366,97 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   return React.createElement('div', { id: 'ooh-map', style: { position: 'relative' } },
     React.createElement('div', { ref: containerRef, style: { width: '100%', height: '100%' } }),
     cardImp && cardReady && (() => {
-      const lit   = !!cardImp.illuminato;
-      const retro = lit && parseInt(cardImp.id.slice(1), 10) % 3 === 0;
-      const n     = cardImp.faces;
-      const one   = n === 1;
-      const bulbCfg = !lit
-        ? null
-        : retro
-          ? { Icon: BulbFilled,   label: `${1 + (parseInt(cardImp.id.slice(1), 10) % 3)} faretti · Retroilluminazione` }
-          : { Icon: BulbOutlined, label: `${1 + (parseInt(cardImp.id.slice(1), 10) % 3)} faretti · Illuminazione frontale` };
       const containerH = containerRef.current ? containerRef.current.clientHeight : 0;
-      const CARD_EST_H = cardH || 300; // altezza misurata (fallback stima card slim)
+      const CARD_EST_H = cardH || 180;
       const spaceAbove = cardPx ? cardPx.markerY : 0;
-      // Apertura verso il basso di default (il marker viene portato in alto);
-      // si ribalta sopra solo se sotto non c'è spazio e sopra sì.
       const spaceBelow = containerH - spaceAbove - (cardPx ? cardPx.markerH : 0) - 8;
       const flip = cardPx ? (spaceBelow >= CARD_EST_H || spaceBelow >= spaceAbove) : true;
-      const maxH = containerH ? containerH - 16 : undefined;
-      const renderedH = maxH ? Math.min(CARD_EST_H, maxH) : CARD_EST_H;
+      const renderedH = Math.min(CARD_EST_H, containerH ? containerH - 16 : CARD_EST_H);
       const rawTop = cardPx ? (flip ? cardPx.markerY + 4 : cardPx.markerY - cardPx.markerH - 4) : 0;
-      // Clamp: il bordo inferiore (o superiore, se ribaltata) resta dentro la mappa
       const top = containerH
         ? (flip
             ? Math.max(8, Math.min(rawTop, containerH - renderedH - 8))
             : Math.max(renderedH + 8, Math.min(rawTop, containerH - 8)))
         : rawTop;
+      const CHANNEL_TAG_STYLE = {
+        DOOH: { margin: 0, fontSize: 12, color: '#C41D7F', background: '#FFF0F6', border: '1px solid #FFADD2' },
+        OOH:  { margin: 0, fontSize: 12, color: '#389E0D', background: '#F6FFED', border: '1px solid #B7EB8F' },
+      };
+      const rowEl = (IconComp, label, value) =>
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, lineHeight: '20px' } },
+          React.createElement(IconComp, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
+          React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label + ':'),
+          React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.65)' } }, value),
+        );
+      const statoAmmCfg = STATO_AMM_CONFIG[cardImp.stato_amm] || STATO_AMM_CONFIG['Attivo'];
+      const fotoIdx = parseInt(cardImp.id.slice(1), 10) % FOTO_IMPIANTO.length;
       return React.createElement('div', {
         ref: cardRef,
         style: {
           position: 'absolute', left: cardPx ? cardPx.x : 0,
           top: top,
           transform: `translate(-50%,${flip ? '0' : '-100%'})`,
-          transformOrigin: flip ? 'top center' : 'bottom center', zIndex: 500,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.14)', borderRadius: 8, width: 260,
-          maxHeight: maxH, overflowY: 'auto',
+          transformOrigin: flip ? 'top center' : 'bottom center',
+          zIndex: 500, width: 380, borderRadius: 8,
+          border: '1px solid #f0f0f0', background: '#fff',
+          boxShadow: '0 8px 32px rgba(62,0,251,0.18), 0 2px 8px rgba(0,0,0,0.10)',
+          fontFamily: "-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif",
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
         },
         onClick: (e) => e.stopPropagation(),
       },
-        React.createElement(EntityCard, {
-          header: {
-            title: cardImp.nome || cardImp.code || '—',
-            tags: [cardImp.code && cardImp.nome ? { text: cardImp.code } : null],
-            menuNode: React.createElement(Button, {
-              type: 'text', size: 'small', icon: React.createElement(CloseOutlined, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }),
-              onClick: onCardClose, style: { flexShrink: 0, marginTop: -2 },
-            }),
+        // Header: titolo + codice + chiudi
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 10px 8px 12px', borderBottom: '1px solid #f0f0f0' } },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 } },
+            React.createElement('span', { style: { fontSize: 16, fontWeight: 600, color: 'rgba(0,0,0,0.88)', lineHeight: '24px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, cardImp.nome || cardImp.code || '—'),
+            cardImp.nome && cardImp.code && React.createElement('span', { style: { fontSize: 11, padding: '0 6px', borderRadius: 4, lineHeight: '18px', border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.45)', background: '#fafafa', flexShrink: 0 } }, cardImp.code),
+          ),
+          React.createElement(Button, {
+            type: 'text', size: 'small',
+            icon: React.createElement(CloseOutlined, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }),
+            onClick: onCardClose, style: { flexShrink: 0 },
+          }),
+        ),
+        // Body: immagine + info affiancati
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'row', alignItems: 'stretch' } },
+          React.createElement('div', { style: { width: 160, flexShrink: 0, overflow: 'hidden' } },
+            React.createElement('img', { src: FOTO_IMPIANTO[fotoIdx], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
+          ),
+          React.createElement('div', { style: { flex: 1, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '1px solid #f0f0f0', minWidth: 0 } },
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
+              React.createElement(Tag, { style: CHANNEL_TAG_STYLE[cardImp.canale] || CHANNEL_TAG_STYLE.OOH }, cardImp.canale || 'OOH'),
+              React.createElement(Tag, {
+                icon: React.createElement('img', { src: GravityMap.systypeIconSrc(cardImp.tipo, cardImp.canale), style: { width: 12, height: 12, verticalAlign: 'middle', marginRight: 4 } }),
+                style: { margin: 0, fontSize: 12, color: 'rgba(0,0,0,0.65)', background: '#fff', border: '1px solid #d9d9d9' },
+              }, cardImp.tipo),
+            ),
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 1 } },
+              React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.65)', lineHeight: '20px' } }, cardImp.indirizzo),
+              React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, cardImp.zona),
+            ),
+            React.createElement('div', { style: { height: 1, background: '#f0f0f0', flexShrink: 0 } }),
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 7 } },
+              rowEl(ExpandOutlined, 'Formato', cardImp.formato || '—'),
+              rowEl(ThunderboltOutlined, 'Stato', entityStateDot(cardImp.stato_amm || 'Attivo', statoAmmCfg.dot)),
+            ),
+          ),
+        ),
+        // Footer: Vai al dettaglio
+        React.createElement('div', { style: { borderTop: '1px solid #f0f0f0', padding: '8px 12px', display: 'flex', justifyContent: 'flex-end' } },
+          React.createElement('button', {
+            style: {
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+              background: '#fff', color: 'rgba(0,0,0,0.88)', border: '1px solid #d9d9d9',
+              fontSize: 14, fontWeight: 400, fontFamily: 'inherit', lineHeight: '22px',
+              transition: 'opacity .1s',
+            },
+            onClick: e => { e.stopPropagation(); if (onDetail) onDetail(cardImp); },
           },
-          image: { height: 96, node: React.createElement('img', { src: FOTO_IMPIANTO[parseInt(cardImp.id.slice(1), 10) % FOTO_IMPIANTO.length], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }) },
-          body: {
-            tags: [
-              cardImp.canale && { text: cardImp.canale, style: cardImp.canale === 'DOOH'
-                ? { color: '#C41D7F', background: '#FFF0F6', border: '1px solid #FFADD2' }
-                : { color: '#389E0D', background: '#F6FFED', border: '1px solid #B7EB8F' } },
-              cardImp.tipo && { text: cardImp.tipo, icon: React.createElement('img', { src: GravityMap.systypeIconSrc(cardImp.tipo, cardImp.canale), style: { width: 12, height: 12 } }), style: { color: 'rgba(0,0,0,0.65)', background: '#fff', border: '1px solid #d9d9d9' } },
-            ],
-            text: React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } },
-              React.createElement('div', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, cardImp.indirizzo),
-              React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, cardImp.zona),
-              React.createElement('div', { style: { borderTop: '1px solid #F5F5F5', marginTop: 8 } })),
-            rows: [
-            { icon: ExpandOutlined, label: 'Formato', value: cardImp.formato },
-            { icon: ThunderboltOutlined, label: 'Stato', right: entityStateDot(cardImp.stato_amm || 'Attivo', (STATO_AMM_CONFIG[cardImp.stato_amm] || STATO_AMM_CONFIG['Attivo']).dot) },
-          ] },
-          footer: { text: '', actions: [{ label: 'Vai al dettaglio', icon: EyeOutlined, onClick: () => onDetail && onDetail(cardImp) }] },
-        })
+            React.createElement(EyeOutlined, { style: { fontSize: 12 } }),
+            'Vai al dettaglio',
+          ),
+        ),
       );
     })()
   );
@@ -7036,11 +7089,21 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 // APP
 // ─────────────────────────────────────────────────────────
 function App() {
-  const [page, setPage] = useState('map'); // 'map' | 'detail'
+  // Deep-link da planning: ?sys=SYS-042 → apre direttamente il dettaglio dell'impianto corrispondente
+  const _deepLinkImp = (() => {
+    const param = new URLSearchParams(location.search).get('sys');
+    if (!param) return null;
+    const n = parseInt(param.replace('SYS-', ''), 10);
+    if (isNaN(n)) return null;
+    const targetId = 'I' + String(((n - 1) % IMPIANTI.length) + 1).padStart(3, '0');
+    return IMPIANTI.find(i => i.id === targetId) || null;
+  })();
+
+  const [page, setPage] = useState(_deepLinkImp ? 'detail' : 'map'); // 'map' | 'detail'
   const [fullFormOpen,   setFullFormOpen]   = useState(false);
   const [prefillData,    setPrefillData]    = useState({});
   const [savedFormData,  setSavedFormData]  = useState(null);
-  const [detailImpianto, setDetailImpianto] = useState(null);
+  const [detailImpianto, setDetailImpianto] = useState(_deepLinkImp);
   const [cardImp,        setCardImp]        = useState(null);
   const [highlightedId, setHighlightedId] = useState(null);
   const [selectedIds,   setSelectedIds]   = useState(new Set());
@@ -7197,11 +7260,10 @@ function App() {
     }
 
     setGeocodingProgress({ done: 0, total: toGeocode.length });
-    const geocoder = new google.maps.Geocoder();
     let done = 0;
     let cancelled = false;
 
-    const next = (i) => {
+    const next = async (i) => {
       if (cancelled) return;
       if (i >= toGeocode.length) {
         applyCache(cache);
@@ -7210,34 +7272,30 @@ function App() {
         return;
       }
       const imp = toGeocode[i];
-      const palermoBounds = new google.maps.LatLngBounds(
-        { lat: 38.055, lng: 13.285 },
-        { lat: 38.245, lng: 13.455 }
-      );
-      geocoder.geocode(
-        {
-          address: `${imp.indirizzo}, Palermo`,
-          componentRestrictions: { country: 'IT', locality: 'Palermo' },
-          bounds: palermoBounds,
-        },
-        (results, status) => {
-          if (status === 'OK' && results[0]) {
-            const lat = results[0].geometry.location.lat();
-            const lng = results[0].geometry.location.lng();
+      try {
+        const q = encodeURIComponent(`${imp.indirizzo}, Palermo, Italia`);
+        const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=it&viewbox=13.285,38.245,13.455,38.055&bounded=1`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'it', 'User-Agent': 'GravityPrototype/1.0' } });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data[0]) {
+            const lat = parseFloat(data[0].lat);
+            const lng = parseFloat(data[0].lon);
             // Accetta solo risultati dentro il bounding box di Palermo
             if (lat >= 38.055 && lat <= 38.245 && lng >= 13.285 && lng <= 13.455) {
               cache[imp.id] = { lat, lng };
             }
           }
-          done++;
-          setGeocodingProgress({ done, total: toGeocode.length });
-          if (done % 10 === 0) {
-            applyCache(cache);
-            try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch(e) {}
-          }
-          setTimeout(() => next(i + 1), 80);
         }
-      );
+      } catch(e) {}
+      done++;
+      setGeocodingProgress({ done, total: toGeocode.length });
+      if (done % 10 === 0) {
+        applyCache(cache);
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch(e) {}
+      }
+      // Nominatim: max 1 req/s per policy
+      setTimeout(() => next(i + 1), 1100);
     };
 
     next(0);
