@@ -35,6 +35,11 @@ window.GRAVITY_PROTOTYPES = {
     entry: 'negotiations/index.html',
     nav: { section: 'Commercial', item: 'Negotiations' },
   },
+  'campaign-fulfillment': {
+    label: 'Espletamento campagna', status: 'in-progress',
+    entry: 'campaign-fulfillment/index.html',
+    nav: { section: 'Delivery', item: 'Campaigns' },
+  },
   'user-profile': {
     label: 'Profilo utente', status: 'in-progress',
     entry: 'user-profile/index.html',
