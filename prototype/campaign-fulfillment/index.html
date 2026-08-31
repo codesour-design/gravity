@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gravity — Espletamento Campagna</title>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@ant-design/icons@5/dist/index.umd.js"></script>
+  <script src="../_shared/tokens.js"></script>
+
+  <script>
+    window.GRAVITY_NAV = {
+      section: 'Delivery',
+      item: 'Campaigns',
+      logoSrc: '../../brand/Gravity_type.svg',
+      appHref: '../user-profile/index.html',
+    };
+  </script>
+  <script src="../_shared/navbar.js"></script>
+
+  <!-- Google Maps (stessa key usata da planning/inventory-systems) -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFkwneQjAMG1ozsc80YaQYZzyfhdsKmyI"></script>
+  <script src="../_shared/map-interactions.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--gravity-font-body);
+      background: var(--gravity-bg);
+      color: var(--gravity-text);
+      font-size: var(--gravity-fs-sm);
+      line-height: var(--gravity-lh-body);
+    }
+    h1, h2, h3, h4, h5, h6 { margin: 0; }
+
+    /* ── App shell ─── */
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── Page content ─── */
+    .page-content {
+      flex: 1;
+      padding: 24px 32px;
+    }
+
+    /* ── Card generica di sezione ─── */
+    .cf-section {
+      background: var(--gravity-bg-container);
+      border: 1px solid var(--gravity-border-secondary);
+      border-radius: var(--gravity-radius-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Dropzone creatività ─── */
+    .cf-dropzone {
+      border: 1.5px dashed var(--gravity-border);
+      border-radius: var(--gravity-radius-lg);
+      padding: 22px 16px;
+      text-align: center;
+      background: var(--gravity-bg-subtle);
+      transition: border-color .15s, background .15s;
+      cursor: pointer;
+      height: 100%;
+    }
+    .cf-dropzone:hover {
+      border-color: var(--gravity-primary);
+      background: var(--gravity-primary-bg);
+    }
+
+    /* ── Card creatività caricata ─── */
+    .cf-creative-card {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--gravity-border-secondary);
+      border-radius: var(--gravity-radius);
+      padding: 12px 14px;
+      background: var(--gravity-bg-subtle);
+      height: 100%;
+    }
+    .cf-creative-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #1a1a1a 0%, #3E00FB 140%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    /* ── Griglia upload creatività per formato ─── */
+    .cf-creative-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .cf-format-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    /* ── Espletamento bloccato (requisiti non ancora soddisfatti) ─── */
+    .cf-locked {
+      border: 1.5px dashed var(--gravity-border-secondary);
+      border-radius: var(--gravity-radius-lg);
+      padding: 28px 20px;
+      text-align: center;
+      background: var(--gravity-bg-subtle);
+    }
+
+    /* ── Mappa impianti/espletamento ─── */
+    .cf-map {
+      width: 100%;
+      height: 420px;
+      border-radius: var(--gravity-radius-lg);
+      overflow: hidden;
+      background: #eef0f2;
+    }
+
+    /* ── Player DOOH ─── */
+    .cf-player-screen {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: var(--gravity-radius);
+      overflow: hidden;
+      background: #0a0a0a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cf-player-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, #3E00FB, #13C2C2, #FF4A1C, #3E00FB);
+      background-size: 400% 400%;
+      animation: cf-loop-bg 6s ease-in-out infinite;
+      opacity: .9;
+    }
+    @keyframes cf-loop-bg {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .cf-player-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      color: #fff;
+    }
+    .cf-player-progress-track {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 4px;
+      background: rgba(255,255,255,0.25);
+      z-index: 2;
+    }
+    .cf-player-progress-fill {
+      height: 100%;
+      background: #fff;
+    }
+    .cf-live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #52C41A;
+      display: inline-block;
+      animation: cf-pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes cf-pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(82,196,26,0.5); }
+      50%      { opacity: .5; box-shadow: 0 0 0 4px rgba(82,196,26,0); }
+    }
+    .cf-live-badge {
+      position: absolute;
+      top: 10px; left: 10px;
+      z-index: 2;
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 999px;
+      backdrop-filter: blur(2px);
+    }
+    .cf-loop-badge {
+      position: absolute;
+      top: 10px; right: 10px;
+      z-index: 2;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 9px;
+      border-radius: 999px;
+    }
+
+    /* ── Mini calendar (identico al brief di Planning) ─── */
+    .mini-cal { font-size: 12px; }
+    .mini-cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-weight: 500;
+      font-size: 12px;
+    }
+    .mini-cal-header button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--gravity-text-tertiary);
+      padding: 2px;
+      display: flex;
+      align-items: center;
+    }
+    .mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; }
+    .mini-cal-day-label {
+      text-align: center;
+      font-size: var(--gravity-fs-micro);
+      color: var(--gravity-text-tertiary);
+      padding: 3px 0;
+    }
+    .mini-cal-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+    }
+    .mini-cal-day {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--gravity-radius-sm);
+      font-size: var(--gravity-fs-caption);
+      color: var(--gravity-text);
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .mini-cal-cell.in-range .mini-cal-day {
+      background: #c6a3ff;
+      color: #fff;
+    }
+    .mini-cal-day.today {
+      border: 1px solid var(--gravity-primary);
+    }
+    .mini-cal-cell.in-range .mini-cal-day.today {
+      border-color: rgba(255,255,255,0.55);
+    }
+    .mini-cal-cell.outside .mini-cal-day { color: var(--gravity-text-disabled); }
+    .mini-cal-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      padding: 8px 0 2px;
+      border-top: 1px solid var(--gravity-border-secondary);
+      font-size: var(--gravity-fs-caption);
+      color: var(--gravity-text);
+      gap: var(--gravity-space-xxs);
+    }
+    .mini-cal-footer-label { font-weight: 600; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/javascript">
+window.applyGravityTokens();
+
+const { useState, useEffect, useRef } = React;
+const {
+  ConfigProvider, App,
+  Typography, Button, Tag, Avatar, Divider, Upload, Result, Tooltip, Table,
+  Segmented, Select, Tabs,
+} = antd;
+const {
+  UserOutlined, DollarOutlined, AimOutlined, CalendarOutlined,
+  PlayCircleOutlined, ArrowLeftOutlined, LeftOutlined, RightOutlined,
+  EnvironmentOutlined, AppstoreOutlined, CheckCircleFilled,
+  ToolOutlined, DeleteOutlined, InboxOutlined, LockOutlined,
+} = icons;
+const { Title, Text } = Typography;
+const { Dragger } = Upload;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const EUR = (n) => new Intl.NumberFormat('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n) + ' €';
+const parseDate = s => { if (!s) return null; const [d, m, y] = s.split('/'); return new Date(+y, +m - 1, +d); };
+
+const AVATAR_PALETTE = [
+  { bg: '#F0EAFF', fg: '#3E00FB' },
+  { bg: '#E6F7FF', fg: '#0958D9' },
+  { bg: '#FFF7E6', fg: '#D46B08' },
+  { bg: '#F6FFED', fg: '#389E0D' },
+];
+function nameColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
+}
+function AdvertiserAvatar({ name, size = 24 }) {
+  const initials = name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  const { bg, fg } = nameColor(name);
+  return React.createElement(Avatar, {
+    size, shape: 'circle',
+    style: { background: bg, color: fg, fontWeight: 700, fontSize: size * 0.38, flexShrink: 0 },
+  }, initials);
+}
+
+// ── DataCard — riuso del pattern brief di negotiations/planning ───────────────
+function DataCard({ icon: Icon, label, value, footer, size }) {
+  return React.createElement('div', {
+    style: {
+      background: 'var(--gravity-bg-container)',
+      border: '1px solid var(--gravity-border-secondary, #f0f0f0)',
+      borderRadius: 8,
+    },
+  },
+    React.createElement('div', {
+      style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px' },
+    },
+      Icon && React.createElement('span', {
+        style: { display: 'flex', alignItems: 'center', fontSize: size === 'small' ? 14 : 18, color: 'rgba(0,0,0,0.45)' },
+      }, React.createElement(Icon)),
+      React.createElement('span', {
+        style: {
+          fontSize:   size === 'small' ? 12 : 14,
+          fontWeight: size === 'small' ? 500 : 600,
+          lineHeight: '22px',
+          color: 'rgba(0,0,0,0.88)',
+        },
+      }, label)
+    ),
+    React.createElement('div', {
+      style: { padding: size === 'small' ? '8px 12px 12px' : '20px 12px' },
+    },
+      typeof value === 'string' || typeof value === 'number'
+        ? React.createElement('div', {
+            style: {
+              fontSize:   size === 'small' ? 15 : 24,
+              fontWeight: size === 'small' ? 700 : 600,
+              lineHeight: size === 'small' ? 1.4  : '32px',
+              color: 'rgba(0,0,0,0.88)',
+            },
+          }, value)
+        : value
+    ),
+    footer && React.createElement(React.Fragment, null,
+      React.createElement(Divider, { style: { margin: 0 } }),
+      React.createElement('div', { style: { padding: size === 'small' ? '8px 12px' : '12px 12px' } }, footer)
+    )
+  );
+}
+
+// ── MiniCalendar — identico al brief di Planning (stesso componente, stessa API) ─
+function MiniCalendar({ start, end }) {
+  const DAY_LABELS  = ['Do', 'Lu', 'Ma', 'Me', 'Gi', 'Ve', 'Sa'];
+  const MONTH_NAMES = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+  const startDate = parseDate(start);
+  const endDate   = parseDate(end);
+
+  const [viewYear,  setViewYear]  = useState(startDate.getFullYear());
+  const [viewMonth, setViewMonth] = useState(startDate.getMonth());
+
+  const today = new Date();
+
+  const daysInMonth     = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+  const firstDayOfWeek  = new Date(viewYear, viewMonth, 1).getDay();
+
+  const cells = [];
+  for (let i = firstDayOfWeek - 1; i >= 0; i--)
+    cells.push({ day: daysInPrevMonth - i, outside: true });
+  for (let d = 1; d <= daysInMonth; d++)
+    cells.push({ day: d, outside: false });
+  let nextDay = 1;
+  while (cells.length % 7 !== 0)
+    cells.push({ day: nextDay++, outside: true });
+
+  const isCampaign = cell => {
+    if (cell.outside) return false;
+    const d = new Date(viewYear, viewMonth, cell.day);
+    return d >= startDate && d <= endDate;
+  };
+  const isToday = cell => {
+    if (cell.outside) return false;
+    return cell.day === today.getDate() &&
+           viewMonth === today.getMonth() &&
+           viewYear  === today.getFullYear();
+  };
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
+    else setViewMonth(m => m + 1);
+  };
+
+  return React.createElement('div', { className: 'mini-cal' },
+    React.createElement('div', { className: 'mini-cal-header' },
+      React.createElement('button', { onClick: prevMonth },
+        React.createElement(LeftOutlined, { style: { fontSize: 10 } })),
+      React.createElement(Text, { style: { fontSize: 12, fontWeight: 500 } },
+        `${MONTH_NAMES[viewMonth]} ${viewYear}`),
+      React.createElement('button', { onClick: nextMonth },
+        React.createElement(RightOutlined, { style: { fontSize: 10 } }))
+    ),
+    React.createElement('div', { className: 'mini-cal-grid' },
+      ...DAY_LABELS.map(d =>
+        React.createElement('div', { key: d, className: 'mini-cal-day-label' }, d)
+      ),
+      ...cells.map((cell, i) => {
+        const campaign  = isCampaign(cell);
+        const todayCell = isToday(cell);
+        let outerCls = 'mini-cal-cell';
+        let innerCls = 'mini-cal-day';
+        if (cell.outside) outerCls += ' outside';
+        if (campaign)     outerCls += ' in-range';
+        if (todayCell)    innerCls += ' today';
+        return React.createElement('div', { key: i, className: outerCls },
+          React.createElement('div', { className: innerCls }, cell.day)
+        );
+      })
+    ),
+    React.createElement('div', { className: 'mini-cal-footer' },
+      React.createElement('span', null,
+        React.createElement('span', { className: 'mini-cal-footer-label' }, 'Inizio: '), start),
+      React.createElement('span', null,
+        React.createElement('span', { className: 'mini-cal-footer-label' }, 'Fine: '), end)
+    )
+  );
+}
+
+// ── GravityPageHeader — riuso del componente di negotiations ─────────────────
+function GravityPageHeader({ backLabel, onBack, title, entityName, tag, meta, actions }) {
+  meta    = meta    || [];
+  actions = actions || [];
+
+  const metaItems = meta.flatMap((item, i) => {
+    const parts = [];
+    if (i > 0) parts.push(
+      React.createElement('span', { key: `sep${i}`, style: { color: 'var(--gravity-text-disabled)', margin: '0 2px' } }, '·')
+    );
+    parts.push(
+      React.createElement('div', { key: `m${i}`, style: { display: 'inline-flex', alignItems: 'center', gap: 5 } },
+        React.createElement('span', { style: { fontSize: 13, color: 'var(--gravity-text-tertiary)' } }, `${item.label}:`),
+        typeof item.value === 'string'
+          ? React.createElement('span', { style: { fontSize: 13, color: 'var(--gravity-text)' } }, item.value)
+          : item.value
+      )
+    );
+    return parts;
+  });
+
+  return React.createElement('div', {
+    style: {
+      background: 'var(--gravity-bg-container)',
+      borderRadius: 'var(--gravity-radius-lg)',
+      padding: '16px 20px',
+      border: '1px solid var(--gravity-split)',
+      marginBottom: 20,
+    },
+  },
+    onBack && React.createElement(Button, {
+      type: 'link',
+      icon: React.createElement(ArrowLeftOutlined),
+      onClick: onBack,
+      style: { padding: 0, marginBottom: 8, fontSize: 13, color: 'var(--gravity-primary)', height: 'auto', display: 'block' },
+    }, backLabel || 'Indietro'),
+
+    React.createElement('div', {
+      style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
+    },
+      React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+        React.createElement('div', {
+          style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: metaItems.length ? 6 : 0 },
+        },
+          React.createElement(Title, { level: 4, style: { margin: 0 } }, title),
+          entityName && React.createElement(React.Fragment, null,
+            React.createElement('span', {
+              style: { color: 'var(--gravity-text-disabled)', fontWeight: 200, fontSize: 22, lineHeight: 1 },
+            }, '|'),
+            React.createElement('span', {
+              style: { fontSize: 15, color: 'var(--gravity-text-secondary)', fontWeight: 400 },
+            }, entityName)
+          ),
+          tag
+        ),
+        metaItems.length > 0 && React.createElement('div', {
+          style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 8px' },
+        }, ...metaItems)
+      ),
+      actions.length > 0 && React.createElement('div', {
+        style: { display: 'flex', gap: 8, flexShrink: 0, alignItems: 'flex-start', paddingTop: 2 },
+      }, ...actions)
+    )
+  );
+}
+
+// ── Dati mock — Campagna DOOH in erogazione ───────────────────────────────────
+// Una campagna nasce dall'unione di due cose distinte: gli spazi (impianti) già
+// assegnati da una Pianificazione esistente, e le creatività caricate qui.
+const CAMPAIGN = {
+  nome: 'Lancio Estate — Gohan Sushi',
+  inserzionista: 'Gohan Sushi',
+  contatto: 'Marco Lo Bianco',
+  goal: 'Traffico',
+  budget: 22000,
+  start: '01/07/2026',
+  end: '31/07/2026',
+  planningRef: { id: 'PLN-0101', nome: 'Brand Awareness Q2' }, // pianificazione da cui arrivano gli spazi
+};
+
+// ── Impianti pianificati (arrivano dalla Pianificazione, non si scelgono qui) ──
+// Una pianificazione può contenere centinaia di impianti: il modello resta lo
+// stesso di Planning/Inventory (lat/lng, tipo, stato) per riusare mappa e
+// clustering condivisi (GravityMap) invece di reinventarli.
+const DOOH_ZONES = [
+  { name: 'Via Libertà',        lat: 38.1245, lng: 13.3553 },
+  { name: 'Politeama',          lat: 38.1218, lng: 13.3565 },
+  { name: 'Via Roma',           lat: 38.1170, lng: 13.3612 },
+  { name: 'Stazione Centrale',  lat: 38.1105, lng: 13.3630 },
+  { name: 'Via Maqueda',        lat: 38.1160, lng: 13.3608 },
+  { name: 'Zisa',               lat: 38.1210, lng: 13.3420 },
+  { name: 'Kalsa',              lat: 38.1155, lng: 13.3720 },
+  { name: 'Libertà Nord',       lat: 38.1320, lng: 13.3500 },
+  { name: 'Borgo Vecchio',      lat: 38.1260, lng: 13.3680 },
+  { name: 'Mondello',           lat: 38.1970, lng: 13.3260 },
+];
+
+// I formati DOOH sono legati alla risoluzione dello schermo (video, non stampa):
+// pochi rispetto all'OOH — qui solo 3, uno per tipologia di impianto.
+const DOOH_TYPE_FORMAT = [
+  { type: 'Totem',     formato: '1920×1080' },
+  { type: 'Alux',      formato: '1080×1920' },
+  { type: 'Billboard', formato: '3840×2160' },
+];
+
+const FORMAT_LABELS = {
+  '1920×1080': 'Landscape · Totem',
+  '1080×1920': 'Portrait · Alux',
+  '3840×2160': 'UHD · Billboard',
+};
+
+function buildDoohSystems() {
+  const named = [
+    { id: 'D001', nome: 'Totem Via Libertà',        type: 'Totem',     address: 'Via Libertà, 82',        lat: 38.1245, lng: 13.3553, faces: 2, formato: '1920×1080', state: 'active' },
+    { id: 'D002', nome: 'Alux Piazza Politeama',     type: 'Alux',      address: 'Piazza Ruggero Settimo', lat: 38.1218, lng: 13.3565, faces: 1, formato: '1080×1920', state: 'active' },
+    { id: 'D003', nome: 'Billboard Via Roma',        type: 'Billboard', address: 'Via Roma, 320',          lat: 38.1170, lng: 13.3612, faces: 1, formato: '3840×2160', state: 'active' },
+    { id: 'D004', nome: 'Totem Stazione Centrale',   type: 'Totem',     address: 'Piazza Giulio Cesare',   lat: 38.1105, lng: 13.3630, faces: 2, formato: '1920×1080', state: 'active' },
+    { id: 'D005', nome: 'Alux Via Maqueda',          type: 'Alux',      address: 'Via Maqueda, 148',       lat: 38.1160, lng: 13.3608, faces: 1, formato: '1080×1920', state: 'maintenance' },
+  ];
+
+  // Genera il resto in modo deterministico (nessun Math.random) per dimostrare
+  // la scala reale di una pianificazione — decine/centinaia di impianti da
+  // vedere in lista e in mappa, non solo i 5 "featured" sopra.
+  const EXTRA_COUNT = 37; // totale 42 impianti
+  const extra = [];
+  for (let i = 0; i < EXTRA_COUNT; i++) {
+    const zone = DOOH_ZONES[i % DOOH_ZONES.length];
+    const tf   = DOOH_TYPE_FORMAT[i % DOOH_TYPE_FORMAT.length];
+    const angle  = ((i * 47) % 360) * (Math.PI / 180);
+    const radius = 0.006 + (i % 5) * 0.0015;
+    extra.push({
+      id: `D${100 + i}`,
+      nome: `${tf.type} ${zone.name} ${Math.floor(i / DOOH_ZONES.length) + 1}`,
+      type: tf.type,
+      address: `Zona ${zone.name}`,
+      lat: zone.lat + Math.sin(angle) * radius,
+      lng: zone.lng + Math.cos(angle) * radius * 1.25,
+      faces: (i % 3 === 0) ? 2 : 1,
+      formato: tf.formato,
+      state: (i % 9 === 0) ? 'maintenance' : 'active',
+    });
+  }
+  return [...named, ...extra];
+}
+const DOOH_SYSTEMS = buildDoohSystems();
+const FORMATS = [...new Set(DOOH_SYSTEMS.map(s => s.formato))];
+
+const LOOP_DURATION_MS = 15000; // durata loop simulata della creatività
+
+// ── Dati mock — lista campagne (landing di "Campagne" in navbar) ─────────────
+// demoReady: solo questa riga ha il flusso di espletamento costruito nel prototipo.
+const CAMPAGNE_LIST = [
+  { id: 'C01', nome: CAMPAIGN.nome,                          inserzionista: 'Gohan Sushi',        canale: 'DOOH', start: '01/07/2026', end: '31/07/2026', budget: 22000,  impianti: DOOH_SYSTEMS.length, stato: 'In erogazione',   demoReady: true },
+  { id: 'C02', nome: 'Back to School — Offerta Abbonamenti', inserzionista: 'Mediaset Premium',    canale: 'DOOH', start: '15/08/2026', end: '15/09/2026', budget: 38000,  impianti: 8,  stato: 'Bozza',           demoReady: false },
+  { id: 'C03', nome: 'Estate Siciliana — Turismo Regionale',  inserzionista: 'ENIT',                canale: 'OOH',  start: '01/06/2026', end: '31/08/2026', budget: 64000,  impianti: 12, stato: 'In erogazione',   demoReady: false },
+  { id: 'C04', nome: 'Q1 Brand Awareness',                    inserzionista: 'Eni SpA',             canale: 'DOOH', start: '01/02/2026', end: '28/02/2026', budget: 95000,  impianti: 15, stato: 'Completata',      demoReady: false },
+  { id: 'C05', nome: 'Promo Primavera',                       inserzionista: 'Esselunga SpA',       canale: 'OOH',  start: '12/03/2026', end: '08/04/2026', budget: 41000,  impianti: 6,  stato: 'Completata',      demoReady: false },
+  { id: 'C06', nome: 'Lancio Nuova Gamma EV',                 inserzionista: 'Stellantis Italia',   canale: 'DOOH', start: '01/09/2026', end: '30/09/2026', budget: 58000,  impianti: 10, stato: 'In pianificazione', demoReady: false },
+  { id: 'C07', nome: 'Digital OOH Aeroporti',                 inserzionista: 'Satispay SpA',        canale: 'DOOH', start: '01/07/2026', end: '14/07/2026', budget: 27000,  impianti: 3,  stato: 'Bozza',           demoReady: false },
+  { id: 'C08', nome: 'Rebranding Istituzionale',               inserzionista: 'TIM S.p.A.',          canale: 'DOOH', start: '01/10/2026', end: '31/12/2026', budget: 112000, impianti: 18, stato: 'In pianificazione', demoReady: false },
+];
+
+const CAMPAGNA_STATO_DOT = {
+  'In erogazione':     '#52C41A',
+  'In pianificazione':  '#FAAD14',
+  'Bozza':              '#BFBFBF',
+  'Completata':         '#1677FF',
+};
+
+// ── Brief laterale — identico nelle due viste ─────────────────────────────────
+function BriefSidebar({ campaign }) {
+  return React.createElement('div', {
+    style: { width: 264, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 },
+  },
+    React.createElement(DataCard, {
+      icon: UserOutlined,
+      label: 'Inserzionista',
+      size: 'small',
+      value: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+        React.createElement(AdvertiserAvatar, { name: campaign.inserzionista, size: 36 }),
+        React.createElement('div', null,
+          React.createElement('div', {
+            style: { fontSize: 15, fontWeight: 700, lineHeight: 1.4, color: 'rgba(0,0,0,0.88)' },
+          }, campaign.inserzionista),
+          React.createElement(Text, {
+            style: { fontSize: 11, color: 'rgba(0,0,0,0.4)', display: 'block', marginTop: 2 },
+          }, `Ref. ${campaign.contatto}`)
+        )
+      ),
+    }),
+    React.createElement(DataCard, {
+      icon: AimOutlined,
+      label: 'Obiettivo',
+      size: 'small',
+      value: campaign.goal,
+    }),
+    React.createElement(DataCard, {
+      icon: DollarOutlined,
+      label: 'Budget',
+      size: 'small',
+      value: EUR(campaign.budget),
+    }),
+    React.createElement(DataCard, {
+      icon: CalendarOutlined,
+      label: 'Periodo di esposizione',
+      size: 'small',
+      value: React.createElement(MiniCalendar, { start: campaign.start, end: campaign.end }),
+    })
+  );
+}
+
+// ── Vista 0 — Lista campagne (landing "Campagne" in navbar) ─────────────────
+function CampagneListView({ onOpenCampaign }) {
+  const columns = [
+    {
+      title: 'Campagna',
+      dataIndex: 'nome',
+      key: 'nome',
+      width: 280,
+      fixed: 'left',
+      render: (v, row) => React.createElement('span', {
+        style: { fontSize: 13, color: row.demoReady ? 'rgba(0,0,0,0.88)' : 'rgba(0,0,0,0.65)', fontWeight: row.demoReady ? 600 : 400 },
+      }, v),
+    },
+    {
+      title: 'Inserzionista',
+      dataIndex: 'inserzionista',
+      key: 'inserzionista',
+      width: 190,
+      render: v => React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7 } },
+        React.createElement(AdvertiserAvatar, { name: v, size: 24 }),
+        React.createElement('span', { style: { fontSize: 13 } }, v)
+      ),
+    },
+    {
+      title: 'Canale',
+      dataIndex: 'canale',
+      key: 'canale',
+      width: 90,
+      filters: [{ text: 'DOOH', value: 'DOOH' }, { text: 'OOH', value: 'OOH' }],
+      onFilter: (value, record) => record.canale === value,
+      render: v => React.createElement(Tag, { color: v === 'DOOH' ? 'magenta' : 'green' }, v),
+    },
+    {
+      title: 'Periodo',
+      key: 'periodo',
+      width: 180,
+      render: (_, row) => React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, `${row.start} – ${row.end}`),
+    },
+    {
+      title: 'Budget',
+      dataIndex: 'budget',
+      key: 'budget',
+      width: 120,
+      sorter: (a, b) => a.budget - b.budget,
+      render: v => React.createElement('span', { style: { fontSize: 13 } }, EUR(v)),
+    },
+    {
+      title: 'Impianti',
+      dataIndex: 'impianti',
+      key: 'impianti',
+      width: 100,
+      render: v => React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v),
+    },
+    {
+      title: 'Stato',
+      dataIndex: 'stato',
+      key: 'stato',
+      width: 150,
+      filters: Object.keys(CAMPAGNA_STATO_DOT).map(s => ({ text: s, value: s })),
+      onFilter: (value, record) => record.stato === value,
+      render: v => React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
+        React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: CAMPAGNA_STATO_DOT[v] || '#D9D9D9', display: 'inline-block', flexShrink: 0 } }),
+        React.createElement(Text, { style: { fontSize: 13 } }, v)
+      ),
+    },
+    {
+      title: '',
+      key: 'azioni',
+      width: 160,
+      fixed: 'right',
+      render: (_, row) => React.createElement('div', { onClick: e => e.stopPropagation() },
+        row.demoReady
+          ? React.createElement(Button, {
+              size: 'small', type: 'primary',
+              icon: React.createElement(PlayCircleOutlined),
+              onClick: () => onOpenCampaign(row),
+            }, 'Apri espletamento')
+          : React.createElement(Tooltip, { title: 'Disponibile solo per questa campagna in questa demo' },
+              React.createElement(Button, {
+                size: 'small', disabled: true,
+                icon: React.createElement(LockOutlined),
+              }, 'Apri espletamento')
+            )
+      ),
+    },
+  ];
+
+  return React.createElement('div', { className: 'page-content' },
+    React.createElement('div', {
+      style: {
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'var(--gravity-bg-container)',
+        borderRadius: 'var(--gravity-radius-lg)',
+        padding: '16px 20px',
+        border: '1px solid var(--gravity-split)',
+        marginBottom: 20,
+      },
+    },
+      React.createElement(Title, { level: 3, style: { margin: 0 } }, 'Campagne'),
+      React.createElement(Tooltip, { title: 'Non disponibile in questa demo' },
+        React.createElement(Button, { type: 'primary', disabled: true }, '+ Nuova Campagna')
+      )
+    ),
+
+    React.createElement('div', { className: 'cf-section', style: { padding: 0, overflow: 'hidden' } },
+      React.createElement('div', { style: { padding: '16px 20px 4px' } },
+        React.createElement(Text, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } },
+          `${CAMPAGNE_LIST.length} campagne`
+        )
+      ),
+      React.createElement('div', { style: { padding: '0 20px 20px' } },
+        React.createElement(Table, {
+          dataSource: CAMPAGNE_LIST,
+          columns,
+          rowKey: 'id',
+          size: 'middle',
+          scroll: { x: 1150 },
+          pagination: false,
+          onRow: (row) => ({
+            style: { cursor: row.demoReady ? 'pointer' : 'default' },
+            onClick: () => row.demoReady && onOpenCampaign(row),
+          }),
+        })
+      )
+    )
+  );
+}
+
+// ── Vista 1 — Dettaglio campagna: creatività + impianti pianificati + espletamento
+// Una campagna nasce dall'unione di Pianificazione (spazi, già assegnati altrove)
+// e Creatività (caricate qui, una per formato schermo). L'espletamento si sblocca
+// automaticamente non appena entrambi i requisiti sono soddisfatti — nessun click
+// o passaggio a parte.
+// ── Mappa DOOH condivisa (tab Pianificazione + tab Espletamento) ──────────────
+// Stessa palette e stesso motore di clustering di Planning e Inventario impianti
+// (GravityMap), per reggere le centinaia di impianti che una pianificazione
+// reale può contenere. onMarkerClick/getSelectedId sono opzionali: la mappa di
+// Pianificazione è di sola consultazione, quella di Espletamento è selezionabile
+// (seleziona l'impianto mostrato nel player).
+function mountDoohMap(container, { onMarkerClick, getSelectedId } = {}) {
+  const bounds = new google.maps.LatLngBounds();
+  DOOH_SYSTEMS.forEach(s => bounds.extend({ lat: s.lat, lng: s.lng }));
+
+  const map = new google.maps.Map(container, {
+    center: { lat: 38.118, lng: 13.361 },
+    zoom: 13,
+    disableDefaultUI: false,
+    zoomControl: true,
+    streetViewControl: false,
+    mapTypeControl: false,
+    fullscreenControl: false,
+    styles: [
+      { featureType: 'water',         elementType: 'geometry', stylers: [{ color: '#b0d4f1' }] },
+      { featureType: 'landscape',     elementType: 'geometry', stylers: [{ color: '#f5f5f0' }] },
+      { featureType: 'road',          elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+      { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#f0f0ee' }] },
+      { featureType: 'poi',           elementType: 'labels',   stylers: [{ visibility: 'off' }] },
+      { featureType: 'transit',       elementType: 'labels',   stylers: [{ visibility: 'off' }] },
+    ],
+  });
+  map.fitBounds(bounds, 60);
+
+  const stateFile = (s) => s.state === 'maintenance' ? 'maintenance' : 'active';
+  let markers = {};
+  const clearMarkers = () => { Object.values(markers).forEach(m => m.setMap(null)); markers = {}; };
+
+  const addSingleMarker = (s) => {
+    const src = window.GravityMap.markerSrc(s.type, stateFile(s), 'DOOH');
+    const icon = window.GravityMap.makeMarkerIcon({
+      src, zoom: map.getZoom(),
+      flags: { isSelected: getSelectedId ? s.id === getSelectedId() : false },
+    });
+    const marker = new google.maps.Marker({ position: { lat: s.lat, lng: s.lng }, map, icon, title: s.nome });
+    if (onMarkerClick) marker.addListener('click', () => onMarkerClick(s.id));
+    markers[s.id] = marker;
+  };
+
+  const render = () => {
+    clearMarkers();
+    const items = DOOH_SYSTEMS.map(s => ({ id: s.id, position: { lat: s.lat, lng: s.lng }, sys: s }));
+    const result = window.GravityMap.computeGridClusters(map, items);
+    result.clusters.forEach((cl, i) => {
+      const { url, size } = window.GravityMap.makeClusterSvg(cl.members.length, {});
+      const marker = new google.maps.Marker({
+        position: cl.center, map,
+        icon: { url, scaledSize: new google.maps.Size(size, size), anchor: new google.maps.Point(size / 2, size / 2) },
+      });
+      marker.addListener('click', () => window.GravityMap.fitBoundsToMembers(map, cl.members));
+      markers['cluster-' + i] = marker;
+    });
+    result.members.forEach(it => addSingleMarker(it.sys));
+  };
+
+  const srcs = [...new Set(DOOH_SYSTEMS.map(s => window.GravityMap.markerSrc(s.type, stateFile(s), 'DOOH')))];
+  window.GravityMap.preloadAll(srcs).then(render);
+  map.addListener('zoom_changed', render);
+
+  return { map, render, destroy: clearMarkers };
+}
+
+function CampagnaDettaglioView({ creativesByFormat, onUploadFormat, onRemoveFormat, selectedId, onSelect, espletamentoAvviato, onAvviaEspletamento, onBack }) {
+  const esplMapRef = useRef(null);
+  const esplMapContainerRef = useRef(null);
+  const esplRenderRef = useRef(null);
+  const pianMapRef = useRef(null);
+  const pianMapContainerRef = useRef(null);
+  const selectedIdRef = useRef(selectedId);
+  const [elapsed, setElapsed] = useState(0);
+  const [activeTab, setActiveTab] = useState('espletamento'); // 'espletamento' | 'creativita' | 'pianificazione'
+  const [impiantiView, setImpiantiView] = useState('lista'); // 'lista' | 'mappa' — solo tab Pianificazione
+
+  const selectedSys    = DOOH_SYSTEMS.find(s => s.id === selectedId) || DOOH_SYSTEMS[0];
+  const pianificazionePronta = DOOH_SYSTEMS.length > 0; // gli spazi arrivano già assegnati dalla Pianificazione
+  const missingFormats  = FORMATS.filter(f => !creativesByFormat[f]);
+  const creativitaPronta = missingFormats.length === 0;
+  const requisitiOk    = pianificazionePronta && creativitaPronta; // abilita il bottone "Avvia Espletamento"
+  const espletamentoAttivo = requisitiOk && espletamentoAvviato;   // player davvero in onda
+  const activeCreative = creativesByFormat[selectedSys.formato];
+
+  const statoInfo = espletamentoAttivo
+    ? { label: 'In erogazione', color: '#52C41A' }
+    : requisitiOk
+    ? { label: 'Pronta per l\'espletamento', color: '#FAAD14' }
+    : { label: 'In attesa di creatività', color: '#BFBFBF' };
+
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+
+  const handleUpload = (formato) => (file) => {
+    onUploadFormat(formato, {
+      name: file.name,
+      formato,
+      durata: '15s',
+    });
+    return false; // mock: non carica davvero, resta locale al prototipo
+  };
+
+  // Avanzamento del loop in tempo reale — parte solo dopo l'avvio esplicito dell'espletamento.
+  useEffect(() => {
+    if (!espletamentoAttivo) return;
+    const start = Date.now();
+    const tick = () => setElapsed(Date.now() - start);
+    const id = setInterval(tick, 120);
+    return () => clearInterval(id);
+  }, [espletamentoAttivo]);
+
+  const idx = DOOH_SYSTEMS.findIndex(s => s.id === selectedSys.id);
+  const phase = (elapsed + idx * 3000) % LOOP_DURATION_MS;
+  const progressPct = (phase / LOOP_DURATION_MS) * 100;
+  const loopCount = Math.floor((elapsed + idx * 3000) / LOOP_DURATION_MS);
+
+  // Mappa del tab Espletamento — selezionabile, aggiorna il player.
+  useEffect(() => {
+    if (activeTab !== 'espletamento' || !esplMapContainerRef.current || esplMapRef.current || !window.google) return;
+    const instance = mountDoohMap(esplMapContainerRef.current, {
+      onMarkerClick: onSelect,
+      getSelectedId: () => selectedIdRef.current,
+    });
+    esplMapRef.current = instance.map;
+    esplRenderRef.current = instance.render;
+    return () => {
+      instance.destroy();
+      esplMapRef.current = null;
+      esplRenderRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  // Ridisegna marker/cluster quando cambia la selezione (badge di selezione).
+  useEffect(() => {
+    if (esplRenderRef.current) esplRenderRef.current();
+  }, [selectedId]);
+
+  // Mappa del tab Pianificazione — sola consultazione (nessuna selezione/player).
+  useEffect(() => {
+    if (activeTab !== 'pianificazione' || impiantiView !== 'mappa' || !pianMapContainerRef.current || pianMapRef.current || !window.google) return;
+    const instance = mountDoohMap(pianMapContainerRef.current);
+    pianMapRef.current = instance.map;
+    return () => {
+      instance.destroy();
+      pianMapRef.current = null;
+    };
+  }, [activeTab, impiantiView]);
+
+  const listColumns = [
+    {
+      title: 'Impianto',
+      dataIndex: 'nome',
+      key: 'nome',
+      render: (v, row) => {
+        const iconSrc = window.GravityMap ? window.GravityMap.systypeIconSrc(row.type, 'DOOH') : null;
+        return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+          iconSrc && React.createElement('img', { src: iconSrc, alt: row.type, style: { width: 14, height: 14 } }),
+          React.createElement('span', { style: { fontSize: 13 } }, v)
+        );
+      },
+    },
+    { title: 'Indirizzo', dataIndex: 'address', key: 'address', render: v => React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v) },
+    { title: 'Facce', dataIndex: 'faces', key: 'faces', width: 90, render: v => React.createElement('span', { style: { fontSize: 13 } }, v) },
+    {
+      title: 'Formato', dataIndex: 'formato', key: 'formato', width: 150,
+      filters: FORMATS.map(f => ({ text: f, value: f })),
+      onFilter: (value, record) => record.formato === value,
+      render: v => React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v),
+    },
+    {
+      title: 'Stato', dataIndex: 'state', key: 'state', width: 140,
+      filters: [{ text: 'Attivo', value: 'active' }, { text: 'In manutenzione', value: 'maintenance' }],
+      onFilter: (value, record) => record.state === value,
+      render: v => v === 'maintenance'
+        ? React.createElement(Tag, { icon: React.createElement(ToolOutlined), color: 'orange' }, 'In manutenzione')
+        : React.createElement(Tag, { color: 'blue' }, 'Attivo'),
+    },
+  ];
+
+  // ── Tab: Espletamento — mappa selezionabile + player (o stato in attesa) ────
+  const espletamentoTab = React.createElement('div', { style: { display: 'flex', gap: 16, alignItems: 'flex-start' } },
+    React.createElement('div', { style: { flex: 1.2, minWidth: 0 } },
+      React.createElement('div', { ref: esplMapContainerRef, className: 'cf-map' })
+    ),
+    React.createElement('div', { style: { width: 380, flexShrink: 0 } },
+      espletamentoAttivo
+        ? React.createElement(React.Fragment, null,
+            React.createElement(Select, {
+              showSearch: true,
+              value: selectedId,
+              style: { width: '100%', marginBottom: 4 },
+              optionFilterProp: 'label',
+              options: DOOH_SYSTEMS.map(s => ({ value: s.id, label: s.nome })),
+              onChange: onSelect,
+            }),
+            React.createElement(Text, { type: 'secondary', style: { fontSize: 12, display: 'block', marginBottom: 14 } },
+              selectedSys.address
+            ),
+
+            selectedSys.state === 'maintenance'
+              ? React.createElement(Result, {
+                  icon: React.createElement(ToolOutlined, { style: { color: '#FA8C16' } }),
+                  status: 'warning',
+                  title: 'Impianto in manutenzione',
+                  subTitle: 'Il player è momentaneamente offline: la creatività non è in riproduzione su questo impianto.',
+                  style: { padding: '24px 0' },
+                })
+              : React.createElement(React.Fragment, null,
+                  React.createElement('div', { className: 'cf-player-screen' },
+                    React.createElement('div', { className: 'cf-player-bg' }),
+                    React.createElement('div', { className: 'cf-live-badge' },
+                      React.createElement('span', { className: 'cf-live-dot' }),
+                      'In riproduzione'
+                    ),
+                    React.createElement('div', { className: 'cf-loop-badge' }, `Loop #${loopCount + 1}`),
+                    React.createElement('div', { className: 'cf-player-content' },
+                      React.createElement(PlayCircleOutlined, { style: { fontSize: 34 } }),
+                      React.createElement('div', { style: { marginTop: 6, fontSize: 13, fontWeight: 600 } },
+                        activeCreative ? activeCreative.name : 'Nessuna creatività'
+                      )
+                    ),
+                    React.createElement('div', { className: 'cf-player-progress-track' },
+                      React.createElement('div', { className: 'cf-player-progress-fill', style: { width: `${progressPct}%` } })
+                    )
+                  ),
+
+                  React.createElement(Divider, { style: { margin: '16px 0' } }),
+
+                  React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+                    React.createElement(MetaRow, { icon: AppstoreOutlined, label: 'Tipo impianto', value: `${selectedSys.type} · ${selectedSys.faces} ${selectedSys.faces === 1 ? 'faccia' : 'facce'}` }),
+                    React.createElement(MetaRow, { icon: EnvironmentOutlined, label: 'Risoluzione', value: selectedSys.formato }),
+                    React.createElement(MetaRow, {
+                      icon: CheckCircleFilled,
+                      label: 'Stato playout',
+                      value: React.createElement('span', { style: { color: '#52C41A', fontWeight: 600 } }, 'In riproduzione ●'),
+                    })
+                  )
+                )
+          )
+        : React.createElement('div', { className: 'cf-locked' },
+            React.createElement(LockOutlined, { style: { fontSize: 22, color: 'rgba(0,0,0,0.25)' } }),
+            React.createElement('div', { style: { marginTop: 8, fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.45)' } },
+              'Player non ancora attivo'
+            ),
+            React.createElement('div', { style: { marginTop: 2, fontSize: 12, color: 'rgba(0,0,0,0.35)' } },
+              requisitiOk
+                ? 'Creatività pronta — clicca "Avvia Espletamento" in alto per attivare il player.'
+                : `In attesa della creatività per: ${missingFormats.join(', ')}`
+            )
+          )
+    )
+  );
+
+  // ── Tab: Creatività — una per formato schermo, prima di poter espletare ─────
+  const creativitaTab = React.createElement(React.Fragment, null,
+    React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginBottom: 4 } },
+      creativitaPronta && React.createElement(Tag, { color: 'success', icon: React.createElement(CheckCircleFilled) }, 'Tutti i formati coperti')
+    ),
+    React.createElement(Text, { type: 'secondary', style: { fontSize: 12, display: 'block', marginBottom: 14 } },
+      'Video richiesti per formato schermo — un impianto DOOH ha meno varianti di formato rispetto a un impianto OOH (che invece richiede la stampa).'
+    ),
+    React.createElement('div', { className: 'cf-creative-grid' },
+      FORMATS.map(formato => {
+        const count = DOOH_SYSTEMS.filter(s => s.formato === formato).length;
+        const cr = creativesByFormat[formato];
+        return React.createElement('div', { key: formato },
+          React.createElement('div', { className: 'cf-format-head' },
+            React.createElement('div', null,
+              React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, formato),
+              React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } }, `${FORMAT_LABELS[formato] || ''} · ${count} impianti`)
+            ),
+            cr && React.createElement(Tag, { color: 'success' }, 'OK')
+          ),
+          !cr
+            ? React.createElement(Dragger, {
+                accept: 'video/*',
+                showUploadList: false,
+                beforeUpload: handleUpload(formato),
+                style: { background: 'transparent', border: 'none', padding: 0 },
+              },
+                React.createElement('div', { className: 'cf-dropzone' },
+                  React.createElement(InboxOutlined, { style: { fontSize: 22, color: 'var(--gravity-primary)' } }),
+                  React.createElement('div', { style: { marginTop: 6, fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } },
+                    'Carica video'
+                  ),
+                  React.createElement('div', { style: { marginTop: 2, fontSize: 11, color: 'rgba(0,0,0,0.45)' } },
+                    `MP4 · ${formato}`
+                  )
+                )
+              )
+            : React.createElement('div', { className: 'cf-creative-card' },
+                React.createElement('div', { className: 'cf-creative-thumb' },
+                  React.createElement(PlayCircleOutlined)
+                ),
+                React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                  React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, cr.name),
+                  React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } }, cr.durata)
+                ),
+                React.createElement(Button, {
+                  type: 'text', danger: true, size: 'small',
+                  icon: React.createElement(DeleteOutlined),
+                  onClick: () => onRemoveFormat(formato),
+                })
+              )
+        );
+      })
+    )
+  );
+
+  // ── Tab: Pianificazione — impianti assegnati, in lista o in mappa ───────────
+  const pianificazioneTab = React.createElement(React.Fragment, null,
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 } },
+      React.createElement(Text, { type: 'secondary', style: { fontSize: 12 } },
+        `Da pianificazione: ${CAMPAIGN.planningRef.id} — ${CAMPAIGN.planningRef.nome} · ${DOOH_SYSTEMS.length} impianti DOOH`
+      ),
+      React.createElement(Segmented, {
+        value: impiantiView,
+        onChange: setImpiantiView,
+        options: [{ label: 'Lista', value: 'lista' }, { label: 'Mappa', value: 'mappa' }],
+      })
+    ),
+    impiantiView === 'lista'
+      ? React.createElement(Table, {
+          dataSource: DOOH_SYSTEMS,
+          columns: listColumns,
+          rowKey: 'id',
+          size: 'middle',
+          pagination: { pageSize: 8, showSizeChanger: false },
+        })
+      : React.createElement('div', { ref: pianMapContainerRef, className: 'cf-map' })
+  );
+
+  return React.createElement('div', { className: 'page-content' },
+    React.createElement(GravityPageHeader, {
+      backLabel: 'Campagne',
+      onBack,
+      title: 'Configuratore Campagna',
+      entityName: CAMPAIGN.nome,
+      tag: React.createElement(Tag, { color: 'magenta' }, 'DOOH'),
+      meta: [
+        { label: 'Inserzionista', value: CAMPAIGN.inserzionista },
+        { label: 'Periodo', value: `${CAMPAIGN.start} – ${CAMPAIGN.end}` },
+        {
+          label: 'Stato',
+          value: React.createElement('span', {
+            style: { display: 'inline-flex', alignItems: 'center', gap: 5 },
+          },
+            React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: statoInfo.color, display: 'inline-block' } }),
+            statoInfo.label
+          ),
+        },
+      ],
+      actions: [
+        espletamentoAttivo
+          ? React.createElement(Tag, { key: 'attivo', color: 'success', icon: React.createElement(CheckCircleFilled), style: { marginTop: 4, padding: '4px 10px', fontSize: 13 } }, 'Espletamento attivo')
+          : React.createElement(Tooltip, {
+              key: 'avvia',
+              title: requisitiOk ? '' : `Formati mancanti: ${missingFormats.join(', ')}`,
+            },
+              React.createElement(Button, {
+                type: 'primary',
+                disabled: !requisitiOk,
+                icon: React.createElement(PlayCircleOutlined),
+                onClick: onAvviaEspletamento,
+              }, 'Avvia Espletamento')
+            ),
+      ],
+    }),
+
+    React.createElement('div', { style: { display: 'flex', gap: 16, alignItems: 'flex-start' } },
+      React.createElement(BriefSidebar, { campaign: CAMPAIGN }),
+
+      React.createElement('div', { className: 'cf-section', style: { flex: 1, minWidth: 0, marginBottom: 0 } },
+        React.createElement(Tabs, {
+          activeKey: activeTab,
+          onChange: setActiveTab,
+          destroyInactiveTabPane: true,
+          items: [
+            { key: 'espletamento',   label: 'Espletamento',   children: espletamentoTab },
+            { key: 'creativita',     label: 'Creatività',     children: creativitaTab },
+            { key: 'pianificazione', label: 'Pianificazione', children: pianificazioneTab },
+          ],
+        })
+      )
+    )
+  );
+}
+
+function MetaRow({ icon: Icon, label, value }) {
+  return React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+    React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(0,0,0,0.45)' } },
+      React.createElement(Icon, { style: { fontSize: 12 } }),
+      label
+    ),
+    React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, value)
+  );
+}
+
+// ── AppRoot ───────────────────────────────────────────────────────────────────
+function AppRoot() {
+  const [view, setView] = useState('lista'); // 'lista' | 'dettaglio'
+  const [creativesByFormat, setCreativesByFormat] = useState({});
+  const [selectedId, setSelectedId] = useState(DOOH_SYSTEMS[0].id);
+  const [espletamentoAvviato, setEspletamentoAvviato] = useState(false);
+
+  return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
+    React.createElement(App, null,
+      React.createElement('div', { className: 'app-shell' },
+        React.createElement(window.GravityNavbar),
+        view === 'lista'
+          ? React.createElement(CampagneListView, {
+              onOpenCampaign: () => setView('dettaglio'),
+            })
+          : React.createElement(CampagnaDettaglioView, {
+              creativesByFormat,
+              onUploadFormat: (formato, data) => setCreativesByFormat(prev => ({ ...prev, [formato]: data })),
+              onRemoveFormat: (formato) => {
+                // Rimuovere una creatività invalida i requisiti: l'espletamento
+                // eventualmente già avviato va riconfermato esplicitamente.
+                setEspletamentoAvviato(false);
+                setCreativesByFormat(prev => {
+                  const next = { ...prev };
+                  delete next[formato];
+                  return next;
+                });
+              },
+              selectedId,
+              onSelect: setSelectedId,
+              espletamentoAvviato,
+              onAvviaEspletamento: () => setEspletamentoAvviato(true),
+              onBack: () => setView('lista'),
+            })
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(AppRoot));
+</script>
+</body>
+</html>
