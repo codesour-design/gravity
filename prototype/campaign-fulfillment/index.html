@@ -23,8 +23,9 @@
   </script>
   <script src="../_shared/navbar.js"></script>
 
-  <!-- Google Maps (stessa key usata da planning/inventory-systems) -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFkwneQjAMG1ozsc80YaQYZzyfhdsKmyI"></script>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="../_shared/map-interactions.js"></script>
 
   <style>
@@ -803,31 +804,18 @@ function CampagneListView({ onOpenCampaign }) {
 // Pianificazione è di sola consultazione, quella di Espletamento è selezionabile
 // (seleziona l'impianto mostrato nel player).
 function mountDoohMap(container, { onMarkerClick, getSelectedId } = {}) {
-  const bounds = new google.maps.LatLngBounds();
-  DOOH_SYSTEMS.forEach(s => bounds.extend({ lat: s.lat, lng: s.lng }));
+  const map = L.map(container, { zoomControl: true }).setView([38.118, 13.361], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(map);
 
-  const map = new google.maps.Map(container, {
-    center: { lat: 38.118, lng: 13.361 },
-    zoom: 13,
-    disableDefaultUI: false,
-    zoomControl: true,
-    streetViewControl: false,
-    mapTypeControl: false,
-    fullscreenControl: false,
-    styles: [
-      { featureType: 'water',         elementType: 'geometry', stylers: [{ color: '#b0d4f1' }] },
-      { featureType: 'landscape',     elementType: 'geometry', stylers: [{ color: '#f5f5f0' }] },
-      { featureType: 'road',          elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-      { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#f0f0ee' }] },
-      { featureType: 'poi',           elementType: 'labels',   stylers: [{ visibility: 'off' }] },
-      { featureType: 'transit',       elementType: 'labels',   stylers: [{ visibility: 'off' }] },
-    ],
-  });
-  map.fitBounds(bounds, 60);
+  const latlngs = DOOH_SYSTEMS.map(s => [s.lat, s.lng]);
+  if (latlngs.length) map.fitBounds(L.latLngBounds(latlngs), { padding: [40, 40] });
 
   const stateFile = (s) => s.state === 'maintenance' ? 'maintenance' : 'active';
   let markers = {};
-  const clearMarkers = () => { Object.values(markers).forEach(m => m.setMap(null)); markers = {}; };
+  const clearMarkers = () => { Object.values(markers).forEach(m => map.removeLayer(m)); markers = {}; };
 
   const addSingleMarker = (s) => {
     const src = window.GravityMap.markerSrc(s.type, stateFile(s), 'DOOH');
@@ -835,8 +823,8 @@ function mountDoohMap(container, { onMarkerClick, getSelectedId } = {}) {
       src, zoom: map.getZoom(),
       flags: { isSelected: getSelectedId ? s.id === getSelectedId() : false },
     });
-    const marker = new google.maps.Marker({ position: { lat: s.lat, lng: s.lng }, map, icon, title: s.nome });
-    if (onMarkerClick) marker.addListener('click', () => onMarkerClick(s.id));
+    const marker = L.marker([s.lat, s.lng], { icon, title: s.nome }).addTo(map);
+    if (onMarkerClick) marker.on('click', () => onMarkerClick(s.id));
     markers[s.id] = marker;
   };
 
@@ -846,11 +834,9 @@ function mountDoohMap(container, { onMarkerClick, getSelectedId } = {}) {
     const result = window.GravityMap.computeGridClusters(map, items);
     result.clusters.forEach((cl, i) => {
       const { url, size } = window.GravityMap.makeClusterSvg(cl.members.length, {});
-      const marker = new google.maps.Marker({
-        position: cl.center, map,
-        icon: { url, scaledSize: new google.maps.Size(size, size), anchor: new google.maps.Point(size / 2, size / 2) },
-      });
-      marker.addListener('click', () => window.GravityMap.fitBoundsToMembers(map, cl.members));
+      const icon = L.icon({ iconUrl: url, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
+      const marker = L.marker([cl.center.lat, cl.center.lng], { icon }).addTo(map);
+      marker.on('click', () => window.GravityMap.fitBoundsToMembers(map, cl.members));
       markers['cluster-' + i] = marker;
     });
     result.members.forEach(it => addSingleMarker(it.sys));
@@ -858,7 +844,7 @@ function mountDoohMap(container, { onMarkerClick, getSelectedId } = {}) {
 
   const srcs = [...new Set(DOOH_SYSTEMS.map(s => window.GravityMap.markerSrc(s.type, stateFile(s), 'DOOH')))];
   window.GravityMap.preloadAll(srcs).then(render);
-  map.addListener('zoom_changed', render);
+  map.on('zoomend', render);
 
   return { map, render, destroy: clearMarkers };
 }

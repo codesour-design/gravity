@@ -1248,8 +1248,9 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
       attributionControl: false,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 20,
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
 
     mapRef.current = map;
@@ -3123,42 +3124,45 @@ function AssetDrawer({ open, onClose, onSubmit, editInitial, category }) {
 // Drawer dedicato: aggiunta di una SQUADRA (affissione | manutenzione)
 // ─────────────────────────────────────────────────────────
 function SquadraDrawer({ open, onClose, onSubmit, kind }) {
-  const [squadra, setSquadra] = useState(null);
-  const [tipoAff, setTipoAff] = useState([]);
-  const [costo, setCosto] = useState(null);
-  const [preincoll, setPreincoll] = useState(null);
-  const [tipoInt, setTipoInt] = useState(null);
-  const [oggetto, setOggetto] = useState('');
+  const emptyRow = () => kind === 'affissione'
+    ? { squadra: null, tipo: [], costo: null, preincoll: null }
+    : { squadra: null, tipoInt: null, oggetto: '' };
+  const [row, setRowState] = useState(emptyRow());
   useEffect(() => {
     if (!open) return;
-    setSquadra(null); setTipoAff([]); setCosto(null); setPreincoll(null); setTipoInt(null); setOggetto('');
+    setRowState(emptyRow());
   }, [open, kind]);
+  const set = (key, val) => setRowState(prev => ({ ...prev, [key]: val }));
   const cs = (label, required, children) =>
     React.createElement('div', { className: 'ni-field' },
       React.createElement('div', { className: 'ni-label' }, label, required && React.createElement('span', { className: 'req' }, ' *')),
       children);
+  const g2 = (...kids) => React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px' } }, ...kids);
   const save = () => {
-    if (!squadra) { antdMsg.warning('Seleziona la squadra'); return; }
-    if (kind === 'affissione') onSubmit({ squadra, codice: (SQUADRE_AFF.find(s => s.nome === squadra) || {}).codice, tipo: tipoAff, costo: costo != null ? costo : 0, preincoll });
-    else onSubmit({ squadra, codice: (SQUADRE_AFF.find(s => s.nome === squadra) || {}).codice, tipoInt, oggetto });
+    if (!row.squadra) { antdMsg.warning('Seleziona la squadra'); return; }
+    const codice = (SQUADRE_AFF.find(s => s.nome === row.squadra) || {}).codice;
+    const record = kind === 'affissione'
+      ? { squadra: row.squadra, codice, tipo: row.tipo, costo: row.costo != null ? row.costo : 0, preincoll: row.preincoll }
+      : { squadra: row.squadra, codice, tipoInt: row.tipoInt, oggetto: row.oggetto };
+    onSubmit([record]);
   };
   return React.createElement(Drawer, {
-    title: 'Aggiungi squadra · ' + (kind === 'affissione' ? 'Affissione' : 'Manutenzione'),
+    title: 'Aggiungi squadra ' + (kind === 'affissione' ? 'affissione' : 'manutenzione'),
     placement: 'right', width: 520, styles: { body: { padding: 24 } },
     onClose: onClose, open: open, destroyOnClose: true,
-    extra: React.createElement(Space, null,
-      React.createElement(Button, { onClick: onClose }, 'Annulla'),
-      React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: save }, 'Aggiungi')),
+    extra: React.createElement(Button, { type: 'primary', onClick: save }, 'Salva'),
   },
-    cs('Squadra', true, React.createElement(Select, { value: squadra, onChange: setSquadra, options: SQUADRE_AFF_OPTS, style: { width: '100%' }, placeholder: 'Seleziona la squadra', showSearch: true, optionFilterProp: 'label' })),
+    cs('Squadra', false, React.createElement(Select, { value: row.squadra, onChange: v => set('squadra', v), options: SQUADRE_AFF_OPTS, style: { width: '100%' }, placeholder: 'Seleziona la squadra', showSearch: true, optionFilterProp: 'label' })),
     kind === 'affissione'
       ? React.createElement(React.Fragment, null,
-          cs('Tipo affissione', false, React.createElement(Select, { mode: 'multiple', allowClear: true, value: tipoAff, onChange: setTipoAff, options: TIPO_AFFISSIONE_OPTS, style: { width: '100%' }, placeholder: 'Seleziona i tipi di affissione' })),
-          cs('Costo affissione (€)', false, React.createElement(InputNumber, { value: costo, onChange: setCosto, min: 0, precision: 2, style: { width: '100%' }, placeholder: '—' })),
-          cs('Costo preincollaggio (€)', false, React.createElement(InputNumber, { value: preincoll, onChange: setPreincoll, min: 0, precision: 2, style: { width: '100%' }, placeholder: '—' })))
+          cs('Tipo affissione', false, React.createElement(Select, { mode: 'multiple', allowClear: true, value: row.tipo, onChange: v => set('tipo', v), options: TIPO_AFFISSIONE_OPTS, style: { width: '100%' }, placeholder: 'Seleziona i tipi di affissione', disabled: !row.squadra })),
+          g2(
+            cs('Costo affissione (€)', false, React.createElement(InputNumber, { value: row.costo, onChange: v => set('costo', v), min: 0, precision: 2, style: { width: '100%' }, placeholder: '—', disabled: !row.squadra })),
+            cs('Costo preincollaggio (€)', false, React.createElement(InputNumber, { value: row.preincoll, onChange: v => set('preincoll', v), min: 0, precision: 2, style: { width: '100%' }, placeholder: '—', disabled: !row.squadra })),
+          ))
       : React.createElement(React.Fragment, null,
-          cs('Tipo intervento', false, React.createElement(Select, { value: tipoInt, onChange: setTipoInt, options: TIPO_MAN_OPTS, style: { width: '100%' }, placeholder: 'Seleziona il tipo di intervento', allowClear: true })),
-          cs('Oggetto', false, React.createElement(Input, { value: oggetto, onChange: e => setOggetto(e.target.value), placeholder: 'Es. Sostituzione faretti' }))));
+          cs('Tipo intervento', false, React.createElement(Select, { value: row.tipoInt, onChange: v => set('tipoInt', v), options: TIPO_MAN_OPTS, style: { width: '100%' }, placeholder: 'Seleziona il tipo di intervento', allowClear: true, disabled: !row.squadra })),
+          cs('Oggetto', false, React.createElement(Input, { value: row.oggetto, onChange: e => set('oggetto', e.target.value), placeholder: 'Es. Sostituzione faretti', disabled: !row.squadra }))));
 }
 
 // ─────────────────────────────────────────────────────────
@@ -3619,10 +3623,10 @@ function ImpiantoDetailV2({ imp, onBack }) {
   const [squadKind,       setSquadKind]       = useState('affissione');
   const openSquadDrawer = (kind) => { setSquadKind(kind); setSquadDrawerOpen(true); };
   const closeSquadDrawer = () => setSquadDrawerOpen(false);
-  const submitSquad = (rec) => {
-    if (squadKind === 'affissione') { setSquadreAff(prev => [...prev, rec]); }
-    else { setSquadreMan(prev => [...prev, rec]); }
-    antdMsg.success('Squadra aggiunta');
+  const submitSquad = (recs) => {
+    if (squadKind === 'affissione') { setSquadreAff(prev => [...prev, ...recs]); }
+    else { setSquadreMan(prev => [...prev, ...recs]); }
+    antdMsg.success(recs.length > 1 ? recs.length + ' squadre aggiunte' : 'Squadra aggiunta');
     closeSquadDrawer();
   };
   const removeSquadAff = (i) => { setSquadreAff(prev => prev.filter((_, x) => x !== i)); antdMsg.success('Squadra rimossa'); };
@@ -3896,7 +3900,7 @@ function ImpiantoDetailV2({ imp, onBack }) {
                 [{ icon: TagsOutlined, label: 'Tipo intervento', value: s.tipoInt }, { icon: FileTextOutlined, label: 'Oggetto', value: s.oggetto }],
                 () => removeSquadMan(i)))))
           : React.createElement(Empty, { description: 'Nessuna squadra di manutenzione', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '16px 0' } }),
-        React.createElement(Button, { size: 'small', icon: React.createElement(PlusOutlined), onClick: () => openSquadDrawer('manutenzione') }, 'Aggiungi squadra')),
+        React.createElement(Button, { size: 'small', icon: React.createElement(PlusOutlined), onClick: () => openSquadDrawer('manutenzione') }, 'Aggiungi')),
     );
     if (active === 'dashboard') {
       // ── Filtro temporale · dataset per periodo (mock) ──
@@ -5517,11 +5521,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setCimasa(v.cimasa || '');
     // ── Squadre (normalizza la forma salvata da collectFormData → forma interna)
     setAffissioni(v.affissioni && v.affissioni.length
-      ? v.affissioni.map(a => ({ squadra: a.squadra ?? null, tipo: a.tipoAffissione ?? a.tipo ?? [], costo: a.costoAffissione ?? a.costo ?? null, preincoll: a.costoPreincoll ?? a.preincoll ?? null }))
-      : [{ squadra: null, tipo: [], costo: null, preincoll: null }]);
+      ? v.affissioni.map(a => ({ squadra: a.squadra ?? null, codice: a.codice ?? null, tipo: a.tipoAffissione ?? a.tipo ?? [], costo: a.costoAffissione ?? a.costo ?? null, preincoll: a.costoPreincoll ?? a.preincoll ?? null }))
+      : []);
     setManutenzioni(v.manutenzioni && v.manutenzioni.length
-      ? v.manutenzioni.map(m => ({ squadra: m.squadra ?? null, tipo: m.tipoIntervento ?? m.tipo ?? null, data: m.data ?? null, oggetto: m.oggetto ?? '' }))
-      : [{ squadra: null, tipo: null, data: null, oggetto: '' }]);
+      ? v.manutenzioni.map(m => ({ squadra: m.squadra ?? null, codice: m.codice ?? null, tipo: m.tipoIntervento ?? m.tipo ?? null, oggetto: m.oggetto ?? '' }))
+      : []);
     // ── Progetto / Genio Civile
     setProgetto(v.progetto || '');
     setProgDittaCA(v.progDittaCA ?? v.dittaCA ?? '');
@@ -5850,12 +5854,25 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [scontoModuli,    setScontoModuli]    = useState(false); // sconto se venduto a moduli
   const [scontoModuliPct, setScontoModuliPct] = useState(null);  // percentuale di sconto
   const [cimasa,         setCimasa]         = useState('');
-  // Squadre — Affissione: una squadra = un gruppo di campi; "Aggiungi squadra" duplica il gruppo
-  const [affissioni, setAffissioni] = useState([{ squadra: null, tipo: [], costo: null, preincoll: null }]);
-  const setAff = (i, key, val) => setAffissioni(prev => prev.map((g, j) => j === i ? { ...g, [key]: val } : g));
-  // Squadre — Manutenzione: gruppo ripetibile con gli stessi campi dell'evento di manutenzione
-  const [manutenzioni, setManutenzioni] = useState([{ squadra: null, tipo: null, data: null, oggetto: '' }]);
-  const setMan = (i, key, val) => setManutenzioni(prev => prev.map((g, j) => j === i ? { ...g, [key]: val } : g));
+  // Squadre
+  const [affissioni, setAffissioni] = useState([]);
+  const [manutenzioni, setManutenzioni] = useState([]);
+  const [formSquadKind, setFormSquadKind] = useState('affissione');
+  const [formSquadOpen, setFormSquadOpen] = useState(false);
+  const openFormSquad = (kind) => { setFormSquadKind(kind); setFormSquadOpen(true); };
+  const submitFormSquad = (recs) => {
+    if (formSquadKind === 'affissione') {
+      setAffissioni(prev => [...prev, ...recs]);
+    } else {
+      setManutenzioni(prev => [...prev, ...recs.map(r => ({ squadra: r.squadra, codice: r.codice ?? null, tipo: r.tipoInt ?? null, oggetto: r.oggetto ?? '' }))]);
+    }
+    antdMsg.success('Squadra aggiunta');
+    setFormSquadOpen(false);
+  };
+  const removeFormAff = (i) => { setAffissioni(prev => prev.filter((_, j) => j !== i)); antdMsg.success('Squadra rimossa'); };
+  const removeFormMan = (i) => { setManutenzioni(prev => prev.filter((_, j) => j !== i)); antdMsg.success('Squadra rimossa'); };
+  const affAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: () => openFormSquad('affissione') }, 'Aggiungi squadra');
+  const manAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: () => openFormSquad('manutenzione') }, 'Aggiungi squadra');
 
   // ── Progetto (ex Genio Civile)
   const [progetto,     setProgetto]     = useState('');
@@ -6674,60 +6691,60 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
         // ── Squadre (Affissione + Manutenzione)
         sec('affissione', 'Squadre', 'Squadre di default assegnate all\'affissione e alla manutenzione dell\'impianto.',
-          box('Affissione', 'Assegna le squadre incaricate, il tipo di affissione e i relativi costi.',
-            affissioni.map((g, i) =>
-              React.createElement('div', { key: i },
-                i > 0 ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '8px 0 12px' } },
-                  React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.45)' } }, 'Squadra ' + (i + 1)),
-                  React.createElement(Button, { type: 'text', size: 'small', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => setAffissioni(prev => prev.filter((_, j) => j !== i)) }, 'Rimuovi'),
-                ) : null,
-                g2(
-                  cs('Squadra affissione', false,
-                    React.createElement(Select, {
-                      value: g.squadra || undefined, onChange: (v) => setAff(i, 'squadra', v || null),
-                      options: SQUADRE_AFF_OPTS, style: { width: '100%' },
-                      placeholder: 'Seleziona la squadra', showSearch: true, allowClear: true, optionFilterProp: 'label',
-                    })),
-                  cs('Tipo affissione', false, sel(g.tipo, (v) => setAff(i, 'tipo', v), TIPO_AFFISSIONE_OPTS, 'Seleziona i tipi di affissione', { mode: 'multiple', allowClear: true })),
-                ),
-                g2(
-                  cs('Costo affissione (€)',     false, num(g.costo,     (v) => setAff(i, 'costo', v),     { min: 0, precision: 2 })),
-                  cs('Costo preincollaggio (€)', false, num(g.preincoll, (v) => setAff(i, 'preincoll', v), { min: 0, precision: 2 })),
-                ),
-              )
+          boxX(
+            React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+              'Affissione',
+              affissioni.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, affissioni.length) : null,
             ),
-            React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: 20 } },
-              React.createElement(Button, {
-                type: 'dashed', icon: React.createElement(PlusOutlined),
-                onClick: () => setAffissioni(prev => [...prev, { squadra: null, tipo: [], costo: null, preincoll: null }]),
-              }, 'Aggiungi squadra'),
-            ),
+            'Assegna le squadre incaricate, il tipo di affissione e i relativi costi.',
+            affissioni.length > 0 ? affAddBtn : null,
+            affissioni.length > 0
+              ? React.createElement(Row, { gutter: [16, 16] },
+                  affissioni.map((s, i) => React.createElement(Col, { span: 8, key: i },
+                    React.createElement(EntityCard, {
+                      header: {
+                        title: s.squadra,
+                        tags: [s.codice ? { text: s.codice } : null],
+                        menu: [{ key: 'remove', label: 'Rimuovi', icon: React.createElement(DeleteOutlined), danger: true, onClick: () => removeFormAff(i) }],
+                      },
+                      body: { rows: [
+                        { icon: TagsOutlined, label: 'Tipo affissione', value: (s.tipo || []).join(', ') || null },
+                        { icon: EuroCircleOutlined, label: 'Costo affissione', value: s.costo != null ? '€ ' + s.costo : null },
+                        { icon: FormatPainterOutlined, label: 'Costo preincollaggio', value: s.preincoll != null ? '€ ' + s.preincoll : null },
+                      ]},
+                    })
+                  ))
+                )
+              : React.createElement(Empty, { description: 'Nessuna squadra di affissione assegnata', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+                  affAddBtn,
+                ),
           ),
-          box('Manutenzione', 'Assegna le squadre di manutenzione dell\'impianto.',
-            manutenzioni.map((g, i) =>
-              React.createElement('div', { key: i },
-                i > 0 ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '8px 0 12px' } },
-                  React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.45)' } }, 'Squadra ' + (i + 1)),
-                  React.createElement(Button, { type: 'text', size: 'small', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => setManutenzioni(prev => prev.filter((_, j) => j !== i)) }, 'Rimuovi'),
-                ) : null,
-                g2(
-                  cs('Squadra manutenzione', false,
-                    React.createElement(Select, {
-                      value: g.squadra || undefined, onChange: (v) => setMan(i, 'squadra', v || null),
-                      options: SQUADRE_AFF_OPTS, style: { width: '100%' },
-                      placeholder: 'Seleziona la squadra', showSearch: true, allowClear: true, optionFilterProp: 'label',
-                    })),
-                  cs('Tipo intervento', false, sel(g.tipo, (v) => setMan(i, 'tipo', v), TIPO_MAN_OPTS, 'Seleziona il tipo di intervento', { allowClear: true })),
+          boxX(
+            React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+              'Manutenzione',
+              manutenzioni.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, manutenzioni.length) : null,
+            ),
+            'Assegna le squadre di manutenzione dell\'impianto.',
+            manutenzioni.length > 0 ? manAddBtn : null,
+            manutenzioni.length > 0
+              ? React.createElement(Row, { gutter: [16, 16] },
+                  manutenzioni.map((s, i) => React.createElement(Col, { span: 8, key: i },
+                    React.createElement(EntityCard, {
+                      header: {
+                        title: s.squadra,
+                        tags: [s.codice ? { text: s.codice } : null],
+                        menu: [{ key: 'remove', label: 'Rimuovi', icon: React.createElement(DeleteOutlined), danger: true, onClick: () => removeFormMan(i) }],
+                      },
+                      body: { rows: [
+                        { icon: TagsOutlined, label: 'Tipo intervento', value: s.tipo || null },
+                        { icon: FileTextOutlined, label: 'Oggetto', value: s.oggetto || null },
+                      ]},
+                    })
+                  ))
+                )
+              : React.createElement(Empty, { description: 'Nessuna squadra di manutenzione assegnata', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+                  manAddBtn,
                 ),
-                cs('Oggetto', false, inp(g.oggetto, (v) => setMan(i, 'oggetto', v), 'Es. Sostituzione faretti')),
-              )
-            ),
-            React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: 20 } },
-              React.createElement(Button, {
-                type: 'dashed', icon: React.createElement(PlusOutlined),
-                onClick: () => setManutenzioni(prev => [...prev, { squadra: null, tipo: null, data: null, oggetto: '' }]),
-              }, 'Aggiungi squadra'),
-            ),
           ),
         ),
 
@@ -7042,6 +7059,14 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             }),
           ),
     ),
+
+    // Drawer aggiunta squadra (affissione | manutenzione)
+    React.createElement(SquadraDrawer, {
+      open: formSquadOpen,
+      onClose: () => setFormSquadOpen(false),
+      onSubmit: submitFormSquad,
+      kind: formSquadKind,
+    }),
 
     // Tour guidato primo accesso al form
     React.createElement(Tour, {
