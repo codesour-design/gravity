@@ -179,9 +179,9 @@
 
   // ── Icona marker con stati di interazione ─────────────────────────────────
   // opts: { src, zoom, flags:{ isHovered, isFocused, isSelected, hasFocus } }
-  // Richiede google.maps caricato. Se l'SVG non è ancora in cache → fallback url.
+  // Se l'SVG non è ancora in cache → fallback url.
   function makeMarkerIcon(opts) {
-    var google = global.google;
+    var L = global.L;
     var f = opts.flags || {};
     var size = getMarkerSize(opts.zoom);
     var w = size[0], h = size[1];
@@ -190,6 +190,7 @@
 
     var dimOpacity = (f.hasFocus && !f.isFocused && !f.isSelected) ? 0.2 : 1;
     var svgContent = _svgCache[opts.src];
+    var url;
 
     if (svgContent) {
       var viewBox = _extractViewBox(svgContent);
@@ -216,19 +217,16 @@
         '" viewBox="' + viewBox + '" opacity="' + dimOpacity + '">' +
         focusDefs + '<g ' + focusFilter + '>' + inner + '</g>' + selRing + '</svg>';
 
-      return {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(wrapped),
-        scaledSize: new google.maps.Size(w, h),
-        anchor: new google.maps.Point(w / 2, Math.round(h * 0.92)),
-      };
+      url = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(wrapped);
+    } else {
+      url = opts.src;
     }
 
-    // Fallback prima che l'SVG sia caricato (mostra l'asset grezzo)
-    return {
-      url: opts.src,
-      scaledSize: new google.maps.Size(w, h),
-      anchor: new google.maps.Point(w / 2, Math.round(h * 0.92)),
-    };
+    return L.icon({
+      iconUrl: url,
+      iconSize: [w, h],
+      iconAnchor: [Math.floor(w / 2), Math.round(h * 0.92)],
+    });
   }
 
   // ── Clustering a griglia (motore unico per entrambe le app) ───────────────
@@ -241,22 +239,16 @@
     opts = opts || {};
     var grid = opts.grid || CLUSTER_GRID;
     var declusterZoom = (opts.declusterZoom != null) ? opts.declusterZoom : DECLUSTER_ZOOM;
-    var google = global.google;
     var zoom = map.getZoom() || 10;
 
     if (zoom > declusterZoom) {
       return { mode: 'individual', clusters: [], members: items.slice() };
     }
-    var proj = map.getProjection && map.getProjection();
-    if (!proj) {
-      return { mode: 'individual', clusters: [], members: items.slice() };
-    }
 
-    var scale = Math.pow(2, zoom);
     var groups = {};
     items.forEach(function (it) {
-      var wp = proj.fromLatLngToPoint(new google.maps.LatLng(it.position.lat, it.position.lng));
-      var key = Math.floor(wp.x * scale / grid) + '_' + Math.floor(wp.y * scale / grid);
+      var pt = map.project(L.latLng(it.position.lat, it.position.lng), zoom);
+      var key = Math.floor(pt.x / grid) + '_' + Math.floor(pt.y / grid);
       (groups[key] = groups[key] || []).push(it);
     });
 
@@ -274,16 +266,15 @@
   // Zoom-to-bounds preciso sui marker (click su cluster). Sostituisce il +3 fisso.
   function fitBoundsToMembers(map, members, opts) {
     opts = opts || {};
-    var google = global.google;
     if (!members || !members.length) return;
     if (members.length === 1) {
-      map.panTo(members[0].position);
+      map.panTo([members[0].position.lat, members[0].position.lng]);
       map.setZoom(Math.min((map.getZoom() || 10) + 3, opts.maxZoom || 20));
       return;
     }
-    var b = new google.maps.LatLngBounds();
-    members.forEach(function (m) { b.extend(m.position); });
-    map.fitBounds(b, opts.padding != null ? opts.padding : 80);
+    var b = L.latLngBounds(members.map(function (m) { return [m.position.lat, m.position.lng]; }));
+    var pad = opts.padding != null ? opts.padding : 80;
+    map.fitBounds(b, { padding: [pad, pad] });
   }
 
   global.GravityMap = {

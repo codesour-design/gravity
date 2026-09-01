@@ -44,11 +44,9 @@
     })();
   </script>
 
-  <!-- Google Maps + MarkerClusterer -->
-  <!-- ⚠️ API KEY: limitare questa chiave al dominio di deployment in Google Cloud Console
-       (APIs & Services → Credentials → HTTP referrers) prima di qualsiasi deploy pubblico. -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFkwneQjAMG1ozsc80YaQYZzyfhdsKmyI&libraries=places"></script>
-  <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/osmtogeojson@3.0.0-beta.5/osmtogeojson.js"></script>
   <script src="../_shared/map-interactions.js"></script>
   <script src="../_shared/map-popover.js"></script>
@@ -5222,12 +5220,9 @@ function SelectSystems({ planning, onBack, onApply, planningsList, onDuplicate, 
     if (item.resultType === 'collection') {
       points = item.points || [];
       if (points.length > 0) {
-        const b = new google.maps.LatLngBounds();
-        points.forEach(p => b.extend({ lat: p.lat, lng: p.lng }));
-        if (!b.isEmpty()) {
-          const c = b.getCenter();
-          centroid = { lat: c.lat(), lng: c.lng() };
-        }
+        const avgLat = points.reduce((s, p) => s + p.lat, 0) / points.length;
+        const avgLng = points.reduce((s, p) => s + p.lng, 0) / points.length;
+        centroid = { lat: avgLat, lng: avgLng };
       }
     } else {
       points   = [{ lat: item.lat, lng: item.lng, name: item.label }];
@@ -5733,8 +5728,8 @@ out geom;`;
     return null;
   }, []);
 
-  // Converte Feature GeoJSON Polygon/MultiPolygon in array di polygons Google Maps.
-  // Ogni elemento è un array di rings [outerRing, ...holes] → un solo google.maps.Polygon per feature.
+  // Converte Feature GeoJSON Polygon/MultiPolygon in array di polygons Leaflet.
+  // Ogni elemento è un array di rings [outerRing, ...holes] → un solo L.polygon per feature.
   const geojsonToGooglePaths = (geojson) => {
     const polygons = [];
     geojson.features?.forEach(f => {
@@ -5862,23 +5857,22 @@ out geom;`;
   // Helper condiviso: ritorna i bounds di tutti i contenuti visibili.
   // Include: spazi filtrati, punti POI, e centri delle zone attive (anche se nessuno spazio corrisponde).
   const computeVisibleBounds = () => {
-    const bounds = new google.maps.LatLngBounds();
-    filteredSystems.forEach(s => { if (s.lat && s.lng) bounds.extend({ lat: s.lat, lng: s.lng }); });
+    const pts = [];
+    filteredSystems.forEach(s => { if (s.lat && s.lng) pts.push([s.lat, s.lng]); });
     activePois.forEach(poi => {
-      (filteredPoiPoints.get(poi.collectionId) || []).forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
+      (filteredPoiPoints.get(poi.collectionId) || []).forEach(p => pts.push([p.lat, p.lng]));
     });
-    // Aggiunge sempre i centri delle zone attive (zona visibile anche senza spazi)
     appliedZones.forEach(z => {
-      if (z.target?.lat && z.target?.lng) bounds.extend({ lat: z.target.lat, lng: z.target.lng });
+      if (z.target?.lat && z.target?.lng) pts.push([z.target.lat, z.target.lng]);
     });
-    return bounds;
+    return pts.length > 0 ? L.latLngBounds(pts) : null;
   };
 
   const applyBounds = (bounds) => {
     const map = mapRef.current;
-    if (!map || bounds.isEmpty()) return;
+    if (!map || !bounds) return;
     const rightPad = panelOpen ? 440 : 80;
-    map.fitBounds(bounds, { top: 80, right: rightPad, bottom: 80, left: 80 });
+    map.fitBounds(bounds, { paddingTopLeft: [80, 80], paddingBottomRight: [rightPad, 80] });
   };
 
   // Inquadra quando cambiano le zone attive
@@ -5907,9 +5901,10 @@ out geom;`;
     flyTo(sys.lat, sys.lng, 16);
     const map = mapRef.current;
     if (!map) { setFocusReady(true); return; }
-    const l = google.maps.event.addListenerOnce(map, 'idle', () => setFocusReady(true));
-    const t = setTimeout(() => setFocusReady(true), 600);
-    return () => { google.maps.event.removeListener(l); clearTimeout(t); };
+    const show = () => { map.off('moveend', show); setFocusReady(true); };
+    map.once('moveend', show);
+    const t = setTimeout(() => { map.off('moveend', show); setFocusReady(true); }, 800);
+    return () => { map.off('moveend', show); clearTimeout(t); };
   }, [focusedId]); // eslint-disable-line
 
   // Posizione pixel della card vicino al marker — aggiornata ad ogni pan/zoom
@@ -5919,20 +5914,12 @@ out geom;`;
     const sys = SEARCH_RESULTS.find(s => s.id === focusedId);
     if (!sys?.lat || !sys?.lng) { setFocusCardPos(null); return; }
     const map = mapRef.current;
-    const proj = map.getProjection();
-    const bounds = map.getBounds();
-    if (!proj || !bounds) return;
-    const scale = Math.pow(2, map.getZoom());
-    const nw = proj.fromLatLngToPoint(
-      new google.maps.LatLng(bounds.getNorthEast().lat(), bounds.getSouthWest().lng())
-    );
-    const pt = proj.fromLatLngToPoint(new google.maps.LatLng(sys.lat, sys.lng));
-    const [, baseH] = GravityMap.getMarkerSize(map.getZoom());
-    const markerH = Math.round(baseH * 1.4); // focused marker è 1.4×
-    setFocusCardPos({
-      x: Math.floor((pt.x - nw.x) * scale),
-      y: Math.floor((pt.y - nw.y) * scale) - markerH - 8,
-    });
+    const pt = map.latLngToContainerPoint(L.latLng(sys.lat, sys.lng));
+    const zoom = Math.round(map.getZoom() || 10);
+    const sizes = [[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[12,18],[16,24],[20,30],[26,38],[32,47]];
+    const [, baseH] = sizes[Math.min(Math.max(zoom, 0), 16)];
+    const markerH = Math.round(baseH * 1.4);
+    setFocusCardPos({ x: Math.floor(pt.x), y: Math.floor(pt.y) - markerH - 8 });
   }, [focusedId]); // eslint-disable-line
 
   React.useEffect(() => {
@@ -5940,8 +5927,8 @@ out geom;`;
     updateCardPos();
     const map = mapRef.current;
     if (!map) return;
-    const l = map.addListener('bounds_changed', updateCardPos);
-    return () => google.maps.event.removeListener(l);
+    map.on('move zoomend', updateCardPos);
+    return () => map.off('move zoomend', updateCardPos);
   }, [focusedId, updateCardPos]); // eslint-disable-line
 
   // ── activeFilterChips ────────────────────────────────────
@@ -5965,7 +5952,7 @@ out geom;`;
   }, []);
 
   const mapContainerRef    = React.useRef(null);
-  const mapRef             = React.useRef(null);   // google.maps.Map
+  const mapRef             = React.useRef(null);   // L.Map
   const markersRef         = React.useRef([]);      // Array of { marker, sysId }
   const clusterMarkersRef  = React.useRef([]);      // cluster circle markers
   const poiOverlaysRef     = React.useRef([]);      // POI circles + markers
@@ -6054,20 +6041,13 @@ out geom;`;
   const flyTo = (lat, lng, zoom) => {
     const map = mapRef.current;
     if (map) {
-      // Offset verso sinistra per compensare il pannello laterale
-      const rightPad = panelOpen ? 440 : 80;
-      map.setZoom(zoom || 15);
-      // Proietta le coordinate tenendo conto del padding del pannello
-      const proj = map.getProjection();
-      if (proj) {
-        const scale = Math.pow(2, map.getZoom());
-        const worldPt = proj.fromLatLngToPoint({ lat, lng });
-        const offsetX = (rightPad / 2 - 40) / scale;
-        const shifted = new google.maps.Point(worldPt.x - offsetX, worldPt.y);
-        map.panTo(proj.fromPointToLatLng(shifted));
-      } else {
-        map.panTo({ lat, lng });
-      }
+      const targetZoom = zoom || 15;
+      const panelPx = panelOpen ? 440 : 0;
+      const hOffset = panelPx / 2;
+      const markerPt = map.project(L.latLng(lat, lng), targetZoom);
+      const centerPt = L.point(markerPt.x - hOffset, markerPt.y);
+      const centerLatLng = map.unproject(centerPt, targetZoom);
+      map.flyTo(centerLatLng, targetZoom, { animate: true, duration: 0.5 });
     }
     setShowSugg(false);
   };
@@ -6075,11 +6055,30 @@ out geom;`;
   const resetMapView = () => {
     const map = mapRef.current;
     if (!map) return;
-    const bounds = new google.maps.LatLngBounds();
-    SEARCH_RESULTS.filter(r => r.lat && r.lng).forEach(r => bounds.extend({ lat: r.lat, lng: r.lng }));
-    if (!bounds.isEmpty()) {
-      map.fitBounds(bounds);
+    const pts = SEARCH_RESULTS.filter(r => r.lat && r.lng).map(r => [r.lat, r.lng]);
+    if (pts.length > 0) map.fitBounds(L.latLngBounds(pts));
+  };
+
+  const makeLeafletIcon = (src, zoom, flags) => {
+    const f = flags || {};
+    const sizes = [[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[12,18],[16,24],[20,30],[26,38],[32,47]];
+    let [w, h] = sizes[Math.min(Math.max(Math.round(zoom || 10), 0), 16)];
+    if (f.isFocused)      { w = Math.round(w * 1.4);  h = Math.round(h * 1.4); }
+    else if (f.isHovered) { w = Math.round(w * 1.12); h = Math.round(h * 1.12); }
+    const dimOpacity = (f.hasFocus && !f.isFocused && !f.isSelected) ? 0.2 : 1;
+    const svgContent = window.GravityMap.getCachedSvg ? window.GravityMap.getCachedSvg(src) : null;
+    let iconUrl = src;
+    if (svgContent) {
+      const vbMatch = /viewBox="([^"]*)"/i.exec(svgContent);
+      const viewBox = vbMatch ? vbMatch[1] : '0 0 78 120';
+      const inner = svgContent.replace(/<\?xml[^>]*\?>\s*/i,'').replace(/<svg[^>]*>/i,'').replace(/<\/svg>\s*$/i,'');
+      const focusDefs = f.isFocused ? '<defs><filter id="fs" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#3E00FB" flood-opacity="0.5"/></filter></defs>' : '';
+      const focusFilter = f.isFocused ? 'filter="url(#fs)"' : '';
+      const selRing = f.isSelected ? '<circle cx="58" cy="85" r="13" fill="#ffffff"/><circle cx="58" cy="85" r="11.5" fill="#3E00FB"/><path d="M52.8 85.2 L56.6 89 L63.4 80.6" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' : '';
+      const wrapped = '<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'" viewBox="'+viewBox+'" opacity="'+dimOpacity+'">'+focusDefs+'<g '+focusFilter+'>'+inner+'</g>'+selRing+'</svg>';
+      iconUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(wrapped);
     }
+    return L.icon({ iconUrl, iconSize: [w, h], iconAnchor: [Math.round(w/2), Math.round(h*0.92)] });
   };
 
   // Rendering marker delegato al modulo condiviso GravityMap. La logica di
@@ -6087,170 +6086,108 @@ out geom;`;
   // selezionato mostra l'asset "In Option" al posto dello stato base.
   const makeIcon = (sys, isSelected, isHovered, isFocused, hasFocus) => {
     const src = (isSelected && isDelivered) ? markerSrc(sys.type, 'In Option') : markerSrc(sys.type, sys.state);
-    return GravityMap.makeMarkerIcon({
-      src,
-      zoom: mapRef.current ? mapRef.current.getZoom() : 14,
-      flags: { isHovered, isFocused, isSelected, hasFocus },
-    });
+    const zoom = mapRef.current ? mapRef.current.getZoom() : 14;
+    return makeLeafletIcon(src, zoom, { isHovered, isFocused, isSelected, hasFocus });
   };
 
-  // Init Google Maps
+  // Init Leaflet Map
   React.useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    // Framing iniziale: inquadra tutta la Sicilia (tutti gli spazi)
-    const allBounds = new google.maps.LatLngBounds();
-    SEARCH_RESULTS.filter(r => r.lat && r.lng).forEach(r => allBounds.extend({ lat: r.lat, lng: r.lng }));
-    const center = allBounds.isEmpty()
-      ? { lat: 37.9, lng: 13.1 }
-      : { lat: (allBounds.getNorthEast().lat() + allBounds.getSouthWest().lat()) / 2,
-          lng: (allBounds.getNorthEast().lng() + allBounds.getSouthWest().lng()) / 2 };
+    const pts = SEARCH_RESULTS.filter(r => r.lat && r.lng).map(r => [r.lat, r.lng]);
+    const initialCenter = pts.length > 0
+      ? [pts.reduce((s,p)=>s+p[0],0)/pts.length, pts.reduce((s,p)=>s+p[1],0)/pts.length]
+      : [37.9, 13.1];
 
-    const map = new google.maps.Map(mapContainerRef.current, {
-      center,
+    const map = L.map(mapContainerRef.current, {
+      center: initialCenter,
       zoom: 10,
-      mapTypeId: 'roadmap',
-      disableDefaultUI: false,
       zoomControl: true,
-      streetViewControl: false,
-      mapTypeControl: false,
-      fullscreenControl: false,
-      styles: [
-        { featureType: 'water',       elementType: 'geometry', stylers: [{ color: '#b0d4f1' }] },
-        { featureType: 'landscape',   elementType: 'geometry', stylers: [{ color: '#f5f5f0' }] },
-        { featureType: 'road',        elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-        { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#f0f0ee' }] },
-        { featureType: 'poi',         elementType: 'labels',   stylers: [{ visibility: 'off' }] },
-        { featureType: 'transit',     elementType: 'labels',   stylers: [{ visibility: 'off' }] },
-      ],
+      attributionControl: false,
     });
 
-    if (!allBounds.isEmpty()) map.fitBounds(allBounds);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 20,
+    }).addTo(map);
 
-    map.addListener('zoom_changed', () => {
+    if (pts.length > 0) map.fitBounds(L.latLngBounds(pts));
+
+    map.on('zoomend', () => {
       setMapZoom(map.getZoom());
-      // Applica subito il clustering (prima che React ri-renderizzi)
       if (applyClusteringRef.current) applyClusteringRef.current();
       if (applyFocusOpacityRef.current) applyFocusOpacityRef.current(focusedIdRef.current);
     });
 
-    map.addListener('click', () => {
+    map.on('click', () => {
       setShowSugg(false);
       setFocusedId(null);
     });
 
     mapRef.current = map;
-
-    mapRef.current = map;
-
-    return () => {
-      mapRef.current = null;
-    };
+    return () => { mapRef.current = null; };
   }, []);
 
-  // ── Zone overlays (Google Maps) — usa geometria reale Overpass, fallback approssimato ──
+  // ── Zone overlays (Leaflet) — usa geometria reale Overpass, fallback approssimato ──
   React.useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    zoneCirclesRef.current.forEach(c => c.setMap(null));
+    zoneCirclesRef.current.forEach(c => c.remove());
     zoneCirclesRef.current = [];
+    const strokeColor = 'rgba(0,0,0,0.28)';
     appliedZones.forEach(z => {
       const target = z.target;
       if (!target || !target.lat || !target.lng) return;
-      const strokeColor = 'rgba(0,0,0,0.28)';
-      const strokeWeight = 1.5;
-      const fillColor   = '#000000';
-      const fillOpacity = 0.04;
-
       const geo = zoneGeometries.get(z.text);
-
       if (geo?.type === 'polygon' && geo.paths?.length) {
-        // Geometria reale — ogni elemento è [outerRing, ...holes] → un Polygon per feature
         geo.paths.forEach(polygonRings => {
-          const polygon = new google.maps.Polygon({
-            map, paths: polygonRings,
-            strokeColor, strokeOpacity: 1, strokeWeight,
-            fillColor, fillOpacity,
-          });
-          zoneCirclesRef.current.push(polygon);
+          const latlngs = polygonRings.map(ring => ring.map(pt => [pt.lat, pt.lng]));
+          const poly = L.polygon(latlngs, { color: strokeColor, weight: 1.5, fillColor: '#000', fillOpacity: 0.04 }).addTo(map);
+          zoneCirclesRef.current.push(poly);
         });
-
       } else if (geo?.type === 'polyline' && geo.paths?.length) {
-        // Via/strada — disegna come Polyline spessa
         geo.paths.forEach(line => {
-          const pl = new google.maps.Polyline({
-            map, path: line,
-            strokeColor, strokeOpacity: 1, strokeWeight: 4,
-          });
+          const latlngs = line.map(pt => [pt.lat, pt.lng]);
+          const pl = L.polyline(latlngs, { color: strokeColor, weight: 4 }).addTo(map);
           zoneCirclesRef.current.push(pl);
         });
-
       } else {
-        // Strade: nessun fallback — la polilinea appare solo quando Overpass risponde
         const STREET_ZONE_TYPES = new Set(['via', 'corso', 'viale', 'piazza', 'street']);
         if (STREET_ZONE_TYPES.has(target.type)) return;
-        // Poligoni: cerchio approssimato in attesa del fetch o se fetch fallito
         const r = ZONE_RADIUS(target.type);
-        const path = zonePolygonPath(target.lat, target.lng, r);
-        const polygon = new google.maps.Polygon({
-          map, paths: path,
-          strokeColor, strokeOpacity: 1, strokeWeight,
-          fillColor, fillOpacity,
-        });
-        zoneCirclesRef.current.push(polygon);
+        const circle = L.circle([target.lat, target.lng], { radius: r, color: strokeColor, weight: 1.5, fillColor: '#000', fillOpacity: 0.04 }).addTo(map);
+        zoneCirclesRef.current.push(circle);
       }
     });
   }, [appliedZones, zoneGeometries]);
 
-  // ── POI circles + markers (Google Maps) ──────────────────
+  // ── POI circles + markers (Leaflet) ──────────────────
   React.useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    poiOverlaysRef.current.forEach(o => o.setMap(null));
+    poiOverlaysRef.current.forEach(o => o.remove());
     poiOverlaysRef.current = [];
 
     const radiusM = poiRadiusM;
     activePois.forEach(poi => {
-      // Usa solo i punti filtrati per zona (intersezione zona × POI)
       const pts = filteredPoiPoints.get(poi.collectionId) || [];
       if (pts.length === 0) return;
       const isMulti = pts.length > 1;
-
       pts.forEach((pt, idx) => {
         const pinColor = poi.color || '#3E00FB';
-        const circle = new google.maps.Circle({
-          map,
-          center: { lat: pt.lat, lng: pt.lng },
+        const circle = L.circle([pt.lat, pt.lng], {
           radius: radiusM,
-          strokeColor: pinColor,
-          strokeOpacity: 0.4,
-          strokeWeight: 1.5,
-          fillColor: pinColor,
-          fillOpacity: 0.07,
-        });
-
-        // Marker POI: cerchio colorato con icona dentro
-        const radiusLabel = POI_UNIT_CONFIG[poiRadiusUnit]?.fmt(poiRadiusIdx) ?? `${radiusM} m`;
-        const tooltipText = isMulti
-          ? `${poi.label} (${idx + 1}/${pts.length}) — Raggio: ${radiusLabel}`
-          : `${poi.label} — Raggio: ${radiusLabel}`;
-
-        const size = isMulti ? 20 : 28;
+          color: pinColor, weight: 1.5, opacity: 0.4,
+          fillColor: pinColor, fillOpacity: 0.07,
+        }).addTo(map);
         const iconName = poi.isCategory ? (poi.antIcon || 'EnvironmentOutlined') : 'PushpinOutlined';
-        const markerSvg = catIconSvg(iconName, pinColor, size);
-
-        const marker = new google.maps.Marker({
-          map,
-          position: { lat: pt.lat, lng: pt.lng },
-          icon: {
-            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(markerSvg),
-            scaledSize: new google.maps.Size(size, size),
-            anchor: new google.maps.Point(size / 2, size / 2),
-          },
-          title: tooltipText,
-          zIndex: 2000,
+        const size = isMulti ? 20 : 28;
+        const markerSvgStr = catIconSvg(iconName, pinColor, size);
+        const leafIcon = L.icon({
+          iconUrl: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(markerSvgStr),
+          iconSize: [size, size],
+          iconAnchor: [size/2, size/2],
         });
-
+        const marker = L.marker([pt.lat, pt.lng], { icon: leafIcon, zIndexOffset: 2000 }).addTo(map);
         poiOverlaysRef.current.push(circle, marker);
       });
     });
@@ -6268,18 +6205,13 @@ out geom;`;
     GravityMap.preloadAll([...needed]).then(() => setGeocodeReady(v => !v));
   }, []); // eslint-disable-line
 
-  // ── Geocoding preciso: address + numero civico → punto sulla carreggiata ──
-  // Il Geocoder Google restituisce RANGE_INTERPOLATED (punto reale sulla via)
-  // quando l'indirizzo include il numero civico. I risultati vengono salvati
-  // in localStorage in modo permanente — il primo caricamento geocodifica tutto,
-  // i successivi sono istantanei.
+  // ── Geocoding via Nominatim (OpenStreetMap) ──────────────────────────────
+  // I risultati vengono salvati in localStorage — il primo caricamento geocodifica
+  // tutto (1 req/s per policy Nominatim), i successivi sono istantanei.
   React.useEffect(() => {
-    if (!window.google?.maps?.Geocoder) return;
-    const geocoder = new google.maps.Geocoder();
-    const CACHE = 'gc_v5_';
     let cancelled = false;
+    const CACHE = 'gravity-geocode-';
 
-    // Applica subito i risultati già in cache
     let nCached = 0;
     SEARCH_RESULTS.forEach(sys => {
       try {
@@ -6289,38 +6221,34 @@ out geom;`;
     });
     if (nCached > 0) setGeocodeReady(v => !v);
 
-    // Accoda i sistemi senza cache
     const queue = SEARCH_RESULTS.filter(sys => {
       try { return !localStorage.getItem(CACHE + sys.id); } catch(e) { return true; }
     });
     if (!queue.length) return;
 
-    const geocodeOne = (sys) => new Promise(resolve => {
-      if (cancelled) { resolve(); return; }
-      // indirizzo completo: "Via Notarbartolo, 47, Palermo, Italy"
-      const address = `${sys.address}, ${sys.city}, Italy`;
-      geocoder.geocode({ address, region: 'it' }, (results, status) => {
-        if (cancelled) { resolve(); return; }
-        if (status === 'OK' && results[0]) {
-          const loc = results[0].geometry.location;
-          const lat = +loc.lat().toFixed(6);
-          const lng = +loc.lng().toFixed(6);
-          sys.lat = lat;
-          sys.lng = lng;
+    const geocodeOne = async (sys) => {
+      if (cancelled) return;
+      const q = encodeURIComponent(`${sys.address}, ${sys.city}, Italy`);
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=it`, {
+          headers: { 'Accept-Language': 'it' },
+        });
+        if (cancelled) return;
+        const data = await res.json();
+        if (data[0]) {
+          const lat = +parseFloat(data[0].lat).toFixed(6);
+          const lng = +parseFloat(data[0].lon).toFixed(6);
+          sys.lat = lat; sys.lng = lng;
           try { localStorage.setItem(CACHE + sys.id, JSON.stringify({ lat, lng })); } catch(e) {}
         }
-        resolve();
-      });
-    });
+      } catch(e) {}
+    };
 
-    // Elabora a batch da 8, con 120ms di pausa tra batch
-    // setGeocodeReady viene chiamato solo al termine per evitare flickering dei marker
     (async () => {
-      const BATCH = 8, PAUSE = 120;
-      for (let i = 0; i < queue.length; i += BATCH) {
+      for (let i = 0; i < queue.length; i++) {
         if (cancelled) return;
-        await Promise.all(queue.slice(i, i + BATCH).map(geocodeOne));
-        if (i + BATCH < queue.length) await new Promise(r => setTimeout(r, PAUSE));
+        await geocodeOne(queue[i]);
+        if (i < queue.length - 1) await new Promise(r => setTimeout(r, 1100));
       }
       if (!cancelled) setGeocodeReady(v => !v);
     })();
@@ -6334,46 +6262,69 @@ out geom;`;
     const map = mapRef.current;
     if (!map) return;
 
-    // Rimuovi vecchi cluster circles
-    clusterMarkersRef.current.forEach(m => m.setMap(null));
+    clusterMarkersRef.current.forEach(m => m.remove());
     clusterMarkersRef.current = [];
 
-    // Motore di clustering condiviso (griglia manuale): porta con sé l'entry
-    // per poter riaccendere/spegnere i marker e contare i selezionati.
+    const GRID = 60;
+    const zoom = Math.round(map.getZoom() || 10);
+
+    if (zoom >= 15) {
+      markersRef.current.forEach(({ marker }) => { if (!map.hasLayer(marker)) marker.addTo(map); });
+      return;
+    }
     const items = markersRef.current.map(entry => ({
       id: entry.sysId,
-      position: { lat: entry.marker.getPosition().lat(), lng: entry.marker.getPosition().lng() },
+      position: { lat: entry.latlng[0], lng: entry.latlng[1] },
       entry,
     }));
-    const res = GravityMap.computeGridClusters(map, items);
 
-    if (res.mode === 'individual') {
-      markersRef.current.forEach(({ marker }) => marker.setMap(map));
+    const cells = new Map();
+    items.forEach(it => {
+      const pt = map.project(L.latLng(it.position.lat, it.position.lng), zoom);
+      const cx = Math.floor(pt.x / GRID);
+      const cy = Math.floor(pt.y / GRID);
+      const key = cx + '|' + cy;
+      if (!cells.has(key)) cells.set(key, []);
+      cells.get(key).push({ ...it, pt });
+    });
+
+    const clusters = [];
+    const members = [];
+    cells.forEach(group => {
+      if (group.length <= 1) { members.push(...group); return; }
+      const cx = group.reduce((s,g)=>s+g.pt.x,0)/group.length;
+      const cy = group.reduce((s,g)=>s+g.pt.y,0)/group.length;
+      const center = map.unproject(L.point(cx, cy), zoom);
+      clusters.push({ members: group, center: { lat: center.lat, lng: center.lng } });
+    });
+
+    if (clusters.length === 0) {
+      markersRef.current.forEach(({ marker }) => { if (!map.hasLayer(marker)) marker.addTo(map); });
       return;
     }
 
-    // Singoli fuori cluster: visibili. Membri di cluster: nascosti.
-    res.members.forEach(it => it.entry.marker.setMap(map));
-    res.clusters.forEach(cl => {
-      cl.members.forEach(it => it.entry.marker.setMap(null));
-      // Quanti impianti del cluster sono selezionati → anello viola + label "N/totale"
+    members.forEach(it => { if (!map.hasLayer(it.entry.marker)) it.entry.marker.addTo(map); });
+
+    clusters.forEach(cl => {
+      cl.members.forEach(it => it.entry.marker.remove());
       const selectedCount = cl.members.filter(it => selectedSystemIds.has(it.id)).length;
-      const toIcon = (hovered) => {
+      const toLeafletIcon = (hovered) => {
         const { url, size } = GravityMap.makeClusterSvg(cl.members.length, { selectedCount, hovered });
-        return { url, scaledSize: new google.maps.Size(size, size), anchor: new google.maps.Point(size / 2, size / 2) };
+        return L.icon({ iconUrl: url, iconSize: [size, size], iconAnchor: [size/2, size/2] });
       };
-      const cm = new google.maps.Marker({
-        position: cl.center,
-        icon: toIcon(false),
-        map,
-        zIndex: Number(google.maps.Marker.MAX_ZINDEX) + cl.members.length,
-        label: { text: ' ', color: 'transparent' },
-        title: `${cl.members.length} impianti${selectedCount ? ` · ${selectedCount} selezionati` : ''}`,
+      const cm = L.marker([cl.center.lat, cl.center.lng], {
+        icon: toLeafletIcon(false),
+        zIndexOffset: 1000 + cl.members.length,
+      }).addTo(map);
+      cm.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        const pts = cl.members.map(m => [m.position.lat, m.position.lng]);
+        const bounds = L.latLngBounds(pts);
+        const targetZoom = Math.min(Math.max(map.getBoundsZoom(bounds, false, [40, 40]) || 15, 15), 17);
+        map.setView(bounds.getCenter(), targetZoom);
       });
-      // Click: zoom-to-bounds preciso sugli impianti del cluster (no +3 fisso)
-      cm.addListener('click', () => GravityMap.fitBoundsToMembers(map, cl.members));
-      cm.addListener('mouseover', () => cm.setIcon(toIcon(true)));
-      cm.addListener('mouseout',  () => cm.setIcon(toIcon(false)));
+      cm.on('mouseover', () => cm.setIcon(toLeafletIcon(true)));
+      cm.on('mouseout',  () => cm.setIcon(toLeafletIcon(false)));
       clusterMarkersRef.current.push(cm);
     });
   };
@@ -6381,21 +6332,21 @@ out geom;`;
   // ── Funzione: aggiorna opacità in base a focusedId ────────────────────
   const applyFocusOpacityRef = React.useRef(null);
   applyFocusOpacityRef.current = (fId) => {
+    const map = mapRef.current;
     const hasFocus = !!fId;
     markersRef.current.forEach(({ marker, sysId }) => {
-      if (!marker.getMap()) return;
+      if (!map || !map.hasLayer(marker)) return;
       marker.setOpacity(hasFocus && sysId !== fId ? 0.2 : 1);
     });
   };
 
-  // ── Effect: crea/aggiorna marker individuali ──────────────────────────
+  // ── Effect: crea/aggiorna marker individuali (Leaflet) ───────────────────
   React.useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // Rimuovi vecchi marker e cluster circles
-    markersRef.current.forEach(({ marker }) => marker.setMap(null));
-    clusterMarkersRef.current.forEach(m => m.setMap(null));
+    markersRef.current.forEach(({ marker }) => marker.remove());
+    clusterMarkersRef.current.forEach(m => m.remove());
     markersRef.current = [];
     clusterMarkersRef.current = [];
 
@@ -6403,15 +6354,18 @@ out geom;`;
     filteredSystems.forEach(sys => {
       if (!sys.lat || !sys.lng) return;
       const isSel = selectedSystemIds.has(sys.id);
-      const marker = new google.maps.Marker({
-        position: { lat: sys.lat, lng: sys.lng },
+      const latlng = [sys.lat, sys.lng];
+      const marker = L.marker(latlng, {
         icon: makeIcon(sys, isSel, false, false, false),
-        zIndex: isSel ? 1000 : 0,
+        zIndexOffset: isSel ? 1000 : 0,
       });
-      marker.addListener('click',     () => setFocusedId(prev => prev === sys.id ? null : sys.id));
-      marker.addListener('mouseover', () => setHoveredId(sys.id));
-      marker.addListener('mouseout',  () => setHoveredId(null));
-      newEntries.push({ marker, sysId: sys.id, sys });
+      marker.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        setFocusedId(prev => prev === sys.id ? null : sys.id);
+      });
+      marker.on('mouseover', () => setHoveredId(sys.id));
+      marker.on('mouseout',  () => setHoveredId(null));
+      newEntries.push({ marker, sysId: sys.id, sys, latlng });
     });
 
     markersRef.current = newEntries;
@@ -6441,7 +6395,7 @@ out geom;`;
       const isHov = sysId === hoveredId;
       const isFoc = sysId === focusedId;
       marker.setIcon(makeIcon(sys, isSel, isHov, isFoc, !!focusedId));
-      marker.setZIndex(isFoc ? 2000 : isSel ? 1000 : isHov ? 500 : 0);
+      marker.setZIndexOffset(isFoc ? 2000 : isSel ? 1000 : isHov ? 500 : 0);
     });
   }, [hoveredId]);
 
