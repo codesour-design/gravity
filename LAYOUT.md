@@ -446,6 +446,28 @@ colori strutturali/di chrome dell'interfaccia vedi invece §4):
   - `CoffeeOutlined` **rossa** (`#FF4A1C`) = nota di design negli handoff, marker inline
     contestuale con popover "Nota di design" (`components/handoff-engine.md`).
 
+### 6.6 Conferme e avvisi
+
+Un **pulsante** che deve avvisare o chiedere conferma prima di un'azione apre un **`Popconfirm`
+ancorato a sé stesso** — mai una `Modal.confirm` a schermo intero. Vale sia per conferme
+distruttive (es. "Rimuovere il documento?") sia per avvisi di modifiche non salvate su
+Annulla/chiusura di un form: il pulsante che scatena l'azione è anche l'ancora visiva
+dell'avviso.
+
+- **Pulsanti generici (Annulla, chiusura form)**: usare `okText`/`cancelText` +
+  `okButtonProps: { danger: true }` sul pulsante che compie l'azione (es. "Esci e scarta"),
+  lasciando l'altro (es. "Continua a modificare") nello stile di default — stessa gerarchia
+  visiva già in uso per le conferme di eliminazione.
+- **Icona di chiusura (✕) di un Drawer/Modal**: il pulsante nativo generato da `closeIcon`
+  chiama `onClose` direttamente al click, quindi non è ancorabile a un Popconfirm — va
+  sostituito con un'icona di chiusura custom (`closable: false` sul Drawer/Modal), wrappata in
+  Popconfirm come un pulsante qualsiasi.
+- **Mask-click / tasto Esc**: non hanno un pulsante a cui ancorare l'avviso — quando il form ha
+  modifiche non salvate si disabilitano (`maskClosable`/`keyboard` a `false`), forzando l'uscita
+  esplicita da un pulsante (che allora mostra il Popconfirm).
+- `Modal.confirm` resta riservata a conferme non legate a un singolo pulsante (rare in questo
+  design system).
+
 ---
 
 ## 7. Struttura cartelle per i prototipi HTML

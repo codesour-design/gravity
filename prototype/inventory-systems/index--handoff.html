@@ -23,6 +23,7 @@
   };</script>
   <script src="../_shared/navbar.js"></script>
   <script src="../_shared/filter-drawer.js"></script>
+  <script src="./handoff-steps.js"></script>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -479,6 +480,25 @@
     .data-card-body { padding: 8px 14px 14px; }
     .data-card-value { font-size: 18px; font-weight: 700; color: rgba(0,0,0,0.88); line-height: 1.4; display: block; }
     .data-card-action { padding: 10px 14px; border-top: 1px solid #F0F0F0; }
+
+    /* ── Handoff dev bar sopra il drawer "Nuovo/Modifica Impianto" ───────────
+       Il drawer è a pagina intera e copre la navbar (dove il motore inserisce
+       normalmente la dev bar accanto alla campanella, dentro <nav>). <nav> ha
+       position:sticky + z-index:100: è un suo stacking context, quindi nessun
+       z-index interno può superare il Drawer (z-index:1000) finché lo slot
+       resta suo discendente — va riparentato su <body> (script a fine pagina)
+       e reso fixed qui, allineato di default alla posizione della campanella.
+       Quando il drawer è aperto lo spostiamo sopra il suo header, allineato al
+       gruppo Annulla/Crea Impianto, così resta sempre raggiungibile. */
+    #ghf-nav-slot {
+      position: fixed;
+      top: 16px;
+      right: 102px;
+      z-index: 1051;
+    }
+    body:has(#grav-tour-form-save) #ghf-nav-slot {
+      right: 272px;
+    }
   </style>
 </head>
 <body>
@@ -487,6 +507,53 @@
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
 const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Radio, Rate, Slider, Popconfirm, Tour } = antd;
 const { Text } = Typography;
+
+// ── Note di design handoff (marker inline contestuale) ─────────────────────
+// Icona CoffeeOutlined rossa + popover. Renderizzata SOLO in questo file, dove
+// window.HANDOFF_NOTES è definito (in index.html ritorna null → invisibile).
+function _ghfRenderNoteBody(body) {
+  // supporta **grassetto**, ==evidenziato== e righe "- " (lista)
+  const inline = (txt, kp) => {
+    const out = []; let k = 0, last = 0, m;
+    const re = /(\*\*([^*]+)\*\*|==([^=]+)==)/g;
+    while ((m = re.exec(txt))) {
+      if (m.index > last) out.push(txt.slice(last, m.index));
+      if (m[2] != null) out.push(React.createElement('strong', { key: kp+'b'+(k++), style: { color: 'rgba(0,0,0,0.88)' } }, m[2]));
+      else out.push(React.createElement('mark', { key: kp+'h'+(k++), style: { background: '#FFF1E8', color: '#FF4A1C', padding: '0 2px', borderRadius: 2 } }, m[3]));
+      last = m.index + m[0].length;
+    }
+    if (last < txt.length) out.push(txt.slice(last));
+    return out;
+  };
+  const lines = String(body || '').split('\n');
+  const nodes = []; let list = null;
+  lines.forEach((ln, i) => {
+    if (/^- /.test(ln)) { (list = list || []).push(React.createElement('li', { key: 'li'+i, style: { marginBottom: 2 } }, inline(ln.slice(2), 'li'+i))); }
+    else {
+      if (list) { nodes.push(React.createElement('ul', { key: 'ul'+i, style: { margin: '4px 0', paddingLeft: 18 } }, list)); list = null; }
+      if (ln.trim()) nodes.push(React.createElement('div', { key: 'p'+i, style: { marginBottom: 4 } }, inline(ln, 'p'+i)));
+    }
+  });
+  if (list) nodes.push(React.createElement('ul', { key: 'ulE', style: { margin: '4px 0', paddingLeft: 18 } }, list));
+  return nodes;
+}
+function HandoffDesignNote({ id, placement }) {
+  const notes = window.HANDOFF_NOTES;
+  if (!notes) return null;
+  const note = notes.find(n => n.id === id);
+  if (!note) return null;
+  return React.createElement(antd.Popover, {
+    trigger: 'hover', placement: placement || 'right',
+    content: React.createElement('div', { style: { maxWidth: 340 } },
+      React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FF4A1C', marginBottom: 6 } }, note.title || 'Nota di design'),
+      React.createElement('div', { style: { fontSize: 13, lineHeight: 1.55, color: 'rgba(0,0,0,0.65)' } }, _ghfRenderNoteBody(note.body))
+    ),
+  }, React.createElement('span', {
+    style: { display: 'inline-flex', alignItems: 'center', cursor: 'help', color: '#FF4A1C', marginLeft: 6 },
+    onClick: (e) => { e.stopPropagation(); e.preventDefault(); },
+  }, React.createElement(icons.CoffeeOutlined, { style: { fontSize: 14 } })));
+}
+
 const {
   SearchOutlined, BellOutlined, PlusOutlined, AppstoreOutlined, SendOutlined,
   RightOutlined, DownOutlined, ArrowLeftOutlined, EditOutlined,
@@ -3188,6 +3255,13 @@ function SquadraDrawer({ open, onClose, onSubmit, kind }) {
   }, [open, kind]);
   const set = (key, val) => setRowState(prev => ({ ...prev, [key]: val }));
   const isDirty = () => JSON.stringify(row) !== JSON.stringify(snapshotRef.current);
+  // Solo per l'handoff: vedi commento su window.__ghfIdentita in
+  // NewImpiantoFullDrawer — stesso motivo, stessa soluzione.
+  React.useEffect(() => {
+    if (!open) { delete window.__ghfSquadra; return; }
+    window.__ghfSquadra = { pickSquadra: () => { if (SQUADRE_AFF_OPTS[0]) set('squadra', SQUADRE_AFF_OPTS[0].value); } };
+    return () => { delete window.__ghfSquadra; };
+  });
   const cs = (label, required, children) =>
     React.createElement('div', { className: 'ni-field' },
       React.createElement('div', { className: 'ni-label' }, label, required && React.createElement('span', { className: 'req' }, ' *')),
@@ -3206,7 +3280,7 @@ function SquadraDrawer({ open, onClose, onSubmit, kind }) {
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
       React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }),
       'Aggiungi squadra ' + (kind === 'affissione' ? 'affissione' : 'manutenzione')),
-    placement: 'right', width: 520, styles: { body: { padding: 24 } },
+    placement: 'right', width: 520, rootClassName: 'grav-squadra-drawer', styles: { body: { padding: 24 } },
     closable: false, maskClosable: !dirty, keyboard: !dirty,
     onClose: onClose, open: open, destroyOnClose: true,
     extra: React.createElement(Button, { type: 'primary', onClick: save }, 'Salva'),
@@ -5906,6 +5980,18 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [acCategory,     setAcCategory]     = useState('Cespite'); // 'Cespite' | 'Dispositivo' — drawer dedicato
   const [acModified,     setAcModified]     = useState(new Set()); // campi modificati dall'utente → bordo primary + abilita "Salva"
   const [acOrigVals,     setAcOrigVals]     = useState({});         // snapshot all'apertura, per rilevare le modifiche
+  // Solo per l'handoff: vedi commento su window.__ghfIdentita più sopra —
+  // stesso motivo, stessa soluzione, per la select "Tipo" di questo drawer.
+  React.useEffect(() => {
+    if (!assetDrawerOpen) { delete window.__ghfCespite; return; }
+    window.__ghfCespite = {
+      pickTipo: () => {
+        const opts = ASSET_TIPO_OPTS_BY_CAT[acCategory] || [];
+        if (opts[0]) setAcTipo(opts[0].value);
+      },
+    };
+    return () => { delete window.__ghfCespite; };
+  });
   // Aggiorna un campo. Su un elemento esistente, segna il campo come modificato se differisce dall'originale
   // (evidenzia il bordo e riabilita "Salva"); in inserimento non si evidenzia nulla.
   const setAcVal = (key, nv) => {
@@ -6126,6 +6212,24 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const formatiOpts = React.useMemo(() =>
     tipologia ? (FORMATI_PER_TIPO[tipologia] || []).map(f => ({ value: f, label: f })) : [],
     [tipologia]);
+
+  // Solo per l'handoff: gli Select di Ant Design non rispondono a eventi
+  // mouse sintetici (serve un click reale del sistema operativo), quindi il
+  // tour non può "cliccarli" via JS. Esponiamo i setter React direttamente
+  // così il tour può compilare i campi richiamando queste funzioni — sempre
+  // aggiornate ad ogni render, per leggere le opzioni cascata correnti.
+  React.useEffect(() => {
+    if (!open) { delete window.__ghfIdentita; return; }
+    window.__ghfIdentita = {
+      pickCanale: () => { if (CANALI_OPTS[0]) { setCanale(CANALI_OPTS[0].value); setTipologia(null); setFormato(null); } },
+      pickTipologia: () => { const g = tipologieOpts[0]; const v = g && g.options && g.options[0] && g.options[0].value; if (v) { setTipologia(v); setFormato(null); } },
+      pickFormato: () => { if (formatiOpts[0]) setFormato(formatiOpts[0].value); },
+      pickStato: () => { if (STATI_AMM_OPTS[0]) setStato(STATI_AMM_OPTS[0].value); },
+      setVia: (v) => setVia(v),
+      setCitta: (v) => setCitta(v),
+    };
+    return () => { delete window.__ghfIdentita; };
+  });
 
   const [showErrors, setShowErrors] = useState(false);
 
@@ -6487,6 +6591,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     onClose: onClose,
     placement: 'right',
     width: '100%',
+    rootClassName: 'grav-main-drawer',
     closable: false, maskClosable: !dirty, keyboard: !dirty,
     destroyOnClose: true,
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
@@ -6509,12 +6614,14 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     React.createElement('div', { className: 'create-body' },
 
       React.createElement('nav', { id: 'grav-tour-form-nav', className: 'create-nav' },
-        React.createElement('div', { className: 'create-nav-label' }, 'Ruolo (demo)'),
+        React.createElement('div', { className: 'create-nav-label' }, 'Ruolo (demo)',
+          React.createElement(HandoffDesignNote, { id: 'ruolo-demo', placement: 'right' })),
         React.createElement(Select, {
           value: formRole, onChange: v => { setFormRole(v); setActiveSection('identita'); },
           options: FORM_ROLES, size: 'small', style: { width: '100%', marginBottom: 20 },
         }),
-        React.createElement('div', { className: 'create-nav-label' }, 'Sezioni'),
+        React.createElement('div', { className: 'create-nav-label' }, 'Sezioni',
+          React.createElement(HandoffDesignNote, { id: 'sezioni-facoltative', placement: 'right' })),
         SECTIONS.map(({ id, label }) => {
           const isActive = activeSection === id;
           const disabled = disabledSections.includes(id);
@@ -6804,6 +6911,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Cespiti',
               cespiti.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, cespiti.length) : null,
+              React.createElement(HandoffDesignNote, { id: 'add-one-at-a-time', placement: 'bottom' }),
             ), 'Aggiungi i componenti strutturali dell\'impianto come fondazione, pali, cornice, pannelli, extra struttura.',
             cespiti.length > 0 ? cespiteAddBtn : null,
             cespiti.length > 0
@@ -7135,6 +7243,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         React.createElement(DiscardCloseIcon, { dirty: isAssetDirty(), onDiscard: closeAssetDrawer }),
         (assetEditId ? 'Modifica ' : 'Aggiungi ') + (acCategory === 'Dispositivo' ? 'dispositivo' : 'cespite')),
       placement: 'right', width: 600,
+      rootClassName: 'grav-cespite-drawer',
       styles: { body: { padding: 24 } },
       closable: false, maskClosable: !isAssetDirty(), keyboard: !isAssetDirty(),
       onClose: closeAssetDrawer, open: assetDrawerOpen,
@@ -8028,6 +8137,21 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     React.createElement(App)
   )
 );
+</script>
+<script src="../_shared/handoff.js"></script>
+<script>
+  // Riparenta lo slot della dev bar su <body>: dentro <nav> (position:sticky,
+  // z-index:100) resta intrappolato nel suo stacking context e nessun
+  // z-index interno può superare il Drawer "Nuovo/Modifica Impianto"
+  // (z-index:1000, portato fuori da <nav>). Vedi commento CSS su #ghf-nav-slot.
+  (function () {
+    var iv = setInterval(function () {
+      var slot = document.getElementById('ghf-nav-slot');
+      if (slot && slot.parentElement !== document.body) {
+        document.body.appendChild(slot);
+      }
+    }, 300);
+  })();
 </script>
 </body>
 </html>
