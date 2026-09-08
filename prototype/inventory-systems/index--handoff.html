@@ -415,8 +415,6 @@
     .dv2-nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; margin-bottom: 2px; transition: background .12s, color .12s; }
     .dv2-nav-item:hover { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.88); }
     .dv2-nav-item.active { background: rgba(62,0,251,0.07); color: #3E00FB; font-weight: 600; }
-    .create-nav-item.disabled { color: rgba(0,0,0,0.25); cursor: not-allowed; }
-    .create-nav-item.disabled:hover { background: transparent; color: rgba(0,0,0,0.25); }
     .create-scroll { flex: 1; overflow-y: auto; padding: 40px 0; background: #F5F5F5; display: flex; justify-content: center; align-items: flex-start; }
     .create-content { width: 80%; max-width: 100%; }
     .create-section { margin-bottom: 32px; }
@@ -6202,6 +6200,22 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [formRole, setFormRole] = useState('admin');
   const disabledSections = ROLE_DISABLED[formRole] || [];
 
+  // Solo per l'handoff: la select Ruolo vive dentro il box grigio della dev bar
+  // (accanto a "Modello"), non solo dentro #ghf-nav-slot — quel nodo è solo il
+  // guscio posizionato in fixed dal motore condiviso; il box grigio vero e
+  // proprio è il suo unico figlio (il <span> reso da NavControls in handoff.js).
+  const [roleSlotEl, setRoleSlotEl] = useState(null);
+  React.useEffect(() => {
+    if (!open) { setRoleSlotEl(null); return; }
+    function ensure() {
+      const wrap = document.getElementById('ghf-nav-slot');
+      const box = wrap && wrap.firstElementChild;
+      if (box) setRoleSlotEl(prev => prev === box ? prev : box);
+    }
+    ensure();
+    const id = setInterval(ensure, 300);
+    return () => clearInterval(id);
+  }, [open]);
 
   const tipologieOpts = React.useMemo(() => {
     const groups = canale ? (MACRO_TIPI_PER_CANALE[canale] || {}) : {};
@@ -6614,29 +6628,21 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     React.createElement('div', { className: 'create-body' },
 
       React.createElement('nav', { id: 'grav-tour-form-nav', className: 'create-nav' },
-        React.createElement('div', { className: 'create-nav-label' }, 'Ruolo (demo)',
-          React.createElement(HandoffDesignNote, { id: 'ruolo-demo', placement: 'right' })),
-        React.createElement(Select, {
-          value: formRole, onChange: v => { setFormRole(v); setActiveSection('identita'); },
-          options: FORM_ROLES, size: 'small', style: { width: '100%', marginBottom: 20 },
-        }),
         React.createElement('div', { className: 'create-nav-label' }, 'Sezioni',
           React.createElement(HandoffDesignNote, { id: 'sezioni-facoltative', placement: 'right' })),
-        SECTIONS.map(({ id, label }) => {
+        SECTIONS.filter(({ id }) => !disabledSections.includes(id)).map(({ id, label }) => {
           const isActive = activeSection === id;
-          const disabled = disabledSections.includes(id);
           return React.createElement('div', {
             key: id,
             'data-section': id,
-            className: 'create-nav-item' + (isActive ? ' active' : '') + (disabled ? ' disabled' : ''),
-            onClick: disabled ? undefined : () => setActiveSection(id),
+            className: 'create-nav-item' + (isActive ? ' active' : ''),
+            onClick: () => setActiveSection(id),
             style: { display: 'flex', alignItems: 'center', gap: 2 },
           },
             label,
-            !disabled && hasRequired[id] && React.createElement('span', {
+            hasRequired[id] && React.createElement('span', {
               style: { color: '#FF4D4F', fontSize: 13, lineHeight: 1 },
             }, ' *'),
-            disabled && React.createElement(LockOutlined, { style: { marginLeft: 'auto', fontSize: 11, color: 'rgba(0,0,0,0.25)' } }),
           );
         }),
       ),
@@ -7362,6 +7368,30 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           );
         }),
       ),
+    ),
+
+    // Solo per l'handoff: select "Ruolo" dentro il box grigio della dev bar, non nel form.
+    roleSlotEl && ReactDOM.createPortal(
+      React.createElement(React.Fragment, null,
+        React.createElement('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }),
+        React.createElement('span', {
+          style: {
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            height: 24, padding: '0 4px 0 10px',
+            background: '#fff', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 6,
+          },
+        },
+          React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.75)', whiteSpace: 'nowrap' } }, 'Ruolo'),
+          React.createElement(Select, {
+            value: formRole,
+            onChange: v => { setFormRole(v); setActiveSection('identita'); },
+            options: FORM_ROLES, size: 'small', variant: 'borderless',
+            style: { width: 110 },
+            popupMatchSelectWidth: false,
+          })
+        )
+      ),
+      roleSlotEl
     )
   );
 }

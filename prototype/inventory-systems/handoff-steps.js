@@ -19,9 +19,18 @@ function ghfClick(selector) {
   var el = document.querySelector(selector);
   if (el) el.click();
 }
+// La ✕ dei drawer del flusso apre un Popconfirm ("Continua a modificare" /
+// "Esci e scarta") se ci sono modifiche non salvate (LAYOUT.md §6.6), invece
+// di chiudere subito. Per chiudere comunque durante l'automazione del tour,
+// clicchiamo la ✕ e — se compare — confermiamo "Esci e scarta".
 function ghfCloseSubDrawer(rootClass) {
   var el = document.querySelector('.' + rootClass + ' .ant-drawer-close');
-  if (el) el.click();
+  if (!el) return;
+  el.click();
+  setTimeout(function () {
+    var btn = document.querySelector('.ant-popconfirm .ant-btn-dangerous');
+    if (btn) btn.click();
+  }, 200);
 }
 function ghfIsMainDrawerOpen() {
   return !!document.getElementById('grav-tour-form-save');
@@ -136,12 +145,36 @@ window.HANDOFF_META = {
   author: 'Gloria Bonanno',
 };
 
+// ════════════════════════════════════════════════════════════════════════════
+// Interfaccia semplificata (toggle nel pannello Sprint Jira).
+// Elementi FUORI SPRINT: presenti nel prototipo (mappa/lista già toccano la
+// scheda impianto per aprirla) ma senza user story in questo sprint — solo la
+// creazione (US#1) è in scope. Il motore li evidenzia quando il toggle è attivo.
+// ════════════════════════════════════════════════════════════════════════════
+window.HANDOFF_OUT_OF_SPRINT = [
+  // Scheda impianto (ImpiantoDetailV2): dettaglio, modifica per sezione, storico eventi —
+  // raggiungibile da mappa/lista ma nessuna US di questo sprint la copre.
+  { selector: '.imp-detail-page', note: 'Fuori sprint — scheda impianto (dettaglio, modifica per sezione, storico eventi): nessuna user story in questo sprint, solo la creazione (US#1) è in scope' },
+];
+
 window.HANDOFF_SCREENS = {
   'lista': {
     label: 'Parco Impianti',
     detect: function () { return !!document.getElementById('grav-tour-new-btn'); },
     goTo: function () { ghfEnsureClosed(); },
   },
+};
+
+// Matrice Ruolo × Sezione form — usata sia nello step del tour che nel
+// pannello "Modello" (tab Dipendenze), per non duplicare i dati in due posti.
+var ROLE_SECTION_MATRIX = {
+  headers: ['Ruolo', 'Anagrafica e ubicazione', 'Iter autorizzativo', 'Dati tecnici', 'Cespiti e dispositivi', 'Squadre', 'Commerciale'],
+  rows: [
+    ['Admin tenant', '✓', '✓', '✓', '✓', '✓', '✓'],
+    ['Inventory Manager', '✓', '✓', '✓', '✓', '✓', '✗'],
+    ['Operation Manager', '✓', '✓', '✓', '✗', '✗', '✓'],
+  ],
+  note: '✓ = sezione visibile nel menu · ✗ = sezione non mostrata per quel ruolo',
 };
 
 window.HANDOFF_TOURS = [
@@ -158,25 +191,18 @@ window.HANDOFF_TOURS = [
         selector: '#grav-tour-new-btn',
         placement: 'bottomRight',
         onEnter: function () { ghfEnsureClosed(); },
-        delay: 420,
+        delay: 700,
         dev: [{ label: 'Trigger', value: "onClick: () => setFullFormOpen(true)" }],
       },
       {
         title: 'Il form si apre a pagina intera',
-        description: 'Il drawer occupa **tutta la larghezza** (non un pannello laterale come gli altri form): a sinistra la navigazione tra sezioni, a destra il contenuto della sezione attiva. Il selettore "Ruolo (demo)" sopra le sezioni serve solo a questo prototipo per mostrare l\'RBAC — non è un campo reale del form.',
+        description: 'Il drawer occupa **tutta la larghezza** (non un pannello laterale come gli altri form): a sinistra la navigazione tra sezioni, a destra il contenuto della sezione attiva. Il selettore "Ruolo" nella dev bar in alto serve solo a questo prototipo per mostrare l\'RBAC — non è un campo reale del form: cambiandolo, le sezioni non accessibili a quel ruolo spariscono dal menu.',
         selector: '#grav-tour-form-nav',
         placement: 'right',
         onEnter: function () { ghfEnsureOpenAtSection('identita'); },
         delay: 500,
-        table: {
-          headers: ['Ruolo (demo)', 'Anagrafica e ubicazione', 'Iter autorizzativo', 'Dati tecnici', 'Cespiti e dispositivi', 'Squadre', 'Commerciale'],
-          rows: [
-            ['Admin tenant', '✓', '✓', '✓', '✓', '✓', '✓'],
-            ['Inventory Manager', '✓', '✓', '✓', '✓', '✓', '✗'],
-            ['Operation Manager', '✓', '✓', '✓', '✗', '✗', '✓'],
-          ],
-          note: '✓ = sezione abilitata · ✗ = sezione disabilitata (lucchetto, non cliccabile) per quel ruolo',
-        },
+        width: 820, // balloon più largo del default (440): la matrice ha 7 colonne
+        table: ROLE_SECTION_MATRIX,
       },
       {
         title: 'Sezione 1 — Anagrafica e ubicazione',
@@ -238,8 +264,8 @@ window.HANDOFF_TOURS = [
         delay: 900,
       },
       {
-        title: 'Aggiunto: ora è una card',
-        description: '"Aggiungi" salva **davvero** questo cespite: il sotto-drawer si chiude e l\'elemento compare qui come **card** (espandibile per rivederne i dettagli, rimovibile con il cestino). Il pulsante "Aggiungi cespite" resta disponibile per aggiungerne altri — ==stesso identico pattern per Dispositivi, Squadre e Facce==.',
+        title: 'Aggiunto: ora è una riga nell\'accordion',
+        description: '"Aggiungi" salva **davvero** questo cespite: il sotto-drawer si chiude e l\'elemento compare qui come pannello di un **accordion** (non una card), espandibile per rivederne i dettagli, rimovibile con il cestino. ==Scelta deliberata==: i campi di Cespiti e Dispositivi cambiano troppo da tipo a tipo (Fondazione ha 4 campi, Pali ne ha 8, un Player multimediale ne ha altri ancora) per stare in un formato a card fisso — l\'accordion si adatta a ciascuno. Il pulsante "Aggiungi cespite" resta disponibile per aggiungerne altri.',
         selector: '#grav-tour-form-required',
         placement: 'right',
         onEnter: function () {
@@ -249,6 +275,7 @@ window.HANDOFF_TOURS = [
           });
         },
         delay: 1500,
+        dev: [{ label: 'Componente', value: 'AssetAccordion — Collapse (AntD) accordion:true\nusato SOLO per Cespiti/Dispositivi; Squadre e Facce usano EntityCard' }],
       },
       {
         title: 'Sezione 5 — Squadre',
@@ -280,7 +307,7 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Aggiunta: ora è una card',
-        description: '"Salva" registra la squadra e torna alla sezione, ora con la sua card (squadra, tipo di affissione, costi). Stesso pattern di Cespiti e Dispositivi: si ripete per ogni squadra da assegnare.',
+        description: '"Salva" registra la squadra e torna alla sezione, ora con la sua **card** (squadra, tipo di affissione, costi) — qui sì una card, non un accordion: i campi di una squadra sono sempre gli stessi, quindi un formato fisso funziona. Stesso pattern di apertura/salvataggio di Cespiti e Dispositivi: si ripete per ogni squadra da assegnare.',
         selector: '#grav-tour-form-required',
         placement: 'right',
         onEnter: function () {
@@ -292,11 +319,26 @@ window.HANDOFF_TOURS = [
         delay: 1500,
       },
       {
+        title: 'Uscire con modifiche non salvate',
+        description: 'A questo punto il form ha dati in più sezioni (Anagrafica, Cespiti, Squadre). Cliccando "Annulla" (o la ✕) compare un avviso **ancorato al pulsante** — mai una finestra a schermo intero — con "Continua a modificare" come scelta predefinita ed "Esci e scarta" esplicito, in rosso, per chi vuole davvero abbandonare. ==Stesso linguaggio di conferma su tutti i sotto-drawer del flusso== (Faccia, Cespite/Dispositivo, Squadra, Collega permesso, Collega modulo).',
+        selector: '.ant-popconfirm',
+        placement: 'bottom',
+        onEnter: function () {
+          ghfEnsureOpen();
+          setTimeout(function () { ghfClick('.grav-main-drawer .ant-drawer-header .ant-btn-default'); ghfNudge(); }, 300);
+        },
+        delay: 700,
+        dev: [{ label: 'Pattern', value: "DiscardButton + DiscardCloseIcon (LAYOUT.md §6.6)\nokButtonProps: { danger: true } · cancelText di default" }],
+      },
+      {
         title: 'Crea l\'impianto',
         description: 'Con i 6 campi obbligatori dell\'Anagrafica compilati, il pulsante finale è ora **attivo davvero**: cliccandolo l\'impianto viene creato con tutti i dati inseriti in questa demo (identità, cespite e squadra appena aggiunti) e si torna al Parco Impianti.',
         selector: '#grav-tour-form-save',
         placement: 'bottomRight',
-        onEnter: function () { ghfEnsureOpen(); },
+        onEnter: function () {
+          ghfClick('.ant-popconfirm .ant-btn-default');
+          ghfEnsureOpen();
+        },
         delay: 500,
         dev: [{ label: 'Campi obbligatori', value: 'Canale · Tipologia · Formato · Via · Città · Stato\n(disabled finché canSave === false — qui tutti compilati)' }],
       },
@@ -306,17 +348,25 @@ window.HANDOFF_TOURS = [
 
 window.HANDOFF_COMPONENTS = [
   { selector: '#grav-tour-new-btn', name: 'Button "Nuovo Impianto"', level: 'Atomo', figma: 'Button — Type=Primary · Size=Large · Icon=Plus' },
+  { selector: '.ant-popconfirm', name: 'Avviso modifiche non salvate', level: 'Molecola', custom: true,
+    funzione: 'Popconfirm ancorato al pulsante che scatena l\'uscita (Annulla o ✕) di ogni drawer/form del flusso — mai una Modal a schermo intero (LAYOUT.md §6.6). "Continua a modificare" è la scelta di default, "Esci e scarta" è esplicito e in rosso.',
+    composizione: 'Popconfirm (AntD) — okText/cancelText + okButtonProps: { danger: true }',
+    figma: 'Popconfirm — Type=Warning · Placement=Bottom' },
   { selector: '.create-nav', name: 'Navigazione sezioni form', level: 'Molecola', custom: true,
-    funzione: 'Elenco verticale delle 6 sezioni del form. La sezione attiva è evidenziata; le sezioni disabilitate per il ruolo (demo) mostrano un lucchetto.',
+    funzione: 'Elenco verticale delle sezioni del form (fino a 6). La sezione attiva è evidenziata; le sezioni non accessibili al ruolo selezionato non vengono mostrate.',
     figma: 'Da definire — pattern custom, non un componente standard Ant Design' },
   { selector: '.create-nav-item', name: 'Voce di sezione', level: 'Atomo', custom: true,
-    funzione: 'Singola voce cliccabile del menu sezioni: stato attivo, asterisco se contiene campi obbligatori, lucchetto se disabilitata per il ruolo.',
+    funzione: 'Singola voce cliccabile del menu sezioni: stato attivo, asterisco se contiene campi obbligatori.',
     figma: 'Da definire — pattern custom' },
   { selector: '.ni-field', name: 'Campo form (label + controllo)', level: 'Molecola', custom: true,
     funzione: 'Wrapper standard di ogni campo del form: label + asterisco se obbligatorio + controllo Ant Design.',
     figma: 'Form.Item — Layout=Vertical' },
   { selector: '#grav-tour-add-cespite-btn', name: 'Button "Aggiungi cespite"', level: 'Atomo', figma: 'Button — Type=Default · Icon=Plus' },
   { selector: '#grav-tour-add-squadra-btn', name: 'Button "Aggiungi squadra"', level: 'Atomo', figma: 'Button — Type=Default · Icon=Plus' },
+  { selector: '#grav-tour-form-required .ant-collapse', name: 'Accordion Cespiti/Dispositivi', level: 'Organismo', custom: true,
+    funzione: 'Elenca i cespiti/dispositivi aggiunti — un pannello Collapse per elemento, chiuso di default tranne il primo. Non è una card: i campi mostrati (etichetta + valore) dipendono dal tipo, quindi il pannello si adatta invece di un layout fisso.',
+    composizione: 'Collapse (AntD, accordion:true) — ogni pannello: titolo + tag/stato + azioni (⋮ Visualizza/Elimina) + griglia label/valore',
+    figma: 'Collapse — Type=Accordion' },
   { selector: '.grav-cespite-drawer', name: 'Sotto-drawer Cespite/Dispositivo', level: 'Organismo', custom: true,
     funzione: 'Drawer impilato sopra il form principale per la creazione di **un singolo** cespite o dispositivo. La select "Tipo" determina dinamicamente i campi mostrati.',
     composizione: 'Drawer (AntD) + Select tipo + campi dinamici (Input/Select/DatePicker/Tags) + azioni Annulla/Aggiungi',
@@ -328,12 +378,86 @@ window.HANDOFF_COMPONENTS = [
   { selector: '#grav-tour-form-save', name: 'Button "Crea Impianto"', level: 'Atomo', figma: 'Button — Type=Primary · Icon=Plus · State=Disabled finché mancano i campi obbligatori' },
 ];
 
-window.HANDOFF_NOTES = [
+// ════════════════════════════════════════════════════════════════════════════
+// Dipendenze tra entità (pannello "Dipendenze" nel tab "Modello" in navbar)
+// ════════════════════════════════════════════════════════════════════════════
+
+window.HANDOFF_DEPENDENCIES = [
   {
-    id: 'ruolo-demo',
-    title: 'Select "Ruolo (demo)"',
-    body: 'Non è un campo reale del form: serve **solo in questo prototipo** per mostrare quali sezioni si disabilitano in base al ruolo (RBAC). In produzione il ruolo è quello dell\'utente loggato, non selezionabile qui.\n- Pianificatore e Sales non hanno accesso al form: gate a monte, non gestito in questa schermata.',
+    id: 'ruolo-sezione',
+    title: 'Ruolo × Sezione form',
+    description: 'Quali sezioni del form "Nuovo Impianto" sono abilitate per ciascun ruolo (RBAC).',
+    table: ROLE_SECTION_MATRIX,
   },
+];
+
+// ════════════════════════════════════════════════════════════════════════════
+// Relazioni tra entità (pannello "Relazioni" nel tab "Modello" in navbar)
+// ════════════════════════════════════════════════════════════════════════════
+
+window.HANDOFF_RELATIONS = [
+  {
+    id: 'entita',
+    title: 'Relazioni tra entità',
+    description: 'Cardinalità principali del dominio Inventory · Impianti.',
+    table: {
+      headers: ['Da', '', 'A', 'Cardinalità'],
+      rows: [
+        ['Impianto',       '→', 'Faccia',                     '1 : N'],
+        ['Impianto',       '→', 'Cespite / Dispositivo',      '1 : N'],
+        ['Impianto',       '→', 'Squadra (affissione/manut.)', 'N : N'],
+        ['Impianto',       '→', 'Concessione',                'N : N'],
+        ['Impianto',       '→', 'Autorizzazione',             'N : N'],
+        ['Impianto',       '→', 'Impianto (moduli collegati)', 'N : N'],
+      ],
+      note: 'Cardinalità a livello di design, da confermare in fase backend. Cespiti e Dispositivi condividono la stessa collezione (discriminati da "categoria"), non due entità separate.',
+    },
+  },
+];
+
+// ════════════════════════════════════════════════════════════════════════════
+// Scenari (tab "Scenari" nel pannello Modello): combinazioni di campi che
+// cambiano in base al tipo di Cespite/Dispositivo selezionato.
+// ════════════════════════════════════════════════════════════════════════════
+
+window.HANDOFF_SCENARIOS = [
+  {
+    id: 'campi-per-tipo',
+    title: 'Campi per tipo di Cespite',
+    description: 'La select "Tipo" nel sotto-drawer Cespite determina quali campi compaiono: ogni tipo ha il suo set coerente, da qui la scelta dell\'accordion invece della card fissa.',
+    table: {
+      headers: ['Tipo', 'N. campi'],
+      rows: [
+        ['Fondazione',      '4'],
+        ['Pali',            '8'],
+        ['Cornice',         '3'],
+        ['Pannelli',        '4'],
+        ['Extra struttura', '6'],
+      ],
+      note: 'Conteggio dei campi specifici del tipo (non include i campi comuni del sotto-drawer, es. note).',
+    },
+  },
+  {
+    id: 'campi-per-tipo-dispositivo',
+    title: 'Campi per tipo di Dispositivo',
+    description: 'Stesso meccanismo dei Cespiti: 3 campi comuni a tutti i dispositivi (Nome, Stato, Descrizione) + campi specifici per tipo (es. MAC, IP, seriali).',
+    table: {
+      headers: ['Tipo', 'Campi comuni', 'Campi specifici', 'Totale'],
+      rows: [
+        ['Player multimediale', '3', '6', '9'],
+        ['Modem / Router',      '3', '6', '9'],
+        ['Telecamera',          '3', '5', '8'],
+        ['Sensore',             '3', '4', '7'],
+        ['Schermo / Display',   '3', '4', '7'],
+        ['Centralina',          '3', '4', '7'],
+        ['Altro',               '3', '0', '3'],
+      ],
+      note: '"Altro" ha solo i campi comuni — nessun campo specifico configurato.',
+    },
+  },
+];
+
+window.HANDOFF_NOTES = [
   {
     id: 'sezioni-facoltative',
     title: 'Solo l\'Anagrafica ha campi obbligatori',
@@ -342,6 +466,6 @@ window.HANDOFF_NOTES = [
   {
     id: 'add-one-at-a-time',
     title: 'Pattern "aggiungi un elemento alla volta"',
-    body: 'Cespiti, Dispositivi, Squadre e Facce condividono lo stesso pattern di interazione:\n- il pulsante **Aggiungi** apre un sotto-drawer con un solo record da compilare;\n- salvando, il sotto-drawer si chiude e l\'elemento compare come **card** nella sezione;\n- si ripete l\'azione per ogni nuovo elemento — nessun form con righe multiple da gestire in una volta sola.\n==Scelta deliberata==: evita form tabellari lunghi e riduce l\'errore di compilazione su righe multiple contemporaneamente.',
+    body: 'Cespiti, Dispositivi, Squadre e Facce condividono lo stesso pattern di interazione:\n- il pulsante **Aggiungi** apre un sotto-drawer con un solo record da compilare;\n- salvando, il sotto-drawer si chiude e l\'elemento compare nella sezione;\n- si ripete l\'azione per ogni nuovo elemento — nessun form con righe multiple da gestire in una volta sola.\n==Scelta deliberata==: evita form tabellari lunghi e riduce l\'errore di compilazione su righe multiple contemporaneamente.\n\nIl COMPONENTE che mostra l\'elemento aggiunto però cambia:\n- **Squadre e Facce → card** (EntityCard): i campi sono sempre gli stessi, un formato fisso funziona.\n- **Cespiti e Dispositivi → accordion** (Collapse): i campi variano troppo da tipo a tipo (una Fondazione e un Player multimediale non condividono quasi nulla) per stare in una card a layout fisso — il pannello si adatta al contenuto di ciascun tipo.',
   },
 ];

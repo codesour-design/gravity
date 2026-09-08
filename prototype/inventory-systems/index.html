@@ -414,8 +414,6 @@
     .dv2-nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; margin-bottom: 2px; transition: background .12s, color .12s; }
     .dv2-nav-item:hover { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.88); }
     .dv2-nav-item.active { background: rgba(62,0,251,0.07); color: #3E00FB; font-weight: 600; }
-    .create-nav-item.disabled { color: rgba(0,0,0,0.25); cursor: not-allowed; }
-    .create-nav-item.disabled:hover { background: transparent; color: rgba(0,0,0,0.25); }
     .create-scroll { flex: 1; overflow-y: auto; padding: 40px 0; background: #F5F5F5; display: flex; justify-content: center; align-items: flex-start; }
     .create-content { width: 80%; max-width: 100%; }
     .create-section { margin-bottom: 32px; }
@@ -6101,21 +6099,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     { id: 'commerciale',     label: 'Commerciale' },
   ];
 
-  // RBAC: ruoli con accesso al form e sezioni disabilitate per ruolo.
-  // (Pianificatore e Sales non hanno accesso al form: gate a monte, non gestito qui.)
-  const FORM_ROLES = [
-    { value: 'admin',     label: 'Admin tenant' },
-    { value: 'inventory', label: 'Inventory Manager' },
-    { value: 'operation', label: 'Operation Manager' },
-  ];
-  const ROLE_DISABLED = {
-    admin:     [],
-    inventory: ['commerciale'],
-    operation: ['struttura', 'affissione'],
-  };
-  const [formRole, setFormRole] = useState('admin');
-  const disabledSections = ROLE_DISABLED[formRole] || [];
-
 
   const tipologieOpts = React.useMemo(() => {
     const groups = canale ? (MACRO_TIPI_PER_CANALE[canale] || {}) : {};
@@ -6509,27 +6492,20 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     React.createElement('div', { className: 'create-body' },
 
       React.createElement('nav', { id: 'grav-tour-form-nav', className: 'create-nav' },
-        React.createElement('div', { className: 'create-nav-label' }, 'Ruolo (demo)'),
-        React.createElement(Select, {
-          value: formRole, onChange: v => { setFormRole(v); setActiveSection('identita'); },
-          options: FORM_ROLES, size: 'small', style: { width: '100%', marginBottom: 20 },
-        }),
         React.createElement('div', { className: 'create-nav-label' }, 'Sezioni'),
         SECTIONS.map(({ id, label }) => {
           const isActive = activeSection === id;
-          const disabled = disabledSections.includes(id);
           return React.createElement('div', {
             key: id,
             'data-section': id,
-            className: 'create-nav-item' + (isActive ? ' active' : '') + (disabled ? ' disabled' : ''),
-            onClick: disabled ? undefined : () => setActiveSection(id),
+            className: 'create-nav-item' + (isActive ? ' active' : ''),
+            onClick: () => setActiveSection(id),
             style: { display: 'flex', alignItems: 'center', gap: 2 },
           },
             label,
-            !disabled && hasRequired[id] && React.createElement('span', {
+            hasRequired[id] && React.createElement('span', {
               style: { color: '#FF4D4F', fontSize: 13, lineHeight: 1 },
             }, ' *'),
-            disabled && React.createElement(LockOutlined, { style: { marginLeft: 'auto', fontSize: 11, color: 'rgba(0,0,0,0.25)' } }),
           );
         }),
       ),

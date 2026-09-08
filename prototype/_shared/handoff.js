@@ -4,12 +4,13 @@
  * - Niente più FAB: i controlli vivono nella navbar accanto alla campanella.
  *   · Switch con icona dev → attiva l'inspector: in hover su ogni componente
  *     mostra nome, livello atomico, funzione e variante Figma.
- *   · Icona user story → dropdown con i tour (motore spotlight invariato).
+ *   · Icona Sprint Jira → dropdown con i tour (user story + task, motore spotlight invariato).
  *
  * Configurazione in handoff-steps.js:
  *   window.HANDOFF_META       — { title, version, date, author }
  *   window.HANDOFF_SCREENS    — { key: { label, detect: fn } }
- *   window.HANDOFF_TOURS      — [{ id, title, description, roles?, startScreen?, novita?, steps: [...] }]
+ *   window.HANDOFF_TOURS      — [{ id, title, description, roles?, startScreen?, novita?, type?: 'task', steps: [...] }]
+ *                                 type assente/'us' = user story (default); 'task' = attività più granulare, stesso motore
  *   window.HANDOFF_COMPONENTS — [{ selector, name, level, custom?, funzione, figma, variant?(el) }]
  */
 (function () {
@@ -611,7 +612,7 @@
   // Balloon posizionato accanto al target. Unico elemento interagibile durante il tour.
 
   function TourBalloon({ step, index, total, steps, screenLabel, role, roleColor, usTitle, onPrev, onNext, onGoTo, onExit }) {
-    var BALLOON_W = 440;
+    var BALLOON_W = step.width || 440; // step.width: override per balloon con contenuti larghi (es. tabelle)
     var GAP       = 18;
     var _p = useState({ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' });
     var pos = _p[0]; var setPos = _p[1];
@@ -835,7 +836,7 @@
     );
   }
 
-  // ── Pannello user story (contenuto del dropdown in navbar) ────────────────
+  // ── Pannello Sprint Jira — user story + task (contenuto del dropdown in navbar) ──
 
   function UsPanel({ tours, screen, role, roleColor, sprintMode, onSprintToggle, onStart }) {
     tours = (tours || []).slice().sort(function (a, b) {
@@ -866,11 +867,11 @@
       }, label);
     }
 
-    // Mostra TUTTE le US del ruolo (filtrabili per schermata): il tag "template"
-    // esplicita il flusso e il tour porta l'utente nei punti giusti.
+    // Mostra TUTTE le voci di sprint del ruolo (user story + task, filtrabili per
+    // schermata): il tag "template" esplicita il flusso e il tour porta l'utente nei punti giusti.
     var items = (shown.length === 0)
       ? h('div', { style: { padding: '24px 16px', textAlign: 'center', fontSize: 12, color: 'rgba(0,0,0,.3)' } },
-          'Nessuna user story per questo filtro.')
+          'Nessuna voce per questo filtro.')
       : shown.map(function (tour) {
           return h('div', {
             key: tour.id,
@@ -881,6 +882,7 @@
           },
             h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' } },
               screenChip(tour.startScreen ? screenLabel(tour.startScreen) : null),
+              tour.type === 'task' ? h(antd.Tag, { style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px', fontWeight: 600, color: 'rgba(0,0,0,.45)' } }, 'Task') : null,
               h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,.88)' } }, tour.title),
               tour.novita ? h(antd.Tag, { color: '#FF4A1C', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px', fontWeight: 600 } }, 'Novità') : null
             ),
@@ -900,7 +902,7 @@
     },
       h('div', { style: { padding: '12px 16px 10px', borderBottom: '1px solid rgba(0,0,0,.06)' } },
         h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
-          h('span', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'User story'),
+          h('span', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'Sprint Jira'),
           h(antd.Tag, { color: roleColor, style: { margin: 0, fontSize: 11, fontWeight: 600 } }, role)
         ),
         // Toggle interfaccia semplificata — evidenzia gli elementi fuori sprint
@@ -916,7 +918,7 @@
           h('div', { style: { flex: 1 } },
             h('div', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,.85)' } }, 'Interfaccia semplificata'),
             h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.45)', lineHeight: 1.45, marginTop: 1 } },
-              'Evidenzia le aree ', h('b', { style: { color: '#FF4A1C' } }, 'fuori sprint'), ' — senza user story, non da realizzare ora.')
+              'Evidenzia le aree ', h('b', { style: { color: '#FF4A1C' } }, 'fuori sprint'), ' — senza voce in Sprint Jira, non da realizzare ora.')
           )
         ) : null
       ),
@@ -1134,7 +1136,7 @@
     var _dep = useState(false); var depOpen = _dep[0]; var setDepOpen = _dep[1];
     var _nt = useState(false); var notesOpen = _nt[0]; var setNotesOpen = _nt[1];
     return h('span', {
-      // Area unica che raggruppa toggle dev + user story
+      // Area unica che raggruppa toggle dev + Sprint Jira
       style: {
         display: 'inline-flex', alignItems: 'center', gap: 10,
         height: 32, padding: '0 6px 0 10px', marginRight: 2,
@@ -1157,7 +1159,7 @@
       ),
       // Divider interno
       h('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }),
-      // User story — trigger con estetica button (icona + label)
+      // Sprint Jira — trigger con estetica button (icona + label)
       h(antd.Dropdown, {
         trigger: ['click'],
         open: usOpen,
@@ -1170,7 +1172,7 @@
         h('span', { style: { display: 'inline-flex' } },
           h(antd.Badge, { count: novitaCount, size: 'small', offset: [-2, 4] },
             h('span', {
-              title: 'User story',
+              title: 'Sprint Jira',
               style: {
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 height: 24, padding: '0 10px',
@@ -1183,7 +1185,7 @@
               onMouseLeave: function (e) { e.currentTarget.style.color = 'rgba(0,0,0,0.75)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.15)'; },
             },
               h(icons.FlagOutlined, { style: { fontSize: 13 } }),
-              h('span', null, 'User story')
+              h('span', null, 'Sprint Jira')
             )
           )
         )

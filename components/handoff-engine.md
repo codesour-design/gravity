@@ -35,7 +35,7 @@ vecchie mostrano il prototipo aggiornato con le vecchie annotazioni.
 |---------|-----------|
 | `HANDOFF_META` | `{ title, version, date, author, versions? }` |
 | `HANDOFF_SCREENS` | `{ key: { label, detect() } }` — rilevamento schermata corrente |
-| `HANDOFF_TOURS` | tour spotlight `[{ id, title, description, roles?, startScreen?, novita?, steps }]` — **vuoto = motore disattivato** |
+| `HANDOFF_TOURS` | tour spotlight `[{ id, title, description, roles?, startScreen?, novita?, type?, steps }]` — **vuoto = motore disattivato**; `type` assente/`'us'` = user story (default), `'task'` = attività più granulare (stesso motore, badge "Task" nel pannello) |
 | `HANDOFF_COMPONENTS` | inspector `[{ selector, name, level, custom?, funzione, figma, variant?(el) }]` |
 | `HANDOFF_NOTES` | note di design inline |
 | `HANDOFF_DEPENDENCIES` / `RELATIONS` / `SCENARIOS` | metadati pannello |
@@ -44,10 +44,13 @@ vecchie mostrano il prototipo aggiornato con le vecchie annotazioni.
 ## UI iniettata
 
 - **Dev bar in navbar** (accanto a `#gravity-bell-btn`): switch Inspector (hover → nome, livello
-  atomico, funzione, variante Figma), dropdown User story (tour), selettore versione
-  (`VersionBadge`). Il dropdown del selettore versione è la sola lista di versioni selezionabili
-  (id, nota, tag "Approvata" sulla versione approvata, check sulla corrente) — senza titolo né
-  stato del prototipo, e senza tooltip in hover sul badge.
+  atomico, funzione, variante Figma), dropdown **Sprint Jira** (tour di user story + task,
+  distinte da un badge "Task" sulle seconde; include il toggle "Interfaccia semplificata" per gli
+  elementi fuori sprint, vedi sotto), dropdown **Modello** (tab Scenari / Dipendenze / Relazioni
+  del dominio, alimentate da `HANDOFF_SCENARIOS` / `HANDOFF_DEPENDENCIES` / `HANDOFF_RELATIONS`),
+  selettore versione (`VersionBadge`). Il dropdown del selettore versione è la sola lista di
+  versioni selezionabili (id, nota, tag "Approvata" sulla versione approvata, check sulla
+  corrente) — senza titolo né stato del prototipo, e senza tooltip in hover sul badge.
 - **Note di design**: `CoffeeOutlined` **rossa** `#FF4A1C`, marker inline contestuale con
   popover "Nota di design" — iconografia riservata (vedi `LAYOUT.md` §6.5).
 - **Fuori sprint**: classe `.ghf-oos` (outline tratteggiato + badge + tooltip) sugli elementi in

@@ -1,5 +1,5 @@
 ---
-description: Crea l'handoff HTML interattivo di un prototipo Gravity (come il prototipo Planning) — barra dev in navbar (Inspector componenti + tour User story + Modello di dominio) e note di design inline. Genera index--handoff.html + handoff-steps.js riusando il motore condiviso handoff.js, poi verifica nel browser.
+description: Crea l'handoff HTML interattivo di un prototipo Gravity (come il prototipo Planning) — barra dev in navbar (Inspector componenti + dropdown Sprint Jira con tour di user story/task + Modello di dominio), toggle "Interfaccia semplificata" per gli elementi fuori sprint, e note di design inline. Genera index--handoff.html + handoff-steps.js riusando il motore condiviso handoff.js, poi verifica nel browser.
 ---
 
 # Handoff Gravity (HTML) — Costruisci l'handoff interattivo
@@ -11,8 +11,8 @@ Il risultato è una variante del prototipo (`index--handoff.html`) che, sopra l'
 
 - una **barra dev nella navbar** (accanto alla campanella) con:
   - **switch Inspector componenti** → in hover su ogni elemento mostra nome, livello atomico (Atomo/Molecola/Organismo), funzione, mapping Figma, variante, tipografia e colori token;
-  - **dropdown User story** → tour guidati passo-passo con spotlight, uno per ogni US;
-  - **dropdown Modello** → tab Scenari / Dipendenze / Relazioni del dominio (Relazioni in ultima posizione);
+  - **dropdown "Sprint Jira"** → tour guidati passo-passo con spotlight, uno per ogni user story o task (le task hanno un badge "Task" per distinguerle); include il toggle **"Interfaccia semplificata"** che evidenzia con outline tratteggiato rosso + badge "fuori sprint" gli elementi presenti nel prototipo ma senza una voce in sprint (`HANDOFF_OUT_OF_SPRINT`);
+  - **dropdown "Modello"** → tab Scenari / Dipendenze / Relazioni del dominio (Relazioni in ultima posizione);
 - **note di design inline** (icona caffè rossa `CoffeeOutlined`) ancorate ai punti UI di riferimento.
 
 Tutta la logica vive già nel motore condiviso **`prototype/_shared/handoff.js`** — **NON va riscritto né duplicato**. La skill si limita a:
@@ -48,9 +48,9 @@ Chiedi all'utente in un'unica risposta strutturata:
 **1 — Prototipo**
 Quale prototipo? Percorso del file (es. `prototype/inventory/index.html`).
 
-**2 — User story da documentare**
-Per ogni US (saranno i tour del dropdown "User story"):
-- Codice + titolo (es. `US#2 — Dettaglio Pianificazione (GRP-467)`)
+**2 — User story e task da documentare**
+Per ogni voce (saranno i tour del dropdown "Sprint Jira"):
+- Codice + titolo (es. `US#2 — Dettaglio Pianificazione (GRP-467)`); se è una **task** più granulare invece di una user story, dillo esplicitamente (badge "Task" nel pannello)
 - Descrizione narrativa ("Come **ruolo** voglio… così da…")
 - Ruoli che la vedono (vedi tabella sotto)
 - Schermata di partenza (una delle `HANDOFF_SCREENS`)
@@ -61,6 +61,8 @@ Per ogni US (saranno i tour del dropdown "User story"):
 **4 — Note di design** (opzionale): appunti per lo sviluppo (fuori scope, scelte aperte, sprint futuri, vincoli) e a quale elemento UI vanno ancorati.
 
 **5 — Modello di dominio** (opzionale): relazioni tra entità, scenari stato×collegamenti, tabelle di dipendenza (es. stato × azioni abilitate).
+
+**6 — Elementi fuori sprint** (opzionale): il prototipo spesso mostra funzionalità costruite per completezza della demo ma **senza una user story/task in questo sprint** (es. voci di menu non ancora sviluppate, pulsanti di feature future, sezioni dimostrative). Per ognuna: selettore CSS dell'elemento (anche testo per distinguere voci nello stesso menu) e una nota breve sul perché è fuori sprint. Chiedi esplicitamente all'utente quali elementi del prototipo rientrano in questo caso — **non dedurlo da solo**: è una decisione di scope che spetta al designer/PM, non deducibile dal solo codice.
 
 **Ruoli supportati → colore Tag** (in `handoff.js`, `ROLE_COLOR`):
 
@@ -82,8 +84,9 @@ Aspetta le risposte prima di procedere.
 2. Naviga il prototipo nel browser (Playwright: `browser_navigate` + `browser_snapshot`) percorrendo ogni US click-by-click, così identifichi:
    - le **schermate** distinte (→ `HANDOFF_SCREENS`) e come rilevarle via DOM (`detect`) e come raggiungerle (`goTo`);
    - per ogni step di tour il **selettore** dell'elemento da evidenziare (o l'indice colonna `colIndex` per le tabelle) e le azioni `onEnter` necessarie ad aprire popover/drawer/modali;
-   - i **componenti** presenti (→ `HANDOFF_COMPONENTS`).
-3. Produci e condividi un breve inventario: schermate + per ogni US la lista degli step (titolo + selettore). **Non procedere finché non è chiaro.**
+   - i **componenti** presenti (→ `HANDOFF_COMPONENTS`);
+   - elementi UI presenti ma **non toccati da nessuna US/task** dell'elenco ricevuto in FASE 1 — segnalali all'utente come possibili candidati per `HANDOFF_OUT_OF_SPRINT` invece di deciderlo da solo (potrebbero semplicemente non essere ancora stati raccontati in un tour, non essere davvero fuori scope).
+3. Produci e condividi un breve inventario: schermate + per ogni US/task la lista degli step (titolo + selettore) + eventuali candidati fuori sprint. **Non procedere finché non è chiaro.**
 
 ---
 
@@ -138,7 +141,17 @@ window.HANDOFF_SCREENS = {
 };
 ```
 
-### `window.HANDOFF_TOURS` — una voce per user story
+### `window.HANDOFF_OUT_OF_SPRINT` — elementi fuori sprint (opzionale)
+Alimenta il toggle **"Interfaccia semplificata"** nel dropdown "Sprint Jira": quando attivo, il motore marca questi elementi con outline tratteggiato rosso + badge "fuori sprint" + tooltip. Solo per elementi presenti nel prototipo ma **senza** una voce in `HANDOFF_TOURS` in questo sprint (vedi FASE 1, punto 6) — se lo scope non è chiaro, ometti la variabile invece di indovinare.
+```js
+window.HANDOFF_OUT_OF_SPRINT = [
+  // selector: CSS (anche su elementi portalati, es. voci di dropdown) — text: filtra per testo (opz.) — note: tooltip (opz.)
+  { selector: '.ant-dropdown-menu-item', text: 'Modifica', note: 'Fuori sprint — nessuna user story per la modifica' },
+  { selector: '.gv-progress-bar', note: 'Fuori sprint — barra di avanzamento budget non in sprint' },
+];
+```
+
+### `window.HANDOFF_TOURS` — una voce per user story o task
 ```js
 {
   id:          'dettaglio-pianificazione',
@@ -148,6 +161,7 @@ window.HANDOFF_SCREENS = {
   startScreen: 'selezione-spazi',                    // chiave di HANDOFF_SCREENS
   goTo:        ghfOpenMineDraft,                     // opz.: funzione per aprire il caso giusto dalla lista
   novita:      true,                                 // opz.: badge "Novità"
+  type:        'task',                                // opz.: assente/'us' = user story (default) · 'task' = attività più granulare (badge "Task")
   steps: [
     {
       title:       'Header del dettaglio',
@@ -211,18 +225,19 @@ Se una sezione non serve, **ometti** la variabile (il tab mostrerà "Nessun elem
 
 1. Apri `index--handoff.html` nel browser (Playwright).
 2. Controlla:
-   - la **barra dev** appare in navbar accanto alla campanella (switch + "User story" + "Modello");
+   - la **barra dev** appare in navbar accanto alla campanella (switch + "Sprint Jira" + "Modello");
    - lo **switch Inspector** in hover mostra le card componente corrette;
-   - ogni **tour** parte, passa di step in step con spotlight sull'elemento giusto, e le azioni `onEnter` aprono popover/drawer come previsto;
+   - ogni **tour** parte, passa di step in step con spotlight sull'elemento giusto, e le azioni `onEnter` aprono popover/drawer come previsto; le task hanno il badge "Task" nel pannello;
    - i **marker caffè** delle note compaiono nei punti giusti e il popover mostra il testo;
-   - il **filtro per ruolo** nasconde le US non pertinenti (cambia ruolo dall'avatar).
+   - il **filtro per ruolo** nasconde le US/task non pertinenti (cambia ruolo dall'avatar);
+   - se è definito `HANDOFF_OUT_OF_SPRINT`, il toggle **"Interfaccia semplificata"** nel dropdown Sprint Jira evidenzia gli elementi giusti con outline tratteggiato rosso + tooltip.
 3. Fai screenshot di verifica e correggi selettori/`onEnter`/`delay` finché ogni tour scorre pulito.
 
 ---
 
 ## FASE 6 — Chiusura
 
-- Riepiloga all'utente: file creati (`index--handoff.html`, `handoff-steps.js`), US coperte, note e tabelle di modello aggiunte, eventuali selettori fragili da tenere d'occhio.
+- Riepiloga all'utente: file creati (`index--handoff.html`, `handoff-steps.js`), US/task coperte, note e tabelle di modello aggiunte, elementi marcati fuori sprint, eventuali selettori fragili da tenere d'occhio.
 - Ricorda il git workflow: commit sul branch del prototipo, poi PR verso `main` (no commit diretti su `main`).
 
 ---
