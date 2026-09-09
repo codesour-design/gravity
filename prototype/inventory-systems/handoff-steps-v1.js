@@ -1,6 +1,6 @@
 /**
  * Handoff — Inventory Systems: flusso "Nuovo impianto" (NewImpiantoFullDrawer)
- * Copre QUATTRO user story sullo stesso drawer a pagina intera:
+ * V1 — versione attiva (in lavorazione). Copre il drawer a pagina intera:
  * - GRP-622 — Creazione: apertura, navigazione tra le sezioni, compilazione
  *   reale dei campi obbligatori e il pattern "aggiungi un elemento alla volta"
  *   nei sotto-drawer di Cespiti/Dispositivi e Squadre — con salvataggio reale,
@@ -15,8 +15,10 @@
  *   ingombro calcolata) e configurazione di ciascuna faccia (tipo, slot,
  *   coordinate, orientamento, cono di visibilità, formato, illuminazione,
  *   dati commerciali).
- * Il resto del prototipo (mappa, filtri, dettaglio di un impianto esistente…)
- * non è documentato in questo handoff — vedi HANDOFF_OUT_OF_SPRINT.
+ * - US#1.3 — Cespiti e dispositivi, US#1.4 — Squadre, US#1.5 — Commerciale.
+ * Il resto del Parco Impianti (mappa, lista, ricerca/filtri, gestione
+ * tipologie/formati) e la scheda impianto esistente non hanno user story in
+ * questo sprint — vedi HANDOFF_OUT_OF_SPRINT.
  */
 
 // ── Helper di navigazione ───────────────────────────────────────────────
@@ -459,8 +461,12 @@ window.HANDOFF_META = {
   author: 'Gloria Bonanno',
   // Storico versioni dell'handoff. Ogni versione è un file di config (il prototipo
   // resta unico: index.html + ?handoff=vX). Questo file (handoff-steps-v1.js) è
-  // CONGELATO: annotazioni/tour di questa versione, non toccarlo per nuovi cambi —
-  // quelli vanno in handoff-steps.js (V2, in lavorazione).
+  // la versione ATTIVA: ci lavoriamo ancora sopra (nuove US/task, note, fuori
+  // sprint vanno registrati qui), pur restando quella mostrata di default dal
+  // bare ?handoff. handoff-steps.js (V2) è vuoto — placeholder per il prossimo
+  // giro di cambiamenti, non ancora iniziato.
+  // `current` è self-referenziale (riflette il file caricato, non "su cosa
+  // stiamo lavorando"): qui è V1 a essere true perché questo È il file V1.
   versions: [
     { id: 'V1', file: 'index.html?handoff=v1', approved: true, current: true, note: 'Versione approvata' },
     { id: 'V2', file: 'index.html?handoff=v2', approved: false, current: false, note: 'In lavorazione' },
@@ -500,11 +506,28 @@ window.HANDOFF_OUT_OF_SPRINT = [
   { selector: '.grav-sconto-moduli-row', note: 'Fuori sprint — lo sconto "se venduto a moduli" dipende dal concetto di modulo collegato, esso stesso fuori sprint: non ha senso implementarlo prima' },
   // Drawer "Collega impianto" (selezione impianti compatibili da collegare) —
   // stessa esclusione della sezione Moduli che lo apre.
-  { selector: '.grav-moduli-drawer', note: 'Fuori sprint — drawer di selezione moduli: stessa esclusione della sezione Moduli (TASK DSN P0)' },
+  { selector: '.grav-moduli-drawer .ant-drawer-content', note: 'Fuori sprint — drawer di selezione moduli: stessa esclusione della sezione Moduli (TASK DSN P0)' },
   // Modal "Collegare come moduli?" proposta automaticamente al salvataggio —
   // altro punto di ingresso alla stessa funzionalità fuori scope in creazione.
-  { selector: '.grav-savelink-modal', note: 'Fuori sprint — proposta di collegamento moduli al salvataggio: altro punto di ingresso a Moduli in creazione, fuori scope (TASK DSN P0)' },
+  { selector: '.grav-savelink-modal .ant-modal-content', note: 'Fuori sprint — proposta di collegamento moduli al salvataggio: altro punto di ingresso a Moduli in creazione, fuori scope (TASK DSN P0)' },
+
+  // ── Parco Impianti (schermata "lista"): tutto ciò che ci si vede è fuori
+  // sprint, TRANNE il pulsante "Nuovo Impianto" e il suo drawer di creazione
+  // (GRP-622, US#1–US#1.5) — mappa, lista, ricerca/filtri, tab canale e la
+  // gestione tipologie/formati non hanno nessuna user story in questo sprint.
+  { selector: '.grav-parco-title', note: 'Fuori sprint — titolo "Parco Impianti": nessuna user story in questo sprint, solo la creazione (GRP-622) è in scope' },
+  { selector: '.ss-tab-bar', note: 'Fuori sprint — tab Tutti/OOH/DOOH del Parco Impianti: nessuna user story in questo sprint' },
+  { selector: '#grav-tour-filter-bar', note: 'Fuori sprint — ricerca per zona/indirizzo e filtri avanzati del Parco Impianti: nessuna user story in questo sprint' },
+  { selector: '.ss-active-filters', note: 'Fuori sprint — chip dei filtri attivi: nessuna user story in questo sprint' },
+  { selector: '.grav-add-taxonomy-btn', note: 'Fuori sprint — "Aggiungi tipologia"/"Aggiungi formato": nessuna user story in questo sprint' },
+  { selector: '.ooh-map-area', note: 'Fuori sprint — vista mappa del Parco Impianti (marker, popover impianto, toggle Mappa/Lista): nessuna user story in questo sprint' },
+  { selector: '.ooh-list-area', note: 'Fuori sprint — vista lista/tabella del Parco Impianti: nessuna user story in questo sprint' },
+  { selector: '.gfd-drawer .ant-drawer-content', note: 'Fuori sprint — drawer "Filtri avanzati": nessuna user story in questo sprint' },
 ];
+
+// Avviso mostrato in cima al pannello Sprint Jira: le voci qui sotto coprono
+// solo la creazione impianto, non l'intero modulo Inventory — fa fede Jira.
+window.HANDOFF_SPRINT_NOTE = 'Le voci qui sotto sono ==solo i task di questa sprint relativi alla creazione del Parco Impianti==. **Fa fede la sprint su Jira**, che potrebbe includere altri task o sotto-task non rappresentati in questo pannello.';
 
 window.HANDOFF_SCREENS = {
   'lista': {
@@ -695,7 +718,7 @@ window.HANDOFF_TOURS = [
   },
   {
     id: 'anagrafica-ubicazione',
-    title: 'US#1 — Anagrafica e ubicazione',
+    title: 'GRP-620 — US#1 — Anagrafica e ubicazione',
     description: 'Come **Inventory Manager**, voglio compilare l\'anagrafica e l\'ubicazione dell\'impianto con un aiuto automatico sui campi derivati così da registrare rapidamente un impianto corretto e georeferenziato.',
     roles: ['Inventory Manager', 'Tenant Admin'],
     startScreen: 'lista',
@@ -755,7 +778,7 @@ window.HANDOFF_TOURS = [
   },
   {
     id: 'iter-autorizzativo',
-    title: 'US#1.1 — Iter autorizzativo',
+    title: 'GRP-624 — US#1.1 — Iter autorizzativo',
     description: 'Come **Inventory Manager**, voglio collegare l\'impianto ai titoli relativi all\'esposizione sullo spazio (concessioni/autorizzazioni, progetto Genio Civile, SCIA) così da avere in un unico posto tutto ciò che serve alla pratica edilizia e al canone.',
     roles: ['Inventory Manager', 'Tenant Admin'],
     startScreen: 'lista',
@@ -861,7 +884,7 @@ window.HANDOFF_TOURS = [
   },
   {
     id: 'dati-tecnici-facce',
-    title: 'US#1.2 — Dati tecnici e facce',
+    title: 'GRP-626 — US#1.2 — Dati tecnici e facce',
     description: 'Come **Inventory Manager**, voglio registrare le misure dell\'impianto e configurare liberamente tutte le sue facce così da conoscere l\'ingombro reale e i dettagli espositivi di ciascuna faccia.',
     roles: ['Inventory Manager', 'Tenant Admin'],
     startScreen: 'lista',
@@ -958,7 +981,7 @@ window.HANDOFF_TOURS = [
   },
   {
     id: 'cespiti-dispositivi',
-    title: 'US#1.3 — Cespiti e dispositivi',
+    title: 'GRP-628 — US#1.3 — Cespiti e dispositivi',
     description: 'Come **Inventory Manager**, voglio registrare i componenti strutturali e i dispositivi connessi dell\'impianto così da sapere cosa è stato montato e cosa è collegato, indipendentemente dal canale.',
     roles: ['Inventory Manager', 'Tenant Admin'],
     startScreen: 'lista',
@@ -1053,7 +1076,7 @@ window.HANDOFF_TOURS = [
   },
   {
     id: 'squadre',
-    title: 'US#1.4 — Squadre',
+    title: 'GRP-630 — US#1.4 — Squadre',
     description: 'Come **Inventory Manager**, voglio assegnare le squadre di default per affissione e manutenzione, con i relativi costi, così da valorizzare automaticamente gli ordini di lavoro su questo impianto.',
     roles: ['Inventory Manager', 'Tenant Admin'],
     startScreen: 'lista',
@@ -1138,7 +1161,7 @@ window.HANDOFF_TOURS = [
   },
   {
     id: 'commerciale',
-    title: 'US#1.5 — Commerciale',
+    title: 'GRP-631 — US#1.5 — Commerciale',
     description: 'Come **Inventory Manager**, voglio definire anche l\'identità di vendita, il listino e gli eventuali moduli dell\'impianto così da fornire i dati corretti al sales e all\'operation manager per venderlo ai clienti.',
     roles: ['Inventory Manager', 'Tenant Admin'],
     startScreen: 'lista',

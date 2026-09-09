@@ -181,6 +181,52 @@ window.HANDOFF_OUT_OF_SPRINT = [
 ```
 Funzioni di navigazione (`goTo`, `onEnter`) tipiche — aprire una riga, un drawer, una popconfirm — vanno scritte in cima al file (vedi gli helper `ghfOpen*` del Planning). Ordina le US per codice `US#n.m`: il motore le riordina già da solo via il numero nel titolo.
 
+### Step "intelligenti": mostra il risultato, mai il posto sbagliato
+
+Un tour che si limita ad aprire un form vuoto e basta è meno convincente di uno che mostra il **risultato** dell'azione — dati compilati, elemento davvero collegato/selezionato. Applica questo pattern (verificato su `prototype/inventory-systems`, tour "Iter autorizzativo") quando scrivi `onEnter`/`goTo`:
+
+**1 — Setter React esposti per i controlli che non rispondono a click sintetici.** `Select`, `Dropdown` (menu) e `Upload` di Ant Design non reagiscono in modo affidabile a un `.click()` sparato da JS (serve un click reale del sistema operativo) — un tour non può quindi "usarli" via `onEnter`. Soluzione: nel file **solo di handoff** (mai nel prototipo), esponi le funzioni React già cablate sui controlli — e altre pensate apposta per compilare i dati — su `window.__ghf*`, con un effect **senza dipendenze** (si aggiorna ad ogni render, evitando closure stantie):
+```js
+React.useEffect(() => {
+  window.__ghfIterPermessi = {
+    openConcessioneDrawer, closePermitDrawer,     // le stesse funzioni già cablate sul menu/drawer
+    hasConcessione,                                // valori derivati, sempre freschi
+    selectFirstUtenza: () => setPermitRowKey(g.key + '-' + g.utilities[0].utilityNumber),
+    confirmPermit: handleAddPermit,
+    fillProjectExample: () => { setProgettista(v => v || 'Studio Tecnico Russo & Partners'); /* ... */ },
+  };
+  return () => { delete window.__ghfIterPermessi; };
+});
+```
+Poi in `handoff-steps.js`, dentro `onEnter`: `window.__ghfIterPermessi.selectFirstUtenza()` invece di cliccare l'elemento. Stesso principio già in uso per i `Select` a cascata (`window.__ghfIdentita`, vedi Planning/inventory-systems) — estendilo a Dropdown e Upload.
+
+**2 — Autosufficienza e idempotenza.** Ogni `onEnter` deve produrre lo stato giusto per QUEL passo indipendentemente da cosa è successo prima (l'utente può scorrere avanti, tornare indietro, saltare da "Indice"). Per uno step che deve mostrare un "risultato" (es. un campo valorizzato da un collegamento), controlla prima se il collegamento esiste già (un valore booleano esposto, es. `hasConcessione`) e agisci solo se manca — mai duplicare o dare per scontato l'ordine:
+```js
+function ghfEnsureConcessioneLinked(cb) {
+  var api = window.__ghfIterPermessi;
+  if (!api || api.hasConcessione) { cb && cb(); return; }
+  api.openConcessioneDrawer();
+  ghfWaitFor('.ant-drawer-body', function () {
+    api.selectFirstUtenza();
+    setTimeout(function () { window.__ghfIterPermessi.confirmPermit(); cb && cb(); }, 250);
+  });
+}
+```
+
+**3 — Mai inquadrare la cosa sbagliata: `ghfWaitFor`, non `setTimeout` a occhio.** Incatenare timeout indovinati fa sì che, prima o poi, il balloon punti a un elemento non ancora renderizzato. Aspetta l'ESISTENZA REALE del selettore nel DOM:
+```js
+function ghfWaitFor(selector, cb, maxWait) {
+  var start = Date.now();
+  setTimeout(function poll() {              // ⚠️ mai un controllo sincrono immediato
+    if (document.querySelector(selector) || Date.now() - start > (maxWait || 1500)) { cb && cb(); return; }
+    setTimeout(poll, 60);
+  }, 60);
+}
+```
+⚠️ Il primo controllo va **sempre ritardato di almeno un tick**, mai eseguito in modo sincrono: elementi come il wrapper di un `Drawer`/`Modal` spesso restano montati nel DOM anche dopo la chiusura, o un `Collapse` viene riusato da un'apertura precedente — un `document.querySelector` immediato li troverebbe "già lì" e scambierebbe per pronto un contenuto che React non ha ancora ri-renderizzato, facendo fallire (in silenzio) l'azione successiva o colpendo l'elemento sbagliato. Esempio reale: selezionare la riga di un accordion **collassato** non basta a mostrarla — serve anche aprire il pannello, e va fatto solo dopo `ghfWaitFor` sul selettore di quel pannello specifico, non su un proxy generico come il corpo del drawer.
+
+**4 — Il motore non aspetta dinamicamente.** `step.delay` è un tempo FISSO che il motore attende dopo `onEnter()` prima di mostrare lo step (non collegato a promesse/`ghfWaitFor`). Per step con più azioni incatenate (apri drawer → seleziona → conferma) scegli un `delay` generoso (700–1200ms) e chiudi comunque la catena con `ghfNudge()` come correttivo finale sulla posizione dello spotlight.
+
 ### `window.HANDOFF_COMPONENTS` — registro Inspector dev
 Una voce per ogni componente ispezionabile in hover. Il match usa `closest(selector)`: vince l'elemento più profondo.
 ```js

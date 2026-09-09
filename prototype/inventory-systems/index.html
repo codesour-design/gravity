@@ -8072,7 +8072,7 @@ function App() {
 
           // Titolo — sinistra (flex:1 per bilanciare)
           React.createElement('div', { style: { flex: 1 } },
-            React.createElement('span', { style: { fontSize: 22, fontWeight: 700, color: 'rgba(0,0,0,0.88)', letterSpacing: '-0.3px' } }, 'Parco Impianti'),
+            React.createElement('span', { className: 'grav-parco-title', style: { fontSize: 22, fontWeight: 700, color: 'rgba(0,0,0,0.88)', letterSpacing: '-0.3px' } }, 'Parco Impianti'),
           ),
 
           // Search bar — centro (unified bar)
@@ -8208,6 +8208,7 @@ function App() {
                 placement: 'bottomRight',
               },
                 React.createElement(Button, {
+                  className: 'grav-add-taxonomy-btn',
                   icon: React.createElement(PlusOutlined),
                 }, 'Aggiungi'),
               ),

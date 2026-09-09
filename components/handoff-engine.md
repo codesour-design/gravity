@@ -35,22 +35,31 @@ vecchie mostrano il prototipo aggiornato con le vecchie annotazioni.
 |---------|-----------|
 | `HANDOFF_META` | `{ title, version, date, author, versions? }` |
 | `HANDOFF_SCREENS` | `{ key: { label, detect() } }` — rilevamento schermata corrente |
-| `HANDOFF_TOURS` | tour spotlight `[{ id, title, description, roles?, startScreen?, novita?, type?, steps }]` — **vuoto = motore disattivato**; `type` assente/`'us'` = user story (default), `'task'` = attività più granulare (stesso motore, badge "Task" nel pannello) |
+| `HANDOFF_TOURS` | tour spotlight `[{ id, title, description, roles?, startScreen?, novita?, type?, steps }]` — **vuoto = motore disattivato**, tranne quando `HANDOFF_META.versions` è valorizzato: in quel caso la dev bar monta comunque ridotta al solo selettore versione (per poter tornare a un'altra versione dalla UI anche su una versione ancora senza contenuti); `type` assente/`'us'` = user story (default), `'task'` = attività più granulare (stesso motore, badge "Task" nel pannello) |
+
+Ordinamento nel dropdown Sprint Jira (`UsPanel`): prima tutti i tour `type: 'task'`, poi le user
+story — dentro ciascun gruppo, per numero `US#n.m` estratto dal titolo (i titoli senza numero
+restano in fondo al proprio gruppo, nell'ordine di inserimento in `HANDOFF_TOURS`).
 | `HANDOFF_COMPONENTS` | inspector `[{ selector, name, level, custom?, funzione, figma, variant?(el) }]` |
 | `HANDOFF_NOTES` | note di design inline |
-| `HANDOFF_DEPENDENCIES` / `RELATIONS` / `SCENARIOS` | metadati pannello |
+| `HANDOFF_DEPENDENCIES` / `RELATIONS` / `SCENARIOS` | metadati pannello — la tab di ciascuna nel dropdown Modello appare **solo se ha elementi**: omettere la variabile (o lasciarla `[]`) nasconde del tutto quella tab invece di mostrarla vuota con "Nessun elemento"; con una sola tab con dati, la barra delle tab stessa non si mostra |
 | `HANDOFF_OUT_OF_SPRINT` | `[{ selector, text?, note }]` — elementi fuori scope sprint |
+| `HANDOFF_SPRINT_NOTE` | stringa opzionale — avviso in cima al dropdown Sprint Jira (`UsPanel`), supporta `**grassetto**`/`==evidenziato==`; assente = nessun avviso |
 
 ## UI iniettata
 
-- **Dev bar in navbar** (accanto a `#gravity-bell-btn`): switch Inspector (hover → nome, livello
-  atomico, funzione, variante Figma), dropdown **Sprint Jira** (tour di user story + task,
-  distinte da un badge "Task" sulle seconde; include il toggle "Interfaccia semplificata" per gli
-  elementi fuori sprint, vedi sotto), dropdown **Modello** (tab Scenari / Dipendenze / Relazioni
-  del dominio, alimentate da `HANDOFF_SCENARIOS` / `HANDOFF_DEPENDENCIES` / `HANDOFF_RELATIONS`),
-  selettore versione (`VersionBadge`). Il dropdown del selettore versione è la sola lista di
-  versioni selezionabili (id, nota, tag "Approvata" sulla versione approvata, check sulla
-  corrente) — senza titolo né stato del prototipo, e senza tooltip in hover sul badge.
+- **Dev bar in navbar** (accanto a `#gravity-bell-btn`): selettore versione (`VersionBadge`,
+  solo se `HANDOFF_META.versions` è definito), select **Vista ruolo** (duplica il dropdown
+  ruolo dell'avatar di `GravityNavbar` — stessa chiave `localStorage.gravity_proto_role`,
+  opzioni da `window.GRAVITY_ROLES`, sincronizzata con l'avatar via evento custom
+  `gravity:role-change` in entrambe le direzioni; filtra anche Sprint Jira), switch Inspector
+  (hover → nome, livello atomico, funzione, variante Figma), dropdown **Sprint Jira** (tour di
+  user story + task, distinte da un badge "Task" sulle seconde; include il toggle "Interfaccia
+  semplificata" per gli elementi fuori sprint, vedi sotto), dropdown **Modello** (tab Scenari /
+  Dipendenze / Relazioni del dominio, alimentate da `HANDOFF_SCENARIOS` / `HANDOFF_DEPENDENCIES`
+  / `HANDOFF_RELATIONS`). Il dropdown del selettore versione è la sola lista di versioni
+  selezionabili (id, nota, tag "Approvata" sulla versione approvata, check sulla corrente) —
+  senza titolo né stato del prototipo, e senza tooltip in hover sul badge.
 - **Note di design**: `CoffeeOutlined` **rossa** `#FF4A1C`, marker inline contestuale con
   popover "Nota di design" — iconografia riservata (vedi `LAYOUT.md` §6.5).
 - **Fuori sprint**: classe `.ghf-oos` (outline tratteggiato + badge + tooltip) sugli elementi in
