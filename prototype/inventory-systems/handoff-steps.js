@@ -1,11 +1,16 @@
 /**
- * Handoff — Inventory Systems: flusso "Nuovo impianto"
- * Copre SOLO la creazione di un impianto dal drawer a pagina intera
- * (NewImpiantoFullDrawer): apertura, navigazione tra le sezioni, compilazione
- * reale dei campi obbligatori e il pattern "aggiungi un elemento alla volta"
- * nei sotto-drawer di Cespiti/Dispositivi e Squadre — con salvataggio reale,
- * non solo apertura/chiusura. Il resto del prototipo (mappa, filtri,
- * dettaglio impianto…) non è documentato in questo handoff.
+ * Handoff — Inventory Systems: flusso "Nuovo impianto" (NewImpiantoFullDrawer)
+ * Copre DUE user story sullo stesso drawer a pagina intera:
+ * - GRP-622 — Creazione: apertura, navigazione tra le sezioni, compilazione
+ *   reale dei campi obbligatori e il pattern "aggiungi un elemento alla volta"
+ *   nei sotto-drawer di Cespiti/Dispositivi e Squadre — con salvataggio reale,
+ *   non solo apertura/chiusura.
+ * - US#1.1 — Iter autorizzativo: approfondisce la sezione "Iter
+ *   autorizzativo" dello stesso drawer — collegamento di concessioni/
+ *   autorizzazioni, suolo e canone, progetto Genio Civile, SCIA urbanistica/
+ *   commerciale.
+ * Il resto del prototipo (mappa, filtri, dettaglio di un impianto esistente…)
+ * non è documentato in questo handoff — vedi HANDOFF_OUT_OF_SPRINT.
  */
 
 // ── Helper di navigazione ───────────────────────────────────────────────
@@ -138,9 +143,121 @@ function ghfFillAnagraficaAtSection() {
   }
 }
 
+// ── Helper di navigazione — US#1.1 Iter autorizzativo (sezione del form di
+// creazione) — box() e boxX() non aggiungono classi/id propri: le card della
+// sezione si individuano per posizione, dentro #grav-tour-form-required.
+var CF_CARD_CONC      = '#grav-tour-form-required > div > div:nth-child(2)'; // Concessioni e autorizzazioni
+var CF_SUOLO_ROW      = '#grav-tour-form-required > div > div:nth-child(2) > div:nth-child(2) > div:nth-child(3)'; // Tipo suolo / Categoria suolo
+var CF_CARD_PROGETTO  = '#grav-tour-form-required > div > div:nth-child(3)'; // Progetto · Genio Civile
+var CF_SCARICA_MODULO = '#grav-tour-form-required > div > div:nth-child(3) > div:nth-child(2) > div:nth-child(6)'; // bottone "Scarica Modulo"
+var CF_CARD_SCIA      = '#grav-tour-form-required > div > div:nth-child(4)'; // Titolo a installare (SCIA)
+// Step "intelligenti": ogni azione async (apri drawer, seleziona, conferma)
+// verifica che il DOM abbia davvero recepito il passo precedente prima di
+// procedere al successivo — invece di incatenare setTimeout "a occhio" — così
+// il balloon non punta mai a un elemento non ancora renderizzato. Il motore
+// aspetta comunque un tempo FISSO (step.delay) dopo onEnter prima di mostrare
+// lo step (non è configurabile): ghfWaitFor riduce il rischio nella catena di
+// azioni dentro onEnter, ghfNudge() resta il correttivo finale sullo spotlight.
+function ghfWaitFor(selector, cb, maxWait) {
+  var start = Date.now();
+  // Il primo controllo è SEMPRE dopo un tick (mai sincrono): un elemento può
+  // già esistere nel DOM da un mount precedente (es. il wrapper del Drawer
+  // resta montato dopo la chiusura) mentre React non ha ancora ri-renderizzato
+  // il contenuto nuovo — un controllo immediato lo scambierebbe per "pronto".
+  setTimeout(function poll() {
+    if (document.querySelector(selector) || Date.now() - start > (maxWait || 1500)) { cb && cb(); return; }
+    setTimeout(poll, 60);
+  }, 60);
+}
+// Chiude un eventuale drawer di collegamento permesso rimasto aperto da uno
+// step precedente, poi assicura che il form sia aperto sulla sezione "Iter
+// autorizzativo" (riusa ghfEnsureOpenAtSection, già definito più sopra).
+function ghfEnsureIterSection(cb) {
+  if (window.__ghfIterPermessi) window.__ghfIterPermessi.closePermitDrawer();
+  ghfEnsureOpenAtSection('dati-amministrativi');
+  ghfNudge();
+  cb && cb();
+}
+// Apre il drawer di collegamento permesso: tipo = 'concessione' | 'autorizzazione'.
+// Il menu "Collega permesso" è un Dropdown AntD e, come i Select (vedi
+// commento su window.__ghfIdentita), non risponde a eventi mouse sintetici:
+// si passa dai setter React esposti solo nell'handoff (window.__ghfIterPermessi,
+// vedi index--handoff.html). `after` (opz.) viene richiamato SOLO quando il
+// corpo del drawer esiste davvero nel DOM — usato per selezionare/compilare
+// qualcosa al suo interno senza indovinare un timeout.
+function ghfOpenPermitDrawer(tipo, after) {
+  ghfEnsureOpenAtSection('dati-amministrativi');
+  ghfWaitFor('#grav-tour-form-required', function () {
+    var api = window.__ghfIterPermessi;
+    if (api) { tipo === 'autorizzazione' ? api.openAutorizzazioneDrawer() : api.openConcessioneDrawer(); }
+    ghfWaitFor('.ant-drawer-body', function () {
+      ghfNudge();
+      after && after();
+    });
+  }, 900);
+}
+// Mostra il RISULTATO del collegamento (Tipo suolo valorizzato in sola
+// lettura) invece del form vuoto: se non c'è già una concessione collegata,
+// la collega davvero (prima utenza) prima di mostrare la sezione — così lo
+// step è autosufficiente indipendentemente da cosa è successo prima negli
+// step del drawer (che selezionano ma non sempre confermano, per mostrare
+// l'interazione senza vincolare la narrazione).
+function ghfEnsureConcessioneLinked(cb) {
+  ghfEnsureIterSection(function () {
+    var api = window.__ghfIterPermessi;
+    if (!api || api.hasConcessione) { cb && cb(); return; }
+    api.openConcessioneDrawer();
+    ghfWaitFor('.ant-drawer-body', function () {
+      api.selectFirstUtenza();
+      setTimeout(function () {
+        window.__ghfIterPermessi.confirmPermit();
+        ghfNudge();
+        cb && cb();
+      }, 250);
+    });
+  });
+}
+
+// ── Helper di navigazione — US#1 Anagrafica e ubicazione (sezione del form di
+// creazione) — sec('identita', ...) ha due box: "Informazioni generali" e
+// "Indirizzo e coordinate", individuati per posizione come per l'Iter autorizzativo.
+var AN_CARD_INFO             = '#grav-tour-form-required > div > div:nth-child(2)'; // Informazioni generali
+var AN_ROW_CANALE_TIPOLOGIA  = AN_CARD_INFO + ' > div:nth-child(2) > div:nth-child(1)';
+var AN_ROW_FORMATO_NOME      = AN_CARD_INFO + ' > div:nth-child(2) > div:nth-child(2)';
+var AN_ROW_PROPRIETA_STATO   = AN_CARD_INFO + ' > div:nth-child(2) > div:nth-child(3)';
+var AN_CARD_INDIRIZZO        = '#grav-tour-form-required > div > div:nth-child(3)'; // Indirizzo e coordinate
+var AN_ROW_NAZIONE_ZONA      = AN_CARD_INDIRIZZO + ' > div:nth-child(2) > div:nth-child(3)';
+function ghfEnsureAnagraficaSection(cb) {
+  ghfEnsureOpenAtSection('identita');
+  ghfNudge();
+  cb && cb();
+}
+// Compila davvero la cascata Canale → Tipologia → Formato (stessa logica di
+// ghfFillAnagrafica, isolata qui per mostrare SOLO la cascata senza gli altri
+// campi che ghfFillAnagrafica tocca — Stato, Via, Città hanno step propri).
+// ⚠️ Usa ghfCall (non un `var api = window.__ghfIdentita` catturato una volta):
+// l'oggetto esposto viene RICREATO ad ogni render (opzioni tipologia/formato
+// derivate da canale/tipologia correnti) — una referenza catturata prima di
+// pickCanale() punta a closure con `tipologieOpts` ancora vuoto, e pickTipologia
+// fallisce in silenzio. ghfCall rilegge window.__ghfIdentita al momento della chiamata.
+function ghfFillCascata(cb) {
+  ghfEnsureOpenAtSection('identita');
+  setTimeout(function () {
+    ghfCall(['__ghfIdentita', 'pickCanale']);
+    setTimeout(function () {
+      ghfCall(['__ghfIdentita', 'pickTipologia']);
+      setTimeout(function () {
+        ghfCall(['__ghfIdentita', 'pickFormato']);
+        ghfNudge();
+        cb && cb();
+      }, 250);
+    }, 250);
+  }, 200);
+}
+
 window.HANDOFF_META = {
-  title: 'Inventory — Nuovo impianto',
-  version: '1.0',
+  title: 'Inventory — Impianti',
+  version: '1.1',
   date: 'Settembre 2026',
   author: 'Gloria Bonanno',
 };
@@ -149,12 +266,18 @@ window.HANDOFF_META = {
 // Interfaccia semplificata (toggle nel pannello Sprint Jira).
 // Elementi FUORI SPRINT: presenti nel prototipo (mappa/lista già toccano la
 // scheda impianto per aprirla) ma senza user story in questo sprint — solo la
-// creazione (US#1) è in scope. Il motore li evidenzia quando il toggle è attivo.
+// creazione (GRP-622) è in scope. Il motore li evidenzia quando il toggle è attivo.
 // ════════════════════════════════════════════════════════════════════════════
 window.HANDOFF_OUT_OF_SPRINT = [
   // Scheda impianto (ImpiantoDetailV2): dettaglio, modifica per sezione, storico eventi —
-  // raggiungibile da mappa/lista ma nessuna US di questo sprint la copre.
-  { selector: '.imp-detail-page', note: 'Fuori sprint — scheda impianto (dettaglio, modifica per sezione, storico eventi): nessuna user story in questo sprint, solo la creazione (US#1) è in scope' },
+  // raggiungibile da mappa/lista ma nessuna user story di questo sprint la copre:
+  // solo la creazione (GRP-622) e l'iter autorizzativo nel form di creazione
+  // (US#1.1) sono in scope.
+  { selector: '.imp-detail-page', note: 'Fuori sprint — scheda impianto (dettaglio, modifica per sezione, storico eventi): nessuna user story in questo sprint, solo la creazione (GRP-622) è in scope' },
+  // "Scarica Modulo" Genio Civile — presente nel form come segnaposto di demo,
+  // ma la generazione del modulo regionale precompilato è esplicitamente
+  // fuori scope per questo sprint (vedi nota inline sul pulsante).
+  { selector: '.ant-btn', text: 'Scarica Modulo', note: 'Fuori scope per questo sprint — generazione modulo regionale Genio Civile: sistema di template multi-regione da ridisegnare, non sviluppare ora' },
 ];
 
 window.HANDOFF_SCREENS = {
@@ -180,7 +303,7 @@ var ROLE_SECTION_MATRIX = {
 window.HANDOFF_TOURS = [
   {
     id: 'nuovo-impianto',
-    title: 'US#1 — Creazione nuovo impianto',
+    title: 'GRP-622 — Creazione nuovo impianto',
     description: 'Come **Inventory Manager**, voglio creare un nuovo impianto dal Parco Impianti così da registrarlo in piattaforma anche compilando solo i dati che conosco al momento.',
     roles: ['Inventory Manager', 'Tenant Admin'],
     startScreen: 'lista',
@@ -344,6 +467,172 @@ window.HANDOFF_TOURS = [
       },
     ],
   },
+  {
+    id: 'anagrafica-ubicazione',
+    title: 'US#1 — Anagrafica e ubicazione',
+    description: 'Come **Inventory Manager**, voglio compilare l\'anagrafica e l\'ubicazione dell\'impianto con un aiuto automatico sui campi derivati così da registrare rapidamente un impianto corretto e georeferenziato.',
+    roles: ['Inventory Manager', 'Tenant Admin'],
+    startScreen: 'lista',
+    steps: [
+      {
+        title: 'Punto di ingresso: sezione "Anagrafica e ubicazione"',
+        description: 'La prima sezione del form di creazione: identità dell\'impianto (canale, tipologia, formato, proprietà, stato) e la sua posizione geografica.',
+        selector: '[data-section="identita"]',
+        placement: 'right',
+        onEnter: function () { ghfEnsureOpenAtSection('dati-amministrativi'); },
+        delay: 700,
+      },
+      {
+        title: 'Cascata Canale → Tipologia → Formato',
+        description: '**Canale** è il primo campo (OOH/DOOH), obbligatorio. **Tipologia** resta disabilitata finché Canale è vuoto, e mostra solo le tipologie di quel canale, raggruppate per famiglia (intestazione non selezionabile) e ricercabili per testo. **Formato** resta disabilitato finché Tipologia è vuota, e propone solo i formati di quella tipologia. Cambiando Canale si azzerano Tipologia e Formato; cambiando Tipologia si azzera Formato.',
+        selector: AN_ROW_CANALE_TIPOLOGIA,
+        placement: 'bottom',
+        onEnter: function () { ghfFillCascata(); },
+        delay: 1200,
+        dev: [{ label: 'Opzioni', value: 'Tipologia: Select grouped (OptGroup) da MACRO_TIPI_PER_CANALE[canale], showSearch\nFormato: Select da FORMATI_PER_TIPO[tipologia]' }],
+      },
+      {
+        title: 'Nome impianto generato automaticamente',
+        description: 'Campo in sola lettura, composto da **{CANALE}-{Tipologia abbreviata}-{Formato}-{Sigla provincia}**: ogni segmento compare appena il campo sorgente è valorizzato (qui senza provincia perché l\'indirizzo non è ancora stato compilato — arriva nello step successivo).',
+        selector: AN_ROW_FORMATO_NOME,
+        placement: 'bottom',
+        onEnter: function () { ghfFillCascata(); },
+        delay: 1200,
+        dev: [{ label: 'Nota', value: '==Manca il prefisso "{Progressivo}–" iniziale previsto dal criterio di accettazione== (per la disambiguazione di nomi duplicati, gestita dal backend — non simulabile nel prototipo senza un backend reale). Vedi icona nota.' }],
+      },
+      {
+        title: 'Indirizzo: ricerca con suggerimenti',
+        description: '"Via" è un campo di ricerca con icona di localizzazione; selezionando un suggerimento si compilano davvero N. civico, CAP, Città, Provincia, Regione, Nazione, Latitudine e Longitudine — tutti campi normali, sempre visibili e modificabili anche a mano, senza dover passare dalla ricerca.',
+        selector: AN_CARD_INDIRIZZO,
+        placement: 'top',
+        onEnter: function () { ghfEnsureAnagraficaSection(function () { if (window.__ghfIdentita) window.__ghfIdentita.applyAddressExample(); ghfNudge(); }); },
+        delay: 900,
+        dev: [{ label: 'Componente', value: 'AutoComplete (AntD) — opzioni con icona EnvironmentOutlined + indirizzo + sotto-etichetta' }],
+      },
+      {
+        title: 'Zona: a compilazione manuale',
+        description: '"Zona" ==non fa parte dei campi compilati dalla ricerca indirizzo== (a differenza di CAP, Città, Provincia, ecc.): resta sempre a compilazione manuale, anche dopo aver selezionato un suggerimento — qui valorizzata a parte per mostrarlo.',
+        selector: AN_ROW_NAZIONE_ZONA,
+        placement: 'top',
+        onEnter: function () { ghfEnsureAnagraficaSection(function () { var api = window.__ghfIdentita; if (api) { api.applyAddressExample(); api.setZonaExample(); } ghfNudge(); }); },
+        delay: 900,
+      },
+      {
+        title: 'Proprietà e Stato',
+        description: '**Proprietà** è un unico select ricercabile, raggruppato in due famiglie: "Gestione diretta" (Proprietario) e "Concessionarie" (elenco a catalogo — qui selezionata una concessionaria per mostrare quel gruppo). **Stato** è obbligatorio, con quattro opzioni (Attivo, Inizializzato, In Manutenzione, Rimosso) e pallino colorato per ciascuna.',
+        selector: AN_ROW_PROPRIETA_STATO,
+        placement: 'bottom',
+        onEnter: function () { ghfEnsureAnagraficaSection(function () { var api = window.__ghfIdentita; if (api) { api.pickProprietaConcessionaria(); api.pickStato(); } ghfNudge(); }); },
+        delay: 700,
+      },
+    ],
+  },
+  {
+    id: 'iter-autorizzativo',
+    title: 'US#1.1 — Iter autorizzativo',
+    description: 'Come **Inventory Manager**, voglio collegare l\'impianto ai titoli relativi all\'esposizione sullo spazio (concessioni/autorizzazioni, progetto Genio Civile, SCIA) così da avere in un unico posto tutto ciò che serve alla pratica edilizia e al canone.',
+    roles: ['Inventory Manager', 'Tenant Admin'],
+    startScreen: 'lista',
+    steps: [
+      {
+        title: 'Punto di ingresso: sezione "Iter autorizzativo"',
+        description: 'Nello stesso form di creazione, la sezione **Iter autorizzativo** raccoglie concessioni/autorizzazioni, suolo e canone, progetto Genio Civile e SCIA — tutto ciò che serve alla pratica edilizia in un unico posto.',
+        selector: '[data-section="dati-amministrativi"]',
+        placement: 'right',
+        onEnter: function () { ghfEnsureOpenAtSection('identita'); },
+        delay: 700,
+        width: 820,
+        table: ROLE_SECTION_MATRIX,
+      },
+      {
+        title: 'Concessioni e autorizzazioni collegate',
+        description: 'I permessi già collegati compaiono come card, con stato (pallino colorato), ente emittente e scadenza. ==Si collega, non si crea==: gli atti esistono già in anagrafica, l\'impianto si limita ad agganciarsi al numero utenza (concessione) o al protocollo (autorizzazione) giusto.',
+        selector: CF_CARD_CONC,
+        placement: 'bottom',
+        onEnter: function () { ghfEnsureIterSection(); },
+        delay: 700,
+        dev: [{ label: 'Componente', value: 'FormPermitCard (EntityCard) — la stessa card riusata nel dettaglio impianto (PermitCard)' }],
+      },
+      {
+        title: 'Collegare una concessione: ricerca + utenze',
+        description: 'Il pulsante "Collega permesso" apre il menu per scegliere tra Concessione e Autorizzazione; scegliendo Concessione si apre questo drawer, con ricerca, istruzioni di selezione, l\'elenco delle concessioni **paginato** e, aprendo ciascuna, la tabella delle utenze collegabili. ==Si seleziona una sola utenza per volta==: checkbox esclusivo, non multiplo.',
+        selector: '.ant-drawer-body .ant-collapse',
+        placement: 'left',
+        onEnter: function () { ghfOpenPermitDrawer('concessione'); },
+        delay: 900,
+        dev: [{ label: 'Componente', value: 'GrantsAccordion — Input ricerca + Collapse (AntD) + Pagination, riusato identico nel dettaglio impianto' }],
+      },
+      {
+        title: 'Colonna "Codice Cimasa": in sospeso',
+        description: 'La tabella utenze mostra anche "Codice Cimasa" — non ci sono azioni da fare qui, il dettaglio è nella nota sulla colonna stessa (vedi icona note).',
+        selector: '.ant-collapse-content-box',
+        placement: 'right',
+        onEnter: function () { ghfOpenPermitDrawer('concessione'); },
+        delay: 900,
+      },
+      {
+        title: 'Atti scaduti: visibili e selezionabili',
+        description: 'Gli atti scaduti (qui il Comune di Trapani, **selezionato** per mostrarlo davvero) restano visibili e selezionabili — corretto. ==Manca però l\'avviso non bloccante== richiesto dal criterio di accettazione quando si seleziona un atto scaduto: da aggiungere, senza disabilitare la conferma.',
+        selector: '.ant-collapse-item:nth-child(3) .ant-collapse-header',
+        placement: 'right',
+        onEnter: function () {
+          ghfOpenPermitDrawer('concessione', function () {
+            window.__ghfIterPermessi.selectExpiredUtenza();
+            // Il pannello del terzo atto (quello scaduto) è collassato di default nell'accordion:
+            // aspettiamo che esista DAVVERO (non solo il drawer) prima di aprirlo, per mostrare
+            // la riga selezionata e non solo lo stato interno.
+            ghfWaitFor('.ant-collapse-item:nth-child(3) .ant-collapse-header', function () {
+              var header = document.querySelector('.ant-collapse-item:nth-child(3) .ant-collapse-header');
+              if (header) header.click();
+              ghfNudge();
+            });
+          });
+        },
+        delay: 1100,
+      },
+      {
+        title: 'Collegare più autorizzazioni in blocco',
+        description: 'Scegliendo Autorizzazione dallo stesso menu, le autorizzazioni si selezionano in blocco con checkbox multiple (qui **3 già selezionate** per mostrare il risultato) e si collegano tutte insieme — a differenza della concessione, qui non c\'è vincolo di selezione singola.',
+        selector: '.ant-drawer-body',
+        placement: 'left',
+        onEnter: function () { ghfOpenPermitDrawer('autorizzazione', function () { window.__ghfIterPermessi.selectSomeAuthorizations(); ghfNudge(); }); },
+        delay: 1100,
+        dev: [{ label: 'Componente', value: 'AuthorizationsList — Input ricerca + Switch "Mostra solo i selezionati" + Checkbox multiple' }],
+      },
+      {
+        title: 'Suolo e canone: valorizzato dal collegamento',
+        description: 'Quando si collega una concessione, **Tipo suolo** si valorizza in sola lettura da essa (Pubblico/Privato) — **Categoria suolo** resta invece a compilazione manuale. ==Qui la concessione è già stata collegata== (se non lo era ancora) per mostrare il campo davvero valorizzato, non solo il placeholder "Collega una concessione".',
+        selector: CF_SUOLO_ROW,
+        placement: 'bottom',
+        onEnter: function () { ghfEnsureConcessioneLinked(); },
+        delay: 700,
+      },
+      {
+        title: 'Progetto Genio Civile: dati e documenti',
+        description: 'Caricando più documenti si autocompilano i campi già censiti in anagrafica (Progettista, Direttore dei lavori, Responsabile sicurezza cantiere, Laboratorio, Geologo, Collaudatore); gli altri campi (data collaudo, calcestruzzo, acciai, ditta cemento armato, tecniche, data fine lavori) restano liberi. ==Tutti i campi si possono compilare anche interamente a mano==, senza caricare nulla — qui compilati con dati di esempio per mostrare il risultato invece del form vuoto.',
+        selector: CF_CARD_PROGETTO,
+        placement: 'bottom',
+        onEnter: function () { ghfEnsureIterSection(function () { if (window.__ghfIterPermessi) window.__ghfIterPermessi.fillProjectExample(); ghfNudge(); }); },
+        delay: 700,
+      },
+      {
+        title: '"Scarica Modulo": fuori scope questo sprint',
+        description: 'Nessuna azione da mostrare qui: il pulsante resta nel prototipo come segnaposto di demo, ma la generazione del modulo va vista come fuori scope questo sprint (dettaglio nella nota).',
+        selector: CF_SCARICA_MODULO,
+        placement: 'top',
+        onEnter: function () { ghfEnsureIterSection(); },
+        delay: 500,
+      },
+      {
+        title: 'Titolo a installare: SCIA Urbanistica e Commerciale',
+        description: 'Due blocchi paralleli, ciascuno con empty state, upload documenti e campi propri; la SCIA Urbanistica ha in più "Tecnico asseverante" e "Termine fine lavori" — qui compilati con dati di esempio coerenti (presentazione → verifica → fine lavori in ordine) per mostrare il risultato atteso. ==Manca ancora la validazione== che impedisce di impostare "Termine di verifica dell\'ente" prima di "Data di presentazione", e "Termine fine lavori" prima del "Termine di verifica": i valori di esempio sono già coerenti, ma nulla impedirebbe di invertirli.',
+        selector: CF_CARD_SCIA,
+        placement: 'top',
+        onEnter: function () { ghfEnsureIterSection(function () { if (window.__ghfIterPermessi) window.__ghfIterPermessi.fillSciaExample(); ghfNudge(); }); },
+        delay: 700,
+      },
+    ],
+  },
 ];
 
 window.HANDOFF_COMPONENTS = [
@@ -376,6 +665,14 @@ window.HANDOFF_COMPONENTS = [
     composizione: 'Drawer (AntD) + Select squadra + campi condizionati dal tipo + azione Salva',
     figma: 'Drawer — Placement=Right · Size=Default (520px)' },
   { selector: '#grav-tour-form-save', name: 'Button "Crea Impianto"', level: 'Atomo', figma: 'Button — Type=Primary · Icon=Plus · State=Disabled finché mancano i campi obbligatori' },
+  { selector: CF_CARD_CONC, name: 'Card "Concessioni e autorizzazioni"', level: 'Organismo', custom: true,
+    funzione: 'Elenca i permessi già collegati all\'impianto (FormPermitCard) e il menu per collegarne di nuovi (concessione o autorizzazione).',
+    composizione: 'Row/Col di FormPermitCard + Dropdown (menu Collega Concessione/Autorizzazione) + Button',
+    figma: 'Da definire — pattern custom' },
+  { selector: '.ant-drawer-body .ant-collapse', name: 'GrantsAccordion (drawer Concessione)', level: 'Organismo', custom: true,
+    funzione: 'Ricerca + elenco concessioni paginato, espandibili in tabella utenze con selezione a scelta singola (checkbox esclusivo).',
+    composizione: 'Input ricerca + Collapse (AntD, un pannello per concessione) + Pagination + Checkbox per riga utenza',
+    figma: 'Da definire — pattern custom' },
 ];
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -463,9 +760,41 @@ window.HANDOFF_NOTES = [
     title: 'Solo l\'Anagrafica ha campi obbligatori',
     body: 'Le altre 5 sezioni (Iter autorizzativo, Dati tecnici, Cespiti e dispositivi, Squadre, Commerciale) sono **tutte facoltative** in creazione: l\'obiettivo è permettere di censire rapidamente un impianto anche con dati parziali, completandolo in un secondo momento dalla modifica.',
   },
+  // ── US#1 — Anagrafica e ubicazione: note di design/criteri aperti ───────
+  {
+    id: 'anagrafica-nome-progressivo',
+    title: 'Nome impianto: manca il prefisso "Progressivo"',
+    body: 'Il criterio di accettazione descrive il formato **{Progressivo}–{CANALE}-{Tipologia abbreviata}-{Formato}-{Sigla provincia}**, con il progressivo aggiunto dal backend in caso di nomi duplicati (per garantirne l\'unicità).\n==Nel prototipo oggi== il nome si compone solo da CANALE-Tipologia-Formato-Provincia, senza alcun prefisso progressivo: la disambiguazione dei duplicati dipende da un controllo lato backend (verifica su tutti gli impianti esistenti) che un prototipo frontend-only non può simulare in modo affidabile — segnalarlo in fase di sviluppo reale, non è un difetto da correggere qui.',
+  },
   {
     id: 'add-one-at-a-time',
     title: 'Pattern "aggiungi un elemento alla volta"',
     body: 'Cespiti, Dispositivi, Squadre e Facce condividono lo stesso pattern di interazione:\n- il pulsante **Aggiungi** apre un sotto-drawer con un solo record da compilare;\n- salvando, il sotto-drawer si chiude e l\'elemento compare nella sezione;\n- si ripete l\'azione per ogni nuovo elemento — nessun form con righe multiple da gestire in una volta sola.\n==Scelta deliberata==: evita form tabellari lunghi e riduce l\'errore di compilazione su righe multiple contemporaneamente.\n\nIl COMPONENTE che mostra l\'elemento aggiunto però cambia:\n- **Squadre e Facce → card** (EntityCard): i campi sono sempre gli stessi, un formato fisso funziona.\n- **Cespiti e Dispositivi → accordion** (Collapse): i campi variano troppo da tipo a tipo (una Fondazione e un Player multimediale non condividono quasi nulla) per stare in una card a layout fisso — il pannello si adatta al contenuto di ciascun tipo.',
+  },
+  // ── US#1.1 — Iter autorizzativo: note di design/criteri aperti ──────────
+  {
+    id: 'iter-cimasa-sospeso',
+    title: 'Colonna "Codice Cimasa": sospesa',
+    body: 'Prevista in origine nella tabella utenze del drawer di collegamento, ma **non esiste nell\'anagrafica reale delle utenze**.\n==Sospeso, priorità alta==: resta esclusa finché il design non chiarisce il destino del campo — non implementarla in questa forma.',
+  },
+  {
+    id: 'iter-scaduti-avviso',
+    title: 'Atti scaduti: manca l\'avviso non bloccante',
+    body: 'Concessioni e autorizzazioni scadute **restano visibili e selezionabili** nel drawer — corretto, già così nel prototipo.\n==Manca però== l\'avviso non bloccante richiesto dal criterio di accettazione quando si seleziona/collega un atto scaduto (es. un Alert nel drawer): da aggiungere, senza disabilitare mai la conferma.',
+  },
+  {
+    id: 'iter-scia-validazioni',
+    title: 'SCIA: validazioni sulle date da aggiungere',
+    body: '"Termine di verifica dell\'ente" non può precedere "Data di presentazione"; "Termine fine lavori" non può precedere il "Termine di verifica" — vincoli richiesti dal criterio di accettazione.\n==Nel prototipo oggi== questi campi non hanno ancora alcuna validazione di ordine tra le date.',
+  },
+  {
+    id: 'iter-scarica-modulo-fuori-scope',
+    title: '"Scarica modulo": fuori scope questo sprint',
+    body: '==Fuori scope per questo sprint==: la generazione del modulo regionale precompilato del Genio Civile.\nIl target non è un modulo unico, ma un **sistema di template regionali multipli**, caricabili dall\'Admin tenant in base alle regioni necessarie.\n**Non svilupparla né includerla nell\'handoff** finché non è ridisegnata — nel prototipo resta visibile solo come segnaposto della demo.',
+  },
+  {
+    id: 'iter-autorizzazioni-paginazione',
+    title: 'Drawer Autorizzazioni: manca la paginazione',
+    body: 'Il drawer di collegamento concessione ha ricerca + paginazione; quello di collegamento autorizzazione ha ricerca ma **non è ancora paginato**.\n==Da allineare==: con l\'anagrafica reale delle autorizzazioni la lista potrebbe crescere oltre una singola pagina, come già gestito per le concessioni.',
   },
 ];

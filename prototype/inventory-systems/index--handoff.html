@@ -2846,7 +2846,7 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
         React.createElement('div', { style: { border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' } },
           React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '2fr 2fr 2fr 4fr 40px', padding: '8px 16px', fontWeight: 500, fontSize: 12, color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0' } },
             React.createElement('div', null, 'Numero Utenza'),
-            React.createElement('div', null, 'Codice Cimasa'),
+            React.createElement('div', null, 'Codice Cimasa', React.createElement(HandoffDesignNote, { id: 'iter-cimasa-sospeso', placement: 'top' })),
             React.createElement('div', null, 'Canone Patrimoniale'),
             React.createElement('div', null, 'Aggiunta a:'),
             React.createElement('div'),
@@ -2879,7 +2879,7 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
 
   return React.createElement('div', null,
     React.createElement(Input, { placeholder: 'Cerca concessione...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: 16 }, allowClear: true }),
-    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, "Seleziona una concessione e scegli il numero utenza che vuoi collegare all'impianto"),
+    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', gap: 6 } }, "Seleziona una concessione e scegli il numero utenza che vuoi collegare all'impianto", React.createElement(HandoffDesignNote, { id: 'iter-scaduti-avviso', placement: 'bottom' })),
     React.createElement(Collapse, { items: collapseItems, ghost: false, style: { backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 6 }, activeKey: activeKeys, onChange: keys => setActiveKeys(keys) }),
     filtered.length > pageSize ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', padding: '16px 0', borderTop: '1px solid #f0f0f0', marginTop: 16 } },
       React.createElement(Pagination, { current: currentPage, total: filtered.length, pageSize: pageSize, onChange: setCurrentPage, size: 'small' }),
@@ -2903,7 +2903,7 @@ function AuthorizationsList({ data, selectedKeys, onSelectionChange }) {
   };
 
   return React.createElement('div', null,
-    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, "Seleziona tutte le autorizzazioni da collegare a questo impianto"),
+    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', gap: 6 } }, "Seleziona tutte le autorizzazioni da collegare a questo impianto", React.createElement(HandoffDesignNote, { id: 'iter-autorizzazioni-paginazione', placement: 'bottom' })),
     React.createElement(Input, { placeholder: 'Cerca autorizzazione', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => setSearchText(e.target.value), style: { marginBottom: 16 }, allowClear: true }),
     React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 } },
       React.createElement('div', { style: { fontSize: 14 } }, React.createElement('span', { style: { fontWeight: 600 } }, 'Totale:'), ' ' + filtered.length),
@@ -6241,6 +6241,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       pickStato: () => { if (STATI_AMM_OPTS[0]) setStato(STATI_AMM_OPTS[0].value); },
       setVia: (v) => setVia(v),
       setCitta: (v) => setCitta(v),
+      // Applica un indirizzo di esempio come farebbe la selezione di un suggerimento
+      // dalla ricerca — compila tutti i campi derivati in un colpo solo.
+      applyAddressExample: () => applyAddr({ via: 'Via Maqueda', civico: '148', cap: '90133', citta: 'Palermo', provincia: 'PA', regione: 'Sicilia', nazione: 'Italia', lat: 38.11820, lng: 13.36080 }),
+      setZonaExample: () => setZn(v => v || 'Centro Storico'),
+      pickProprietaConcessionaria: () => setProprieta('IGPDecaux'),
     };
     return () => { delete window.__ghfIdentita; };
   });
@@ -6381,6 +6386,44 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   const openConcessioneDrawer = () => { setPermitDrawerType('concessione'); setPermitDrawerOpen(true); };
   const openAutorizzazioneDrawer = () => { setPermitDrawerType('autorizzazione'); setAuthDrawerScope('autorizzazioni'); setPermitDrawerOpen(true); };
+  // Solo per l'handoff: il menu "Collega permesso" è un Dropdown AntD e, come i
+  // Select (vedi commento su window.__ghfIdentita più sotto), non risponde a
+  // eventi mouse sintetici — il tour non può aprirlo/selezionarlo via JS.
+  // Esponiamo direttamente le stesse funzioni già cablate sul menu, più dei
+  // setter aggiuntivi per compilare davvero i dati (concessione collegata,
+  // autorizzazioni selezionate, campi Progetto/SCIA) così i tour mostrano il
+  // RISULTATO della compilazione, non solo un form vuoto.
+  React.useEffect(() => {
+    window.__ghfIterPermessi = {
+      openConcessioneDrawer, openAutorizzazioneDrawer, closePermitDrawer,
+      hasConcessione,
+      confirmPermit: handleAddPermit,
+      selectFirstUtenza: () => { const g = GRANTS_DATA[0]; setPermitRowKey(g.key + '-' + g.utilities[0].utilityNumber); },
+      selectExpiredUtenza: () => { const g = GRANTS_DATA.find(x => x.status === 'Scaduta'); if (g) setPermitRowKey(g.key + '-' + g.utilities[0].utilityNumber); },
+      selectSomeAuthorizations: () => { setPermitAuthKeys(AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory !== 'Genio Civile').slice(0, 3).map(a => a.key)); },
+      fillProjectExample: () => {
+        setProgettista(v => v || 'Studio Tecnico Russo & Partners');
+        setProgetto(v => v || '1305');
+        setDdl(v => v || 'Ing. Paolo Greco');
+        setRsc(v => v || 'Arch. Marta Vitale');
+        setLaboratorio(v => v || 'LabStrutture Palermo');
+        setGeologo(v => v || 'Dott. Andrea Rizzo');
+        setCollaudatore(v => v || 'Ing. Sergio Lombardo');
+        setCalcestruzzo(v => v || 'RCK > 25 MPA');
+        setAcciaioCarp(v => v || 'FE 360 B');
+        setAcciaioArm(v => v || 'FEB 44 K');
+        setProgDittaCA(v => v || 'Edil Costruzioni S.r.l.');
+        setTecnicheGc(v => v || 'Saldature con elettrodi basici');
+      },
+      fillSciaExample: () => {
+        setPermitSciaManual(prev => ({
+          urbanistica: { protocollo: 'Prot. SUE 48213/2026', presentata: dayjs('14/04/2026', 'DD/MM/YYYY'), ente: 'SUE — Comune di Palermo', dichiarante: 'Gravity Media S.r.l.', tecnico: 'Ing. Paolo Greco', termineVerifica: dayjs('14/05/2026', 'DD/MM/YYYY'), fineLavori: dayjs('14/04/2029', 'DD/MM/YYYY'), ...prev.urbanistica },
+          commerciale: { protocollo: 'Prot. SUAP 09877/2026', presentata: dayjs('14/04/2026', 'DD/MM/YYYY'), ente: 'SUAP — Comune di Palermo', dichiarante: 'Gravity Media S.r.l.', termineVerifica: dayjs('13/06/2026', 'DD/MM/YYYY'), ...prev.commerciale },
+        }));
+      },
+    };
+    return () => { delete window.__ghfIterPermessi; };
+  });
 
   // Dropdown "Collega permesso" per lo Step 1: concessione o autorizzazione (la SCIA sta nello step dedicato)
   const concAutDropdown = React.createElement(Dropdown, {
@@ -6670,7 +6713,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                   tipologia ? 'Seleziona il formato' : 'Prima seleziona la tipologia',
                   { className: 'grav-field-formato', disabled: !tipologia, status: showErrors && !formato ? 'error' : undefined })
               ),
-              cs('Nome impianto', false,
+              cs(React.createElement(React.Fragment, null, 'Nome impianto', React.createElement(HandoffDesignNote, { id: 'anagrafica-nome-progressivo', placement: 'top' })), false,
                 React.createElement(Input, {
                   value: nome,
                   readOnly: true,
@@ -6802,15 +6845,16 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
               cs('Tecniche utilizzate', false, inp(tecnicheGc, setTecnicheGc, 'Es. Saldature con elettrodi basici')),
               cs('Data fine lavori',   false, dp(progDataFine, setProgDataFine)),
             ),
-            React.createElement('div', { style: { marginTop: 4, display: 'flex', justifyContent: 'flex-end' } },
+            React.createElement('div', { style: { marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 } },
               React.createElement(Button, { icon: React.createElement(DownloadOutlined), onClick: () => setGcTemplateOpen(true) }, 'Scarica Modulo'),
+              React.createElement(HandoffDesignNote, { id: 'iter-scarica-modulo-fuori-scope', placement: 'left' }),
             ),
           ),
 
           // ── STEP 3 · Titolo a installare ────────────────────────────
           // Dati delle due SCIA compilabili direttamente nel form (inline, non più nel drawer),
           // ognuna con il proprio upload documenti.
-          box('Titolo a installare', 'Compila i dati della SCIA urbanistica e della SCIA commerciale presentate per l\'impianto e carica i relativi documenti.',
+          box(React.createElement(React.Fragment, null, 'Titolo a installare', React.createElement(HandoffDesignNote, { id: 'iter-scia-validazioni', placement: 'right' })), 'Compila i dati della SCIA urbanistica e della SCIA commerciale presentate per l\'impianto e carica i relativi documenti.',
             ...SCIA_TYPES.map((scia, idx) => {
               const man = permitSciaManual[scia.id] || {};
               const fields = SCIA_FIELD_META.filter(f => f.key in scia);
