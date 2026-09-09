@@ -454,17 +454,16 @@ function ghfEnsureCommercialeReady(cb) {
 
 window.HANDOFF_META = {
   title: 'Inventory — Impianti',
-  version: 'V2',
+  version: 'V1',
   date: 'Settembre 2026',
   author: 'Gloria Bonanno',
   // Storico versioni dell'handoff. Ogni versione è un file di config (il prototipo
-  // resta unico: index.html + ?handoff=vX). Questo file (handoff-steps.js) è la
-  // versione CORRENTE, in lavorazione: i prossimi cambiamenti (tour/note) vanno
-  // registrati qui. Quando approvata: sposta `approved`/`current` su V2 e congela
-  // questo file rinominandolo handoff-steps-v2.js, poi crea handoff-steps.js per V3.
+  // resta unico: index.html + ?handoff=vX). Questo file (handoff-steps-v1.js) è
+  // CONGELATO: annotazioni/tour di questa versione, non toccarlo per nuovi cambi —
+  // quelli vanno in handoff-steps.js (V2, in lavorazione).
   versions: [
-    { id: 'V1', file: 'index.html?handoff=v1', approved: true, current: false, note: 'Versione approvata' },
-    { id: 'V2', file: 'index.html?handoff=v2', approved: false, current: true, note: 'In lavorazione' },
+    { id: 'V1', file: 'index.html?handoff=v1', approved: true, current: true, note: 'Versione approvata' },
+    { id: 'V2', file: 'index.html?handoff=v2', approved: false, current: false, note: 'In lavorazione' },
   ],
 };
 

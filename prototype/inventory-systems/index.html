@@ -24,6 +24,26 @@
   <script src="../_shared/navbar.js"></script>
   <script src="../_shared/filter-drawer.js"></script>
 
+  <!-- Handoff loader — attiva il layer handoff (note di design + tour + interfaccia
+       semplificata) SOLO con ?handoff=<versione>. Senza il parametro questo è il
+       prototipo pulito. Le versioni sono file di config: il prototipo resta unico.
+       - ?handoff        → versione approvata
+       - ?handoff=v1/v2  → versione specifica
+       Il document.write in <head> carica la config in modo sincrono, così le note
+       inline (window.HANDOFF_NOTES) sono disponibili già al primo render. -->
+  <script>
+    (function () {
+      var CONFIGS  = { v1: './handoff-steps-v1.js', v2: './handoff-steps.js' };
+      var APPROVED = 'v1';
+      var params = new URLSearchParams(location.search);
+      if (!params.has('handoff')) return;
+      var v = (params.get('handoff') || APPROVED).toLowerCase();
+      var cfg = CONFIGS[v] || CONFIGS[APPROVED];
+      window.__HANDOFF_ACTIVE = true;
+      document.write('<scr' + 'ipt src="' + cfg + '"></scr' + 'ipt>');
+    })();
+  </script>
+
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -477,6 +497,25 @@
     .data-card-body { padding: 8px 14px 14px; }
     .data-card-value { font-size: 18px; font-weight: 700; color: rgba(0,0,0,0.88); line-height: 1.4; display: block; }
     .data-card-action { padding: 10px 14px; border-top: 1px solid #F0F0F0; }
+
+    /* ── Handoff dev bar sopra il drawer "Nuovo/Modifica Impianto" ───────────
+       Il drawer è a pagina intera e copre la navbar (dove il motore inserisce
+       normalmente la dev bar accanto alla campanella, dentro <nav>). <nav> ha
+       position:sticky + z-index:100: è un suo stacking context, quindi nessun
+       z-index interno può superare il Drawer (z-index:1000) finché lo slot
+       resta suo discendente — va riparentato su <body> (script a fine pagina)
+       e reso fixed qui, allineato di default alla posizione della campanella.
+       Quando il drawer è aperto lo spostiamo sopra il suo header, allineato al
+       gruppo Annulla/Crea Impianto, così resta sempre raggiungibile. */
+    #ghf-nav-slot {
+      position: fixed;
+      top: 16px;
+      right: 102px;
+      z-index: 1051;
+    }
+    body:has(#grav-tour-form-save) #ghf-nav-slot {
+      right: 272px;
+    }
   </style>
 </head>
 <body>
@@ -485,6 +524,53 @@
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
 const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Divider, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Radio, Rate, Slider, Popconfirm, Tour } = antd;
 const { Text } = Typography;
+
+// ── Note di design handoff (marker inline contestuale) ─────────────────────
+// Icona CoffeeOutlined rossa + popover. Renderizzata SOLO in questo file, dove
+// window.HANDOFF_NOTES è definito (in index.html ritorna null → invisibile).
+function _ghfRenderNoteBody(body) {
+  // supporta **grassetto**, ==evidenziato== e righe "- " (lista)
+  const inline = (txt, kp) => {
+    const out = []; let k = 0, last = 0, m;
+    const re = /(\*\*([^*]+)\*\*|==([^=]+)==)/g;
+    while ((m = re.exec(txt))) {
+      if (m.index > last) out.push(txt.slice(last, m.index));
+      if (m[2] != null) out.push(React.createElement('strong', { key: kp+'b'+(k++), style: { color: 'rgba(0,0,0,0.88)' } }, m[2]));
+      else out.push(React.createElement('mark', { key: kp+'h'+(k++), style: { background: '#FFF1E8', color: '#FF4A1C', padding: '0 2px', borderRadius: 2 } }, m[3]));
+      last = m.index + m[0].length;
+    }
+    if (last < txt.length) out.push(txt.slice(last));
+    return out;
+  };
+  const lines = String(body || '').split('\n');
+  const nodes = []; let list = null;
+  lines.forEach((ln, i) => {
+    if (/^- /.test(ln)) { (list = list || []).push(React.createElement('li', { key: 'li'+i, style: { marginBottom: 2 } }, inline(ln.slice(2), 'li'+i))); }
+    else {
+      if (list) { nodes.push(React.createElement('ul', { key: 'ul'+i, style: { margin: '4px 0', paddingLeft: 18 } }, list)); list = null; }
+      if (ln.trim()) nodes.push(React.createElement('div', { key: 'p'+i, style: { marginBottom: 4 } }, inline(ln, 'p'+i)));
+    }
+  });
+  if (list) nodes.push(React.createElement('ul', { key: 'ulE', style: { margin: '4px 0', paddingLeft: 18 } }, list));
+  return nodes;
+}
+function HandoffDesignNote({ id, placement }) {
+  const notes = window.HANDOFF_NOTES;
+  if (!notes) return null;
+  const note = notes.find(n => n.id === id);
+  if (!note) return null;
+  return React.createElement(antd.Popover, {
+    trigger: 'hover', placement: placement || 'right',
+    content: React.createElement('div', { style: { maxWidth: 340 } },
+      React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FF4A1C', marginBottom: 6 } }, note.title || 'Nota di design'),
+      React.createElement('div', { style: { fontSize: 13, lineHeight: 1.55, color: 'rgba(0,0,0,0.65)' } }, _ghfRenderNoteBody(note.body))
+    ),
+  }, React.createElement('span', {
+    style: { display: 'inline-flex', alignItems: 'center', cursor: 'help', color: '#FF4A1C', marginLeft: 6 },
+    onClick: (e) => { e.stopPropagation(); e.preventDefault(); },
+  }, React.createElement(icons.CoffeeOutlined, { style: { fontSize: 14 } })));
+}
+
 const {
   SearchOutlined, BellOutlined, PlusOutlined, AppstoreOutlined, SendOutlined,
   RightOutlined, DownOutlined, ArrowLeftOutlined, EditOutlined,
@@ -565,24 +651,6 @@ const ALL_TIPO_FORMATI = [...new Set(Object.values(TIPO_FORMATI).flat())].sort()
 // ─────────────────────────────────────────────────────────
 // DATABASE — 100 impianti Palermo con coordinate precise
 // ─────────────────────────────────────────────────────────
-const FACCE_PER_TIPO = {
-  'Pensilina':        ['Anteriore', 'Posteriore'],
-  'Poster':           ['Anteriore'],
-  'Palina':           ['Anteriore', 'Posteriore'],
-  'Fermata bus':      ['Anteriore', 'Posteriore'],
-  'Cassonetto':       ['Anteriore', 'Posteriore'],
-  'Palo luce':        ['Anteriore'],
-  'Speciale OOH':     ['Anteriore', 'Posteriore', 'Sinistra', 'Destra'],
-  'Speciale DOOH':    ['Anteriore', 'Posteriore', 'Sinistra', 'Destra'],
-  'Palina butterfly': ['Sinistra', 'Destra'],
-  'Stendardo':        ['Anteriore', 'Posteriore'],
-  'Parapedonale':     ['Anteriore', 'Posteriore'],
-  'Telo':             ['Anteriore'],
-  'Rotor':            ['Anteriore', 'Posteriore', 'Sinistra'],
-  'Plancia':          ['Anteriore'],
-  'Fioriera':         ['Anteriore', 'Posteriore'],
-  'Insegna':          ['Anteriore'],
-};
 // Colori del tag per tipo faccia
 const FACE_TIPO_STYLE = {
   'Anteriore':  { backgroundColor: '#E6FFFB', border: '1px solid #87E8DE', color: '#13C2C2' },
@@ -2779,7 +2847,7 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
         React.createElement('div', { style: { border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' } },
           React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '2fr 2fr 2fr 4fr 40px', padding: '8px 16px', fontWeight: 500, fontSize: 12, color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0' } },
             React.createElement('div', null, 'Numero Utenza'),
-            React.createElement('div', null, 'Codice Cimasa'),
+            React.createElement('div', { className: 'grav-cimasa-col' }, 'Codice Cimasa', React.createElement(HandoffDesignNote, { id: 'iter-cimasa-sospeso', placement: 'top' })),
             React.createElement('div', null, 'Canone Patrimoniale'),
             React.createElement('div', null, 'Aggiunta a:'),
             React.createElement('div'),
@@ -2793,7 +2861,7 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
               onClick: () => onRowSelect(isSel ? null : uKey),
             },
               React.createElement('div', { style: { fontSize: 13 } }, utility.utilityNumber),
-              React.createElement('div', { style: { fontSize: 13, color: (!utility.cimasaCode || utility.cimasaCode === 'Non specificata') ? '#bfbfbf' : 'rgba(0,0,0,0.85)' } }, (utility.cimasaCode && utility.cimasaCode !== 'Non specificata') ? utility.cimasaCode : 'N/D'),
+              React.createElement('div', { className: 'grav-cimasa-col', style: { fontSize: 13, color: (!utility.cimasaCode || utility.cimasaCode === 'Non specificata') ? '#bfbfbf' : 'rgba(0,0,0,0.85)' } }, (utility.cimasaCode && utility.cimasaCode !== 'Non specificata') ? utility.cimasaCode : 'N/D'),
               React.createElement('div', { style: { fontSize: 13 } }, utility.propertyTax + ' / anno'),
               React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' } },
                 utility.connectedTo && utility.connectedTo.length > 0
@@ -2812,7 +2880,7 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
 
   return React.createElement('div', null,
     React.createElement(Input, { placeholder: 'Cerca concessione...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: 16 }, allowClear: true }),
-    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, "Seleziona una concessione e scegli il numero utenza che vuoi collegare all'impianto"),
+    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', gap: 6 } }, "Seleziona una concessione e scegli il numero utenza che vuoi collegare all'impianto", React.createElement(HandoffDesignNote, { id: 'iter-scaduti-avviso', placement: 'bottom' })),
     React.createElement(Collapse, { items: collapseItems, ghost: false, style: { backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 6 }, activeKey: activeKeys, onChange: keys => setActiveKeys(keys) }),
     filtered.length > pageSize ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', padding: '16px 0', borderTop: '1px solid #f0f0f0', marginTop: 16 } },
       React.createElement(Pagination, { current: currentPage, total: filtered.length, pageSize: pageSize, onChange: setCurrentPage, size: 'small' }),
@@ -2836,7 +2904,7 @@ function AuthorizationsList({ data, selectedKeys, onSelectionChange }) {
   };
 
   return React.createElement('div', null,
-    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, "Seleziona tutte le autorizzazioni da collegare a questo impianto"),
+    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', gap: 6 } }, "Seleziona tutte le autorizzazioni da collegare a questo impianto", React.createElement(HandoffDesignNote, { id: 'iter-autorizzazioni-paginazione', placement: 'bottom' })),
     React.createElement(Input, { placeholder: 'Cerca autorizzazione', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => setSearchText(e.target.value), style: { marginBottom: 16 }, allowClear: true }),
     React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 } },
       React.createElement('div', { style: { fontSize: 14 } }, React.createElement('span', { style: { fontWeight: 600 } }, 'Totale:'), ' ' + filtered.length),
@@ -2955,7 +3023,7 @@ function SystemHistoryTimeline({ events }) {
 // (stesso form del "Nuovo impianto", ma aperto da solo dal dettaglio)
 // ─────────────────────────────────────────────────────────
 function FaceDrawer({ open, onClose, onSubmit, editInitial, plantLat, plantLng }) {
-  const [fcTipo, setFcTipo] = useState('Anteriore');
+  const [fcTipo, setFcTipo] = useState(null);
   const [fcSlot, setFcSlot] = useState(null);
   const [fcLat, setFcLat] = useState('');
   const [fcLng, setFcLng] = useState('');
@@ -2989,7 +3057,7 @@ function FaceDrawer({ open, onClose, onSubmit, editInitial, plantLat, plantLng }
       };
     } else {
       next = {
-        fcTipo: 'Anteriore', fcSlot: null, fcCoordLock: true,
+        fcTipo: null, fcSlot: null, fcCoordLock: true,
         fcLat: plantLat || '', fcLng: plantLng || '',
         fcOrient: 0, fcCono: null, fcFormL: null, fcFormH: null,
         fcIllumStato: null, fcIllumMezzo: null, fcIllumNFaretti: null, fcIllumWatt: null,
@@ -3019,7 +3087,7 @@ function FaceDrawer({ open, onClose, onSubmit, editInitial, plantLat, plantLng }
   const onFcIllumMezzo = (v) => { setFcIllumMezzo(v); if (v !== 'Faretti') { setFcIllumNFaretti(null); setFcIllumWatt(null); } };
   const toggleFcCoordLock = () => setFcCoordLock(prev => { const next = !prev; if (next) { setFcLat(plantLat || ''); setFcLng(plantLng || ''); } return next; });
   const save = () => {
-    if (!fcTipo) { antdMsg.warning('Seleziona il tipo di faccia'); return; }
+    if (!fcTipo) return;
     onSubmit({
       tipo: fcTipo, slot: fcSlot,
       lat: fcCoordLock ? (plantLat || '') : fcLat, lng: fcCoordLock ? (plantLng || '') : fcLng, coordLock: fcCoordLock,
@@ -3037,9 +3105,9 @@ function FaceDrawer({ open, onClose, onSubmit, editInitial, plantLat, plantLng }
     onClose: onClose, open: open, destroyOnClose: true,
     extra: React.createElement(Space, null,
       React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
-      React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: save }, editId ? 'Salva' : 'Aggiungi')),
+      React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), disabled: !fcTipo, onClick: save }, editId ? 'Salva' : 'Aggiungi')),
   },
-    cs('Tipo faccia', true,
+    cs('Tipo faccia', false,
       React.createElement(Radio.Group, { optionType: 'button', value: fcTipo, onChange: e => setFcTipo(e.target.value),
         options: [{ label: 'Anteriore', value: 'Anteriore' }, { label: 'Posteriore', value: 'Posteriore' }, { label: 'Sinistra', value: 'Sinistra' }, { label: 'Destra', value: 'Destra' }] })),
     React.createElement('div', { className: 'ni-field', style: { display: 'flex', alignItems: 'center', gap: 12 } },
@@ -3055,7 +3123,7 @@ function FaceDrawer({ open, onClose, onSubmit, editInitial, plantLat, plantLng }
     cs('Orientamento — ' + (fcOrient || 0) + '°', false,
       React.createElement('div', { style: { padding: '0 8px' } },
         React.createElement(Slider, { min: 0, max: 360, value: fcOrient || 0, onChange: setFcOrient, marks: { 0: '0', 90: '90', 180: '180', 270: '270', 360: '360' }, tooltip: { formatter: v => v + '°' } }))),
-    cs('Cono di visibilità', false, React.createElement(InputNumber, { value: fcCono, onChange: setFcCono, min: 0, addonBefore: 'r', addonAfter: 'cm', placeholder: '0', style: { width: 200 } })),
+    cs('Cono di visibilità', false, React.createElement(InputNumber, { value: fcCono, onChange: setFcCono, min: 0, addonBefore: 'r', addonAfter: 'm', placeholder: '0', style: { width: 200 } })),
     cs('Formato', false,
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
         React.createElement(InputNumber, { value: fcFormL, onChange: setFcFormL, min: 0, addonAfter: 'cm', placeholder: 'l', style: { flex: 1 } }),
@@ -3146,7 +3214,7 @@ function AssetDrawer({ open, onClose, onSubmit, editInitial, category }) {
     return nodes;
   };
   const save = () => {
-    if (!acTipo) { antdMsg.warning('Seleziona il tipo di ' + (category === 'Dispositivo' ? 'dispositivo' : 'cespite')); return; }
+    if (!acTipo) return;
     const def = getAssetType(acTipo);
     const nameField = (def.fields || []).find(f => f.key === 'nome');
     if (nameField && nameField.required && !String(acVals.nome || '').trim()) { antdMsg.warning('Inserisci il nome del dispositivo'); return; }
@@ -3162,9 +3230,9 @@ function AssetDrawer({ open, onClose, onSubmit, editInitial, category }) {
     onClose: onClose, open: open, destroyOnClose: true,
     extra: React.createElement(Space, null,
       React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
-      React.createElement(Button, { type: 'primary', icon: React.createElement(editId ? SaveOutlined : PlusOutlined), disabled: !!editId && acModified.size === 0, onClick: save }, editId ? 'Salva' : 'Aggiungi')),
+      React.createElement(Button, { type: 'primary', icon: React.createElement(editId ? SaveOutlined : PlusOutlined), disabled: !acTipo || (!!editId && acModified.size === 0), onClick: save }, editId ? 'Salva' : 'Aggiungi')),
   },
-    cs(category === 'Dispositivo' ? 'Tipo dispositivo' : 'Tipo cespite', true,
+    cs(category === 'Dispositivo' ? 'Tipo dispositivo' : 'Tipo cespite', false,
       React.createElement(Select, { value: acTipo, onChange: setAcTipo, options: ASSET_TIPO_OPTS_BY_CAT[category] || [], style: { width: '100%' }, placeholder: 'Seleziona il tipo di ' + (category === 'Dispositivo' ? 'dispositivo' : 'cespite'), showSearch: true, optionFilterProp: 'label' })),
     acTipo ? renderAssetFields(acTipo) : React.createElement(Empty, { description: 'Seleziona un tipo per vedere i campi da compilare', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '16px 0', margin: '8px 0' } }));
 }
@@ -3186,13 +3254,35 @@ function SquadraDrawer({ open, onClose, onSubmit, kind }) {
   }, [open, kind]);
   const set = (key, val) => setRowState(prev => ({ ...prev, [key]: val }));
   const isDirty = () => JSON.stringify(row) !== JSON.stringify(snapshotRef.current);
+  // Solo per l'handoff: vedi commento su window.__ghfIdentita in
+  // NewImpiantoFullDrawer — stesso motivo, stessa soluzione.
+  React.useEffect(() => {
+    if (!open) { delete window.__ghfSquadra; return; }
+    window.__ghfSquadra = {
+      pickSquadra: () => { if (SQUADRE_AFF_OPTS[0]) set('squadra', SQUADRE_AFF_OPTS[0].value); },
+      pickSquadraAt: (i) => { if (SQUADRE_AFF_OPTS[i]) set('squadra', SQUADRE_AFF_OPTS[i].value); },
+      fillAffissioneExample: () => {
+        if (SQUADRE_AFF_OPTS[0]) set('squadra', SQUADRE_AFF_OPTS[0].value);
+        if (TIPO_AFFISSIONE_OPTS[0]) set('tipo', [TIPO_AFFISSIONE_OPTS[0].value]);
+        set('costo', 180.5);
+        set('preincoll', 45);
+      },
+      fillManutenzioneExample: () => {
+        if (SQUADRE_AFF_OPTS[0]) set('squadra', SQUADRE_AFF_OPTS[0].value);
+        if (TIPO_MAN_OPTS[0]) set('tipoInt', TIPO_MAN_OPTS[0].value);
+        set('oggetto', 'Sostituzione faretti');
+      },
+      saveNow: () => save(),
+    };
+    return () => { delete window.__ghfSquadra; };
+  });
   const cs = (label, required, children) =>
     React.createElement('div', { className: 'ni-field' },
       React.createElement('div', { className: 'ni-label' }, label, required && React.createElement('span', { className: 'req' }, ' *')),
       children);
   const g2 = (...kids) => React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px' } }, ...kids);
   const save = () => {
-    if (!row.squadra) { antdMsg.warning('Seleziona la squadra'); return; }
+    if (!row.squadra) return;
     const codice = (SQUADRE_AFF.find(s => s.nome === row.squadra) || {}).codice;
     const record = kind === 'affissione'
       ? { squadra: row.squadra, codice, tipo: row.tipo, costo: row.costo != null ? row.costo : 0, preincoll: row.preincoll }
@@ -3204,10 +3294,10 @@ function SquadraDrawer({ open, onClose, onSubmit, kind }) {
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
       React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }),
       'Aggiungi squadra ' + (kind === 'affissione' ? 'affissione' : 'manutenzione')),
-    placement: 'right', width: 520, styles: { body: { padding: 24 } },
+    placement: 'right', width: 520, rootClassName: 'grav-squadra-drawer', styles: { body: { padding: 24 } },
     closable: false, maskClosable: !dirty, keyboard: !dirty,
     onClose: onClose, open: open, destroyOnClose: true,
-    extra: React.createElement(Button, { type: 'primary', onClick: save }, 'Salva'),
+    extra: React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), disabled: !row.squadra, onClick: save }, 'Aggiungi'),
   },
     cs('Squadra', false, React.createElement(Select, { value: row.squadra, onChange: v => set('squadra', v), options: SQUADRE_AFF_OPTS, style: { width: '100%' }, placeholder: 'Seleziona la squadra', showSearch: true, optionFilterProp: 'label' })),
     kind === 'affissione'
@@ -5707,7 +5797,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [facce,         setFacce]         = useState([]);
   const [faceDrawerOpen, setFaceDrawerOpen] = useState(false);
   const [faceEditId,    setFaceEditId]    = useState(null);
-  const [fcTipo,        setFcTipo]        = useState('Anteriore');
+  const [fcTipo,        setFcTipo]        = useState(null);
   const [fcSlot,        setFcSlot]        = useState(null);
   const [fcLat,         setFcLat]         = useState('');
   const [fcLng,         setFcLng]         = useState('');
@@ -5742,7 +5832,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     if (v !== 'Faretti') { setFcIllumNFaretti(null); setFcIllumWatt(null); }
   };
   const resetFaceForm = () => {
-    setFcTipo('Anteriore'); setFcSlot(null); setFcLat(''); setFcLng(''); setFcCoordLock(true);
+    setFcTipo(null); setFcSlot(null); setFcLat(''); setFcLng(''); setFcCoordLock(true);
     setFcOrient(0); setFcCono(null); setFcFormL(null); setFcFormH(null);
     setFcIllumStato(null); setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null);
     setFcVendita(null); setFcPrezzo(null); setFcVisMarcia(false);
@@ -5764,7 +5854,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setFcLat(lat || ''); setFcLng(lng || '');
     setFaceDrawerOpen(true);
     faceSnapshotRef.current = {
-      fcTipo: 'Anteriore', fcSlot: null, fcLat: lat || '', fcLng: lng || '', fcCoordLock: true,
+      fcTipo: null, fcSlot: null, fcLat: lat || '', fcLng: lng || '', fcCoordLock: true,
       fcOrient: 0, fcCono: null, fcFormL: null, fcFormH: null,
       fcIllumStato: null, fcIllumMezzo: null, fcIllumNFaretti: null, fcIllumWatt: null,
       fcVendita: null, fcPrezzo: null, fcVisMarcia: false,
@@ -5798,8 +5888,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     fcIllumStato, fcIllumMezzo, fcIllumNFaretti, fcIllumWatt, fcVendita, fcPrezzo, fcVisMarcia,
   }) !== JSON.stringify(faceSnapshotRef.current);
   const saveFace = () => {
-    if (!fcTipo) { antdMsg.warning('Seleziona il tipo di faccia'); return; }
-    if (!faceEditId && facce.length >= maxFacce) { antdMsg.warning('Numero massimo di facce raggiunto per questa tipologia (' + maxFacce + ')'); return; }
+    if (!fcTipo) return;
     const data = {
       tipo: fcTipo, slot: fcSlot,
       lat: fcCoordLock ? (lat || '') : fcLat, lng: fcCoordLock ? (lng || '') : fcLng, coordLock: fcCoordLock,
@@ -5829,26 +5918,66 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   // Faccia posteriore collegata: campi fisici condivisi, orientamento speculare (+180°)
   const createPosteriore = (f) => {
     if (facce.some(x => x.pairOf === f.id)) { antdMsg.warning('Questa faccia ha già una posteriore collegata'); return; }
-    if (facce.length >= maxFacce) { antdMsg.warning('Numero massimo di facce raggiunto per questa tipologia (' + maxFacce + ')'); return; }
     setFacce(prev => [...prev, {
       ...f, id: 'face-post-' + f.id, tipo: 'Posteriore', pairOf: f.id,
       ...syncedFromAnteriore(f),
     }]);
     antdMsg.success('Faccia posteriore creata e collegata (speculare)');
   };
-  // Pre-crea le facce previste dalla tipologia (tipo + slot progressivo, coordinate ereditate)
-  const buildFacceForTipo = (tipo) => (FACCE_PER_TIPO[tipo] || ['Anteriore']).map((t, i) => ({
-    id: 'face-auto-' + (i + 1), tipo: t, slot: i + 1,
-    lat: lat || '', lng: lng || '', coordLock: true,
-    orient: 0, cono: null, formL: null, formH: null,
-    illumStato: null, illumMezzo: null, illumNFaretti: null, illumWatt: null,
-    vendita: null, prezzo: null, visMarcia: t === 'Anteriore',
-  }));
-  // Facce massime = quelle previste di default dalla tipologia. Non se ne creano oltre;
-  // se rimosse si possono ri-aggiungere fino a questo massimo.
-  const maxFacce = (FACCE_PER_TIPO[tipologia] || ['Anteriore']).length;
-  const canAddFace = !!tipologia && facce.length < maxFacce;
-  const faceAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openNewFace, disabled: !canAddFace }, 'Aggiungi Faccia');
+  const faceAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openNewFace }, 'Aggiungi Faccia');
+  // Cambiare canale/tipologia/formato non ha alcun effetto sulle facce già create: l'utente
+  // viene solo avvisato che dovrà ricrearle, dato che non esiste più correlazione tipo↔slot.
+  const withFacceGuard = (apply) => (v) => {
+    if (facce.length === 0) { apply(v); return; }
+    antd.Modal.confirm({
+      title: 'Le facce già create verranno rimosse',
+      content: 'Cambiando canale, tipologia o formato tutte le facce configurate per questo impianto vengono eliminate: dovrai ricrearle.',
+      okText: 'Cambia e rimuovi le facce',
+      okButtonProps: { danger: true },
+      cancelText: 'Annulla',
+      onOk: () => { setFacce([]); apply(v); },
+    });
+  };
+  // Solo per l'handoff: nominiamo l'handler della Tipologia (nell'originale è inline
+  // nella prop onChange del Select) per poterlo richiamare anche dal tour — stessa
+  // funzione wrappata da withFacceGuard usata dal campo reale, non una sua copia.
+  const handleTipologiaChange = withFacceGuard(v => { setTipologia(v); setFormato(null); });
+  // Solo per l'handoff: come window.__ghfIdentita più sotto, esponiamo i setter React
+  // per compilare davvero Caratteristiche fisiche e la faccia in editing (Select,
+  // Radio.Group e Slider non rispondono a eventi mouse sintetici) — nessuna
+  // dipendenza esplicita: l'oggetto è ricreato ad ogni render così i tour leggono
+  // sempre lo stato corrente della faccia aperta (vedi ghfCall in handoff-steps.js).
+  React.useEffect(() => {
+    window.__ghfCaratteristiche = {
+      fillMisure: () => { setLargImp('600'); setAltImp('300'); setProfImp('40'); setAltTerra('250'); setTipoAltezza('Alto'); setRiparato('Aperto'); },
+      openFace: () => openNewFace(),
+      pickFcTipo: () => setFcTipo('Anteriore'),
+      setFcVisMarciaExample: () => setFcVisMarcia(true),
+      setFcSlotExample: () => setFcSlot(1),
+      unlockFcCoord: () => { if (fcCoordLock) toggleFcCoordLock(); },
+      setFcOrientExample: () => setFcOrient(135),
+      setFcConoExample: () => setFcCono(50),
+      setFcFormatoExample: () => { setFcFormL(600); setFcFormH(300); },
+      pickIlluminato: () => onFcIllumStato('Illuminato'),
+      pickFaretti: () => onFcIllumMezzo('Faretti'),
+      setFcIllumNFarettiExample: () => setFcIllumNFaretti(6),
+      setFcIllumWattExample: () => setFcIllumWatt(150),
+      setFcVenditaExample: () => setFcVendita('Long term'),
+      setFcPrezzoExample: () => setFcPrezzo(1200),
+      saveFaceNow: () => saveFace(),
+      // Riusa l'handler REALE della Tipologia (withFacceGuard), non una copia: con
+      // almeno una faccia già creata mostra davvero il Modal.confirm del prototipo.
+      triggerTipologiaGuard: () => {
+        let v = tipologia;
+        for (const g of (tipologieOpts || [])) {
+          const alt = (g.options || []).find(o => o.value !== tipologia);
+          if (alt) { v = alt.value; break; }
+        }
+        handleTipologiaChange(v);
+      },
+    };
+    return () => { delete window.__ghfCaratteristiche; };
+  });
   // Popover informativo per "Tipo faccia": schema corsie/auto + descrizioni (come da design)
   const faceTypeHelp = React.createElement('div', { style: { maxWidth: 360 } },
     React.createElement('div', { style: { display: 'flex', gap: 16 } },
@@ -5904,6 +6033,54 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [acCategory,     setAcCategory]     = useState('Cespite'); // 'Cespite' | 'Dispositivo' — drawer dedicato
   const [acModified,     setAcModified]     = useState(new Set()); // campi modificati dall'utente → bordo primary + abilita "Salva"
   const [acOrigVals,     setAcOrigVals]     = useState({});         // snapshot all'apertura, per rilevare le modifiche
+  // Solo per l'handoff: vedi commento su window.__ghfIdentita più sopra —
+  // stesso motivo, stessa soluzione, per la select "Tipo" di questo drawer.
+  React.useEffect(() => {
+    if (!assetDrawerOpen) { delete window.__ghfCespite; return; }
+    window.__ghfCespite = {
+      pickTipo: () => {
+        const opts = ASSET_TIPO_OPTS_BY_CAT[acCategory] || [];
+        if (opts[0]) setAcTipo(opts[0].value);
+      },
+      pickTipoValue: (v) => setAcTipo(v),
+      saveAssetNow: () => saveAsset(),
+      // Esempi realistici per mostrare il pattern a campi dinamici con dati veri
+      // invece di un form vuoto — uno per tipo di cespite, uno per dispositivo.
+      fillFondazioneExample: () => {
+        setAcTipo('Fondazione');
+        setAcVal('tipoFond', 'Plinti');
+        setAcVal('dimFond', '5,50 × 3,20 × 0,80 m');
+        setAcVal('dataInizio', dayjs('01/09/2026', 'DD/MM/YYYY'));
+        setAcVal('dataFine', dayjs('20/09/2026', 'DD/MM/YYYY'));
+      },
+      // Mostra la mancanza di validazione: imposta Data fine PRIMA di Data inizio,
+      // senza che nulla lo impedisca o segnali un errore.
+      breakFondazioneDates: () => {
+        setAcVal('dataInizio', dayjs('20/09/2026', 'DD/MM/YYYY'));
+        setAcVal('dataFine', dayjs('01/09/2026', 'DD/MM/YYYY'));
+      },
+      fillPaliExample: () => {
+        setAcTipo('Pali');
+        setAcVal('tipoPali', 'Zincati');
+        setAcVal('numPali', 2);
+        setAcVal('diametroPali', '120');
+        setAcVal('altezzaPali', '600');
+        setAcVal('interassePali', '250 cm');
+        setAcVal('numPunzPali', '013201 - 014001');
+        setAcVal('dittaPali', 'Edil Costruzioni S.r.l.');
+        setAcVal('dataMontPali', dayjs('05/09/2026', 'DD/MM/YYYY'));
+      },
+      fillPlayerExample: () => {
+        setAcTipo('Player multimediale');
+        setAcVal('nome', 'Player faccia A');
+        setAcVal('mac', ['00:1B:44:11:3A:B7']);
+        setAcVal('serial', ['SN-204813']);
+        setAcVal('ip', '192.168.1.20');
+        setAcVal('sw', 'v2.4.1');
+      },
+    };
+    return () => { delete window.__ghfCespite; };
+  });
   // Aggiorna un campo. Su un elemento esistente, segna il campo come modificato se differisce dall'originale
   // (evidenzia il bordo e riabilita "Salva"); in inserimento non si evidenzia nulla.
   const setAcVal = (key, nv) => {
@@ -5929,7 +6106,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const closeAssetDrawer = () => { setAssetDrawerOpen(false); setAssetEditId(null); setAcModified(new Set()); };
   const isAssetDirty = () => JSON.stringify({ acTipo, acVals }) !== JSON.stringify(assetSnapshotRef.current);
   const saveAsset = () => {
-    if (!acTipo) { antdMsg.warning('Seleziona il tipo di cespite o dispositivo'); return; }
+    if (!acTipo) return;
     const def = getAssetType(acTipo);
     const nameField = (def.fields || []).find(f => f.key === 'nome');
     if (nameField && nameField.required && !String(acVals.nome || '').trim()) { antdMsg.warning('Inserisci il nome del dispositivo'); return; }
@@ -5947,7 +6124,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const cespiti     = assets.filter(a => { const d = getAssetType(a.tipo); return d && d.category === 'Cespite'; });
   const dispositivi = assets.filter(a => { const d = getAssetType(a.tipo); return d && d.category === 'Dispositivo'; });
   const cespiteAddBtn    = React.createElement(Button, { id: 'grav-tour-add-cespite-btn', icon: React.createElement(PlusOutlined), onClick: () => openNewAsset('Cespite') }, 'Aggiungi cespite');
-  const dispositivoAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: () => openNewAsset('Dispositivo') }, 'Aggiungi dispositivo');
+  const dispositivoAddBtn = React.createElement(Button, { id: 'grav-tour-add-dispositivo-btn', icon: React.createElement(PlusOutlined), onClick: () => openNewAsset('Dispositivo') }, 'Aggiungi dispositivo');
 
   // ── Commerciale
   const [aliasImpianto,  setAliasImpianto]  = useState('');
@@ -5988,7 +6165,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const removeFormAff = (i) => { setAffissioni(prev => prev.filter((_, j) => j !== i)); antdMsg.success('Squadra rimossa'); };
   const removeFormMan = (i) => { setManutenzioni(prev => prev.filter((_, j) => j !== i)); antdMsg.success('Squadra rimossa'); };
   const affAddBtn = React.createElement(Button, { id: 'grav-tour-add-squadra-btn', icon: React.createElement(PlusOutlined), onClick: () => openFormSquad('affissione') }, 'Aggiungi squadra');
-  const manAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: () => openFormSquad('manutenzione') }, 'Aggiungi squadra');
+  const manAddBtn = React.createElement(Button, { id: 'grav-tour-add-man-btn', icon: React.createElement(PlusOutlined), onClick: () => openFormSquad('manutenzione') }, 'Aggiungi squadra');
 
   // ── Progetto (ex Genio Civile)
   const [progetto,     setProgetto]     = useState('');
@@ -6009,6 +6186,42 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   // ── Galleria
   const [fileList, setFileList] = useState([]);
   const [coverPhoto, setCoverPhoto] = useState(null);
+  // Solo per l'handoff: come window.__ghfIdentita più sopra — niente file reali
+  // da caricare in automazione, esponiamo i setter React per popolare Identità
+  // commerciale, Galleria, Modello commerciale e Moduli con dati veri.
+  React.useEffect(() => {
+    window.__ghfCommerciale = {
+      fillIdentitaExample: () => {
+        setAliasImpianto(v => v || 'Pensilina Libertà — Centro');
+        setCircuiti(v => (v && v.length) ? v : ['Premium City', 'Arredo Urbano']);
+        setQualita(v => v || 4);
+      },
+      addFakePhotos: () => {
+        setFileList([
+          { uid: 'ghf-1', name: 'foto-1.jpg', status: 'done', thumbUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%23A47CFF"/></svg>' },
+          { uid: 'ghf-2', name: 'foto-2.jpg', status: 'done', thumbUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%2352C41A"/></svg>' },
+        ]);
+      },
+      setCoverExample: () => setCoverPhoto('ghf-2'),
+      // Rimuove ESATTAMENTE la foto impostata come copertina da setCoverExample,
+      // per mostrare se ne subentra un'altra in automatico (vedi icona nota).
+      removeCoverPhoto: () => setFileList(prev => prev.filter(f => f.uid !== 'ghf-2')),
+      fillModelloExample: () => { setVendita('Long term'); setPrezzoLordo(1500); setAliquotaIva(22); },
+      toggleSconto: () => setScontoModuli(v => !v),
+      setScontoPctExample: () => setScontoModuliPct(10),
+      openLink: () => openLinkDrawer(),
+      toggleLinkFirst: () => { const c = linkCandidates[0]; if (c) toggleLinkSel(c.id); },
+      confirmLink: () => confirmLinkDrawer(),
+      // I formati del catalogo cascata (FORMATI_PER_TIPO, es. "6×3 m") non
+      // corrispondono al formato degli impianti mock (TIPO_FORMATI, es.
+      // "200×140cm"): con la tipologia/formato scelti dalla cascata il
+      // selettore "Collega impianto" non trova mai candidati compatibili
+      // (vedi nota). Qui colleghiamo direttamente un impianto reale (I002,
+      // Cartello) per mostrare com'è fatta la card di un modulo collegato.
+      forceLinkExample: () => setModuliCollegati(['I002']),
+    };
+    return () => { delete window.__ghfCommerciale; };
+  });
   const [iterDocs, setIterDocs] = useState([]);  // documenti dell'iter (concessioni, autorizzazioni, progetto) — box "Documenti"
   const [sciaDocs, setSciaDocs] = useState({});  // { urbanistica: [...], commerciale: [...] } — documenti per ogni SCIA, inline nello Step 3
   const [gcTemplateOpen, setGcTemplateOpen] = useState(false);  // modale "Scarica": scelta del modello regionale Genio Civile
@@ -6099,6 +6312,37 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     { id: 'commerciale',     label: 'Commerciale' },
   ];
 
+  // RBAC: ruoli con accesso al form e sezioni disabilitate per ruolo.
+  // (Pianificatore e Sales non hanno accesso al form: gate a monte, non gestito qui.)
+  const FORM_ROLES = [
+    { value: 'admin',     label: 'Admin tenant' },
+    { value: 'inventory', label: 'Inventory Manager' },
+    { value: 'operation', label: 'Operation Manager' },
+  ];
+  const ROLE_DISABLED = {
+    admin:     [],
+    inventory: ['commerciale'],
+    operation: ['struttura', 'affissione'],
+  };
+  const [formRole, setFormRole] = useState('admin');
+  const disabledSections = ROLE_DISABLED[formRole] || [];
+
+  // Solo per l'handoff: la select Ruolo vive dentro il box grigio della dev bar
+  // (accanto a "Modello"), non solo dentro #ghf-nav-slot — quel nodo è solo il
+  // guscio posizionato in fixed dal motore condiviso; il box grigio vero e
+  // proprio è il suo unico figlio (il <span> reso da NavControls in handoff.js).
+  const [roleSlotEl, setRoleSlotEl] = useState(null);
+  React.useEffect(() => {
+    if (!open) { setRoleSlotEl(null); return; }
+    function ensure() {
+      const wrap = document.getElementById('ghf-nav-slot');
+      const box = wrap && wrap.firstElementChild;
+      if (box) setRoleSlotEl(prev => prev === box ? prev : box);
+    }
+    ensure();
+    const id = setInterval(ensure, 300);
+    return () => clearInterval(id);
+  }, [open]);
 
   const tipologieOpts = React.useMemo(() => {
     const groups = canale ? (MACRO_TIPI_PER_CANALE[canale] || {}) : {};
@@ -6109,6 +6353,29 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const formatiOpts = React.useMemo(() =>
     tipologia ? (FORMATI_PER_TIPO[tipologia] || []).map(f => ({ value: f, label: f })) : [],
     [tipologia]);
+
+  // Solo per l'handoff: gli Select di Ant Design non rispondono a eventi
+  // mouse sintetici (serve un click reale del sistema operativo), quindi il
+  // tour non può "cliccarli" via JS. Esponiamo i setter React direttamente
+  // così il tour può compilare i campi richiamando queste funzioni — sempre
+  // aggiornate ad ogni render, per leggere le opzioni cascata correnti.
+  React.useEffect(() => {
+    if (!open) { delete window.__ghfIdentita; return; }
+    window.__ghfIdentita = {
+      pickCanale: () => { if (CANALI_OPTS[0]) { setCanale(CANALI_OPTS[0].value); setTipologia(null); setFormato(null); } },
+      pickTipologia: () => { const g = tipologieOpts[0]; const v = g && g.options && g.options[0] && g.options[0].value; if (v) { setTipologia(v); setFormato(null); } },
+      pickFormato: () => { if (formatiOpts[0]) setFormato(formatiOpts[0].value); },
+      pickStato: () => { if (STATI_AMM_OPTS[0]) setStato(STATI_AMM_OPTS[0].value); },
+      setVia: (v) => setVia(v),
+      setCitta: (v) => setCitta(v),
+      // Applica un indirizzo di esempio come farebbe la selezione di un suggerimento
+      // dalla ricerca — compila tutti i campi derivati in un colpo solo.
+      applyAddressExample: () => applyAddr({ via: 'Via Maqueda', civico: '148', cap: '90133', citta: 'Palermo', provincia: 'PA', regione: 'Sicilia', nazione: 'Italia', lat: 38.11820, lng: 13.36080 }),
+      setZonaExample: () => setZn(v => v || 'Centro Storico'),
+      pickProprietaConcessionaria: () => setProprieta('IGPDecaux'),
+    };
+    return () => { delete window.__ghfIdentita; };
+  });
 
   const [showErrors, setShowErrors] = useState(false);
 
@@ -6246,6 +6513,44 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   const openConcessioneDrawer = () => { setPermitDrawerType('concessione'); setPermitDrawerOpen(true); };
   const openAutorizzazioneDrawer = () => { setPermitDrawerType('autorizzazione'); setAuthDrawerScope('autorizzazioni'); setPermitDrawerOpen(true); };
+  // Solo per l'handoff: il menu "Collega permesso" è un Dropdown AntD e, come i
+  // Select (vedi commento su window.__ghfIdentita più sotto), non risponde a
+  // eventi mouse sintetici — il tour non può aprirlo/selezionarlo via JS.
+  // Esponiamo direttamente le stesse funzioni già cablate sul menu, più dei
+  // setter aggiuntivi per compilare davvero i dati (concessione collegata,
+  // autorizzazioni selezionate, campi Progetto/SCIA) così i tour mostrano il
+  // RISULTATO della compilazione, non solo un form vuoto.
+  React.useEffect(() => {
+    window.__ghfIterPermessi = {
+      openConcessioneDrawer, openAutorizzazioneDrawer, closePermitDrawer,
+      hasConcessione,
+      confirmPermit: handleAddPermit,
+      selectFirstUtenza: () => { const g = GRANTS_DATA[0]; setPermitRowKey(g.key + '-' + g.utilities[0].utilityNumber); },
+      selectExpiredUtenza: () => { const g = GRANTS_DATA.find(x => x.status === 'Scaduta'); if (g) setPermitRowKey(g.key + '-' + g.utilities[0].utilityNumber); },
+      selectSomeAuthorizations: () => { setPermitAuthKeys(AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory !== 'Genio Civile').slice(0, 3).map(a => a.key)); },
+      fillProjectExample: () => {
+        setProgettista(v => v || 'Studio Tecnico Russo & Partners');
+        setProgetto(v => v || '1305');
+        setDdl(v => v || 'Ing. Paolo Greco');
+        setRsc(v => v || 'Arch. Marta Vitale');
+        setLaboratorio(v => v || 'LabStrutture Palermo');
+        setGeologo(v => v || 'Dott. Andrea Rizzo');
+        setCollaudatore(v => v || 'Ing. Sergio Lombardo');
+        setCalcestruzzo(v => v || 'RCK > 25 MPA');
+        setAcciaioCarp(v => v || 'FE 360 B');
+        setAcciaioArm(v => v || 'FEB 44 K');
+        setProgDittaCA(v => v || 'Edil Costruzioni S.r.l.');
+        setTecnicheGc(v => v || 'Saldature con elettrodi basici');
+      },
+      fillSciaExample: () => {
+        setPermitSciaManual(prev => ({
+          urbanistica: { protocollo: 'Prot. SUE 48213/2026', presentata: dayjs('14/04/2026', 'DD/MM/YYYY'), ente: 'SUE — Comune di Palermo', dichiarante: 'Gravity Media S.r.l.', tecnico: 'Ing. Paolo Greco', termineVerifica: dayjs('14/05/2026', 'DD/MM/YYYY'), fineLavori: dayjs('14/04/2029', 'DD/MM/YYYY'), ...prev.urbanistica },
+          commerciale: { protocollo: 'Prot. SUAP 09877/2026', presentata: dayjs('14/04/2026', 'DD/MM/YYYY'), ente: 'SUAP — Comune di Palermo', dichiarante: 'Gravity Media S.r.l.', termineVerifica: dayjs('13/06/2026', 'DD/MM/YYYY'), ...prev.commerciale },
+        }));
+      },
+    };
+    return () => { delete window.__ghfIterPermessi; };
+  });
 
   // Dropdown "Collega permesso" per lo Step 1: concessione o autorizzazione (la SCIA sta nello step dedicato)
   const concAutDropdown = React.createElement(Dropdown, {
@@ -6344,6 +6649,14 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       ),
     );
   const box = (title, description, ...children) => boxX(title, description, null, ...children);
+  // Pallino contatore accanto al titolo di boxX: sfondo primary, numero bianco
+  const countBadge = (n) => React.createElement('span', {
+    style: {
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
+      background: '#3E00FB', color: '#fff', fontSize: 12, fontWeight: 700, lineHeight: 1,
+    },
+  }, n);
 
   // Grid helpers
   const g2 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-2' }, ...f);
@@ -6410,7 +6723,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     const nodes = []; let pair = [];
     const flush = () => { if (pair.length) { nodes.push(g2(...pair, ...(pair.length === 1 ? [React.createElement('div')] : []))); pair = []; } };
     def.fields.forEach((f, i) => {
-      const field = cs(f.label, !!f.required, renderAssetField(f));
+      const label = (tipo === 'Fondazione' && f.key === 'dataFine')
+        ? React.createElement(React.Fragment, null, f.label, React.createElement(HandoffDesignNote, { id: 'struttura-fondazione-date-validazione', placement: 'top' }))
+        : f.label;
+      const field = cs(label, !!f.required, renderAssetField(f));
       if (f.full) { flush(); nodes.push(React.createElement('div', { key: 'af' + i }, field)); }
       else { pair.push(field); if (pair.length === 2) flush(); }
     });
@@ -6470,6 +6786,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     onClose: onClose,
     placement: 'right',
     width: '100%',
+    rootClassName: 'grav-main-drawer',
     closable: false, maskClosable: !dirty, keyboard: !dirty,
     destroyOnClose: true,
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
@@ -6492,8 +6809,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     React.createElement('div', { className: 'create-body' },
 
       React.createElement('nav', { id: 'grav-tour-form-nav', className: 'create-nav' },
-        React.createElement('div', { className: 'create-nav-label' }, 'Sezioni'),
-        SECTIONS.map(({ id, label }) => {
+        React.createElement('div', { className: 'create-nav-label' }, 'Sezioni',
+          React.createElement(HandoffDesignNote, { id: 'sezioni-facoltative', placement: 'right' })),
+        SECTIONS.filter(({ id }) => !disabledSections.includes(id)).map(({ id, label }) => {
           const isActive = activeSection === id;
           return React.createElement('div', {
             key: id,
@@ -6518,22 +6836,22 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           box('Informazioni generali', 'Registra canale, tipologia, formato, stato amministrativo e proprietario dell\'impianto.',
             g2(
               cs('Canale', true,
-                sel(canale, v => { setCanale(v); setTipologia(null); setFormato(null); }, CANALI_OPTS, 'Seleziona il canale',
+                sel(canale, withFacceGuard(v => { setCanale(v); setTipologia(null); setFormato(null); }), CANALI_OPTS, 'Seleziona il canale',
                   { className: 'grav-field-canale', status: showErrors && !canale ? 'error' : undefined })
               ),
               cs('Tipologia', true,
-                sel(tipologia, v => { setTipologia(v); setFormato(null); }, tipologieOpts,
+                sel(tipologia, handleTipologiaChange, tipologieOpts,
                   canale ? 'Seleziona la tipologia' : 'Prima seleziona il canale',
                   { className: 'grav-field-tipologia', disabled: !canale, showSearch: true, status: showErrors && !tipologia ? 'error' : undefined })
               ),
             ),
             g2(
-              cs('Formato', true,
-                sel(formato, setFormato, formatiOpts,
+              cs(React.createElement(React.Fragment, null, 'Formato', React.createElement(HandoffDesignNote, { id: 'commerciale-moduli-formato-disallineato', placement: 'top' })), true,
+                sel(formato, withFacceGuard(setFormato), formatiOpts,
                   tipologia ? 'Seleziona il formato' : 'Prima seleziona la tipologia',
                   { className: 'grav-field-formato', disabled: !tipologia, status: showErrors && !formato ? 'error' : undefined })
               ),
-              cs('Nome impianto', false,
+              cs(React.createElement(React.Fragment, null, 'Nome impianto', React.createElement(HandoffDesignNote, { id: 'anagrafica-nome-progressivo', placement: 'top' })), false,
                 React.createElement(Input, {
                   value: nome,
                   readOnly: true,
@@ -6665,15 +6983,16 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
               cs('Tecniche utilizzate', false, inp(tecnicheGc, setTecnicheGc, 'Es. Saldature con elettrodi basici')),
               cs('Data fine lavori',   false, dp(progDataFine, setProgDataFine)),
             ),
-            React.createElement('div', { style: { marginTop: 4, display: 'flex', justifyContent: 'flex-end' } },
+            React.createElement('div', { style: { marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 } },
               React.createElement(Button, { icon: React.createElement(DownloadOutlined), onClick: () => setGcTemplateOpen(true) }, 'Scarica Modulo'),
+              React.createElement(HandoffDesignNote, { id: 'iter-scarica-modulo-fuori-scope', placement: 'left' }),
             ),
           ),
 
           // ── STEP 3 · Titolo a installare ────────────────────────────
           // Dati delle due SCIA compilabili direttamente nel form (inline, non più nel drawer),
           // ognuna con il proprio upload documenti.
-          box('Titolo a installare', 'Compila i dati della SCIA urbanistica e della SCIA commerciale presentate per l\'impianto e carica i relativi documenti.',
+          box(React.createElement(React.Fragment, null, 'Titolo a installare', React.createElement(HandoffDesignNote, { id: 'iter-scia-validazioni', placement: 'right' })), 'Compila i dati della SCIA urbanistica e della SCIA commerciale presentate per l\'impianto e carica i relativi documenti.',
             ...SCIA_TYPES.map((scia, idx) => {
               const man = permitSciaManual[scia.id] || {};
               const fields = SCIA_FIELD_META.filter(f => f.key in scia);
@@ -6752,8 +7071,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           ),
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Facce',
-              tipologia ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, facce.length + '/' + maxFacce) : null,
-            ), 'Aggiungi le facce dell\'impianto. Il numero massimo dipende dalla tipologia selezionata.',
+              facce.length > 0 ? countBadge(facce.length) : null,
+              React.createElement(HandoffDesignNote, { id: 'caratteristiche-facce-limite-rimosso', placement: 'bottom' }),
+              React.createElement(HandoffDesignNote, { id: 'caratteristiche-facce-duplica-mancante', placement: 'bottom' }),
+            ), 'Aggiungi le facce dell\'impianto: puoi crearne quante ne servono.',
             facce.length > 0 ? faceAddBtn : null,
             facce.length > 0
               ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 } },
@@ -6765,11 +7086,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                       name: f.tipo + '-' + ordinal, face: { ...f, _hasPosteriore: hasPost },
                       onEdit: () => openEditFace(f),
                       onRemove: () => removeFace(f.id),
-                      onCreatePosteriore: (f.tipo === 'Anteriore' && !hasPost && facce.length < maxFacce) ? () => createPosteriore(f) : null,
+                      onCreatePosteriore: (f.tipo === 'Anteriore' && !hasPost) ? () => createPosteriore(f) : null,
                     });
                   }),
                 )
-              : React.createElement(Empty, { description: tipologia ? "Nessuna faccia aggiunta" : "Seleziona prima la tipologia", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+              : React.createElement(Empty, { description: "Nessuna faccia aggiunta", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
                   faceAddBtn,
                 ),
           ),
@@ -6779,7 +7100,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         sec('struttura', 'Cespiti e dispositivi', 'Componenti strutturali montati e dispositivi connessi, con ditte e date di montaggio.',
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Cespiti',
-              cespiti.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, cespiti.length) : null,
+              cespiti.length > 0 ? countBadge(cespiti.length) : null,
+              React.createElement(HandoffDesignNote, { id: 'add-one-at-a-time', placement: 'bottom' }),
             ), 'Aggiungi i componenti strutturali dell\'impianto come fondazione, pali, cornice, pannelli, extra struttura.',
             cespiti.length > 0 ? cespiteAddBtn : null,
             cespiti.length > 0
@@ -6790,7 +7112,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           ),
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Dispositivi',
-              dispositivi.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, dispositivi.length) : null,
+              dispositivi.length > 0 ? countBadge(dispositivi.length) : null,
             ), 'Aggiungi i dispositivi connessi installati sull\'impianto come player, modem/router, sensori, telecamere, schermi, centraline.',
             dispositivi.length > 0 ? dispositivoAddBtn : null,
             dispositivi.length > 0
@@ -6806,7 +7128,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           boxX(
             React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Affissione',
-              affissioni.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, affissioni.length) : null,
+              affissioni.length > 0 ? countBadge(affissioni.length) : null,
+              React.createElement(HandoffDesignNote, { id: 'squadre-affissione-modifica-mancante', placement: 'bottom' }),
             ),
             'Assegna le squadre incaricate, il tipo di affissione e i relativi costi.',
             affissioni.length > 0 ? affAddBtn : null,
@@ -6834,7 +7157,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           boxX(
             React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Manutenzione',
-              manutenzioni.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, manutenzioni.length) : null,
+              manutenzioni.length > 0 ? countBadge(manutenzioni.length) : null,
             ),
             'Assegna le squadre di manutenzione dell\'impianto.',
             manutenzioni.length > 0 ? manAddBtn : null,
@@ -6874,7 +7197,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                   qualita ? qualita + '/5' : 'Non valutata'),
               ),
             ),
-            cs('Foto dell\'impianto', false,
+            cs(React.createElement(React.Fragment, null, 'Foto dell\'impianto', React.createElement(HandoffDesignNote, { id: 'commerciale-galleria-copertina-auto', placement: 'top' })), false,
               React.createElement(React.Fragment, null,
               React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 8 } }, 'Passa il mouse su una foto e tocca la ★ per impostarla come copertina.'),
               React.createElement(Upload, {
@@ -6927,7 +7250,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                 c('IVA (' + aliq + '%)', iva),
                 c('Totale (IVA incl.)', lordo, true));
             })(),
-            React.createElement('div', { style: { marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
+            React.createElement('div', { className: 'grav-sconto-moduli-row', style: { marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
               React.createElement(Checkbox, { checked: scontoModuli, onChange: e => setScontoModuli(e.target.checked) },
                 'Se venduto a moduli, applica uno sconto del'),
               React.createElement(InputNumber, {
@@ -6939,7 +7262,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           ),
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Moduli',
-              moduliCollegati.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, moduliCollegati.length) : null,
+              moduliCollegati.length > 0 ? countBadge(moduliCollegati.length) : null,
+              React.createElement(HandoffDesignNote, { id: 'commerciale-moduli-fuori-scope-creazione', placement: 'bottom' }),
             ),
             'Collega impianti dello stesso tipo e formato, vicini tra loro, venduti insieme come un unico spazio. Puoi collegare solo impianti già esistenti.',
             moduliCollegati.length > 0
@@ -7033,20 +7357,20 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
         React.createElement(DiscardCloseIcon, { dirty: isFaceDirty(), onDiscard: closeFaceDrawer }),
         faceEditId ? 'Modifica Faccia' : 'Aggiungi Faccia'),
-      placement: 'right', width: 720,
+      placement: 'right', width: 720, rootClassName: 'grav-face-drawer',
       styles: { body: { padding: 24 } },
       closable: false, maskClosable: !isFaceDirty(), keyboard: !isFaceDirty(),
       onClose: closeFaceDrawer, open: faceDrawerOpen,
       extra: React.createElement(Space, null,
         React.createElement(DiscardButton, { dirty: isFaceDirty(), onDiscard: closeFaceDrawer }, 'Annulla'),
-        React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: saveFace }, faceEditId ? 'Salva' : 'Aggiungi'),
+        React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), disabled: !fcTipo, onClick: saveFace }, faceEditId ? 'Salva' : 'Aggiungi'),
       ),
     },
       fcIsLinkedPost ? React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginBottom: 16, background: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
         React.createElement(InfoCircleOutlined, { style: { fontSize: 14, color: '#3E00FB', marginTop: 2 } }),
         React.createElement('span', null, 'Faccia posteriore collegata: posizione, dimensioni, slot e orientamento sono guidati dalla faccia anteriore. Qui puoi modificare illuminazione, modello di vendita e prezzo.'),
       ) : null,
-      cs(tipoFacciaLabel, true,
+      cs(tipoFacciaLabel, false,
         React.createElement(Radio.Group, { optionType: 'button', value: fcTipo, onChange: e => setFcTipo(e.target.value), disabled: fcIsLinkedPost,
           options: [{ label: 'Anteriore', value: 'Anteriore' }, { label: 'Posteriore', value: 'Posteriore' }, { label: 'Sinistra', value: 'Sinistra' }, { label: 'Destra', value: 'Destra' }] })),
       React.createElement('div', { className: 'ni-field', style: { display: 'flex', alignItems: 'center', gap: 12 } },
@@ -7073,7 +7397,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             tooltip: { formatter: v => v + '°' },
           }))),
       cs('Cono di visibilità', false,
-        React.createElement(InputNumber, { value: fcCono, onChange: setFcCono, min: 0, disabled: fcIsLinkedPost, addonBefore: 'r', addonAfter: 'cm', placeholder: '0', style: { width: 200 } })),
+        React.createElement(InputNumber, { value: fcCono, onChange: setFcCono, min: 0, disabled: fcIsLinkedPost, addonBefore: 'r', addonAfter: 'm', placeholder: '0', style: { width: 200 } })),
       cs('Formato', false,
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
           React.createElement(InputNumber, { value: fcFormL, onChange: setFcFormL, min: 0, disabled: fcIsLinkedPost, addonAfter: 'cm', placeholder: 'l', style: { flex: 1 } }),
@@ -7111,6 +7435,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         React.createElement(DiscardCloseIcon, { dirty: isAssetDirty(), onDiscard: closeAssetDrawer }),
         (assetEditId ? 'Modifica ' : 'Aggiungi ') + (acCategory === 'Dispositivo' ? 'dispositivo' : 'cespite')),
       placement: 'right', width: 600,
+      rootClassName: 'grav-cespite-drawer',
       styles: { body: { padding: 24 } },
       closable: false, maskClosable: !isAssetDirty(), keyboard: !isAssetDirty(),
       onClose: closeAssetDrawer, open: assetDrawerOpen,
@@ -7119,12 +7444,12 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         React.createElement(Button, {
           type: 'primary',
           icon: React.createElement(assetEditId ? SaveOutlined : PlusOutlined),
-          disabled: !!assetEditId && acModified.size === 0,
+          disabled: !acTipo || (!!assetEditId && acModified.size === 0),
           onClick: saveAsset,
         }, assetEditId ? 'Salva' : 'Aggiungi'),
       ),
     },
-      cs(acCategory === 'Dispositivo' ? 'Tipo dispositivo' : 'Tipo cespite', true,
+      cs(acCategory === 'Dispositivo' ? 'Tipo dispositivo' : 'Tipo cespite', false,
         React.createElement(Select, {
           value: acTipo, onChange: setAcTipo, options: ASSET_TIPO_OPTS_BY_CAT[acCategory] || [],
           style: { width: '100%' }, placeholder: 'Seleziona il tipo di ' + (acCategory === 'Dispositivo' ? 'dispositivo' : 'cespite'),
@@ -7142,7 +7467,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     React.createElement(Drawer, {
       title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
         React.createElement(DiscardCloseIcon, { dirty: isLinkDirty(), onDiscard: () => setLinkDrawerOpen(false) }), 'Collega impianto'),
-      placement: 'right', width: 640,
+      placement: 'right', width: 640, rootClassName: 'grav-moduli-drawer',
       styles: { body: { padding: 24 } },
       closable: false, maskClosable: !isLinkDirty(), keyboard: !isLinkDirty(),
       onClose: () => setLinkDrawerOpen(false), open: linkDrawerOpen,
@@ -7152,12 +7477,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           linkSelectedIds.length > 0 ? 'Collega (' + linkSelectedIds.length + ')' : 'Collega'),
       ),
     },
-      React.createElement('div', { style: { marginBottom: 16 } },
+      React.createElement('div', { style: { marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4 } },
         React.createElement(Input, {
           value: linkSearch, onChange: e => setLinkSearch(e.target.value),
           placeholder: 'Cerca per ID, tipo o indirizzo…', allowClear: true,
           prefix: React.createElement(SearchOutlined), style: { width: '100%' },
         }),
+        React.createElement(HandoffDesignNote, { id: 'commerciale-moduli-distanza-mancante', placement: 'bottom' }),
       ),
       (!tipologia || !formato) ? React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginBottom: 16, background: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
         React.createElement(InfoCircleOutlined, { style: { fontSize: 14, color: '#3E00FB', marginTop: 2 } }),
@@ -7202,7 +7528,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
     // Modal "salva e collega" — proposto al salvataggio se ci sono impianti compatibili non ancora collegati
     React.createElement(Modal, {
-      title: 'Collegare come moduli?', open: saveLinkOpen,
+      title: 'Collegare come moduli?', open: saveLinkOpen, rootClassName: 'grav-savelink-modal',
       onCancel: skipSaveLink,
       footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8 } },
         React.createElement(Button, { onClick: skipSaveLink }, 'Salta'),
@@ -7229,6 +7555,30 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           );
         }),
       ),
+    ),
+
+    // Solo per l'handoff: select "Ruolo" dentro il box grigio della dev bar, non nel form.
+    roleSlotEl && ReactDOM.createPortal(
+      React.createElement(React.Fragment, null,
+        React.createElement('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }),
+        React.createElement('span', {
+          style: {
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            height: 24, padding: '0 4px 0 10px',
+            background: '#fff', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 6,
+          },
+        },
+          React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.75)', whiteSpace: 'nowrap' } }, 'Ruolo'),
+          React.createElement(Select, {
+            value: formRole,
+            onChange: v => { setFormRole(v); setActiveSection('identita'); },
+            options: FORM_ROLES, size: 'small', variant: 'borderless',
+            style: { width: 110 },
+            popupMatchSelectWidth: false,
+          })
+        )
+      ),
+      roleSlotEl
     )
   );
 }
@@ -8004,6 +8354,25 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     React.createElement(App)
   )
 );
+</script>
+<!-- Motore handoff — caricato solo se il loader in <head> ha attivato il layer. -->
+<script>
+  if (window.__HANDOFF_ACTIVE) document.write('<scr' + 'ipt src="../_shared/handoff.js"></scr' + 'ipt>');
+</script>
+<script>
+  // Riparenta lo slot della dev bar su <body>: dentro <nav> (position:sticky,
+  // z-index:100) resta intrappolato nel suo stacking context e nessun
+  // z-index interno può superare il Drawer "Nuovo/Modifica Impianto"
+  // (z-index:1000, portato fuori da <nav>). Vedi commento CSS su #ghf-nav-slot.
+  // Attivo solo in modalità handoff (vedi loader in <head>).
+  if (window.__HANDOFF_ACTIVE) {
+    setInterval(function () {
+      var slot = document.getElementById('ghf-nav-slot');
+      if (slot && slot.parentElement !== document.body) {
+        document.body.appendChild(slot);
+      }
+    }, 300);
+  }
 </script>
 </body>
 </html>
