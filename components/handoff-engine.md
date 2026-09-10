@@ -22,6 +22,22 @@ Il prototipo è l'**unica fonte** — niente copie "handoff". Il layer si attiva
   navigazione dell'app (navbar.js e altri prototipi) puntano lì e **non vanno cambiati** finché
   non si decide di aggiornare l'approvata.
 
+### URL pubblici `/demo` e `/handoff`
+
+Due redirect in `vercel.json` (root del repo) danno un punto d'ingresso stabile e condivisibile
+alle due modalità, sul prototipo di riferimento (`inventory-systems`):
+
+| URL | Redirect verso |
+|-----|-----------------|
+| `/demo` | `prototype/inventory-systems/index.html` (pulito) |
+| `/handoff` | `prototype/inventory-systems/index--handoff.html` (stub → versione approvata) |
+
+Da questi due punti la navigazione resta nella modalità di partenza: `navbar.js` è **mode-aware**
+(rileva `?handoff` nell'URL e sceglie, per ogni link generato dal registro, l'entry `handoff` del
+prototipo target se esiste ed è la modalità corrente, altrimenti sempre l'entry `entry` pulita —
+dettagli in `components/navbar.md` → "Link mode-aware"). Per questo `registry.js` distingue
+esplicitamente `entry` (demo) e `handoff` (opzionale, solo sui prototipi con layer handoff).
+
 ### Versioni = file di config, non copie HTML
 
 `handoff-steps.js` = versione corrente; future = `handoff-steps-vX.js` + voce nel loader e in

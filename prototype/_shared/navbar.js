@@ -69,14 +69,23 @@
     Settings:   { items: ['Users', 'Tenants'] },
   };
 
+  // Modalità corrente della pagina (ground truth indipendente dall'ordine di
+  // caricamento script): presenza di ?handoff nell'URL. Usata per propagare la
+  // modalità sui link di menu (mode-aware), così la navigazione tra prototipi
+  // non fa mai uscire dalla modalità in cui ci si trova.
+  var isHandoff = new URLSearchParams(location.search).has('handoff');
+
   // Link di default per (sezione, voce) dal registro. Calcolati lazy perché
   // registry.js — se iniettato via document.write — viene eseguito dopo questo file.
+  // In modalità handoff preferisce l'entry `handoff` del prototipo target (se
+  // presente); altrimenti (o in demo) usa sempre l'entry pulita `entry`.
   function registryLinks() {
     var reg = window.GRAVITY_PROTOTYPES || {};
     var map = {};
     Object.keys(reg).forEach(function (key) {
       var p = reg[key];
-      if (p.nav && p.entry) map[p.nav.section + '/' + p.nav.item] = PROTO + p.entry;
+      var page = (isHandoff && p.handoff) ? p.handoff : p.entry;
+      if (p.nav && page) map[p.nav.section + '/' + p.nav.item] = PROTO + page;
     });
     return map;
   }
