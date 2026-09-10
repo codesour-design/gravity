@@ -1327,13 +1327,16 @@ function MiniCalendar() {
 // Stato schermate: 'login' → 'tenant-select' → 'welcome'
 // Link email: 'reset-password' (link valido) · 'expired-link' (link scaduto/già usato)
 
-// Risolve la destinazione post-login da ?next=<chiave registry> e ?handoff
-// (impostati da vercel.json su /demo(/:feature) e /handoff(/:feature)): con
-// next valido punta all'entry di quel prototipo (handoff se la modalità è
-// attiva ed esiste, altrimenti fallback sul pulito); senza next torna alla
-// home (user-profile), propagando comunque la modalità per i link a valle.
+// Risolve la destinazione post-login da ?next=<chiave registry>, ?handoff e
+// ?mode=demo (impostati da vercel.json su /demo(/:feature) e
+// /handoff(/:feature)): con next valido punta all'entry di quel prototipo
+// (handoff se la modalità è attiva ed esiste, altrimenti fallback sul
+// pulito); senza next, la demo atterra su Inventory Systems, l'accesso
+// reale/handoff torna alla home (user-profile), propagando comunque la
+// modalità per i link a valle.
 function resolveNextUrl(params) {
   var isHandoffMode = params.has('handoff');
+  var isDemoMode = params.get('mode') === 'demo';
   var nextKey = params.get('next');
   if (nextKey) {
     var p = (window.GRAVITY_PROTOTYPES || {})[nextKey];
@@ -1341,6 +1344,10 @@ function resolveNextUrl(params) {
       var page = (isHandoffMode && p.handoff) ? p.handoff : p.entry;
       if (page) return '../' + page;
     }
+  }
+  if (isDemoMode) {
+    var inventory = (window.GRAVITY_PROTOTYPES || {})['inventory-systems'];
+    if (inventory && inventory.entry) return '../' + inventory.entry;
   }
   return '../user-profile/index.html' + (isHandoffMode ? '?handoff' : '');
 }
