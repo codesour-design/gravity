@@ -3,7 +3,9 @@
   "framework": null,
   "redirects": [
     { "source": "/", "destination": "/prototype/single-signon/index.html", "permanent": false },
-    { "source": "/demo", "destination": "/prototype/inventory-systems/index.html", "permanent": false },
-    { "source": "/handoff", "destination": "/prototype/inventory-systems/index--handoff.html", "permanent": false }
+    { "source": "/demo", "destination": "/prototype/single-signon/index.html", "permanent": false },
+    { "source": "/handoff", "destination": "/prototype/single-signon/index.html?handoff", "permanent": false },
+    { "source": "/demo/:feature", "destination": "/prototype/single-signon/index.html?next=:feature", "permanent": false },
+    { "source": "/handoff/:feature", "destination": "/prototype/single-signon/index.html?next=:feature&handoff", "permanent": false }
   ]
 }

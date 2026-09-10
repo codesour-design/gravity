@@ -20,6 +20,9 @@
   <!-- Gravity tokens -->
   <script src="../_shared/tokens.js"></script>
 
+  <!-- Registro prototipi — risolve i link di menu (vedi NAV, replica pattern navbar.js) -->
+  <script src="../_shared/registry.js"></script>
+
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; background: #f5f5f5; }
@@ -92,15 +95,27 @@ const ROLE_NAV = {
   'Sales':             ['Commercial', 'Delivery'],
 };
 
+// Mode-aware come navbar.js (vedi components/navbar.md → "Link mode-aware"): se
+// questa pagina è stata raggiunta in modalità handoff (login da /handoff, vedi
+// single-signon), i link a valle restano in handoff quando il prototipo target
+// ne ha uno, altrimenti ricadono sul pulito.
+const isHandoff = new URLSearchParams(location.search).has('handoff');
+function regLink(key) {
+  const p = (window.GRAVITY_PROTOTYPES || {})[key];
+  if (!p) return undefined;
+  const page = (isHandoff && p.handoff) ? p.handoff : p.entry;
+  return page ? '../' + page : undefined;
+}
+
 const NAV = {
   Overview:   { items: ['Per te', 'Dashboard finance', 'Dashboard analytics'],
                 links: { 'Per te': './index.html' } },
   Inventory:  { items: ['Systems', 'Licenses', 'Supplier'],
-                links: { Systems: '../inventory-systems/index.html' } },
+                links: { Systems: regLink('inventory-systems') } },
   Commercial: { items: ['Wallet', 'Activities', 'Negotiations', 'Orders'],
-                links: { Negotiations: '../negotiations/index.html' } },
+                links: { Negotiations: regLink('negotiations') } },
   Delivery:   { items: ['Campaigns', 'Plannings', 'Collections'],
-                links: { Plannings: '../planning/index.html', Collections: '../poi-collections/index.html' } },
+                links: { Plannings: regLink('planning'), Collections: regLink('poi-collections') } },
   Settings:   { items: ['Users', 'Tenants'], links: {} },
 };
 
