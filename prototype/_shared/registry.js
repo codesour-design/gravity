@@ -34,16 +34,19 @@ window.GRAVITY_PROTOTYPES = {
   'poi-collections': {
     label: 'Collezioni POI', status: 'approved',
     entry: 'poi-collections/index.html',
+    handoff: 'poi-collections/index--handoff.html',
     nav: { section: 'Delivery', item: 'Collections' },
   },
   'negotiations': {
     label: 'Trattative', status: 'in-progress',
     entry: 'negotiations/index.html',
+    handoff: 'negotiations/index--handoff.html',
     nav: { section: 'Commercial', item: 'Negotiations' },
   },
   'campaign-delivery': {
     label: 'Espletamento campagna', status: 'in-progress',
     entry: 'campaign-delivery/index.html',
+    handoff: 'campaign-delivery/index--handoff.html',
     nav: { section: 'Delivery', item: 'Campaigns' },
   },
   'user-profile': {
