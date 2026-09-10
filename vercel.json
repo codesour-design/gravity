@@ -2,6 +2,8 @@
   "name": "gravity-prototipi",
   "framework": null,
   "redirects": [
-    { "source": "/", "destination": "/prototype/single-signon/index.html", "permanent": false }
+    { "source": "/", "destination": "/prototype/single-signon/index.html", "permanent": false },
+    { "source": "/demo", "destination": "/prototype/inventory-systems/index.html", "permanent": false },
+    { "source": "/handoff", "destination": "/prototype/inventory-systems/index--handoff.html", "permanent": false }
   ]
 }

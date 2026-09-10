@@ -54,6 +54,22 @@ approvato si aggiorna `status` nel registro, **non si sposta la cartella** (gli 
 Nuovo prototipo → nuova voce nel registro (`label`, `status`, `entry`, `nav` se collegato a una
 voce di menu).
 
+### Link mode-aware (demo / handoff)
+
+`navbar.js` rileva la modalità della pagina corrente da `?handoff` nell'URL
+(`isHandoff = new URLSearchParams(location.search).has('handoff')`) e la propaga su **tutti** i
+link generati dal registro: se il prototipo target ha un campo `handoff` in
+`GRAVITY_PROTOTYPES` ed `isHandoff` è vero, il link punta lì; altrimenti punta sempre a `entry`
+(prototipo pulito). Così, cliccando in giro per la navbar, la modalità corrente **non si perde
+mai** — si resta in demo o in handoff indipendentemente da dove si clicca.
+
+Non serve più (e non va più usato per veicolare la modalità) l'override `links` in
+`GRAVITY_NAV` nell'head dei singoli prototipi: la fonte unica della modalità è il registro.
+`links` resta disponibile solo per destinazioni realmente non standard, fuori dal registro.
+
+URL d'ingresso pubblici `/demo` e `/handoff` (redirect in `vercel.json`, verso
+`inventory-systems`) → vedi `components/handoff-engine.md`.
+
 ### Specifiche visive
 
 | Proprietà | Valore |
