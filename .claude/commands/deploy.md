@@ -98,7 +98,7 @@ git push
 Vercel rileva il push su `main` e deploya automaticamente in 10–20 secondi.
 
 ### Step 4 — Verifica post-deploy
-Apri https://gravity-prototipi-codesour.vercel.app e verifica che le modifiche siano visibili.
+Apri https://gravity-prototipi-codesour-projects.vercel.app e verifica che le modifiche siano visibili.
 In caso di problemi controlla i log su: https://vercel.com/codesour-projects/gravity-prototipi
 
 **Rollback:** vai su Vercel Dashboard → seleziona il deploy precedente → **Promote to Production**
@@ -107,7 +107,9 @@ In caso di problemi controlla i log su: https://vercel.com/codesour-projects/gra
 
 **Riferimenti:**
 - Repo GitHub: https://github.com/codesour-design/gravity
-- URL produzione: https://gravity-prototipi-codesour.vercel.app
+- URL produzione: https://gravity-prototipi-codesour-projects.vercel.app (il dominio
+  `gravity-prototipi-codesour.vercel.app`, senza `-projects`, è **stale/congelato**: non riceve
+  più deploy automatici dal rename del team in `codesour-projects` — non usarlo)
 - Vercel Dashboard: https://vercel.com/codesour-projects/gravity-prototipi
 - Account Vercel: `bonnyb` / team `codesour-projects` (MAI usare l'account personale `pianobdesign20`)
 - Struttura: tutti i prototipi in `prototype/` — un solo progetto, path separati per modulo
