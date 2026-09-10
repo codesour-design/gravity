@@ -1014,11 +1014,6 @@ window.HANDOFF_NOTES = [
     title: 'Pianificazione ↔ campagna senza trattativa (sprint futuri)',
     body: 'Il flusso in cui una pianificazione viene collegata a una **campagna senza trattativa** sarà progettato in sprint successivi, dopo un **redesign della funzionalità Campagne**.',
   },
-  {
-    id: 'nomenclatura-impianti',
-    title: 'Nomenclatura impianti (in lavorazione)',
-    body: 'Il design sta ancora lavorando sulla **nomenclatura degli impianti**.\n- ==Per il momento va mantenuta la nomenclatura che abbiamo già==',
-  },
 ];
 
 // ════════════════════════════════════════════════════════════════════════════

@@ -2165,7 +2165,7 @@ const SEARCH_RESULTS = (() => {
 
       out.push({
         id,
-        code:     `${province}-${String(n).padStart(3,'0')}`,
+        code:     `${channel}-${String(n).padStart(3,'0')}`,
         channel,
         type,
         saleModel,
@@ -7239,7 +7239,7 @@ out geom;`;
           planning.state !== 'Completata' && React.createElement('div', {
             className: `ss-panel-tab${panelTab === 'results' ? ' active' : ''}`,
             onClick: () => setPanelTab('results'),
-          }, 'Risultati di ricerca', React.createElement(HandoffDesignNote, { id: 'nomenclatura-impianti', placement: 'bottom' })),
+          }, 'Risultati di ricerca'),
           React.createElement('div', {
             className: `ss-panel-tab${panelTab === 'selected' ? ' active' : ''}`,
             onClick: () => setPanelTab('selected'),
