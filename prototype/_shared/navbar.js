@@ -75,6 +75,10 @@
   // non fa mai uscire dalla modalità in cui ci si trova.
   var isHandoff = new URLSearchParams(location.search).has('handoff');
 
+  // Esplicita la modalità nel titolo della scheda browser (utile con più
+  // prototipi aperti in parallelo, es. verificando demo e handoff insieme).
+  document.title += isHandoff ? ' · Handoff' : ' · Demo';
+
   // Link di default per (sezione, voce) dal registro. Calcolati lazy perché
   // registry.js — se iniettato via document.write — viene eseguito dopo questo file.
   // In modalità handoff preferisce l'entry `handoff` del prototipo target (se

@@ -434,6 +434,19 @@ const TODAY = new Intl.DateTimeFormat('it-IT', {
   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
 }).format(new Date());
 
+// Etichetta modalità da ?handoff / ?mode=demo (impostati da vercel.json su
+// /demo(/:feature) e /handoff(/:feature)) — null sull'accesso reale ("/",
+// nessun marker) dove la distinzione demo/handoff non esiste. Usata sia nel
+// <title> della scheda sia come badge sulla card "Gravity (White Label)" in
+// TenantSelectScreen (l'unico tenant che porta nell'app modalità-aware).
+const MODE_LABEL = (function () {
+  var qp = new URLSearchParams(location.search);
+  if (qp.has('handoff')) return 'Handoff';
+  if (qp.get('mode') === 'demo') return 'Demo';
+  return null;
+})();
+if (MODE_LABEL) document.title += ' · ' + MODE_LABEL;
+
 // Tenant disponibili per l'utente — include ruolo e colore identificativo
 const TENANTS = [
   {
@@ -1060,7 +1073,7 @@ function ExpiredLinkScreen({ onRequestNewLink }) {
 // SCHERMATA 2 — SELEZIONE TENANT
 // ─────────────────────────────────────────────────────────────────────────────
 
-function TenantSelectScreen({ email, onSelect }) {
+function TenantSelectScreen({ email, onSelect, modeLabel }) {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading]   = useState(false);
 
@@ -1094,7 +1107,15 @@ function TenantSelectScreen({ email, onSelect }) {
             React.createElement('div', { className: 'avatar-a' },
               React.createElement('img', { src: t.logo, alt: t.name })
             ),
-            React.createElement('p', { className: 'tenant-name' }, t.name),
+            React.createElement('p', { className: 'tenant-name' },
+              t.name,
+              (t.id === 'gravity-white-label' && modeLabel)
+                ? React.createElement(Tag, {
+                    color: modeLabel === 'Handoff' ? 'purple' : 'blue',
+                    style: { margin: '0 0 0 6px', verticalAlign: 'middle' },
+                  }, modeLabel)
+                : null
+            ),
             React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 4 } },
               t.types.map(type => React.createElement(Tag, { key: type, color: CHANNEL_COLOR[type], style: { margin: 0 } }, type))
             ),
@@ -1400,7 +1421,7 @@ function App() {
         : screen === 'no-tenant'
           ? React.createElement(NoTenantScreen, { email: loggedEmail, onBack: handleLogout })
           : screen === 'tenant-select'
-            ? React.createElement(TenantSelectScreen, { email: loggedEmail, onSelect: handleTenantSelect })
+            ? React.createElement(TenantSelectScreen, { email: loggedEmail, onSelect: handleTenantSelect, modeLabel: MODE_LABEL })
             : screen === 'reset-password'
               ? React.createElement(ResetPasswordScreen, { onSuccess: handleResetSuccess })
               : screen === 'expired-link'

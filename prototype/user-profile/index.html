@@ -100,6 +100,10 @@ const ROLE_NAV = {
 // single-signon), i link a valle restano in handoff quando il prototipo target
 // ne ha uno, altrimenti ricadono sul pulito.
 const isHandoff = new URLSearchParams(location.search).has('handoff');
+
+// Esplicita la modalità nel titolo della scheda browser, come navbar.js.
+document.title += isHandoff ? ' · Handoff' : ' · Demo';
+
 function regLink(key) {
   const p = (window.GRAVITY_PROTOTYPES || {})[key];
   if (!p) return undefined;

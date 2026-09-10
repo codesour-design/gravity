@@ -3,9 +3,9 @@
   "framework": null,
   "redirects": [
     { "source": "/", "destination": "/prototype/single-signon/index.html", "permanent": false },
-    { "source": "/demo", "destination": "/prototype/single-signon/index.html", "permanent": false },
+    { "source": "/demo", "destination": "/prototype/single-signon/index.html?mode=demo", "permanent": false },
     { "source": "/handoff", "destination": "/prototype/single-signon/index.html?handoff", "permanent": false },
-    { "source": "/demo/:feature", "destination": "/prototype/single-signon/index.html?next=:feature", "permanent": false },
+    { "source": "/demo/:feature", "destination": "/prototype/single-signon/index.html?next=:feature&mode=demo", "permanent": false },
     { "source": "/handoff/:feature", "destination": "/prototype/single-signon/index.html?next=:feature&handoff", "permanent": false }
   ]
 }
