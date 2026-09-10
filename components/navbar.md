@@ -92,7 +92,10 @@ Le chiavi di `GRAVITY_NAV` restano in inglese; i label mostrati sono in italiano
 ## Ruoli e accesso
 
 Ruolo attivo persistito in `localStorage.gravity_proto_role`, si cambia dal dropdown
-sull'avatar (nessuna autenticazione reale).
+sull'avatar (nessuna autenticazione reale). Lista ruoli esposta su `window.GRAVITY_ROLES`
+(unica fonte di verità, letta anche dal selettore duplicato nella dev bar dell'handoff —
+vedi `handoff-engine.md`); i due selettori restano sincronizzati sulla stessa pagina via
+evento custom `gravity:role-change` (non lo storage event, che non arriva nella stessa tab).
 
 | Ruolo | Sezioni |
 |-------|---------|

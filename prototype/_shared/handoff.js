@@ -4,16 +4,24 @@
  * - Niente più FAB: i controlli vivono nella navbar accanto alla campanella.
  *   · Switch con icona dev → attiva l'inspector: in hover su ogni componente
  *     mostra nome, livello atomico, funzione e variante Figma.
- *   · Icona user story → dropdown con i tour (motore spotlight invariato).
+ *   · Icona Sprint Jira → dropdown con i tour (user story + task, motore spotlight invariato).
  *
  * Configurazione in handoff-steps.js:
  *   window.HANDOFF_META       — { title, version, date, author }
  *   window.HANDOFF_SCREENS    — { key: { label, detect: fn } }
- *   window.HANDOFF_TOURS      — [{ id, title, description, roles?, startScreen?, novita?, steps: [...] }]
+ *   window.HANDOFF_TOURS      — [{ id, title, description, roles?, startScreen?, novita?, type?: 'task', steps: [...] }]
+ *                                 type assente/'us' = user story (default); 'task' = attività più granulare, stesso motore
  *   window.HANDOFF_COMPONENTS — [{ selector, name, level, custom?, funzione, figma, variant?(el) }]
  */
 (function () {
-  if (!window.HANDOFF_TOURS || !window.HANDOFF_TOURS.length) return;
+  // Motore disattivato solo se non c'è proprio nulla da mostrare: né tour né
+  // uno storico versioni. Una versione "vuota" (HANDOFF_TOURS: []) ma con
+  // HANDOFF_META.versions valorizzato monta comunque la dev bar ridotta al
+  // solo selettore versione — altrimenti da lì non si potrebbe tornare a
+  // un'altra versione via UI.
+  var hasTours    = window.HANDOFF_TOURS && window.HANDOFF_TOURS.length;
+  var hasVersions = window.HANDOFF_META && window.HANDOFF_META.versions && window.HANDOFF_META.versions.length;
+  if (!hasTours && !hasVersions) return;
 
   var h           = React.createElement;
   var useState    = React.useState;
@@ -30,6 +38,7 @@
   var RELATIONS  = window.HANDOFF_RELATIONS || [];
   var SCENARIOS  = window.HANDOFF_SCENARIOS || [];
   var OUT_OF_SPRINT = window.HANDOFF_OUT_OF_SPRINT || [];
+  var SPRINT_NOTE   = window.HANDOFF_SPRINT_NOTE || null;
   var VERSIONS   = (META.versions && META.versions.length) ? META.versions : null;
 
   var ROLE_COLOR = {
@@ -40,6 +49,23 @@
     'Sales':              'volcano',
     'Inventory Manager':  'cyan',
   };
+  // Stessa lista di navbar.js (window.GRAVITY_ROLES, unica fonte di verità) —
+  // fallback qui solo per il caso limite in cui handoff.js venga caricato
+  // senza navbar.js (non succede nel flusso normale, ma evita un select vuoto).
+  var ROLE_OPTIONS = (window.GRAVITY_ROLES || ['Tenant Admin', 'Inventory Manager', 'Operation Manager', 'Planner', 'Sales'])
+    .map(function (r) { return { value: r, label: r }; });
+  // Select "Vista ruolo" in dev bar: se OGNI tour di HANDOFF_TOURS elenca
+  // `roles` (nessuno visibile a "tutti"), lo restringiamo all'unione di quei
+  // ruoli — sono gli unici davvero coinvolti in questa sprint. L'avatar di
+  // GravityNavbar NON è filtrato: resta la lista completa, serve a navigare
+  // l'intero prototipo oltre la sprint corrente, non solo a filtrare i tour.
+  var SPRINT_ROLE_OPTIONS = (function () {
+    if (!ALL_TOURS.length || !ALL_TOURS.every(function (t) { return t.roles && t.roles.length; })) return ROLE_OPTIONS;
+    var seen = {};
+    ALL_TOURS.forEach(function (t) { t.roles.forEach(function (r) { seen[r] = true; }); });
+    var opts = ROLE_OPTIONS.filter(function (o) { return seen[o.value]; });
+    return opts.length ? opts : ROLE_OPTIONS;
+  })();
   var FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
   var MONO = '"SF Mono","Fira Code",monospace';
 
@@ -611,7 +637,7 @@
   // Balloon posizionato accanto al target. Unico elemento interagibile durante il tour.
 
   function TourBalloon({ step, index, total, steps, screenLabel, role, roleColor, usTitle, onPrev, onNext, onGoTo, onExit }) {
-    var BALLOON_W = 440;
+    var BALLOON_W = step.width || 440; // step.width: override per balloon con contenuti larghi (es. tabelle)
     var GAP       = 18;
     var _p = useState({ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' });
     var pos = _p[0]; var setPos = _p[1];
@@ -835,10 +861,15 @@
     );
   }
 
-  // ── Pannello user story (contenuto del dropdown in navbar) ────────────────
+  // ── Pannello Sprint Jira — user story + task (contenuto del dropdown in navbar) ──
 
   function UsPanel({ tours, screen, role, roleColor, sprintMode, onSprintToggle, onStart }) {
     tours = (tours || []).slice().sort(function (a, b) {
+      // I task (type: 'task') vengono sempre prima delle user story, a
+      // prescindere dal numero nel titolo; dentro ciascun gruppo l'ordine
+      // resta per numero US#n.m (titoli senza numero → in fondo al gruppo).
+      var ta = a.type === 'task' ? 0 : 1, tb = b.type === 'task' ? 0 : 1;
+      if (ta !== tb) return ta - tb;
       function n(t) { var m = (t.title || '').match(/US#?\s*([\d.]+)/i); return m ? m[1].split('.').map(Number) : [Infinity]; }
       var na = n(a), nb = n(b);
       for (var i = 0; i < Math.max(na.length, nb.length); i++) {
@@ -866,11 +897,11 @@
       }, label);
     }
 
-    // Mostra TUTTE le US del ruolo (filtrabili per schermata): il tag "template"
-    // esplicita il flusso e il tour porta l'utente nei punti giusti.
+    // Mostra TUTTE le voci di sprint del ruolo (user story + task, filtrabili per
+    // schermata): il tag "template" esplicita il flusso e il tour porta l'utente nei punti giusti.
     var items = (shown.length === 0)
       ? h('div', { style: { padding: '24px 16px', textAlign: 'center', fontSize: 12, color: 'rgba(0,0,0,.3)' } },
-          'Nessuna user story per questo filtro.')
+          'Nessuna voce per questo filtro.')
       : shown.map(function (tour) {
           return h('div', {
             key: tour.id,
@@ -881,6 +912,7 @@
           },
             h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' } },
               screenChip(tour.startScreen ? screenLabel(tour.startScreen) : null),
+              tour.type === 'task' ? h(antd.Tag, { style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px', fontWeight: 600, color: 'rgba(0,0,0,.45)' } }, 'Task') : null,
               h('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,.88)' } }, tour.title),
               tour.novita ? h(antd.Tag, { color: '#FF4A1C', style: { margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px', fontWeight: 600 } }, 'Novità') : null
             ),
@@ -900,7 +932,7 @@
     },
       h('div', { style: { padding: '12px 16px 10px', borderBottom: '1px solid rgba(0,0,0,.06)' } },
         h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
-          h('span', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'User story'),
+          h('span', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'Sprint Jira'),
           h(antd.Tag, { color: roleColor, style: { margin: 0, fontSize: 11, fontWeight: 600 } }, role)
         ),
         // Toggle interfaccia semplificata — evidenzia gli elementi fuori sprint
@@ -916,8 +948,19 @@
           h('div', { style: { flex: 1 } },
             h('div', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,.85)' } }, 'Interfaccia semplificata'),
             h('div', { style: { fontSize: 11, color: 'rgba(0,0,0,.45)', lineHeight: 1.45, marginTop: 1 } },
-              'Evidenzia le aree ', h('b', { style: { color: '#FF4A1C' } }, 'fuori sprint'), ' — senza user story, non da realizzare ora.')
+              'Evidenzia le aree ', h('b', { style: { color: '#FF4A1C' } }, 'fuori sprint'), ' — senza voce in Sprint Jira, non da realizzare ora.')
           )
+        ) : null,
+        // Avviso sullo scope della sprint mostrata (facoltativo, per prototipo)
+        SPRINT_NOTE ? h('div', {
+          style: {
+            display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10,
+            padding: '8px 10px', borderRadius: 8,
+            background: 'rgba(250,173,20,.08)', border: '1px solid rgba(250,173,20,.35)',
+          },
+        },
+          h(icons.InfoCircleOutlined, { style: { fontSize: 13, color: '#FA8C16', marginTop: 1 } }),
+          h('div', { style: { flex: 1, fontSize: 11, color: 'rgba(0,0,0,.65)', lineHeight: 1.45 } }, renderRich(SPRINT_NOTE))
         ) : null
       ),
       screens.length > 1 ? h('div', { style: { padding: '8px 12px', borderBottom: '1px solid rgba(0,0,0,.06)', display: 'flex', gap: 6, flexWrap: 'nowrap', alignItems: 'center', whiteSpace: 'nowrap' } },
@@ -932,8 +975,17 @@
   // ── Pannello modello: Relazioni tra entità + Dipendenze (regole) ──────────
 
   function ModelPanel({ relations, deps, scenarios }) {
-    var _t = useState('scenari'); var tab = _t[0]; var setTab = _t[1];
-    var data = tab === 'relazioni' ? (relations || []) : tab === 'dipendenze' ? (deps || []) : (scenarios || []);
+    // Solo le tab con dati vengono mostrate — niente tab vuote da cliccare per
+    // scoprire "Nessun elemento" (es. Scenari, quando per lo sprint corrente
+    // non ci sono scenari utili da raccontare: si omette HANDOFF_SCENARIOS).
+    var TABS = [
+      { key: 'scenari',    label: 'Scenari',    data: scenarios || [] },
+      { key: 'dipendenze', label: 'Dipendenze', data: deps || [] },
+      { key: 'relazioni',  label: 'Relazioni',  data: relations || [] },
+    ].filter(function (t) { return t.data.length > 0; });
+    var _t = useState(TABS[0] ? TABS[0].key : 'scenari'); var tab = _t[0]; var setTab = _t[1];
+    var activeTab = TABS.filter(function (t) { return t.key === tab; })[0] || TABS[0];
+    var data = activeTab ? activeTab.data : [];
 
     function tabBtn(label, key) {
       var active = tab === key;
@@ -970,11 +1022,10 @@
     },
       h('div', { style: { padding: '12px 16px 0', borderBottom: '1px solid rgba(0,0,0,.06)' } },
         h('div', { style: { fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.88)' } }, 'Modello di dominio'),
-        h('div', { style: { display: 'flex', gap: 4, marginTop: 6 } },
-          tabBtn('Scenari', 'scenari'),
-          tabBtn('Dipendenze', 'dipendenze'),
-          tabBtn('Relazioni', 'relazioni')
-        )
+        TABS.length > 1
+          ? h('div', { style: { display: 'flex', gap: 4, marginTop: 6 } },
+              TABS.map(function (t) { return tabBtn(t.label, t.key); }))
+          : null
       ),
       h('div', { style: { flex: 1, overflowY: 'auto' } }, items)
     );
@@ -1129,12 +1180,12 @@
 
   // ── Controlli in navbar (portal accanto alla campanella) ─────────────────
 
-  function NavControls({ devMode, onDevToggle, sprintMode, onSprintToggle, tours, onStart, screen, role, roleColor, novitaCount, deps, notes, relations, scenarios }) {
+  function NavControls({ devMode, onDevToggle, sprintMode, onSprintToggle, tours, onStart, screen, role, onRoleChange, roleColor, novitaCount, deps, notes, relations, scenarios }) {
     var _us = useState(false); var usOpen = _us[0]; var setUsOpen = _us[1];
     var _dep = useState(false); var depOpen = _dep[0]; var setDepOpen = _dep[1];
     var _nt = useState(false); var notesOpen = _nt[0]; var setNotesOpen = _nt[1];
     return h('span', {
-      // Area unica che raggruppa toggle dev + user story
+      // Area unica che raggruppa toggle dev + Sprint Jira
       style: {
         display: 'inline-flex', alignItems: 'center', gap: 10,
         height: 32, padding: '0 6px 0 10px', marginRight: 2,
@@ -1146,6 +1197,29 @@
       // Badge versione + selettore (solo se META.versions è definito)
       VERSIONS ? h(VersionBadge) : null,
       VERSIONS ? h('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }) : null,
+      // Ruolo — duplica il selettore dell'avatar di GravityNavbar (stessa
+      // chiave gravity_proto_role, sincronizzati via evento) per cambiare
+      // vista ruolo senza uscire dalla dev bar. Filtra anche Sprint Jira.
+      h('span', {
+        title: 'Vista ruolo',
+        style: {
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          height: 24, padding: '0 4px 0 10px',
+          background: '#fff', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 6,
+        },
+      },
+        h('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.75)', whiteSpace: 'nowrap' } }, 'Vista ruolo'),
+        h(antd.Select, {
+          value: role,
+          onChange: onRoleChange,
+          options: SPRINT_ROLE_OPTIONS,
+          size: 'small',
+          variant: 'borderless',
+          style: { width: 132 },
+          popupMatchSelectWidth: false,
+        })
+      ),
+      h('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }),
       // Switch dev — attiva l'inspector componenti
       h(antd.Tooltip, { title: devMode ? 'Inspector componenti attivo' : 'Inspector componenti (dev)', placement: 'bottom' },
         h(antd.Switch, {
@@ -1157,7 +1231,7 @@
       ),
       // Divider interno
       h('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }),
-      // User story — trigger con estetica button (icona + label)
+      // Sprint Jira — trigger con estetica button (icona + label)
       h(antd.Dropdown, {
         trigger: ['click'],
         open: usOpen,
@@ -1170,7 +1244,7 @@
         h('span', { style: { display: 'inline-flex' } },
           h(antd.Badge, { count: novitaCount, size: 'small', offset: [-2, 4] },
             h('span', {
-              title: 'User story',
+              title: 'Sprint Jira',
               style: {
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 height: 24, padding: '0 10px',
@@ -1183,7 +1257,7 @@
               onMouseLeave: function (e) { e.currentTarget.style.color = 'rgba(0,0,0,0.75)'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.15)'; },
             },
               h(icons.FlagOutlined, { style: { fontSize: 13 } }),
-              h('span', null, 'User story')
+              h('span', null, 'Sprint Jira')
             )
           )
         )
@@ -1290,6 +1364,15 @@
       try { localStorage.setItem('ghf_sprint_mode', v ? '1' : '0'); } catch (e) {}
     }
 
+    // Cambio ruolo dal selettore duplicato in dev bar — stessa chiave di
+    // navbar.js (gravity_proto_role): aggiorna subito lo stato locale e
+    // notifica l'avatar di GravityNavbar via evento, così restano sincronizzati.
+    function changeRole(v) {
+      setRole(v);
+      try { localStorage.setItem('gravity_proto_role', v); } catch (e) {}
+      try { window.dispatchEvent(new CustomEvent('gravity:role-change', { detail: v })); } catch (e) {}
+    }
+
     // goToStep — gestisce onEnter + delay prima di aggiornare l'indice
     function goToStep(tour, newCur) {
       if (!tour || newCur < 0 || newCur >= tour.steps.length) return;
@@ -1365,6 +1448,7 @@
         onStart:     startTour,
         screen:      screen,
         role:        role,
+        onRoleChange: changeRole,
         roleColor:   roleColor,
         novitaCount: novitaCount,
         deps:        DEPS,

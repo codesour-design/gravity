@@ -47,6 +47,9 @@
     'Planner',
     'Sales',
   ];
+  // Esposta per il selettore ruolo duplicato nella dev bar dell'handoff
+  // (prototype/_shared/handoff.js, NavControls) — unica fonte di verità.
+  window.GRAVITY_ROLES = ROLES.slice();
 
   var ROLE_NAV = {
     'Tenant Admin':      ['Overview', 'Inventory', 'Commercial', 'Delivery', 'Settings'],
@@ -258,7 +261,21 @@
       }
     }
 
-    useEffect(function () { if (role) localStorage.setItem('gravity_proto_role', role); }, [role]);
+    useEffect(function () {
+      if (!role) return;
+      localStorage.setItem('gravity_proto_role', role);
+      // Notifica altri controlli ruolo montati sulla stessa pagina (es. il
+      // selettore duplicato nella dev bar dell'handoff, handoff.js) — lo
+      // storage event non arriva nella stessa tab che ha scritto il valore.
+      try { window.dispatchEvent(new CustomEvent('gravity:role-change', { detail: role })); } catch (e) {}
+    }, [role]);
+    // Riceve il cambio ruolo quando avviene altrove sulla stessa pagina
+    // (dev bar dell'handoff): tiene sincronizzato il dropdown dell'avatar.
+    useEffect(function () {
+      function onExternal(e) { if (e.detail && e.detail !== role) setRole(e.detail); }
+      window.addEventListener('gravity:role-change', onExternal);
+      return function () { window.removeEventListener('gravity:role-change', onExternal); };
+    }, [role]);
 
     var cur      = role || 'Tenant Admin';
     var user     = ROLE_USER[cur] || { nome: 'U', cognome: '' };
