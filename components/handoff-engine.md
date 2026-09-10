@@ -22,6 +22,21 @@ Il prototipo è l'**unica fonte** — niente copie "handoff". Il layer si attiva
   navigazione dell'app (navbar.js e altri prototipi) puntano lì e **non vanno cambiati** finché
   non si decide di aggiornare l'approvata.
 
+### Copertura — quali prototipi hanno un layer handoff
+
+Solo i prototipi collegati a una voce di navbar (campo `nav` in `registry.js`) hanno un layer
+handoff, così la navigazione mode-aware (`navbar.js`) non ricade mai sul pulito per mancanza di
+destinazione: `inventory-systems`, `planning`, `poi-collections`, `negotiations`,
+`campaign-delivery`. I prototipi senza voce di menu (`user-profile`, `single-signon`,
+`inventory-map`, `inventory-system-detail--administrative`, `app-sales`) non ne hanno: non sono
+raggiunti dalla navigazione cross-prototipo, quindi non serve un layer.
+
+Per `poi-collections`, `negotiations` e `campaign-delivery` il layer è **solo infrastruttura**:
+`handoff-steps.js` ha `HANDOFF_TOURS = []` e `HANDOFF_META.versions` con una singola voce
+autoreferenziale (`V1`, `approved: true`, `current: true`) — la dev bar appare (badge versione,
+vista ruolo) ma senza tour o note di design curate. Quando si aggiungono contenuti reali, basta
+popolare `HANDOFF_TOURS` nello stesso file; la struttura URL/registro non cambia.
+
 ### URL pubblici `/demo` e `/handoff` (passano dal login)
 
 Redirect in `vercel.json` (root del repo) danno un punto d'ingresso stabile e condivisibile alle

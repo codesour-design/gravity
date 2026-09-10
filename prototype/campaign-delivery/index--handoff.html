@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gravity — Espletamento Campagna (Handoff)</title>
+  <script>
+    // Stub di redirect — il prototipo vive solo in index.html (prototipo unico +
+    // loader ?handoff=vX, vedi components/handoff-engine.md). I link di
+    // navigazione dell'app (navbar.js, altri prototipi) puntano qui e non vanno
+    // cambiati: questo file segue in automatico la versione approvata.
+    var params = new URLSearchParams(location.search);
+    var v = params.get('handoff') || 'v1';
+    location.replace('./index.html?handoff=' + v + location.hash);
+  </script>
+</head>
+<body></body>
+</html>

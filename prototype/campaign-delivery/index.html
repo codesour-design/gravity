@@ -23,6 +23,26 @@
   </script>
   <script src="../_shared/navbar.js"></script>
 
+  <!-- Handoff loader — attiva il layer handoff (note di design + tour + interfaccia
+       semplificata) SOLO con ?handoff=<versione>. Senza il parametro questo è il
+       prototipo pulito. Le versioni sono file di config: il prototipo resta unico.
+       - ?handoff        → versione approvata
+       - ?handoff=v1/v2  → versione specifica
+       Il document.write in <head> carica la config in modo sincrono, così le note
+       inline (window.HANDOFF_NOTES) sono disponibili già al primo render. -->
+  <script>
+    (function () {
+      var CONFIGS  = { v1: './handoff-steps.js' };
+      var APPROVED = 'v1';
+      var params = new URLSearchParams(location.search);
+      if (!params.has('handoff')) return;
+      var v = (params.get('handoff') || APPROVED).toLowerCase();
+      var cfg = CONFIGS[v] || CONFIGS[APPROVED];
+      window.__HANDOFF_ACTIVE = true;
+      document.write('<scr' + 'ipt src="' + cfg + '"></scr' + 'ipt>');
+    })();
+  </script>
+
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1222,6 +1242,10 @@ function AppRoot() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(AppRoot));
+</script>
+<!-- Motore handoff — caricato solo se il loader in <head> ha attivato il layer. -->
+<script>
+  if (window.__HANDOFF_ACTIVE) document.write('<scr' + 'ipt src="../_shared/handoff.js"></scr' + 'ipt>');
 </script>
 </body>
 </html>
