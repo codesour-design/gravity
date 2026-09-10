@@ -20,6 +20,9 @@
   <!-- Gravity Design Tokens -->
   <script src="../_shared/tokens.js"></script>
 
+  <!-- Registro prototipi — risolve ?next=<chiave> nel flusso post-login (vedi App()) -->
+  <script src="../_shared/registry.js"></script>
+
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
@@ -1303,6 +1306,24 @@ function MiniCalendar() {
 // Stato schermate: 'login' → 'tenant-select' → 'welcome'
 // Link email: 'reset-password' (link valido) · 'expired-link' (link scaduto/già usato)
 
+// Risolve la destinazione post-login da ?next=<chiave registry> e ?handoff
+// (impostati da vercel.json su /demo(/:feature) e /handoff(/:feature)): con
+// next valido punta all'entry di quel prototipo (handoff se la modalità è
+// attiva ed esiste, altrimenti fallback sul pulito); senza next torna alla
+// home (user-profile), propagando comunque la modalità per i link a valle.
+function resolveNextUrl(params) {
+  var isHandoffMode = params.has('handoff');
+  var nextKey = params.get('next');
+  if (nextKey) {
+    var p = (window.GRAVITY_PROTOTYPES || {})[nextKey];
+    if (p) {
+      var page = (isHandoffMode && p.handoff) ? p.handoff : p.entry;
+      if (page) return '../' + page;
+    }
+  }
+  return '../user-profile/index.html' + (isHandoffMode ? '?handoff' : '');
+}
+
 function App() {
   const params = new URLSearchParams(window.location.search);
   const paramTenant = params.get('tenant');
@@ -1332,7 +1353,7 @@ function App() {
 
   function handleTenantSelect(tenantId) {
     if (tenantId === 'gravity-white-label') {
-      window.location.href = '../user-profile/index.html';
+      window.location.href = resolveNextUrl(params);
       return;
     }
     const tenant = TENANTS.find(t => t.id === tenantId);

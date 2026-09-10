@@ -22,21 +22,32 @@ Il prototipo è l'**unica fonte** — niente copie "handoff". Il layer si attiva
   navigazione dell'app (navbar.js e altri prototipi) puntano lì e **non vanno cambiati** finché
   non si decide di aggiornare l'approvata.
 
-### URL pubblici `/demo` e `/handoff`
+### URL pubblici `/demo` e `/handoff` (passano dal login)
 
-Due redirect in `vercel.json` (root del repo) danno un punto d'ingresso stabile e condivisibile
-alle due modalità, sul prototipo di riferimento (`inventory-systems`):
+Redirect in `vercel.json` (root del repo) danno un punto d'ingresso stabile e condivisibile alle
+due modalità, sempre **attraverso il login** (`prototype/single-signon/index.html`, lo stesso
+flusso SSO dell'app reale) così demo e handoff si comportano come l'accesso vero:
 
-| URL | Redirect verso |
-|-----|-----------------|
-| `/demo` | `prototype/inventory-systems/index.html` (pulito) |
-| `/handoff` | `prototype/inventory-systems/index--handoff.html` (stub → versione approvata) |
+| URL | Redirect verso | Dopo il login (tenant "Gravity white-label") |
+|-----|-----------------|-----------------------------------------------|
+| `/demo` | `single-signon/index.html` | home (`user-profile/index.html`), modalità demo |
+| `/handoff` | `single-signon/index.html?handoff` | home, con modalità handoff propagata ai link a valle |
+| `/demo/<chiave>` | `single-signon/index.html?next=<chiave>` | entry pulita del prototipo `<chiave>` (chiave del registro, es. `planning`) |
+| `/handoff/<chiave>` | `single-signon/index.html?next=<chiave>&handoff` | entry handoff del prototipo `<chiave>` se esiste, altrimenti fallback sulla pulita |
 
-Da questi due punti la navigazione resta nella modalità di partenza: `navbar.js` è **mode-aware**
-(rileva `?handoff` nell'URL e sceglie, per ogni link generato dal registro, l'entry `handoff` del
-prototipo target se esiste ed è la modalità corrente, altrimenti sempre l'entry `entry` pulita —
-dettagli in `components/navbar.md` → "Link mode-aware"). Per questo `registry.js` distingue
-esplicitamente `entry` (demo) e `handoff` (opzionale, solo sui prototipi con layer handoff).
+La risoluzione della destinazione post-login vive in `resolveNextUrl()` dentro
+`prototype/single-signon/index.html` (`App()`): legge `?next` (chiave di
+`window.GRAVITY_PROTOTYPES`) e `?handoff`, e sceglie `entry`/`handoff` dello stesso record del
+registro usato da `navbar.js`. Senza `next` valido ricade sulla home, propagando comunque
+`?handoff` per i link a valle.
+
+Da questi punti la navigazione resta nella modalità di partenza: sia `navbar.js` sia la navbar
+inline di `user-profile/index.html` (che non usa il componente condiviso, ma ne replica il
+pattern) sono **mode-aware** — rilevano `?handoff` nell'URL e scelgono, per ogni link generato
+dal registro, l'entry `handoff` del prototipo target se esiste ed è la modalità corrente,
+altrimenti sempre l'entry `entry` pulita (dettagli in `components/navbar.md` → "Link
+mode-aware"). Per questo `registry.js` distingue esplicitamente `entry` (demo) e `handoff`
+(opzionale, solo sui prototipi con layer handoff).
 
 ### Versioni = file di config, non copie HTML
 

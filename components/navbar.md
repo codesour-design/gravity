@@ -67,8 +67,13 @@ Non serve più (e non va più usato per veicolare la modalità) l'override `link
 `GRAVITY_NAV` nell'head dei singoli prototipi: la fonte unica della modalità è il registro.
 `links` resta disponibile solo per destinazioni realmente non standard, fuori dal registro.
 
-URL d'ingresso pubblici `/demo` e `/handoff` (redirect in `vercel.json`, verso
-`inventory-systems`) → vedi `components/handoff-engine.md`.
+URL d'ingresso pubblici `/demo` e `/handoff` (redirect in `vercel.json`, passano dal login) →
+vedi `components/handoff-engine.md`.
+
+Nota: `prototype/user-profile/index.html` (la home post-login) ha una navbar **inline propria**,
+non il componente condiviso — replica comunque lo stesso pattern mode-aware (stessa logica
+`isHandoff` + risoluzione da `GRAVITY_PROTOTYPES`, vedi `NAV`/`regLink()` in quel file) così la
+modalità non si perde passando dalla home.
 
 ### Specifiche visive
 
