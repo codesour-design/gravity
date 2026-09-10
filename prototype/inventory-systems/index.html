@@ -2631,10 +2631,11 @@ const syncedFromAnteriore = (ant) => {
 };
 
 // Card faccia per il form di creazione — stessa famiglia visiva di FormPermitCard
-function FormFaceCard({ name, face, onEdit, onRemove, onCreatePosteriore }) {
+function FormFaceCard({ name, face, onEdit, onRemove, onCreatePosteriore, onDuplicate }) {
   const isAnt = face.tipo === 'Anteriore';
   const menuItems = [
     { key: 'edit', label: 'Modifica', icon: React.createElement(EditOutlined), onClick: onEdit },
+    ...(onDuplicate ? [{ key: 'dup', label: 'Duplica', icon: React.createElement(CopyOutlined), onClick: onDuplicate }] : []),
     ...(isAnt && onCreatePosteriore ? [{ key: 'post', label: 'Crea posteriore', icon: React.createElement(SwapOutlined), onClick: onCreatePosteriore }] : []),
     { key: 'remove', label: isAnt && face._hasPosteriore ? 'Elimina (con posteriore)' : 'Elimina', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
   ];
@@ -3240,18 +3241,21 @@ function AssetDrawer({ open, onClose, onSubmit, editInitial, category }) {
 // ─────────────────────────────────────────────────────────
 // Drawer dedicato: aggiunta di una SQUADRA (affissione | manutenzione)
 // ─────────────────────────────────────────────────────────
-function SquadraDrawer({ open, onClose, onSubmit, kind }) {
+function SquadraDrawer({ open, onClose, onSubmit, kind, editData }) {
   const emptyRow = () => kind === 'affissione'
     ? { squadra: null, tipo: [], costo: null, preincoll: null }
     : { squadra: null, tipoInt: null, oggetto: '' };
+  const editRow = () => kind === 'affissione'
+    ? { squadra: editData.squadra, tipo: editData.tipo || [], costo: editData.costo ?? null, preincoll: editData.preincoll ?? null }
+    : { squadra: editData.squadra, tipoInt: editData.tipo ?? null, oggetto: editData.oggetto || '' };
   const [row, setRowState] = useState(emptyRow());
   const snapshotRef = useRef(null);
   useEffect(() => {
     if (!open) return;
-    const next = emptyRow();
+    const next = editData ? editRow() : emptyRow();
     setRowState(next);
     snapshotRef.current = next;
-  }, [open, kind]);
+  }, [open, kind, editData]);
   const set = (key, val) => setRowState(prev => ({ ...prev, [key]: val }));
   const isDirty = () => JSON.stringify(row) !== JSON.stringify(snapshotRef.current);
   // Solo per l'handoff: vedi commento su window.__ghfIdentita in
@@ -3290,14 +3294,15 @@ function SquadraDrawer({ open, onClose, onSubmit, kind }) {
     onSubmit([record]);
   };
   const dirty = isDirty();
+  const isEdit = !!editData;
   return React.createElement(Drawer, {
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
       React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }),
-      'Aggiungi squadra ' + (kind === 'affissione' ? 'affissione' : 'manutenzione')),
+      (isEdit ? 'Modifica squadra ' : 'Aggiungi squadra ') + (kind === 'affissione' ? 'affissione' : 'manutenzione')),
     placement: 'right', width: 520, rootClassName: 'grav-squadra-drawer', styles: { body: { padding: 24 } },
     closable: false, maskClosable: !dirty, keyboard: !dirty,
     onClose: onClose, open: open, destroyOnClose: true,
-    extra: React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), disabled: !row.squadra, onClick: save }, 'Aggiungi'),
+    extra: React.createElement(Button, { type: 'primary', icon: React.createElement(isEdit ? SaveOutlined : PlusOutlined), disabled: !row.squadra, onClick: save }, isEdit ? 'Salva' : 'Aggiungi'),
   },
     cs('Squadra', false, React.createElement(Select, { value: row.squadra, onChange: v => set('squadra', v), options: SQUADRE_AFF_OPTS, style: { width: '100%' }, placeholder: 'Seleziona la squadra', showSearch: true, optionFilterProp: 'label' })),
     kind === 'affissione'
@@ -5915,6 +5920,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setFacce(prev => prev.filter(f => f.id !== id && f.pairOf !== id));
     antdMsg.success('Faccia rimossa');
   };
+  // Duplica una faccia esistente con gli stessi valori (nuova faccia indipendente,
+  // non collegata a nessuna posteriore/anteriore anche se l'originale lo era).
+  const duplicateFace = (f) => {
+    const { id, pairOf, ...rest } = f;
+    setFacce(prev => [...prev, { id: 'face-' + (prev.length + 1) + '-' + prev.reduce((m, x) => Math.max(m, +String(x.id).split('-')[1] || 0), 0), ...rest }]);
+    antdMsg.success('Faccia duplicata');
+  };
   // Faccia posteriore collegata: campi fisici condivisi, orientamento speculare (+180°)
   const createPosteriore = (f) => {
     if (facce.some(x => x.pairOf === f.id)) { antdMsg.warning('Questa faccia ha già una posteriore collegata'); return; }
@@ -6152,14 +6164,17 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [manutenzioni, setManutenzioni] = useState([]);
   const [formSquadKind, setFormSquadKind] = useState('affissione');
   const [formSquadOpen, setFormSquadOpen] = useState(false);
-  const openFormSquad = (kind) => { setFormSquadKind(kind); setFormSquadOpen(true); };
+  const [formSquadEditIndex, setFormSquadEditIndex] = useState(null);
+  const openFormSquad = (kind) => { setFormSquadKind(kind); setFormSquadEditIndex(null); setFormSquadOpen(true); };
+  const openEditFormAff = (i) => { setFormSquadKind('affissione'); setFormSquadEditIndex(i); setFormSquadOpen(true); };
   const submitFormSquad = (recs) => {
     if (formSquadKind === 'affissione') {
-      setAffissioni(prev => [...prev, ...recs]);
+      if (formSquadEditIndex != null) setAffissioni(prev => prev.map((a, j) => j === formSquadEditIndex ? recs[0] : a));
+      else setAffissioni(prev => [...prev, ...recs]);
     } else {
       setManutenzioni(prev => [...prev, ...recs.map(r => ({ squadra: r.squadra, codice: r.codice ?? null, tipo: r.tipoInt ?? null, oggetto: r.oggetto ?? '' }))]);
     }
-    antdMsg.success('Squadra aggiunta');
+    antdMsg.success(formSquadEditIndex != null ? 'Squadra aggiornata' : 'Squadra aggiunta');
     setFormSquadOpen(false);
   };
   const removeFormAff = (i) => { setAffissioni(prev => prev.filter((_, j) => j !== i)); antdMsg.success('Squadra rimossa'); };
@@ -6314,35 +6329,26 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   // RBAC: ruoli con accesso al form e sezioni disabilitate per ruolo.
   // (Pianificatore e Sales non hanno accesso al form: gate a monte, non gestito qui.)
-  const FORM_ROLES = [
-    { value: 'admin',     label: 'Admin tenant' },
-    { value: 'inventory', label: 'Inventory Manager' },
-    { value: 'operation', label: 'Operation Manager' },
-  ];
+  // Guidato dallo stesso ruolo globale della navbar/dev bar (localStorage
+  // gravity_proto_role, select "Vista ruolo") — niente più una select "Ruolo"
+  // separata qui dentro: prima ne comparivano due affiancate nella dev bar.
   const ROLE_DISABLED = {
-    admin:     [],
-    inventory: ['commerciale'],
-    operation: ['struttura', 'affissione'],
+    'Tenant Admin':      [],
+    'Inventory Manager': ['commerciale'],
+    'Operation Manager': ['struttura', 'affissione'],
   };
-  const [formRole, setFormRole] = useState('admin');
-  const disabledSections = ROLE_DISABLED[formRole] || [];
-
-  // Solo per l'handoff: la select Ruolo vive dentro il box grigio della dev bar
-  // (accanto a "Modello"), non solo dentro #ghf-nav-slot — quel nodo è solo il
-  // guscio posizionato in fixed dal motore condiviso; il box grigio vero e
-  // proprio è il suo unico figlio (il <span> reso da NavControls in handoff.js).
-  const [roleSlotEl, setRoleSlotEl] = useState(null);
+  const [formRole, setFormRole] = useState(() => localStorage.getItem('gravity_proto_role') || 'Tenant Admin');
   React.useEffect(() => {
-    if (!open) { setRoleSlotEl(null); return; }
-    function ensure() {
-      const wrap = document.getElementById('ghf-nav-slot');
-      const box = wrap && wrap.firstElementChild;
-      if (box) setRoleSlotEl(prev => prev === box ? prev : box);
-    }
-    ensure();
-    const id = setInterval(ensure, 300);
-    return () => clearInterval(id);
-  }, [open]);
+    function onRoleChange(e) { if (e.detail) setFormRole(e.detail); }
+    window.addEventListener('gravity:role-change', onRoleChange);
+    return () => window.removeEventListener('gravity:role-change', onRoleChange);
+  }, []);
+  const disabledSections = ROLE_DISABLED[formRole] || [];
+  // Se il cambio ruolo disabilita la sezione attiva, torna alla prima sempre
+  // accessibile — replica quanto faceva prima l'onChange della select locale.
+  React.useEffect(() => {
+    if (disabledSections.includes(activeSection)) setActiveSection('identita');
+  }, [disabledSections, activeSection]);
 
   const tipologieOpts = React.useMemo(() => {
     const groups = canale ? (MACRO_TIPI_PER_CANALE[canale] || {}) : {};
@@ -6452,14 +6458,19 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setLat(String(s.lat.toFixed(6))); setLng(String(s.lng.toFixed(6)));
   };
 
-  // Nome impianto autogenerato: "OOH-Pen-120x180-PA" — non editabile, il nome custom vive altrove
+  // Nome impianto autogenerato: "001–OOH-Pen-120x180-PA" — non editabile, il nome custom vive altrove.
+  // Progressivo simulato in locale (conteggio impianti esistenti con stessa tipologia+formato +1):
+  // in produzione la disambiguazione va garantita dal backend su tutti gli impianti esistenti.
   React.useEffect(() => {
     const parts = [];
     if (canale)    parts.push(canale);
     if (tipologia) parts.push(tipologia.charAt(0).toUpperCase() + tipologia.slice(1, 3).toLowerCase());
     if (formato)   parts.push(formato.replace(/\s*cm\s*$/i, '').replace(/×/g, 'x').replace(/\s+/g, ''));
     if (provincia) parts.push(provincia.slice(0, 2).toUpperCase());
-    setNome(parts.join('-'));
+    if (!parts.length) { setNome(''); return; }
+    const dup = (tipologia && formato) ? IMPIANTI.filter(i => i.tipo === tipologia && i.formato === formato).length : 0;
+    const progressivo = String(dup + 1).padStart(3, '0');
+    setNome(progressivo + '–' + parts.join('-'));
   }, [canale, tipologia, formato, provincia]);
 
   // Permessi — handlers (stessa logica del dettaglio impianto)
@@ -6846,7 +6857,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
               ),
             ),
             g2(
-              cs(React.createElement(React.Fragment, null, 'Formato', React.createElement(HandoffDesignNote, { id: 'commerciale-moduli-formato-disallineato', placement: 'top' })), true,
+              cs('Formato', true,
                 sel(formato, withFacceGuard(setFormato), formatiOpts,
                   tipologia ? 'Seleziona il formato' : 'Prima seleziona la tipologia',
                   { className: 'grav-field-formato', disabled: !tipologia, status: showErrors && !formato ? 'error' : undefined })
@@ -7072,8 +7083,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Facce',
               facce.length > 0 ? countBadge(facce.length) : null,
-              React.createElement(HandoffDesignNote, { id: 'caratteristiche-facce-limite-rimosso', placement: 'bottom' }),
-              React.createElement(HandoffDesignNote, { id: 'caratteristiche-facce-duplica-mancante', placement: 'bottom' }),
             ), 'Aggiungi le facce dell\'impianto: puoi crearne quante ne servono.',
             facce.length > 0 ? faceAddBtn : null,
             facce.length > 0
@@ -7086,6 +7095,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                       name: f.tipo + '-' + ordinal, face: { ...f, _hasPosteriore: hasPost },
                       onEdit: () => openEditFace(f),
                       onRemove: () => removeFace(f.id),
+                      onDuplicate: () => duplicateFace(f),
                       onCreatePosteriore: (f.tipo === 'Anteriore' && !hasPost) ? () => createPosteriore(f) : null,
                     });
                   }),
@@ -7101,7 +7111,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Cespiti',
               cespiti.length > 0 ? countBadge(cespiti.length) : null,
-              React.createElement(HandoffDesignNote, { id: 'add-one-at-a-time', placement: 'bottom' }),
+              React.createElement(HandoffDesignNote, { id: 'struttura-collapse-non-card', placement: 'bottom' }),
             ), 'Aggiungi i componenti strutturali dell\'impianto come fondazione, pali, cornice, pannelli, extra struttura.',
             cespiti.length > 0 ? cespiteAddBtn : null,
             cespiti.length > 0
@@ -7113,6 +7123,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Dispositivi',
               dispositivi.length > 0 ? countBadge(dispositivi.length) : null,
+              React.createElement(HandoffDesignNote, { id: 'struttura-collapse-non-card', placement: 'bottom' }),
             ), 'Aggiungi i dispositivi connessi installati sull\'impianto come player, modem/router, sensori, telecamere, schermi, centraline.',
             dispositivi.length > 0 ? dispositivoAddBtn : null,
             dispositivi.length > 0
@@ -7129,7 +7140,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Affissione',
               affissioni.length > 0 ? countBadge(affissioni.length) : null,
-              React.createElement(HandoffDesignNote, { id: 'squadre-affissione-modifica-mancante', placement: 'bottom' }),
             ),
             'Assegna le squadre incaricate, il tipo di affissione e i relativi costi.',
             affissioni.length > 0 ? affAddBtn : null,
@@ -7140,7 +7150,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                       header: {
                         title: s.squadra,
                         tags: [s.codice ? { text: s.codice } : null],
-                        menu: [{ key: 'remove', label: 'Rimuovi', icon: React.createElement(DeleteOutlined), danger: true, onClick: () => removeFormAff(i) }],
+                        menu: [
+                          { key: 'edit', label: 'Modifica', icon: React.createElement(EditOutlined), onClick: () => openEditFormAff(i) },
+                          { key: 'remove', label: 'Rimuovi', icon: React.createElement(DeleteOutlined), danger: true, onClick: () => removeFormAff(i) },
+                        ],
                       },
                       body: { rows: [
                         { icon: TagsOutlined, label: 'Tipo affissione', value: (s.tipo || []).join(', ') || null },
@@ -7260,6 +7273,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
               }),
             ),
           ),
+          React.createElement('div', { className: 'grav-moduli-box' },
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Moduli',
               moduliCollegati.length > 0 ? countBadge(moduliCollegati.length) : null,
@@ -7291,7 +7305,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                 },
                   React.createElement(Button, { icon: React.createElement(LinkOutlined), onClick: openLinkDrawer }, 'Collega impianto'),
                 ),
-          ),
+          )),
         ),
 
         ) // create-content
@@ -7509,12 +7523,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           ),
     ),
 
-    // Drawer aggiunta squadra (affissione | manutenzione)
+    // Drawer aggiunta/modifica squadra (affissione | manutenzione)
     React.createElement(SquadraDrawer, {
       open: formSquadOpen,
       onClose: () => setFormSquadOpen(false),
       onSubmit: submitFormSquad,
       kind: formSquadKind,
+      editData: formSquadEditIndex != null ? (formSquadKind === 'affissione' ? affissioni : manutenzioni)[formSquadEditIndex] : null,
     }),
 
     // Tour guidato primo accesso al form
@@ -7555,30 +7570,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           );
         }),
       ),
-    ),
-
-    // Solo per l'handoff: select "Ruolo" dentro il box grigio della dev bar, non nel form.
-    roleSlotEl && ReactDOM.createPortal(
-      React.createElement(React.Fragment, null,
-        React.createElement('span', { style: { width: 1, height: 16, background: 'rgba(0,0,0,0.1)' } }),
-        React.createElement('span', {
-          style: {
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            height: 24, padding: '0 4px 0 10px',
-            background: '#fff', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 6,
-          },
-        },
-          React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.75)', whiteSpace: 'nowrap' } }, 'Ruolo'),
-          React.createElement(Select, {
-            value: formRole,
-            onChange: v => { setFormRole(v); setActiveSection('identita'); },
-            options: FORM_ROLES, size: 'small', variant: 'borderless',
-            style: { width: 110 },
-            popupMatchSelectWidth: false,
-          })
-        )
-      ),
-      roleSlotEl
     )
   );
 }

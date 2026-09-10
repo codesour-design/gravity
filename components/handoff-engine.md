@@ -51,9 +51,14 @@ restano in fondo al proprio gruppo, nell'ordine di inserimento in `HANDOFF_TOURS
 - **Dev bar in navbar** (accanto a `#gravity-bell-btn`): selettore versione (`VersionBadge`,
   solo se `HANDOFF_META.versions` è definito), select **Vista ruolo** (duplica il dropdown
   ruolo dell'avatar di `GravityNavbar` — stessa chiave `localStorage.gravity_proto_role`,
-  opzioni da `window.GRAVITY_ROLES`, sincronizzata con l'avatar via evento custom
-  `gravity:role-change` in entrambe le direzioni; filtra anche Sprint Jira), switch Inspector
-  (hover → nome, livello atomico, funzione, variante Figma), dropdown **Sprint Jira** (tour di
+  sincronizzata con l'avatar via evento custom `gravity:role-change` in entrambe le direzioni;
+  filtra anche Sprint Jira). Opzioni selezionabili: se **ogni** tour di `HANDOFF_TOURS` elenca
+  `roles` (nessuno visibile a "tutti"), il select mostra solo l'unione di quei ruoli — quelli
+  davvero coinvolti nella sprint corrente; altrimenti (o se l'unione risulta vuota) mostra la
+  lista completa da `window.GRAVITY_ROLES`. L'avatar di `GravityNavbar` **non** è mai filtrato:
+  resta sempre la lista completa, per navigare l'intero prototipo oltre la sprint corrente.
+
+  Poi: switch Inspector (hover → nome, livello atomico, funzione, variante Figma), dropdown **Sprint Jira** (tour di
   user story + task, distinte da un badge "Task" sulle seconde; include il toggle "Interfaccia
   semplificata" per gli elementi fuori sprint, vedi sotto), dropdown **Modello** (tab Scenari /
   Dipendenze / Relazioni del dominio, alimentate da `HANDOFF_SCENARIOS` / `HANDOFF_DEPENDENCIES`

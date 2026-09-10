@@ -54,6 +54,18 @@
   // senza navbar.js (non succede nel flusso normale, ma evita un select vuoto).
   var ROLE_OPTIONS = (window.GRAVITY_ROLES || ['Tenant Admin', 'Inventory Manager', 'Operation Manager', 'Planner', 'Sales'])
     .map(function (r) { return { value: r, label: r }; });
+  // Select "Vista ruolo" in dev bar: se OGNI tour di HANDOFF_TOURS elenca
+  // `roles` (nessuno visibile a "tutti"), lo restringiamo all'unione di quei
+  // ruoli — sono gli unici davvero coinvolti in questa sprint. L'avatar di
+  // GravityNavbar NON è filtrato: resta la lista completa, serve a navigare
+  // l'intero prototipo oltre la sprint corrente, non solo a filtrare i tour.
+  var SPRINT_ROLE_OPTIONS = (function () {
+    if (!ALL_TOURS.length || !ALL_TOURS.every(function (t) { return t.roles && t.roles.length; })) return ROLE_OPTIONS;
+    var seen = {};
+    ALL_TOURS.forEach(function (t) { t.roles.forEach(function (r) { seen[r] = true; }); });
+    var opts = ROLE_OPTIONS.filter(function (o) { return seen[o.value]; });
+    return opts.length ? opts : ROLE_OPTIONS;
+  })();
   var FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
   var MONO = '"SF Mono","Fira Code",monospace';
 
@@ -1200,7 +1212,7 @@
         h(antd.Select, {
           value: role,
           onChange: onRoleChange,
-          options: ROLE_OPTIONS,
+          options: SPRINT_ROLE_OPTIONS,
           size: 'small',
           variant: 'borderless',
           style: { width: 132 },

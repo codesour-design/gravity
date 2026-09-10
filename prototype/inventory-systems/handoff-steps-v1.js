@@ -499,7 +499,14 @@ window.HANDOFF_OUT_OF_SPRINT = [
   // dagli impianti censiti) e manca la distanza richiesta dal criterio — l'intera
   // funzionalità resta quindi fuori sprint, visibile solo come riferimento del
   // comportamento target (vedi note commerciale-moduli-*).
-  { selector: COM_CARD_MODULI, note: 'Fuori sprint — l\'intera sezione Moduli: disponibilità in creazione fuori scope (TASK DSN P0, capitolo 4 da chiudere), selettore con formato disallineato dagli impianti censiti e senza distanza. Visibile solo come riferimento del comportamento target, non da realizzare ora' },
+  // Nota: qui NON si usa COM_CARD_MODULI (selettore posizionale nth-child) perché
+  // #grav-tour-form-required è lo stesso contenitore riusato da ogni sezione del
+  // form — un selettore per indice di posizione combacia anche con il box di
+  // un'ALTRA sezione quando quella è quella attiva (qui collideva con "Titolo a
+  // installare" in Iter autorizzativo, marcandolo fuori sprint per errore).
+  // .grav-moduli-box è una classe dedicata sul box Moduli, stabile a prescindere
+  // da quale sezione è renderizzata in quel momento.
+  { selector: '.grav-moduli-box', note: 'Fuori sprint — l\'intera sezione Moduli: disponibilità in creazione fuori scope (TASK DSN P0, capitolo 4 da chiudere), selettore con formato disallineato dagli impianti censiti e senza distanza. Visibile solo come riferimento del comportamento target, non da realizzare ora' },
   // "Se venduto a moduli, applica uno sconto del __%" (box Modello commerciale) —
   // ha senso solo se esiste il concetto di modulo collegato: stesso motivo del
   // box Moduli, stessa esclusione.
@@ -568,7 +575,7 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Il form si apre a pagina intera',
-        description: 'Il drawer occupa **tutta la larghezza** (non un pannello laterale come gli altri form): a sinistra la navigazione tra sezioni, a destra il contenuto della sezione attiva. Il selettore "Ruolo" nella dev bar in alto serve solo a questo prototipo per mostrare l\'RBAC — non è un campo reale del form: cambiandolo, le sezioni non accessibili a quel ruolo spariscono dal menu.',
+        description: 'Il drawer occupa **tutta la larghezza** (non un pannello laterale come gli altri form): a sinistra la navigazione tra sezioni, a destra il contenuto della sezione attiva. Il selettore "Vista ruolo" nella dev bar in alto — lo stesso che filtra Sprint Jira e il menu della navbar — serve anche a mostrare qui l\'RBAC del form: non è un campo reale del form, cambiandolo le sezioni non accessibili a quel ruolo spariscono dal menu.',
         selector: '#grav-tour-form-nav',
         placement: 'right',
         onEnter: function () { ghfEnsureOpenAtSection('identita'); },
@@ -742,12 +749,12 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Nome impianto generato automaticamente',
-        description: 'Campo in sola lettura, composto da **{CANALE}-{Tipologia abbreviata}-{Formato}-{Sigla provincia}**: ogni segmento compare appena il campo sorgente è valorizzato (qui senza provincia perché l\'indirizzo non è ancora stato compilato — arriva nello step successivo).',
+        description: 'Campo in sola lettura, composto da **{Progressivo}–{CANALE}-{Tipologia abbreviata}-{Formato}-{Sigla provincia}**: ogni segmento compare appena il campo sorgente è valorizzato (qui senza provincia perché l\'indirizzo non è ancora stato compilato — arriva nello step successivo).',
         selector: AN_ROW_FORMATO_NOME,
         placement: 'bottom',
         onEnter: function () { ghfFillCascata(); },
         delay: 1200,
-        dev: [{ label: 'Nota', value: '==Manca il prefisso "{Progressivo}–" iniziale previsto dal criterio di accettazione== (per la disambiguazione di nomi duplicati, gestita dal backend — non simulabile nel prototipo senza un backend reale). Vedi icona nota.' }],
+        dev: [{ label: 'Nota', value: '==Proposta di nome==: il progressivo qui è simulato in locale (conteggio impianti esistenti con stessa tipologia e formato); in produzione va garantito dal backend su tutti gli impianti esistenti. Vedi icona nota.' }],
       },
       {
         title: 'Indirizzo: ricerca con suggerimenti',
@@ -1379,13 +1386,13 @@ window.HANDOFF_NOTES = [
   // ── US#1 — Anagrafica e ubicazione: note di design/criteri aperti ───────
   {
     id: 'anagrafica-nome-progressivo',
-    title: 'Nome impianto: manca il prefisso "Progressivo"',
-    body: 'Il criterio di accettazione descrive il formato **{Progressivo}–{CANALE}-{Tipologia abbreviata}-{Formato}-{Sigla provincia}**, con il progressivo aggiunto dal backend in caso di nomi duplicati (per garantirne l\'unicità).\n==Nel prototipo oggi== il nome si compone solo da CANALE-Tipologia-Formato-Provincia, senza alcun prefisso progressivo: la disambiguazione dei duplicati dipende da un controllo lato backend (verifica su tutti gli impianti esistenti) che un prototipo frontend-only non può simulare in modo affidabile — segnalarlo in fase di sviluppo reale, non è un difetto da correggere qui.',
+    title: 'Nome impianto: nomenclatura proposta',
+    body: 'Il nome si compone in automatico da **{Progressivo}–{Canale}-{Tipologia abbreviata}-{Formato}-{Sigla provincia}** (es. `001–OOH-Pen-120x180-PA`):\n- **Progressivo**: numero a 3 cifre che disambigua impianti con stessa tipologia e formato (qui simulato contando gli impianti esistenti compatibili; in produzione andrebbe garantito dal backend su tutti gli impianti);\n- **Canale**: OOH o DOOH;\n- **Tipologia abbreviata**: prime lettere della tipologia (es. "Pensilina" → "Pen");\n- **Formato**: dimensioni senza unità di misura;\n- **Sigla provincia**: le 2 lettere della provincia dell\'indirizzo.\n==Proposta di nome==: da concordare con il CTO se implementarla così come definita, modificarla o mantenere quella attuale.',
   },
   {
-    id: 'add-one-at-a-time',
-    title: 'Pattern "aggiungi un elemento alla volta"',
-    body: 'Cespiti, Dispositivi, Squadre e Facce condividono lo stesso pattern di interazione:\n- il pulsante **Aggiungi** apre un sotto-drawer con un solo record da compilare;\n- salvando, il sotto-drawer si chiude e l\'elemento compare nella sezione;\n- si ripete l\'azione per ogni nuovo elemento — nessun form con righe multiple da gestire in una volta sola.\n==Scelta deliberata==: evita form tabellari lunghi e riduce l\'errore di compilazione su righe multiple contemporaneamente.\n\nIl COMPONENTE che mostra l\'elemento aggiunto però cambia:\n- **Squadre e Facce → card** (EntityCard): i campi sono sempre gli stessi, un formato fisso funziona.\n- **Cespiti e Dispositivi → accordion** (Collapse): i campi variano troppo da tipo a tipo (una Fondazione e un Player multimediale non condividono quasi nulla) per stare in una card a layout fisso — il pannello si adatta al contenuto di ciascun tipo.',
+    id: 'struttura-collapse-non-card',
+    title: 'Cespiti e Dispositivi: componente collapse, non card',
+    body: 'I campi variano troppo da tipo a tipo (una Fondazione e un Player multimediale non condividono quasi nulla) per stare in una card a layout fisso: il componente usato è un **accordion** (Collapse), che si adatta al contenuto di ciascun tipo.',
   },
   // ── US#1.1 — Iter autorizzativo: note di design/criteri aperti ──────────
   {
@@ -1400,41 +1407,24 @@ window.HANDOFF_NOTES = [
   },
   {
     id: 'iter-scia-validazioni',
-    title: 'SCIA: validazioni sulle date da aggiungere',
-    body: '"Termine di verifica dell\'ente" non può precedere "Data di presentazione"; "Termine fine lavori" non può precedere il "Termine di verifica" — vincoli richiesti dal criterio di accettazione.\n==Nel prototipo oggi== questi campi non hanno ancora alcuna validazione di ordine tra le date.',
+    title: 'SCIA: validazioni sulle date fuori sprint',
+    body: '==Fuori sprint==: le validazioni sull\'ordine tra le date della SCIA.',
   },
   {
     id: 'iter-scarica-modulo-fuori-scope',
-    title: '"Scarica modulo": fuori scope questo sprint',
-    body: '==Fuori scope per questo sprint==: la generazione del modulo regionale precompilato del Genio Civile.\nIl target non è un modulo unico, ma un **sistema di template regionali multipli**, caricabili dall\'Admin tenant in base alle regioni necessarie.\n**Non svilupparla né includerla nell\'handoff** finché non è ridisegnata — nel prototipo resta visibile solo come segnaposto della demo.',
+    title: '"Scarica modulo": fuori sprint',
+    body: '==Fuori sprint==: la generazione del modulo regionale precompilato del Genio Civile.',
   },
   {
     id: 'iter-autorizzazioni-paginazione',
     title: 'Drawer Autorizzazioni: manca la paginazione',
     body: 'Il drawer di collegamento concessione ha ricerca + paginazione; quello di collegamento autorizzazione ha ricerca ma **non è ancora paginato**.\n==Da allineare==: con l\'anagrafica reale delle autorizzazioni la lista potrebbe crescere oltre una singola pagina, come già gestito per le concessioni.',
   },
-  // ── US#1.2 — Dati tecnici e facce: note di design/criteri aperti ────────
-  {
-    id: 'caratteristiche-facce-limite-rimosso',
-    title: 'Facce: rimosso il limite legato alla tipologia',
-    body: 'Il criterio di accettazione chiede di "configurare le facce entro il numero consentito dalla tipologia" — un massimo per tipologia (es. un Poster ha solo Anteriore, una Pensilina Anteriore+Posteriore).\n==Nel prototipo oggi== questo limite è stato **rimosso deliberatamente** (richiesta successiva, non un difetto): si possono creare tutte le facce che servono, senza tetto legato alla tipologia. La tabella `FACCE_PER_TIPO`/`maxFacce` non esiste più.\n**Effetto collaterale positivo**: dato che canale/tipologia/formato non correlano più 1:1 con le facce, ora un avviso (`Modal.confirm`) informa l\'utente che cambiarli rimuove tutte le facce già create — vedi step dedicato del tour.\n**Verificare con il PM** che il criterio originale (limite per tipologia) sia da considerarsi superato, e aggiornare la user story se confermato.',
-  },
-  {
-    id: 'caratteristiche-facce-duplica-mancante',
-    title: 'Card faccia: manca "Duplica" nel menu azioni',
-    body: 'Il criterio di accettazione elenca "Modifica/Duplica/Elimina" come azioni della card riepilogativa.\n==Nel prototipo oggi== il menu ha **Modifica**, **Crea posteriore** (solo sulla faccia Anteriore, se non ne ha già una collegata) ed **Elimina** — non esiste un\'azione "Duplica" per copiare una faccia esistente con gli stessi valori.\n"Crea posteriore" copre un caso specifico (faccia speculare collegata), non una duplicazione libera: da chiarire con il PM se serve un\'azione "Duplica" generica in aggiunta, o se "Crea posteriore" soddisfa già il bisogno reale dietro il criterio.',
-  },
   // ── US#1.3 — Cespiti e dispositivi: note di design/criteri aperti ───────
   {
     id: 'struttura-fondazione-date-validazione',
     title: 'Fondazione: manca la validazione tra le date',
     body: 'Il criterio di accettazione richiede che "Data fine lavori" non possa precedere "Data inizio lavori".\n==Nel prototipo oggi== `saveAsset()` non confronta le due date in alcun modo: si può salvare un cespite Fondazione con la data di fine lavori antecedente a quella di inizio, senza alcun avviso.',
-  },
-  // ── US#1.4 — Squadre: note di design/criteri aperti ─────────────────────
-  {
-    id: 'squadre-affissione-modifica-mancante',
-    title: 'Squadra di affissione: manca "Modifica" nel menu',
-    body: 'Il criterio di accettazione richiede che ogni squadra di affissione sia "modificabile ed eliminabile".\n==Nel prototipo oggi== il menu (⋮) della card offre solo **Rimuovi**: non c\'è modo di modificare Tipo affissione o i costi di una squadra già assegnata senza prima eliminarla e riassegnarla da zero.\n==Nota==: per la Manutenzione il criterio chiede solo "eliminabile" — lì il prototipo è già coerente (stesso menu, solo Rimuovi).',
   },
   // ── US#1.5 — Commerciale: note di design/criteri aperti ─────────────────
   {
@@ -1446,11 +1436,6 @@ window.HANDOFF_NOTES = [
     id: 'commerciale-moduli-distanza-mancante',
     title: 'Collega impianto: manca la distanza',
     body: 'Il criterio di accettazione chiede che il selettore moduli mostri, oltre alla ricerca testuale, anche la distanza dall\'impianto corrente.\n==Nel prototipo oggi== ogni riga mostra solo ID, tipo, indirizzo e formato — nessun calcolo o visualizzazione della distanza tra i due impianti.',
-  },
-  {
-    id: 'commerciale-moduli-formato-disallineato',
-    title: 'Moduli: il formato della cascata non combacia mai con gli impianti esistenti',
-    body: '==Priorità alta, root cause a monte (Anagrafica, US#1), impatto diretto su Moduli (US#1.5)==.\nIl form di creazione compila il Formato da `FORMATI_PER_TIPO` (es. "6×3 m", "4×3 m"…) mentre tutti gli impianti già censiti hanno un Formato nella scala di `TIPO_FORMATI` (es. "200×140cm", "300×200cm"…) — due cataloghi diversi per la stessa tipologia, con stringhe che non si intersecano mai.\nConseguenza pratica: il criterio "stessa tipologia e formato" del selettore "Collega impianto" **non troverà mai un candidato compatibile** per nessun impianto creato da questo form, anche quando esistono davvero impianti dello stesso tipo/dimensione — la funzione Moduli risulta di fatto inutilizzabile su impianti nuovi finché i due cataloghi non vengono unificati.',
   },
   {
     id: 'commerciale-moduli-fuori-scope-creazione',
