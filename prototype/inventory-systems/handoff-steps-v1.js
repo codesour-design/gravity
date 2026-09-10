@@ -749,12 +749,12 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Nome impianto generato automaticamente',
-        description: 'Campo in sola lettura, composto da **{Progressivo}–{CANALE}-{Tipologia abbreviata}-{Formato}-{Sigla provincia}**: ogni segmento compare appena il campo sorgente è valorizzato (qui senza provincia perché l\'indirizzo non è ancora stato compilato — arriva nello step successivo).',
+        description: 'Campo in sola lettura, composto da **{CANALE}-{Progressivo}**: si valorizza non appena il Canale è selezionato, prima ancora di Tipologia e Formato.',
         selector: AN_ROW_FORMATO_NOME,
         placement: 'bottom',
         onEnter: function () { ghfFillCascata(); },
         delay: 1200,
-        dev: [{ label: 'Nota', value: '==Proposta di nome==: il progressivo qui è simulato in locale (conteggio impianti esistenti con stessa tipologia e formato); in produzione va garantito dal backend su tutti gli impianti esistenti. Vedi icona nota.' }],
+        dev: [{ label: 'Nota', value: 'Il progressivo qui è simulato in locale (conteggio impianti esistenti con lo stesso canale); in produzione va garantito dal backend su tutti gli impianti esistenti. Vedi icona nota.' }],
       },
       {
         title: 'Indirizzo: ricerca con suggerimenti',
@@ -1386,8 +1386,8 @@ window.HANDOFF_NOTES = [
   // ── US#1 — Anagrafica e ubicazione: note di design/criteri aperti ───────
   {
     id: 'anagrafica-nome-progressivo',
-    title: 'Nome impianto: nomenclatura proposta',
-    body: 'Il nome si compone in automatico da **{Progressivo}–{Canale}-{Tipologia abbreviata}-{Formato}-{Sigla provincia}** (es. `001–OOH-Pen-120x180-PA`):\n- **Progressivo**: numero a 3 cifre che disambigua impianti con stessa tipologia e formato (qui simulato contando gli impianti esistenti compatibili; in produzione andrebbe garantito dal backend su tutti gli impianti);\n- **Canale**: OOH o DOOH;\n- **Tipologia abbreviata**: prime lettere della tipologia (es. "Pensilina" → "Pen");\n- **Formato**: dimensioni senza unità di misura;\n- **Sigla provincia**: le 2 lettere della provincia dell\'indirizzo.\n==Proposta di nome==: da concordare con il CTO se implementarla così come definita, modificarla o mantenere quella attuale.',
+    title: 'Nome impianto: nomenclatura definita',
+    body: 'Il nome si compone in automatico da **{Canale}-{Progressivo}** (es. `OOH-101`), la nomenclatura confermata con il CTO — stessa logica già in uso in Pianificazione, con la sigla provincia sostituita dal canale:\n- **Canale**: OOH o DOOH;\n- **Progressivo**: numero a 3 cifre che disambigua impianti con lo stesso canale (qui simulato contando gli impianti esistenti compatibili; in produzione andrebbe garantito dal backend su tutti gli impianti).',
   },
   {
     id: 'struttura-collapse-non-card',

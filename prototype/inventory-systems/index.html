@@ -889,7 +889,7 @@ const IMPIANTI = [
 })();
 
 // ── Codici e nomi personalizzati ─────────────────────────
-// Codice automatico PA-NNN per tutti; nome custom per impianti notevoli
+// Codice automatico Canale-NNN per tutti (es. "OOH-014"); nome custom per impianti notevoli
 const IMP_NOMI = {
   'I007': 'Piazza delle Vergogne',
   'I021': 'Politeama',
@@ -901,7 +901,7 @@ const IMP_NOMI = {
   'I086': 'Lungomare Mondello',
 };
 IMPIANTI.forEach((imp, i) => {
-  imp.code = `PA-${String(i + 1).padStart(3, '0')}`;
+  imp.code = `${imp.canale}-${String(i + 1).padStart(3, '0')}`;
   if (IMP_NOMI[imp.id]) imp.nome = IMP_NOMI[imp.id];
   // Assegna formato solo se non già dichiarato nel dato (preserva i sibling di modulo)
   const validFmts = TIPO_FORMATI[imp.tipo] || [];
@@ -6454,20 +6454,15 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setLat(String(s.lat.toFixed(6))); setLng(String(s.lng.toFixed(6)));
   };
 
-  // Nome impianto autogenerato: "001–OOH-Pen-120x180-PA" — non editabile, il nome custom vive altrove.
-  // Progressivo simulato in locale (conteggio impianti esistenti con stessa tipologia+formato +1):
+  // Nome impianto autogenerato: "OOH-101" — non editabile, il nome custom vive altrove.
+  // Progressivo simulato in locale (conteggio impianti esistenti con lo stesso canale +1):
   // in produzione la disambiguazione va garantita dal backend su tutti gli impianti esistenti.
   React.useEffect(() => {
-    const parts = [];
-    if (canale)    parts.push(canale);
-    if (tipologia) parts.push(tipologia.charAt(0).toUpperCase() + tipologia.slice(1, 3).toLowerCase());
-    if (formato)   parts.push(formato.replace(/\s*cm\s*$/i, '').replace(/×/g, 'x').replace(/\s+/g, ''));
-    if (provincia) parts.push(provincia.slice(0, 2).toUpperCase());
-    if (!parts.length) { setNome(''); return; }
-    const dup = (tipologia && formato) ? IMPIANTI.filter(i => i.tipo === tipologia && i.formato === formato).length : 0;
+    if (!canale) { setNome(''); return; }
+    const dup = IMPIANTI.filter(i => i.canale === canale).length;
     const progressivo = String(dup + 1).padStart(3, '0');
-    setNome(progressivo + '–' + parts.join('-'));
-  }, [canale, tipologia, formato, provincia]);
+    setNome(canale + '-' + progressivo);
+  }, [canale]);
 
   // Permessi — handlers (stessa logica del dettaglio impianto)
   const closePermitDrawer = () => { setPermitDrawerOpen(false); setPermitRowKey(null); setPermitAuthKeys([]); setPermitReplaceMode(false); };

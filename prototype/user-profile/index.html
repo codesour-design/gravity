@@ -69,17 +69,17 @@
 window.applyGravityTokens();
 
 // ── Globals ──────────────────────────────────────────────────────────────────
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect } = React;
 const {
   ConfigProvider, App, Layout, Space, Typography,
-  Button, Avatar, Upload, Modal, Form, Input, Select, Card, Tag, Badge,
-  Dropdown, Skeleton, Alert, Divider, Checkbox, Popover, Drawer, Result, Segmented, Spin,
+  Button, Avatar, Upload, Modal, Form, Input, Select, Card, Tag,
+  Dropdown, Skeleton, Alert, Divider, Checkbox, Popover, Drawer, Result,
 } = antd;
 const {
   UserOutlined, LockOutlined, BellOutlined,
   CheckOutlined, InfoCircleOutlined, SettingOutlined, DownOutlined,
   EditOutlined, SwapOutlined, CameraOutlined, HistoryOutlined,
-  ArrowLeftOutlined, FilterOutlined, LoadingOutlined,
+  FilterOutlined, LoadingOutlined,
 } = icons;
 const { Title, Text } = Typography;
 
@@ -1286,7 +1286,7 @@ function DesignNoteBulb({ note, placement }) {
   );
 }
 
-function ActivitiesSection({ role, mode, onSeeAll }) {
+function ActivitiesSection({ role, onSeeAll }) {
   const all = ROLE_PENDING[role] || [];
   const studied = STUDIED_ROLES.includes(role) && all.length > 0;
 
@@ -1308,11 +1308,6 @@ function ActivitiesSection({ role, mode, onSeeAll }) {
         })
       )
     );
-  }
-
-  // Strada 2 — scroll infinito sulla pagina "Per te": l'intera coda nella dashboard.
-  if (mode === 'scroll') {
-    return React.createElement(ActivitiesInfiniteFeed, { role });
   }
 
   // Feed dashboard: le più urgenti (priorità, ordine stabile), prime 6.
@@ -1342,7 +1337,7 @@ function ActivitiesSection({ role, mode, onSeeAll }) {
   );
 }
 
-// ── Lista completa attività — corpo condiviso da Drawer (1) e schermata dedicata (3) ──
+// ── Lista completa attività — corpo del Drawer "Vedi tutte" ──────────────────────
 // Riga conteggio + filtro categoria, poi lista completa.
 function ActivitiesFullList({ role }) {
   const [filter, setFilter] = useState([]);
@@ -1365,122 +1360,6 @@ function ActivitiesFullList({ role }) {
   );
 }
 
-// ── Strada 2 — scroll infinito sulla pagina "Per te" ─────────────────────────────
-// Titolo + badge conteggio + filtro su un'unica riga; la lista cresce a blocchi
-// mentre si scorre la PAGINA (sentinel + IntersectionObserver), non un'area dedicata.
-function ActivitiesInfiniteFeed({ role }) {
-  const PAGE = 5; // carica 5 record alla volta, con loading a ogni blocco
-  const [filter, setFilter] = useState([]);
-  const [visible, setVisible] = useState(PAGE);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const sentinelRef = useRef(null);
-  const timerRef = useRef(null);
-  const all = ROLE_PENDING[role] || [];
-  const categories = Array.from(new Set(all.map((t) => t.category)));
-  const toggle = (c) => setFilter((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
-  const pending = filter.length === 0 ? all : all.filter((t) => filter.includes(t.category));
-  const shown = pending.slice(0, visible);
-
-  // Cambio filtro/ruolo → riparti dal primo blocco
-  useEffect(() => { setVisible(PAGE); setLoadingMore(false); }, [filter.join('|'), role]);
-
-  // Infinite scroll di pagina: il sentinel entra nel viewport → loading 600ms → +5 voci
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !loadingMore && visible < pending.length) {
-        setLoadingMore(true);
-        timerRef.current = setTimeout(() => {
-          setVisible((v) => Math.min(v + PAGE, pending.length));
-          setLoadingMore(false);
-        }, 600);
-      }
-    }, { rootMargin: '120px' });
-    io.observe(el);
-    return () => { io.disconnect(); if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [pending.length, filter.join('|'), loadingMore, visible]);
-
-  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
-    // Unica riga: titolo + badge (sinistra) · filtro (destra)
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%' } },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
-        React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
-        React.createElement(Badge, { count: pending.length, overflowCount: 999, color: '#3E00FB' }),
-        React.createElement(DesignNoteBulb, { placement: 'bottomLeft', note: 'Le attività sono conseguenza della realizzazione dei flussi descritti dalle card delle metriche.' })
-      ),
-      React.createElement(ActivityFilter, { categories, selected: filter, onToggle: toggle, onClear: () => setFilter([]) })
-    ),
-    pending.length === 0
-      ? React.createElement('div', { style: { padding: '40px 0', textAlign: 'center', fontSize: 14, color: 'rgba(0,0,0,0.35)' } },
-          'Nessuna attività per i filtri selezionati')
-      : React.createElement(React.Fragment, null,
-          React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
-            shown.map((t, i) => React.createElement(TaskCard, { key: i, ...t }))
-          ),
-          shown.length < pending.length
-            ? React.createElement('div', { ref: sentinelRef, style: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px 0', minHeight: 44 } },
-                loadingMore ? React.createElement(Spin, { size: 'small' }) : null)
-            : null
-        )
-  );
-}
-
-// Skeleton lista attività — riga conteggio+filtro + N card placeholder
-function TaskListSkeleton({ count }) {
-  return React.createElement(Space, { direction: 'vertical', size: 16, style: { width: '100%' } },
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
-      React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 90, height: 16 } }),
-      React.createElement(Skeleton.Button, { active: true, size: 'small', style: { width: 150, height: 32 } })
-    ),
-    React.createElement(Space, { direction: 'vertical', size: 8, style: { width: '100%' } },
-      ...Array.from({ length: count || 8 }).map((_, i) =>
-        React.createElement(Card, { key: i, bordered: false, style: { border: '1px solid #f0f0f0' }, styles: { body: { padding: '12px 16px' } } },
-          React.createElement(Skeleton, { active: true, avatar: { size: 36, shape: 'square' }, title: { width: 200 }, paragraph: { rows: 1, width: 260 } })
-        )
-      )
-    )
-  );
-}
-
-// ── Schermata dedicata a tutte le attività (vista a sé, full width) ──────────────
-// Usata dalle strade "Schermata dedicata" (3, lista) e "Triage" (4, raggruppata).
-function ActivitiesScreen({ role, variant, loading, onBack }) {
-  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 20, width: '100%' } },
-    React.createElement(Button, {
-      type: 'text', icon: React.createElement(ArrowLeftOutlined), onClick: onBack,
-      style: { paddingLeft: 0, alignSelf: 'flex-start' },
-    }, 'Torna alla dashboard'),
-    React.createElement(Title, { level: 3, style: { margin: 0 } }, 'Le tue attività'),
-    loading
-      ? React.createElement(TaskListSkeleton, { count: 8 })
-      : React.createElement(ActivitiesFullList, { role })
-  );
-}
-
-// ── Barra di valutazione (strumento di prototipo) ────────────────────────────────
-// Commuta dal vivo il pattern di accesso alla lista completa attività.
-function SeeAllModeLab({ mode, onChange }) {
-  return React.createElement('div', {
-    style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '8px 12px',
-      border: '1px dashed #d9d9d9', borderRadius: 8, background: '#fafafa' },
-  },
-    React.createElement(Text, { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(0,0,0,0.45)' } },
-      'Valutazione · «Vedi tutte»'),
-    React.createElement(Segmented, {
-      value: mode, onChange,
-      options: [
-        { label: 'Drawer full screen', value: 'drawer-full' },
-        { label: 'Scroll infinito', value: 'scroll' },
-        { label: 'Schermata dedicata', value: 'screen' },
-      ],
-    }),
-    React.createElement(DesignNoteBulb, {
-      placement: 'bottomRight',
-      note: 'Controllo di prototipo per confrontare i tre pattern di accesso alla lista completa attività. Valuta soprattutto sul ruolo Operation Manager (coda lunga).',
-    })
-  );
-}
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function ContentSkeleton() {
@@ -1542,13 +1421,7 @@ function AppRoot() {
   const [loading, setLoading] = useState(true);
   const [tenantLoading, setTenantLoading] = useState(false);
   const [avatarSrc, setAvatarSrc] = useState(null);
-  const [seeAllOpen, setSeeAllOpen] = useState(false);            // drawer full-screen (strada 1)
-  const [seeAllMode, setSeeAllMode] = useState(() => {
-    const saved = localStorage.getItem('gravity_proto_seeall');
-    return ['drawer-full', 'scroll', 'screen'].includes(saved) ? saved : 'drawer-full';
-  });
-  const [view, setView] = useState('dashboard');                  // 'dashboard' | 'activities' (strada 3)
-  const [activitiesLoading, setActivitiesLoading] = useState(false); // skeleton ingresso schermata dedicata
+  const [seeAllOpen, setSeeAllOpen] = useState(false);            // drawer "Vedi tutte" all'80%
   // Area app esplorativa: nascondibile per test layout. Stato in memoria →
   // si ripristina (le app riappaiono) al reload della pagina.
   const [appsHidden, setAppsHidden] = useState(false);
@@ -1564,7 +1437,6 @@ function AppRoot() {
   const handleRoleChange = (r) => {
     localStorage.setItem('gravity_proto_role', r);
     setSeeAllOpen(false);
-    setView('dashboard');
     setLoading(true);
     setTimeout(() => { setRole(r); setLoading(false); }, 600);
   };
@@ -1577,27 +1449,8 @@ function AppRoot() {
       return;
     }
     setSeeAllOpen(false);
-    setView('dashboard');
     setLoading(true);
     setTimeout(() => { setTenantKey(k); setLoading(false); }, 200);
-  };
-
-  // "Vedi tutte" → comportamento dipendente dalla strada in valutazione
-  // (scroll infinito non passa di qui: la lista è già inline nella dashboard).
-  const handleSeeAll = () => {
-    if (seeAllMode === 'screen') {
-      setView('activities');
-      window.scrollTo(0, 0);
-      setActivitiesLoading(true);
-      setTimeout(() => setActivitiesLoading(false), 500);
-    } else setSeeAllOpen(true);
-  };
-
-  const changeSeeAllMode = (m) => {
-    setSeeAllMode(m);
-    localStorage.setItem('gravity_proto_seeall', m);
-    setSeeAllOpen(false);
-    setView('dashboard');
   };
 
   const dashboard = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 32, width: '100%' } },
@@ -1607,10 +1460,10 @@ function AppRoot() {
     // Area app esplorativa: hover → spiegazione + button per nasconderla.
     // Nascosta → attività full width (si ripristina al reload).
     appsHidden
-      ? React.createElement(ActivitiesSection, { role, mode: seeAllMode, onSeeAll: handleSeeAll })
+      ? React.createElement(ActivitiesSection, { role, onSeeAll: () => setSeeAllOpen(true) })
       : React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start', width: '100%' } },
           React.createElement('div', { style: { flex: '1 1 0', minWidth: 320 } },
-            React.createElement(ActivitiesSection, { role, mode: seeAllMode, onSeeAll: handleSeeAll })
+            React.createElement(ActivitiesSection, { role, onSeeAll: () => setSeeAllOpen(true) })
           ),
           // Area app esplorativa: nota + nascondi sull'icona Coffee del titolo
           React.createElement('div', { style: { flex: '0 1 500px', minWidth: 320 } },
@@ -1624,12 +1477,7 @@ function AppRoot() {
 
   let content = loading
       ? React.createElement(ContentSkeleton)
-      : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 24, width: '100%' } },
-          React.createElement(SeeAllModeLab, { mode: seeAllMode, onChange: changeSeeAllMode }),
-          view === 'activities'
-            ? React.createElement(ActivitiesScreen, { role, variant: seeAllMode, loading: activitiesLoading, onBack: () => setView('dashboard') })
-            : dashboard
-        );
+      : dashboard;
 
   return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
     React.createElement(App, null,
@@ -1645,7 +1493,7 @@ function AppRoot() {
           content,
           React.createElement('div', { style: { height: 24 } })
         ),
-        // Strada 1 — Drawer "Vedi tutte" all'80% della schermata (DS: *Drawer* Placement=Right)
+        // Drawer "Vedi tutte" all'80% della schermata (DS: *Drawer* Placement=Right)
         React.createElement(Drawer, {
           title: 'Attività da fare',
           placement: 'right',
