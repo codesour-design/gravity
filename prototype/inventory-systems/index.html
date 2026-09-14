@@ -6994,7 +6994,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           // ── STEP 3 · Titolo a installare ────────────────────────────
           // Dati delle due SCIA compilabili direttamente nel form (inline, non più nel drawer),
           // ognuna con il proprio upload documenti.
-          box(React.createElement(React.Fragment, null, 'Titolo a installare', React.createElement(HandoffDesignNote, { id: 'iter-scia-validazioni', placement: 'right' })), 'Compila i dati della SCIA urbanistica e della SCIA commerciale presentate per l\'impianto e carica i relativi documenti.',
+          box('Titolo a installare', 'Compila i dati della SCIA urbanistica e della SCIA commerciale presentate per l\'impianto e carica i relativi documenti.',
             ...SCIA_TYPES.map((scia, idx) => {
               const man = permitSciaManual[scia.id] || {};
               const fields = SCIA_FIELD_META.filter(f => f.key in scia);
