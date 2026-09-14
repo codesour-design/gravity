@@ -3,8 +3,8 @@
  * V1 — versione attiva (in lavorazione). Copre il drawer a pagina intera:
  * - GRP-622 — Creazione: apertura, navigazione tra le sezioni, compilazione
  *   reale dei campi obbligatori e il pattern "aggiungi un elemento alla volta"
- *   nei sotto-drawer di Cespiti/Dispositivi e Squadre — con salvataggio reale,
- *   non solo apertura/chiusura.
+ *   nei sotto-drawer di Squadre — con salvataggio reale, non solo apertura/
+ *   chiusura.
  * - US#1 — Anagrafica e ubicazione: cascata Canale/Tipologia/Formato, nome
  *   impianto auto-generato, indirizzo con autocomplete, Zona, Proprietà, Stato.
  * - US#1.1 — Iter autorizzativo: approfondisce la sezione "Iter
@@ -15,7 +15,10 @@
  *   ingombro calcolata) e configurazione di ciascuna faccia (tipo, slot,
  *   coordinate, orientamento, cono di visibilità, formato, illuminazione,
  *   dati commerciali).
- * - US#1.3 — Cespiti e dispositivi, US#1.4 — Squadre, US#1.5 — Commerciale.
+ * - US#1.4 — Squadre, US#1.5 — Commerciale.
+ * US#1.3 — Cespiti e dispositivi è stata rimossa da questa sprint: la sezione
+ * resta nel form (tab "Cespiti e dispositivi" + relativi box/sotto-drawer)
+ * solo come riferimento, marcata fuori sprint — vedi HANDOFF_OUT_OF_SPRINT.
  * Il resto del Parco Impianti (mappa, lista, ricerca/filtri, gestione
  * tipologie/formati) e la scheda impianto esistente non hanno user story in
  * questo sprint — vedi HANDOFF_OUT_OF_SPRINT.
@@ -364,45 +367,11 @@ function ghfEnsureTipologiaGuardModal(cb) {
   });
 }
 
-// ── Helper di navigazione — US#1.3 Cespiti e dispositivi (sezione "struttura"
-// del form di creazione) — sec('struttura', ...) ha due box: "Cespiti" e
-// "Dispositivi", individuati per posizione come le altre sezioni. Il
-// sotto-drawer è UNICO per entrambe le categorie (.grav-cespite-drawer,
-// stessa classe anche per i dispositivi): cliccare l'altro pulsante "Aggiungi"
-// mentre è già aperto lo resetta sul tipo giusto da solo (openNewAsset), senza
-// bisogno di chiuderlo prima.
-var ST_CARD_CESPITI      = '#grav-tour-form-required > div > div:nth-child(2)'; // Cespiti
-var ST_CARD_DISPOSITIVI  = '#grav-tour-form-required > div > div:nth-child(3)'; // Dispositivi
-function ghfEnsureStrutturaSection(cb) {
-  ghfEnsureOpenAtSection('struttura');
-  ghfNudge();
-  cb && cb();
-}
-// Apre il drawer condiviso Cespite/Dispositivo sul pulsante indicato e — quando
-// il corpo esiste davvero — richiama `fillFn` (uno dei fillXxxExample esposti
-// da window.__ghfCespite) per mostrare il RISULTATO compilato invece del form
-// vuoto o di un solo tipo scelto a caso.
-function ghfFillAsset(addBtnSelector, fillFn, cb) {
-  ghfEnsureSubdrawerOpen('struttura', addBtnSelector, 'grav-squadra-drawer', function () {
-    ghfWaitFor('.grav-cespite-drawer .ant-drawer-body', function () {
-      if (window.__ghfCespite && fillFn) window.__ghfCespite[fillFn]();
-      ghfNudge();
-      cb && cb();
-    }, 900);
-  });
-}
-// Salva davvero l'elemento (chiude il sotto-drawer, come nel prototipo). Una
-// pausa PRIMA di chiamare saveAssetNow lascia a React il tempo di
-// ri-renderizzare dopo il fill appena fatto — altrimenti saveAsset() legge
-// ancora acTipo/acVals precedenti al fill (closure non aggiornata) e non
-// salva nulla in silenzio, stesso rischio già visto per le Facce.
-function ghfSaveAssetNow(cb) {
-  setTimeout(function () {
-    ghfCall(['__ghfCespite', 'saveAssetNow']);
-    ghfNudge();
-    cb && cb();
-  }, 250);
-}
+// US#1.3 Cespiti e dispositivi (sezione "struttura") è fuori sprint da questa
+// versione: gli helper dedicati (ST_CARD_CESPITI/DISPOSITIVI, ghfFillAsset,
+// ghfSaveAssetNow) sono stati rimossi con il tour — .grav-cespite-drawer resta
+// citato sotto solo per chiudere il sotto-drawer se già aperto, non per
+// pilotarlo in una demo.
 
 // ── Helper di navigazione — US#1.4 Squadre (sezione "affissione" del form di
 // creazione, contiene i box "Affissione" e "Manutenzione") — drawer unico
@@ -518,6 +487,14 @@ window.HANDOFF_OUT_OF_SPRINT = [
   // altro punto di ingresso alla stessa funzionalità fuori scope in creazione.
   { selector: '.grav-savelink-modal .ant-modal-content', note: 'Fuori sprint — proposta di collegamento moduli al salvataggio: altro punto di ingresso a Moduli in creazione, fuori scope (TASK DSN P0)' },
 
+  // Sezione "Cespiti e dispositivi" (US#1.3, GRP-628) — rimossa da questa
+  // sprint: tab del form, box Cespiti/Dispositivi e sotto-drawer di aggiunta
+  // restano nel prototipo solo come riferimento del comportamento già
+  // costruito, non da considerare in scope per lo sviluppo reale.
+  { selector: '[data-section="struttura"]', note: 'Fuori sprint — tab "Cespiti e dispositivi": US#1.3 (GRP-628) rimossa da questa sprint' },
+  { selector: '.grav-struttura-box', note: 'Fuori sprint — l\'intera sezione Cespiti e dispositivi (box Cespiti, box Dispositivi, accordion, pulsanti Aggiungi): US#1.3 (GRP-628) rimossa da questa sprint, visibile solo come riferimento' },
+  { selector: '.grav-cespite-drawer .ant-drawer-content', note: 'Fuori sprint — sotto-drawer di aggiunta Cespite/Dispositivo: stessa esclusione della sezione Cespiti e dispositivi (US#1.3)' },
+
   // ── Parco Impianti (schermata "lista"): tutto ciò che ci si vede è fuori
   // sprint, TRANNE il pulsante "Nuovo Impianto" e il suo drawer di creazione
   // (GRP-622, US#1–US#1.5) — mappa, lista, ricerca/filtri, tab canale e la
@@ -609,52 +586,11 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Sezione 3 — Dati tecnici',
-        description: 'Misure fisiche del pannello (larghezza, altezza, profondità — l\'area espositiva si **calcola in automatico**) ed esposizione del sito. In fondo alla sezione, le **Facce** dell\'impianto si aggiungono una alla volta con lo stesso pattern che vedremo tra poco per Cespiti e Squadre.',
+        description: 'Misure fisiche del pannello (larghezza, altezza, profondità — l\'area espositiva si **calcola in automatico**) ed esposizione del sito. In fondo alla sezione, le **Facce** dell\'impianto si aggiungono una alla volta con lo stesso pattern che vedremo tra poco per Squadre.',
         selector: '#grav-tour-form-required',
         placement: 'right',
         onEnter: function () { ghfEnsureOpenAtSection('caratteristiche'); },
         delay: 500,
-      },
-      {
-        title: 'Sezione 4 — Cespiti e dispositivi',
-        description: 'Componenti strutturali (fondazione, pali, cornice, pannelli…) e dispositivi connessi (player, modem, sensori…) montati sull\'impianto. Ogni elemento si registra **uno alla volta** in un sotto-drawer dedicato: il pulsante "Aggiungi" lo apre.',
-        selector: '#grav-tour-add-cespite-btn',
-        placement: 'left',
-        onEnter: function () { ghfEnsureOpenAtSection('struttura'); },
-        delay: 500,
-      },
-      {
-        title: 'Sotto-drawer: scegli il tipo',
-        description: 'Il sotto-drawer si apre **sopra** il form principale (resta aperto dietro). La select "Tipo cespite" determina quali campi compaiono sotto: es. Fondazione mostra tipo/dimensione/date, Pali mostra diametro/interasse/ditta — ogni tipo ha il suo set di campi coerente.',
-        selector: '.grav-cespite-drawer .ant-select',
-        placement: 'left',
-        onEnter: function () { ghfEnsureSubdrawerOpen('struttura', '#grav-tour-add-cespite-btn', 'grav-squadra-drawer'); },
-        delay: 800,
-        dev: [{ label: 'Sorgente campi', value: "ASSET_TYPES.find(t => t.value === tipo).fields" }],
-      },
-      {
-        title: 'Un tipo selezionato, i campi cambiano',
-        description: 'Scegliendo un tipo (qui il primo della lista) compaiono i campi coerenti con quella scelta. Il pulsante "Aggiungi" è pronto: salverà questo cespite con i dati inseriti finora.',
-        selector: '.grav-cespite-drawer .ant-btn-primary',
-        placement: 'left',
-        onEnter: function () {
-          ghfEnsureSubdrawerOpen('struttura', '#grav-tour-add-cespite-btn', 'grav-squadra-drawer', function () { ghfCall(['__ghfCespite', 'pickTipo']); });
-        },
-        delay: 900,
-      },
-      {
-        title: 'Aggiunto: ora è una riga nell\'accordion',
-        description: '"Aggiungi" salva **davvero** questo cespite: il sotto-drawer si chiude e l\'elemento compare qui come pannello di un **accordion** (non una card), espandibile per rivederne i dettagli, rimovibile con il cestino. ==Scelta deliberata==: i campi di Cespiti e Dispositivi cambiano troppo da tipo a tipo (Fondazione ha 4 campi, Pali ne ha 8, un Player multimediale ne ha altri ancora) per stare in un formato a card fisso — l\'accordion si adatta a ciascuno. Il pulsante "Aggiungi cespite" resta disponibile per aggiungerne altri.',
-        selector: '#grav-tour-form-required',
-        placement: 'right',
-        onEnter: function () {
-          ghfEnsureSubdrawerOpen('struttura', '#grav-tour-add-cespite-btn', 'grav-squadra-drawer', function () {
-            ghfCall(['__ghfCespite', 'pickTipo']);
-            setTimeout(function () { ghfClick('.grav-cespite-drawer .ant-btn-primary'); ghfNudge(); }, 250);
-          });
-        },
-        delay: 1500,
-        dev: [{ label: 'Componente', value: 'AssetAccordion — Collapse (AntD) accordion:true\nusato SOLO per Cespiti/Dispositivi; Squadre e Facce usano EntityCard' }],
       },
       {
         title: 'Sezione 5 — Squadre',
@@ -699,7 +635,7 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Uscire con modifiche non salvate',
-        description: 'A questo punto il form ha dati in più sezioni (Anagrafica, Cespiti, Squadre). Cliccando "Annulla" (o la ✕) compare un avviso **ancorato al pulsante** — mai una finestra a schermo intero — con "Continua a modificare" come scelta predefinita ed "Esci e scarta" esplicito, in rosso, per chi vuole davvero abbandonare. ==Stesso linguaggio di conferma su tutti i sotto-drawer del flusso== (Faccia, Cespite/Dispositivo, Squadra, Collega permesso, Collega modulo).',
+        description: 'A questo punto il form ha dati in più sezioni (Anagrafica, Squadre). Cliccando "Annulla" (o la ✕) compare un avviso **ancorato al pulsante** — mai una finestra a schermo intero — con "Continua a modificare" come scelta predefinita ed "Esci e scarta" esplicito, in rosso, per chi vuole davvero abbandonare. ==Stesso linguaggio di conferma su tutti i sotto-drawer del flusso== (Faccia, Cespite/Dispositivo, Squadra, Collega permesso, Collega modulo).',
         selector: '.ant-popconfirm',
         placement: 'bottom',
         onEnter: function () {
@@ -711,7 +647,7 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Crea l\'impianto',
-        description: 'Con i 6 campi obbligatori dell\'Anagrafica compilati, il pulsante finale è ora **attivo davvero**: cliccandolo l\'impianto viene creato con tutti i dati inseriti in questa demo (identità, cespite e squadra appena aggiunti) e si torna al Parco Impianti.',
+        description: 'Con i 6 campi obbligatori dell\'Anagrafica compilati, il pulsante finale è ora **attivo davvero**: cliccandolo l\'impianto viene creato con tutti i dati inseriti in questa demo (identità e squadra appena aggiunti) e si torna al Parco Impianti.',
         selector: '#grav-tour-form-save',
         placement: 'bottomRight',
         onEnter: function () {
@@ -987,101 +923,6 @@ window.HANDOFF_TOURS = [
     ],
   },
   {
-    id: 'cespiti-dispositivi',
-    title: 'GRP-628 — US#1.3 — Cespiti e dispositivi',
-    description: 'Come **Inventory Manager**, voglio registrare i componenti strutturali e i dispositivi connessi dell\'impianto così da sapere cosa è stato montato e cosa è collegato, indipendentemente dal canale.',
-    roles: ['Inventory Manager', 'Tenant Admin'],
-    startScreen: 'lista',
-    steps: [
-      {
-        title: 'Punto di ingresso: sezione "Cespiti e dispositivi"',
-        description: 'Quarta sezione del form di creazione: componenti strutturali montati e dispositivi connessi — disponibile allo stesso modo per impianti **OOH e DOOH**, senza alcuna dipendenza dal canale scelto in Anagrafica.',
-        selector: '[data-section="struttura"]',
-        placement: 'right',
-        onEnter: function () { ghfEnsureOpenAtSection('struttura'); },
-        delay: 700,
-      },
-      {
-        title: 'Cespiti: empty state',
-        description: 'Nessun cespite pre-creato: "Aggiungi cespite" apre il sotto-drawer dedicato — stesso pattern "aggiungi un elemento alla volta" già visto per Squadre e Facce.',
-        selector: ST_CARD_CESPITI,
-        placement: 'right',
-        onEnter: function () { ghfEnsureStrutturaSection(); },
-        delay: 700,
-      },
-      {
-        title: 'Drawer cespite: Tipo e campi dinamici (Fondazione)',
-        description: 'La select **Tipo cespite** determina i campi mostrati sotto — qui **Fondazione**: Tipo fondazione, Dimensione fondazione, Data inizio lavori, Data fine lavori, tutti compilati per mostrare il risultato.',
-        selector: '.grav-cespite-drawer .ant-select',
-        placement: 'left',
-        onEnter: function () { ghfFillAsset('#grav-tour-add-cespite-btn', 'fillFondazioneExample'); },
-        delay: 1300,
-        dev: [{ label: 'Sorgente campi', value: "ASSET_TYPES.find(t => t.value === 'Fondazione').fields" }],
-      },
-      {
-        title: 'Data fine lavori: manca la validazione dell\'ordine',
-        description: 'Qui **Data inizio lavori** è stata spostata DOPO **Data fine lavori** (20/09 → 01/09): il campo lo accetta senza segnalare nulla. ==Il criterio di accettazione richiede che "Data fine lavori" non possa precedere "Data inizio lavori"==: da aggiungere.',
-        selector: '.grav-cespite-drawer .ant-drawer-body',
-        placement: 'left',
-        onEnter: function () { ghfFillAsset('#grav-tour-add-cespite-btn', 'fillFondazioneExample', function () { if (window.__ghfCespite) window.__ghfCespite.breakFondazioneDates(); ghfNudge(); }); },
-        delay: 1300,
-        dev: [{ label: 'Nota', value: '==Nessun controllo `dataFine.isBefore(dataInizio)` in saveAsset()== — vedi icona nota.' }],
-      },
-      {
-        title: 'Un tipo con più campi (Pali)',
-        description: 'Cambiando tipo, i campi si sostituiscono del tutto: **Pali** ne ha 8 (Tipo pali, Numero pali, Diametro, Altezza, Interasse, N. punzonatura pali, Ditta collocazione pali, Data montaggio) — qui tutti compilati. Gli altri tipi (Cornice, Pannelli, Extra struttura) seguono lo stesso principio, con il proprio set di campi coerente (vedi tabella "Campi per tipo di Cespite" nel pannello Modello).',
-        selector: '.grav-cespite-drawer .ant-drawer-body',
-        placement: 'left',
-        onEnter: function () { ghfFillAsset('#grav-tour-add-cespite-btn', 'fillPaliExample'); },
-        delay: 1300,
-      },
-      {
-        title: 'Più cespiti, anche dello stesso tipo',
-        description: 'Ogni "Aggiungi" salva davvero un cespite e richiude il drawer: qui **due Fondazioni** aggiunte per mostrare che nulla impedisce di ripetere lo stesso tipo. Il menu (⋮) di ogni pannello apre **Visualizza** (il drawer si riapre già compilato ed editabile — Visualizza ed Edit coincidono) ed **Elimina**.',
-        selector: ST_CARD_CESPITI,
-        placement: 'right',
-        onEnter: function () {
-          ghfFillAsset('#grav-tour-add-cespite-btn', 'fillFondazioneExample', function () {
-            ghfSaveAssetNow(function () {
-              ghfFillAsset('#grav-tour-add-cespite-btn', 'fillFondazioneExample', function () {
-                ghfSaveAssetNow();
-              });
-            });
-          });
-        },
-        delay: 3200,
-        dev: [{ label: 'Componente', value: 'AssetAccordion — Collapse (AntD) accordion:true, un pannello per elemento' }],
-      },
-      {
-        title: 'Dispositivi: empty state, stesso pattern',
-        description: '"Aggiungi dispositivo" apre lo **stesso sotto-drawer** dei cespiti (non uno diverso): cambia solo l\'elenco dei tipi proposti dalla select Tipo. Disponibile senza distinzione tra impianti OOH e DOOH.',
-        selector: ST_CARD_DISPOSITIVI,
-        placement: 'right',
-        onEnter: function () { ghfEnsureStrutturaSection(); },
-        delay: 700,
-      },
-      {
-        title: 'Drawer dispositivo: campi per tipo (Player multimediale)',
-        description: 'Ogni tipo di dispositivo ha 3 campi comuni (Nome, Stato, Descrizione) più campi specifici — qui **Player multimediale**: MAC address e Numero di serie sono a **chip multi-valore** (se ne può inserire più di uno), oltre a Indirizzo IP e Versione software.',
-        selector: '.grav-cespite-drawer .ant-drawer-body',
-        placement: 'left',
-        onEnter: function () { ghfFillAsset('#grav-tour-add-dispositivo-btn', 'fillPlayerExample'); },
-        delay: 1300,
-        dev: [{ label: 'Componente', value: "Select mode='tags' per MAC/seriali/ID — kind: 'tags' in DEVICE_FIELDS_BY_TYPE" }],
-      },
-      {
-        title: 'Più dispositivi, ciascuno modificabile ed eliminabile',
-        description: 'Stesso principio dei cespiti: si ripete "Aggiungi dispositivo" per ognuno, ognuno diventa un pannello con il proprio menu Visualizza/Elimina. Gli altri tipi (Modem/Router, Sensore, Telecamera, Schermo/Display, Centralina, Altro) hanno da 0 a 6 campi specifici oltre ai 3 comuni (vedi tabella "Campi per tipo di Dispositivo" nel pannello Modello).',
-        selector: ST_CARD_DISPOSITIVI,
-        placement: 'right',
-        onEnter: function () {
-          ghfFillAsset('#grav-tour-add-dispositivo-btn', 'fillPlayerExample', function () { ghfSaveAssetNow(); });
-        },
-        delay: 1800,
-      },
-    ],
-  },
-  {
     id: 'squadre',
     title: 'GRP-630 — US#1.4 — Squadre',
     description: 'Come **Inventory Manager**, voglio assegnare le squadre di default per affissione e manutenzione, con i relativi costi, così da valorizzare automaticamente gli ordini di lavoro su questo impianto.',
@@ -1296,16 +1137,7 @@ window.HANDOFF_COMPONENTS = [
   { selector: '.ni-field', name: 'Campo form (label + controllo)', level: 'Molecola', custom: true,
     funzione: 'Wrapper standard di ogni campo del form: label + asterisco se obbligatorio + controllo Ant Design.',
     figma: 'Form.Item — Layout=Vertical' },
-  { selector: '#grav-tour-add-cespite-btn', name: 'Button "Aggiungi cespite"', level: 'Atomo', figma: 'Button — Type=Default · Icon=Plus' },
   { selector: '#grav-tour-add-squadra-btn', name: 'Button "Aggiungi squadra"', level: 'Atomo', figma: 'Button — Type=Default · Icon=Plus' },
-  { selector: '#grav-tour-form-required .ant-collapse', name: 'Accordion Cespiti/Dispositivi', level: 'Organismo', custom: true,
-    funzione: 'Elenca i cespiti/dispositivi aggiunti — un pannello Collapse per elemento, chiuso di default tranne il primo. Non è una card: i campi mostrati (etichetta + valore) dipendono dal tipo, quindi il pannello si adatta invece di un layout fisso.',
-    composizione: 'Collapse (AntD, accordion:true) — ogni pannello: titolo + tag/stato + azioni (⋮ Visualizza/Elimina) + griglia label/valore',
-    figma: 'Collapse — Type=Accordion' },
-  { selector: '.grav-cespite-drawer', name: 'Sotto-drawer Cespite/Dispositivo', level: 'Organismo', custom: true,
-    funzione: 'Drawer impilato sopra il form principale per la creazione di **un singolo** cespite o dispositivo. La select "Tipo" determina dinamicamente i campi mostrati.',
-    composizione: 'Drawer (AntD) + Select tipo + campi dinamici (Input/Select/DatePicker/Tags) + azioni Annulla/Aggiungi',
-    figma: 'Drawer — Placement=Right · Size=Default (600px)' },
   { selector: '.grav-squadra-drawer', name: 'Sotto-drawer Squadra', level: 'Organismo', custom: true,
     funzione: 'Drawer impilato sopra il form principale per l\'assegnazione di **una singola** squadra (affissione o manutenzione).',
     composizione: 'Drawer (AntD) + Select squadra + campi condizionati dal tipo + azione Salva',
@@ -1387,7 +1219,7 @@ window.HANDOFF_NOTES = [
   {
     id: 'anagrafica-nome-progressivo',
     title: 'Nome impianto: nomenclatura definita',
-    body: 'Il nome si compone in automatico da **{Canale}-{Progressivo}** (es. `OOH-101`), la nomenclatura confermata con il CTO — stessa logica già in uso in Pianificazione, con la sigla provincia sostituita dal canale:\n- **Canale**: OOH o DOOH;\n- **Progressivo**: numero a 3 cifre che disambigua impianti con lo stesso canale (qui simulato contando gli impianti esistenti compatibili; in produzione andrebbe garantito dal backend su tutti gli impianti).',
+    body: 'Il nome si compone in automatico da **{Canale}-{Progressivo}** (es. `OOH-101`), la nomenclatura confermata con il CTO — stessa logica già in uso in Pianificazione, con la sigla provincia sostituita dal canale:\n- **Canale**: OOH o DOOH;\n- **Progressivo**: numero che disambigua impianti con lo stesso canale, sempre su **minimo 3 cifre** (`001`, `002`, …) ma non limitato a 3: oltre `999` si espande a 4+ cifre senza troncare (qui simulato contando gli impianti esistenti compatibili; in produzione andrebbe garantito dal backend su tutti gli impianti).',
   },
   {
     id: 'struttura-collapse-non-card',
