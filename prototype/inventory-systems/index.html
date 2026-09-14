@@ -7097,8 +7097,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           ),
         ),
 
-        // ── 7. Cespiti e Dispositivi
+        // ── 7. Cespiti e Dispositivi — US#1.3 fuori sprint (vedi HANDOFF_OUT_OF_SPRINT
+        // in handoff-steps-v1.js): .grav-struttura-box marca l'intera sezione.
         sec('struttura', 'Cespiti e dispositivi', 'Componenti strutturali montati e dispositivi connessi, con ditte e date di montaggio.',
+          React.createElement('div', { className: 'grav-struttura-box' },
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Cespiti',
               cespiti.length > 0 ? countBadge(cespiti.length) : null,
@@ -7122,6 +7124,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
               : React.createElement(Empty, { description: "Aggiungi un dispositivo connesso", image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
                   dispositivoAddBtn,
                 ),
+          ),
           ),
         ),
 
