@@ -24,8 +24,9 @@
   <script src="../_shared/navbar.js"></script>
   <script src="../_shared/filter-drawer.js"></script>
 
-  <!-- Google Maps -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeN8PAeuZkOtG8uyRzvXP2rOzP37HMBdI&libraries=places"></script>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="../_shared/map-interactions.js"></script>
   <script src="../_shared/map-popover.js"></script>
 
@@ -498,7 +499,7 @@ const {
   CalendarOutlined, SyncOutlined, AimOutlined, EuroCircleOutlined, BankOutlined, FormatPainterOutlined,
   UploadOutlined, LockOutlined, UnlockOutlined, CarOutlined, LinkOutlined,
   BulbFilled, GatewayOutlined, QuestionCircleOutlined, DownloadOutlined, GlobalOutlined,
-  ShopOutlined, BorderOutlined, FlagOutlined, BlockOutlined, CheckOutlined,
+  ShopOutlined, BorderOutlined, FlagOutlined, BlockOutlined,
 } = icons;
 
 // ─────────────────────────────────────────────────────────
@@ -753,6 +754,22 @@ const IMPIANTI = [
   { id:'I128', tipo:'Alux',         canale:'DOOH', indirizzo:'Via Roma, 200',                 zona:'Centro Storico', lat:38.11600, lng:13.36600, faces:2, formato:'120×176cm', stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
   { id:'I129', tipo:'Billboard',    canale:'DOOH', indirizzo:'Viale Regione Siciliana, 750',  zona:'Viale Regione',  lat:38.10380, lng:13.31900, faces:1, formato:'600×300cm', stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
   { id:'I130', tipo:'Totem',        canale:'DOOH', indirizzo:'Via Maqueda, 55',               zona:'Centro Storico', lat:38.11020, lng:13.36150, faces:4, formato:'70×180cm',  stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
+  // ── Illuminati per copertura tipologia/formato ────────────────────
+  { id:'I131', tipo:'Cartello',        canale:'OOH', indirizzo:'Via Roma, 88',                   zona:'Centro Storico', lat:38.11540, lng:13.36660, faces:1, formato:'200×140cm', stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
+  { id:'I132', tipo:'Palina',          canale:'OOH', indirizzo:'Piazza Politeama, 3',            zona:'Politeama',      lat:38.12200, lng:13.35200, faces:1, formato:'100×140cm', stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
+  { id:'I133', tipo:'Cassonetto',      canale:'OOH', indirizzo:'Via della Libertà, 180',         zona:'Via Libertà',    lat:38.13320, lng:13.34830, faces:2, formato:'300×200cm', stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
+  { id:'I134', tipo:'Palina butterfly',canale:'OOH', indirizzo:'Via Notarbartolo, 35',           zona:'Notarbartolo',   lat:38.12780, lng:13.34550, faces:2, formato:'100×140cm', stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
+  { id:'I135', tipo:'Fioriera',        canale:'OOH', indirizzo:'Piazza Ungheria, 1',             zona:'Notarbartolo',   lat:38.12640, lng:13.35700, faces:2, formato:'70×100cm',  stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
+  { id:'I136', tipo:'Telo',            canale:'OOH', indirizzo:'Via Emerico Amari, 70',          zona:'Politeama',      lat:38.11780, lng:13.35050, faces:1, formato:'600×300cm', stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
+  { id:'I137', tipo:'Stendardo',       canale:'OOH', indirizzo:'Via Maqueda, 200',               zona:'Centro Storico', lat:38.11100, lng:13.36250, faces:2, formato:'100×200cm', stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
+  { id:'I138', tipo:'Parapedonale',    canale:'OOH', indirizzo:'Via Principe di Belmonte, 40',   zona:'Politeama',      lat:38.11950, lng:13.35550, faces:2, formato:'100×70cm',  stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
+  { id:'I139', tipo:'Plancia',         canale:'OOH', indirizzo:'Via Ammiraglio Rizzo, 30',       zona:'Notarbartolo',   lat:38.13540, lng:13.35420, faces:2, formato:'300×70cm',  stato:'Disponibile', illuminato:true,  stato_amm:'Attivo' },
+  // ── Pensiline illuminate — Politeama ──────────────────────────────
+  { id:'I140', tipo:'Pensilina', canale:'OOH', indirizzo:'Via Ruggero Settimo, 40',       zona:'Politeama', lat:38.12380, lng:13.35650, faces:2, formato:'120×180cm', stato:'Disponibile', illuminato:true, stato_amm:'Attivo' },
+  { id:'I145', tipo:'Pensilina', canale:'OOH', indirizzo:'Via Dante, 22',                 zona:'Politeama', lat:38.11820, lng:13.35400, faces:2, formato:'120×180cm', stato:'Disponibile', illuminato:true, stato_amm:'Attivo' },
+  { id:'I142', tipo:'Pensilina', canale:'OOH', indirizzo:'Piazza Castelnuovo, 5',         zona:'Politeama', lat:38.12460, lng:13.35150, faces:2, formato:'120×180cm', stato:'In Opzione',  illuminato:true, stato_amm:'Attivo' },
+  { id:'I143', tipo:'Pensilina', canale:'OOH', indirizzo:'Via XX Settembre, 30',          zona:'Politeama', lat:38.11930, lng:13.34920, faces:2, formato:'120×180cm', stato:'Disponibile', illuminato:true, stato_amm:'Inizializzato' },
+  { id:'I146', tipo:'Pensilina', canale:'OOH', indirizzo:'Via Isidoro La Lumia, 18',      zona:'Politeama', lat:38.12250, lng:13.35750, faces:2, formato:'120×180cm', stato:'Riservato',   illuminato:true, stato_amm:'Attivo' },
 ];
 
 // ── Popolamento sintetico per demo mappa/cluster ─────────────
@@ -1080,25 +1097,36 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
     const imp = cardImpRef.current;
     const map = mapRef.current;
     if (!imp || !map) { setCardPx(null); return; }
-    const proj = map.getProjection();
-    const bounds = map.getBounds();
-    if (!proj || !bounds) { setCardPx(null); return; }
-    const scale = Math.pow(2, map.getZoom());
-    const nw = proj.fromLatLngToPoint(new google.maps.LatLng(bounds.getNorthEast().lat(), bounds.getSouthWest().lng()));
     const entry = markersRef.current[imp.id];
     const lat = entry ? entry.imp.lat : imp.lat;
     const lng = entry ? entry.imp.lng : imp.lng;
-    const pt = proj.fromLatLngToPoint(new google.maps.LatLng(lat, lng));
-    // Ancora il popover sopra il marker focalizzato (icona ×1.4) + 8px di gap
+    const pt = map.latLngToContainerPoint(L.latLng(lat, lng));
     const [, baseH] = GravityMap.getMarkerSize(map.getZoom());
     const markerH = Math.round(baseH * 1.4);
-    setCardPx({
-      x: Math.floor((pt.x - nw.x) * scale),
-      markerY: Math.floor((pt.y - nw.y) * scale),
-      markerH: markerH,
-      zoom: map.getZoom(),
-    });
+    setCardPx({ x: Math.floor(pt.x), markerY: Math.floor(pt.y), markerH, zoom: map.getZoom() });
   }, []);
+
+  const makeLeafletIcon = (src, zoom, flags) => {
+    const f = flags || {};
+    const sizes = [[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[12,18],[16,24],[20,30],[26,38],[32,47]];
+    let [w, h] = sizes[Math.min(Math.max(Math.round(zoom || 10), 0), 16)];
+    if (f.isFocused)      { w = Math.round(w * 1.4);  h = Math.round(h * 1.4); }
+    else if (f.isHovered) { w = Math.round(w * 1.12); h = Math.round(h * 1.12); }
+    const dimOpacity = (f.hasFocus && !f.isFocused && !f.isSelected) ? 0.2 : 1;
+    const svgContent = GravityMap.getCachedSvg ? GravityMap.getCachedSvg(src) : null;
+    let iconUrl = src;
+    if (svgContent) {
+      const vbMatch = /viewBox="([^"]*)"/i.exec(svgContent);
+      const viewBox = vbMatch ? vbMatch[1] : '0 0 78 120';
+      const inner = svgContent.replace(/<\?xml[^>]*\?>\s*/i,'').replace(/<svg[^>]*>/i,'').replace(/<\/svg>\s*$/i,'');
+      const focusDefs = f.isFocused ? '<defs><filter id="fs" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#3E00FB" flood-opacity="0.5"/></filter></defs>' : '';
+      const focusFilter = f.isFocused ? 'filter="url(#fs)"' : '';
+      const selRing = f.isSelected ? '<circle cx="58" cy="85" r="13" fill="#ffffff"/><circle cx="58" cy="85" r="11.5" fill="#3E00FB"/><path d="M52.8 85.2 L56.6 89 L63.4 80.6" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' : '';
+      const wrapped = '<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'" viewBox="'+viewBox+'" opacity="'+dimOpacity+'">'+focusDefs+'<g '+focusFilter+'>'+inner+'</g>'+selRing+'</svg>';
+      iconUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(wrapped);
+    }
+    return L.icon({ iconUrl, iconSize: [w, h], iconAnchor: [Math.round(w/2), Math.round(h*0.92)] });
+  };
 
   // ── Helper icona marker (stati di interazione, modulo condiviso) ──────────
   // Inventory non ha selezione visiva (decisione Fase 0): isSelected sempre false.
@@ -1111,11 +1139,11 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
     isSelected: false,
     hasFocus:   false,
   });
-  const iconFor = (imp) => GravityMap.makeMarkerIcon({
-    src:   markerSrcFor(imp),
-    zoom:  mapRef.current ? mapRef.current.getZoom() : 13,
-    flags: flagsFor(imp.id),
-  });
+  const iconFor = (imp) => makeLeafletIcon(
+    markerSrcFor(imp),
+    mapRef.current ? mapRef.current.getZoom() : 13,
+    flagsFor(imp.id),
+  );
   const zIndexFor = (id) => {
     const f = flagsFor(id);
     return f.isFocused ? 2000 : f.isHovered ? 500 : 1;
@@ -1125,14 +1153,14 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   refreshAllIconsRef.current = () => {
     Object.values(markersRef.current).forEach(({ marker, imp }) => {
       marker.setIcon(iconFor(imp));
-      marker.setZIndex(zIndexFor(imp.id));
+      marker.setZIndexOffset(zIndexFor(imp.id));
     });
   };
   const refreshIcon = (id) => {
     const entry = markersRef.current[id];
     if (!entry) return;
     entry.marker.setIcon(iconFor(entry.imp));
-    entry.marker.setZIndex(zIndexFor(id));
+    entry.marker.setZIndexOffset(zIndexFor(id));
   };
 
   // ── Dim: opacità ridotta sugli altri quando c'è un focus / card aperta ────
@@ -1140,7 +1168,6 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   applyDimRef.current = () => {
     const hasFocus = !!highlightedIdRef.current || !!cardImpRef.current;
     Object.values(markersRef.current).forEach(({ marker, imp }) => {
-      if (!marker.getMap()) return;
       const isFocused = imp.id === highlightedIdRef.current;
       marker.setOpacity(hasFocus && !isFocused ? 0.3 : 1);
     });
@@ -1151,45 +1178,69 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   applyClusteringRef.current = () => {
     const map = mapRef.current;
     if (!map) return;
-    clusterMarkersRef.current.forEach(m => m.setMap(null));
+
+    clusterMarkersRef.current.forEach(m => m.remove());
     clusterMarkersRef.current = [];
 
+    const GRID = 60;
+    const zoom = Math.round(map.getZoom() || 10);
     const byId = markersRef.current;
-    // Marker fuori dal filtro: nascosti e fuori dal clustering
+
+    // Nasconde i marker fuori filtro
     const active = [];
     Object.values(byId).forEach(({ marker, imp }) => {
       const inFilter = !filteredIdsRef.current || filteredIdsRef.current.has(imp.id);
       if (inFilter) active.push({ marker, imp });
-      else marker.setMap(null);
+      else marker.remove();
     });
 
-    const items = active.map(({ marker, imp }) => ({
-      id: imp.id,
-      position: { lat: marker.getPosition().lat(), lng: marker.getPosition().lng() },
-    }));
-    const res = GravityMap.computeGridClusters(map, items);
-
-    // Ridimensiona le icone dei marker VISIBILI allo zoom corrente (getMarkerSize)
-    if (res.mode === 'individual') {
-      active.forEach(({ marker, imp }) => { marker.setIcon(iconFor(imp)); marker.setMap(map); });
-    } else {
-      res.members.forEach(it => { const e = byId[it.id]; e.marker.setIcon(iconFor(e.imp)); e.marker.setMap(map); });
-      res.clusters.forEach(cl => {
-        cl.members.forEach(it => byId[it.id].marker.setMap(null));
-        const draw = (hovered) => {
-          const { url, size } = GravityMap.makeClusterSvg(cl.members.length, { hovered });
-          return { url, scaledSize: new google.maps.Size(size, size), anchor: new google.maps.Point(size / 2, size / 2) };
-        };
-        const cm = new google.maps.Marker({
-          position: cl.center, icon: draw(false), map,
-          zIndex: 10000 + cl.members.length,
-        });
-        cm.addListener('click',     () => GravityMap.fitBoundsToMembers(map, cl.members));
-        cm.addListener('mouseover', () => cm.setIcon(draw(true)));
-        cm.addListener('mouseout',  () => cm.setIcon(draw(false)));
-        clusterMarkersRef.current.push(cm);
-      });
+    // A zoom ≥ 15 sempre marker individuali
+    if (zoom >= 15) {
+      active.forEach(({ marker }) => { if (!map.hasLayer(marker)) marker.addTo(map); });
+      applyDimRef.current();
+      return;
     }
+
+    // Griglia
+    const cells = new Map();
+    active.forEach(({ marker, imp }) => {
+      const pt = map.project(L.latLng(imp.lat, imp.lng), zoom);
+      const key = Math.floor(pt.x / GRID) + '|' + Math.floor(pt.y / GRID);
+      if (!cells.has(key)) cells.set(key, []);
+      cells.get(key).push({ marker, imp, pt });
+    });
+
+    const singles = [];
+    const clusters = [];
+    cells.forEach(group => {
+      if (group.length <= 1) { singles.push(...group); return; }
+      const cx = group.reduce((s, g) => s + g.pt.x, 0) / group.length;
+      const cy = group.reduce((s, g) => s + g.pt.y, 0) / group.length;
+      const center = map.unproject(L.point(cx, cy), zoom);
+      clusters.push({ members: group, center: { lat: center.lat, lng: center.lng } });
+    });
+
+    singles.forEach(({ marker }) => { if (!map.hasLayer(marker)) marker.addTo(map); });
+
+    clusters.forEach(cl => {
+      cl.members.forEach(({ marker }) => marker.remove());
+      const toLeafletIcon = (hovered) => {
+        const { url, size } = GravityMap.makeClusterSvg(cl.members.length, { hovered });
+        return L.icon({ iconUrl: url, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
+      };
+      const cm = L.marker([cl.center.lat, cl.center.lng], {
+        icon: toLeafletIcon(false),
+        zIndexOffset: 1000 + cl.members.length,
+      }).addTo(map);
+      cm.on('click', () => {
+        const pts = cl.members.map(({ imp }) => [imp.lat, imp.lng]);
+        map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
+      });
+      cm.on('mouseover', () => cm.setIcon(toLeafletIcon(true)));
+      cm.on('mouseout',  () => cm.setIcon(toLeafletIcon(false)));
+      clusterMarkersRef.current.push(cm);
+    });
+
     applyDimRef.current();
   };
 
@@ -1206,44 +1257,40 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
 
-    const map = new google.maps.Map(containerRef.current, {
-      center: { lat: 38.1155, lng: 13.3615 },
+    const map = L.map(containerRef.current, {
+      center: [38.1155, 13.3615],
       zoom: 13,
-      styles: MAP_STYLES,
-      disableDefaultUI: true,
       zoomControl: true,
-      zoomControlOptions: { position: google.maps.ControlPosition.LEFT_TOP },
-      gestureHandling: 'greedy',
+      attributionControl: false,
     });
-    // Imposta subito il ref: iconFor() legge lo zoom reale già alla creazione
-    // (evita il fallback a zoom 13 e marker sottodimensionati al primo paint).
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 16,
+      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+    }).addTo(map);
+
     mapRef.current = map;
 
     impianti.forEach(imp => {
-      const marker = new google.maps.Marker({
-        position: { lat: imp.lat, lng: imp.lng },
-        icon: iconFor(imp),
-      });
+      const marker = L.marker([imp.lat, imp.lng], { icon: iconFor(imp) });
 
-      // Hover: solo marker ingrandito (nessun popover). Il popover è al click.
-      marker.addListener('mouseover', () => {
+      marker.on('mouseover', () => {
         hoveredMarkerIdRef.current = imp.id;
         refreshIcon(imp.id);
       });
-      marker.addListener('mouseout', () => {
+      marker.on('mouseout', () => {
         hoveredMarkerIdRef.current = null;
         refreshIcon(imp.id);
       });
-      marker.addListener('click', () => { if (onMarkerClick) onMarkerClick(imp); else onSelect(imp.id); });
+      marker.on('click', () => { if (onMarkerClick) onMarkerClick(imp); else onSelect(imp.id); });
 
       markersRef.current[imp.id] = { marker, imp };
     });
 
-    // Clustering a griglia (motore condiviso): riapplica a ogni zoom e all'idle
-    // iniziale (la proiezione è disponibile solo dopo il primo idle).
-    map.addListener('zoom_changed', () => { if (applyClusteringRef.current) applyClusteringRef.current(); });
-    google.maps.event.addListenerOnce(map, 'idle', () => { if (applyClusteringRef.current) applyClusteringRef.current(); });
-    google.maps.event.addListener(map, 'bounds_changed', recalcCardPx);
+    map.on('zoomend', () => { if (applyClusteringRef.current) applyClusteringRef.current(); });
+    map.on('move', recalcCardPx);
+
+    if (applyClusteringRef.current) applyClusteringRef.current();
 
     return () => { mapRef.current = null; };
   }, []);
@@ -1255,11 +1302,11 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
     impianti.forEach(imp => {
       const entry = markersRef.current[imp.id];
       if (!entry) return;
-      const curr = entry.marker.getPosition();
+      const curr = entry.marker.getLatLng();
       if (!curr ||
-          Math.abs(curr.lat() - imp.lat) > 0.000005 ||
-          Math.abs(curr.lng() - imp.lng) > 0.000005) {
-        entry.marker.setPosition({ lat: imp.lat, lng: imp.lng });
+          Math.abs(curr.lat - imp.lat) > 0.000005 ||
+          Math.abs(curr.lng - imp.lng) > 0.000005) {
+        entry.marker.setLatLng([imp.lat, imp.lng]);
         entry.imp = { ...entry.imp, lat: imp.lat, lng: imp.lng };
         changed = true;
       }
@@ -1285,17 +1332,13 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
       const map = mapRef.current;
       const targetZoom = map.getZoom() < 15 ? 16 : map.getZoom();
       if (targetZoom !== map.getZoom()) map.setZoom(targetZoom);
-      // Porta il marker nella fascia alta (~24% dall'alto): centro calcolato
-      // in world coordinates, quindi deterministico (nessun listener 'idle').
       const h = containerRef.current ? containerRef.current.clientHeight : 0;
-      const proj = map.getProjection();
-      if (h && proj) {
-        const worldScale = Math.pow(2, targetZoom);
-        const pt = proj.fromLatLngToPoint(new google.maps.LatLng(imp.lat, imp.lng));
-        const shiftPx = h * 0.26;
-        map.panTo(proj.fromPointToLatLng(new google.maps.Point(pt.x, pt.y + shiftPx / worldScale)));
+      if (h) {
+        const pt = map.project(L.latLng(imp.lat, imp.lng), targetZoom);
+        const shiftedLatLng = map.unproject(L.point(pt.x, pt.y + h * 0.26), targetZoom);
+        map.panTo(shiftedLatLng);
       } else {
-        map.panTo({ lat: imp.lat, lng: imp.lng });
+        map.panTo([imp.lat, imp.lng]);
       }
     }
   }, [highlightedId, selectedIds, filteredIds, cardImp]);
@@ -1317,22 +1360,22 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   }, [cardImp, cardReady, cardPx, cardH]);
 
   // ── Popover: appare alla fine dell'animazione di zoom sul marker ─────────
-  // Il click avvia pan+zoom (effect highlight); attendiamo l'idle della mappa
+  // Il click avvia pan+zoom (effect highlight); attendiamo il moveend della mappa
   // prima di mostrare il popover, con fallback se non c'è movimento.
   useEffect(() => {
     if (!cardImp || !mapRef.current) { setCardReady(false); return; }
     const map = mapRef.current;
     setCardReady(false);
     const show = () => { recalcCardPx(); setCardReady(true); };
-    const l = google.maps.event.addListenerOnce(map, 'idle', show);
+    map.once('moveend', show);
     const t = setTimeout(show, 600);
-    return () => { google.maps.event.removeListener(l); clearTimeout(t); };
+    return () => { map.off('moveend', show); clearTimeout(t); };
   }, [cardImp, recalcCardPx]);
 
   // ── Fly to zona cercata ───────────────────────────────
   useEffect(() => {
     if (!flyToTarget || !mapRef.current) return;
-    mapRef.current.panTo({ lat: flyToTarget.lat, lng: flyToTarget.lng });
+    mapRef.current.panTo([flyToTarget.lat, flyToTarget.lng]);
     mapRef.current.setZoom(flyToTarget.zoom || 14);
   }, [flyToTarget]);
 
@@ -1340,70 +1383,97 @@ function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect
   return React.createElement('div', { id: 'ooh-map', style: { position: 'relative' } },
     React.createElement('div', { ref: containerRef, style: { width: '100%', height: '100%' } }),
     cardImp && cardReady && (() => {
-      const lit   = !!cardImp.illuminato;
-      const retro = lit && parseInt(cardImp.id.slice(1), 10) % 3 === 0;
-      const n     = cardImp.faces;
-      const one   = n === 1;
-      const bulbCfg = !lit
-        ? null
-        : retro
-          ? { Icon: BulbFilled,   label: `${1 + (parseInt(cardImp.id.slice(1), 10) % 3)} faretti · Retroilluminazione` }
-          : { Icon: BulbOutlined, label: `${1 + (parseInt(cardImp.id.slice(1), 10) % 3)} faretti · Illuminazione frontale` };
       const containerH = containerRef.current ? containerRef.current.clientHeight : 0;
-      const CARD_EST_H = cardH || 300; // altezza misurata (fallback stima card slim)
+      const CARD_EST_H = cardH || 180;
       const spaceAbove = cardPx ? cardPx.markerY : 0;
-      // Apertura verso il basso di default (il marker viene portato in alto);
-      // si ribalta sopra solo se sotto non c'è spazio e sopra sì.
       const spaceBelow = containerH - spaceAbove - (cardPx ? cardPx.markerH : 0) - 8;
       const flip = cardPx ? (spaceBelow >= CARD_EST_H || spaceBelow >= spaceAbove) : true;
-      const maxH = containerH ? containerH - 16 : undefined;
-      const renderedH = maxH ? Math.min(CARD_EST_H, maxH) : CARD_EST_H;
+      const renderedH = Math.min(CARD_EST_H, containerH ? containerH - 16 : CARD_EST_H);
       const rawTop = cardPx ? (flip ? cardPx.markerY + 4 : cardPx.markerY - cardPx.markerH - 4) : 0;
-      // Clamp: il bordo inferiore (o superiore, se ribaltata) resta dentro la mappa
       const top = containerH
         ? (flip
             ? Math.max(8, Math.min(rawTop, containerH - renderedH - 8))
             : Math.max(renderedH + 8, Math.min(rawTop, containerH - 8)))
         : rawTop;
+      const CHANNEL_TAG_STYLE = {
+        DOOH: { margin: 0, fontSize: 12, color: '#C41D7F', background: '#FFF0F6', border: '1px solid #FFADD2' },
+        OOH:  { margin: 0, fontSize: 12, color: '#389E0D', background: '#F6FFED', border: '1px solid #B7EB8F' },
+      };
+      const rowEl = (IconComp, label, value) =>
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, lineHeight: '20px' } },
+          React.createElement(IconComp, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
+          React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label + ':'),
+          React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.65)' } }, value),
+        );
+      const statoAmmCfg = STATO_AMM_CONFIG[cardImp.stato_amm] || STATO_AMM_CONFIG['Attivo'];
+      const fotoIdx = parseInt(cardImp.id.slice(1), 10) % FOTO_IMPIANTO.length;
       return React.createElement('div', {
         ref: cardRef,
         style: {
           position: 'absolute', left: cardPx ? cardPx.x : 0,
           top: top,
           transform: `translate(-50%,${flip ? '0' : '-100%'})`,
-          transformOrigin: flip ? 'top center' : 'bottom center', zIndex: 500,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.14)', borderRadius: 8, width: 260,
-          maxHeight: maxH, overflowY: 'auto',
+          transformOrigin: flip ? 'top center' : 'bottom center',
+          zIndex: 500, width: 380, borderRadius: 8,
+          border: '1px solid #f0f0f0', background: '#fff',
+          boxShadow: '0 8px 32px rgba(62,0,251,0.18), 0 2px 8px rgba(0,0,0,0.10)',
+          fontFamily: "-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif",
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
         },
         onClick: (e) => e.stopPropagation(),
       },
-        React.createElement(EntityCard, {
-          header: {
-            title: cardImp.nome || cardImp.code || '—',
-            tags: [cardImp.code && cardImp.nome ? { text: cardImp.code } : null],
-            menuNode: React.createElement(Button, {
-              type: 'text', size: 'small', icon: React.createElement(CloseOutlined, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }),
-              onClick: onCardClose, style: { flexShrink: 0, marginTop: -2 },
-            }),
+        // Header: titolo + codice + chiudi
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 10px 8px 12px', borderBottom: '1px solid #f0f0f0' } },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 } },
+            React.createElement('span', { style: { fontSize: 16, fontWeight: 600, color: 'rgba(0,0,0,0.88)', lineHeight: '24px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, cardImp.nome || cardImp.code || '—'),
+            cardImp.nome && cardImp.code && React.createElement('span', { style: { fontSize: 11, padding: '0 6px', borderRadius: 4, lineHeight: '18px', border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.45)', background: '#fafafa', flexShrink: 0 } }, cardImp.code),
+          ),
+          React.createElement(Button, {
+            type: 'text', size: 'small',
+            icon: React.createElement(CloseOutlined, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }),
+            onClick: onCardClose, style: { flexShrink: 0 },
+          }),
+        ),
+        // Body: immagine + info affiancati
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'row', alignItems: 'stretch' } },
+          React.createElement('div', { style: { width: 160, flexShrink: 0, overflow: 'hidden' } },
+            React.createElement('img', { src: FOTO_IMPIANTO[fotoIdx], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
+          ),
+          React.createElement('div', { style: { flex: 1, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '1px solid #f0f0f0', minWidth: 0 } },
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
+              React.createElement(Tag, { style: CHANNEL_TAG_STYLE[cardImp.canale] || CHANNEL_TAG_STYLE.OOH }, cardImp.canale || 'OOH'),
+              React.createElement(Tag, {
+                icon: React.createElement('img', { src: GravityMap.systypeIconSrc(cardImp.tipo, cardImp.canale), style: { width: 12, height: 12, verticalAlign: 'middle', marginRight: 4 } }),
+                style: { margin: 0, fontSize: 12, color: 'rgba(0,0,0,0.65)', background: '#fff', border: '1px solid #d9d9d9' },
+              }, cardImp.tipo),
+            ),
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 1 } },
+              React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.65)', lineHeight: '20px' } }, cardImp.indirizzo),
+              React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, cardImp.zona),
+            ),
+            React.createElement('div', { style: { height: 1, background: '#f0f0f0', flexShrink: 0 } }),
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 7 } },
+              rowEl(ExpandOutlined, 'Formato', cardImp.formato || '—'),
+              rowEl(ThunderboltOutlined, 'Stato', entityStateDot(cardImp.stato_amm || 'Attivo', statoAmmCfg.dot)),
+            ),
+          ),
+        ),
+        // Footer: Vai al dettaglio
+        React.createElement('div', { style: { borderTop: '1px solid #f0f0f0', padding: '8px 12px', display: 'flex', justifyContent: 'flex-end' } },
+          React.createElement('button', {
+            style: {
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+              background: '#fff', color: 'rgba(0,0,0,0.88)', border: '1px solid #d9d9d9',
+              fontSize: 14, fontWeight: 400, fontFamily: 'inherit', lineHeight: '22px',
+              transition: 'opacity .1s',
+            },
+            onClick: e => { e.stopPropagation(); if (onDetail) onDetail(cardImp); },
           },
-          image: { height: 96, node: React.createElement('img', { src: FOTO_IMPIANTO[parseInt(cardImp.id.slice(1), 10) % FOTO_IMPIANTO.length], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }) },
-          body: {
-            tags: [
-              cardImp.canale && { text: cardImp.canale, style: cardImp.canale === 'DOOH'
-                ? { color: '#C41D7F', background: '#FFF0F6', border: '1px solid #FFADD2' }
-                : { color: '#389E0D', background: '#F6FFED', border: '1px solid #B7EB8F' } },
-              cardImp.tipo && { text: cardImp.tipo, icon: React.createElement('img', { src: GravityMap.systypeIconSrc(cardImp.tipo, cardImp.canale), style: { width: 12, height: 12 } }), style: { color: 'rgba(0,0,0,0.65)', background: '#fff', border: '1px solid #d9d9d9' } },
-            ],
-            text: React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } },
-              React.createElement('div', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, cardImp.indirizzo),
-              React.createElement('div', { style: { fontSize: 12, fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, cardImp.zona),
-              React.createElement('div', { style: { borderTop: '1px solid #F5F5F5', marginTop: 8 } })),
-            rows: [
-            { icon: ExpandOutlined, label: 'Formato', value: cardImp.formato },
-            { icon: ThunderboltOutlined, label: 'Stato', right: entityStateDot(cardImp.stato_amm || 'Attivo', (STATO_AMM_CONFIG[cardImp.stato_amm] || STATO_AMM_CONFIG['Attivo']).dot) },
-          ] },
-          footer: { text: '', actions: [{ label: 'Vai al dettaglio', icon: EyeOutlined, onClick: () => onDetail && onDetail(cardImp) }] },
-        })
+            React.createElement(EyeOutlined, { style: { fontSize: 12 } }),
+            'Vai al dettaglio',
+          ),
+        ),
       );
     })()
   );
@@ -1679,33 +1749,85 @@ const STATO_ADMIN = [
   { label: 'Rimosso',         color: 'rgba(0,0,0,0.45)' },
 ];
 const PREZZI = [1200, 1800, 2400, 3200, 4800, 5600, 6500, 7800, 8200, 9600];
-// Fonte unica per i campi mock non presenti nel dataset: stessa funzione usata da lista E dettaglio.
-const mockDerived = (imp) => {
+
+// Genera dati commerciali deterministici per ogni impianto esistente.
+// Usa idNum come seed implicito per garantire coerenza con lista e dettaglio.
+function getCommData(imp) {
   const n = idNum(imp);
+  const CIRC_SETS = [
+    ['Premium City', 'Centro Storico'],
+    ['Arredo Urbano', 'Quartiere'],
+    ['Transit', 'Trasporti'],
+    ['Beach & Leisure'],
+    ['Premium City', 'Arredo Urbano'],
+    ['Quartiere', 'Centro Storico'],
+    ['Transit'],
+    ['Premium City'],
+  ];
+  const DIRS      = ['Nord', 'Sud', 'Est', 'Ovest', 'Centro'];
+  const CLIENTI   = ['Vodafone Italia', 'IKEA Palermo', 'Conad', 'Mediaworld', 'Coca-Cola', 'Fastweb', 'WindTre', 'Esselunga', 'Lidl Italia', "McDonald's", 'Trenitalia', 'Eni'];
+  const CAMPAGNE  = ['Brand Awareness', 'Spring Promo', 'Black Friday', 'Back to School', 'Natale 2025', 'Summer Campaign', 'Lancio Prodotto', 'Rebranding'];
+  const PERIODI   = ['Gen–Mar 2026', 'Nov–Dic 2025', 'Set–Ott 2025', 'Lug–Ago 2025', 'Apr–Giu 2025', 'Gen–Mar 2025'];
+
+  const prezzoLordo = PREZZI[n % PREZZI.length];
+  const aliq        = n % 2 === 0 ? 22 : 10;
+  const prezzoNetto = Math.round(prezzoLordo / (1 + aliq / 100));
+
+  const vendita      = n % 3 === 0 ? 'Long term' : 'Standard';
+  const scontoModuli = n % 4 === 0;
+  const scontoPct    = scontoModuli ? [5, 10, 15][n % 3] : null;
+  const qualita      = 3 + (n % 3);
+  const alias        = (imp.tipo || 'Impianto') + ' ' + ((imp.zona || 'Palermo').split(/[/,]/)[0].trim()) + ' — ' + DIRS[n % 5];
+  const circuiti     = CIRC_SETS[n % CIRC_SETS.length];
+
+  const fillRate      = (50 + (n % 40)) + '%';
+  const fillCount     = 8 + (n % 15);
+  const ricavoVal     = prezzoLordo * (2 + (n % 4));
+  const ricavoStorico = '€ ' + ricavoVal.toLocaleString('it-IT');
+
+  const nSales     = 1 + (n % 3);
+  const salesHistory = [];
+  for (let i = 0; i < nSales; i++) {
+    const importo = prezzoLordo * (1 + i);
+    salesHistory.push({
+      key:      String(i + 1),
+      periodo:  PERIODI[(n + i * 3) % PERIODI.length],
+      cliente:  CLIENTI[(n + i * 5) % CLIENTI.length],
+      campagna: CAMPAGNE[(n + i * 4) % CAMPAGNE.length],
+      importo:  '€ ' + importo.toLocaleString('it-IT'),
+      stato:    'Conclusa',
+    });
+  }
+
   return {
-    vendita:     n % 3 === 0 ? 'Long term' : 'Standard',
-    prezzo:      PREZZI[n % PREZZI.length],
-    utenza:      String(n * 2371 % 900000 + 100000),
-    cimasa:      'CIM-' + String(n * 1483 % 9000 + 1000).padStart(5, '0'),
-    faretti:     (n % 4) + 2,
-    dispositivi: (n % 4) + 1,
+    alias, circuiti, qualita, vendita,
+    prezzoNetto:   prezzoNetto.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    prezzoLordo:   prezzoLordo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    prezzoLordoRaw: prezzoLordo,
+    scontoModuli, scontoPct,
+    fillRate, fillCount, ricavoStorico, salesHistory,
   };
-};
+}
+
 const FIXED_LEFT  = new Set(['canale', 'tipologia', 'formato']);
 const FIXED_RIGHT = new Set(['prezzo_totale', 'stato']);
-
-const IMP_STORE_KEY = 'gravity_impianti_v2';
-const loadStoredImpianti = () => {
-  try { const s = localStorage.getItem(IMP_STORE_KEY); if (s) return JSON.parse(s); } catch(e) {}
-  return null;
-};
 
 const ALL_COLUMNS = {
     canale: {
       title: 'Canale', dataIndex: 'canale', width: 90,
-      render: (_, r) => r.canale === 'DOOH'
-        ? React.createElement(Tag, { color: 'magenta', style: { marginInlineEnd: 0 } }, 'DOOH')
-        : React.createElement(Tag, { color: 'green',   style: { marginInlineEnd: 0 } }, 'OOH'),
+      render: (_, r) => {
+        const val = r.canale || (r._formData ? r._formData.canale : null);
+        if (!val) return dash();
+        if (r._formData) {
+          return val === 'DOOH'
+            ? React.createElement(Tag, { color: 'magenta', style: { marginInlineEnd: 0 } }, 'DOOH')
+            : React.createElement(Tag, { color: 'green',   style: { marginInlineEnd: 0 } }, 'OOH');
+        }
+        const isDooh = idNum(r) % 2 === 0;
+        return isDooh
+          ? React.createElement(Tag, { color: 'magenta', style: { marginInlineEnd: 0 } }, 'DOOH')
+          : React.createElement(Tag, { color: 'green',   style: { marginInlineEnd: 0 } }, 'OOH');
+      },
     },
     tipologia: {
       title: 'Tipologia', dataIndex: 'tipo', width: 170,
@@ -1739,7 +1861,7 @@ const ALL_COLUMNS = {
           );
         }
         if (!v) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)', fontSize: 13 } }, 'Spento');
-        const faretti = mockDerived(r).faretti;
+        const faretti = (idNum(r) % 4) + 2;
         return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, color: 'rgba(0,0,0,0.65)' } },
           React.createElement(BulbOutlined, { style: { color: '#FAAD14', fontSize: 13 } }),
           `${faretti} faretti`,
@@ -1747,21 +1869,27 @@ const ALL_COLUMNS = {
       },
     },
     fornitore: {
-      title: 'Fornitore', dataIndex: 'media_owner', width: 160,
+      title: 'Fornitore', dataIndex: 'fornitore', width: 160,
       render: (_, r) => {
-        if (r._formData) return r.media_owner ? React.createElement(Button, { type: 'link', style: { padding: 0, height: 'auto', fontSize: 13 } }, r.media_owner) : dash();
-        return r.media_owner === 'Proprietario'
-          ? React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Proprietario')
-          : React.createElement(Button, { type: 'link', style: { padding: 0, height: 'auto', fontSize: 13 } }, r.media_owner);
+        if (r._formData) return dash();
+        const n = idNum(r) % 4;
+        if (n === 0) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Proprietario');
+        return React.createElement(Button, { type: 'link', style: { padding: 0, height: 'auto', fontSize: 13 } }, FORNITORI_LIST[(n - 1) % 3]);
       },
     },
     vendita: {
       title: 'Modello di vendita', dataIndex: 'vendita', width: 130,
       render: (_, r) => {
-        const v = r._formData ? r._formData.vendita : mockDerived(r).vendita;
-        if (!v) return dash();
-        return v === 'Long term'
-          ? React.createElement(Tag, { color: 'purple', style: { marginInlineEnd: 0 } }, 'Long term')
+        if (r._formData) {
+          const v = r._formData.vendita;
+          if (!v) return dash();
+          return v === 'Long term'
+            ? React.createElement(Tag, { color: 'purple', style: { marginInlineEnd: 0 } }, 'Longterm')
+            : React.createElement(Tag, { color: 'blue',   style: { marginInlineEnd: 0 } }, 'Standard');
+        }
+        const isLongterm = idNum(r) % 3 === 0;
+        return isLongterm
+          ? React.createElement(Tag, { color: 'purple', style: { marginInlineEnd: 0 } }, 'Longterm')
           : React.createElement(Tag, { color: 'blue',   style: { marginInlineEnd: 0 } }, 'Standard');
       },
     },
@@ -1773,13 +1901,22 @@ const ALL_COLUMNS = {
           if (!v) return dash();
           return React.createElement('span', { style: { fontWeight: 500 } }, `€ ${String(v)}`);
         }
-        const p = mockDerived(r).prezzo;
+        const p = PREZZI[idNum(r) % PREZZI.length];
         return React.createElement('span', { style: { fontWeight: 500 } }, `€\u202F${p.toLocaleString('it-IT')}`);
       },
     },
     stato: {
-      title: 'Stato', dataIndex: 'stato_amm', width: 160,
-      render: (_, r) => React.createElement(Badge, { color: STATO_COLORS[r.stato_amm] || '#d9d9d9', text: r.stato_amm || 'Attivo' }),
+      title: 'Stato', dataIndex: 'stato', width: 160,
+      render: (_, r) => {
+        if (r._formData) {
+          const label = r.stato_amm || r._formData.stato;
+          if (!label) return dash();
+          const s = STATO_ADMIN.find(x => x.label === label) || { color: '#D9D9D9' };
+          return React.createElement(Badge, { color: s.color, text: label });
+        }
+        const s = STATO_ADMIN[idNum(r) % 4];
+        return React.createElement(Badge, { color: s.color, text: s.label });
+      },
     },
     dispositivi:    { title: 'Dispositivi', dataIndex: 'dispositivi', width: 100,
       render: (_, r) => {
@@ -1787,7 +1924,7 @@ const ALL_COLUMNS = {
           const n = Array.isArray(r._formData.assets) ? r._formData.assets.length : 0;
           return n > 0 ? React.createElement('span', { style: { fontWeight: 600 } }, n) : dash();
         }
-        return React.createElement('span', { style: { fontWeight: 600 } }, mockDerived(r).dispositivi);
+        return React.createElement('span', { style: { fontWeight: 600 } }, (idNum(r) % 4) + 1);
       } },
     indirizzo:      { title: 'Indirizzo',      dataIndex: 'indirizzo',      width: 200, ellipsis: true,
       render: v => React.createElement('span', { style: { fontWeight: 500 } }, v) },
@@ -1798,16 +1935,19 @@ const ALL_COLUMNS = {
     regione:        { title: 'Regione',   dataIndex: 'regione',   width: 120, render: (_, r) => r._formData ? (r._formData.regione || dash()) : 'Sicilia' },
     nazione:        { title: 'Nazione',   dataIndex: 'nazione',   width: 100, render: (_, r) => r._formData ? (r._formData.nazione || dash()) : 'Italia' },
     suolo:          { title: 'Suolo',     dataIndex: 'suolo',     width: 110,
-      render: (_, r) => React.createElement('span', { style: { color: 'rgba(0,0,0,0.65)' } }, r.suolo) },
+      render: (_, r) => {
+        if (r._formData) return r.suolo ? React.createElement('span', { style: { color: 'rgba(0,0,0,0.65)' } }, r.suolo) : dash();
+        return React.createElement('span', { style: { color: 'rgba(0,0,0,0.65)' } }, idNum(r) % 3 === 0 ? 'Privato' : 'Pubblico');
+      } },
     utenza:         { title: 'Utenza',  dataIndex: 'utenza',  width: 100,
       render: (_, r) => {
         if (r._formData) return r._formData.utenza ? React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, r._formData.utenza) : dash();
-        return React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, mockDerived(r).utenza);
+        return React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, String(idNum(r) * 2371 % 900000 + 100000));
       } },
     cimasa:         { title: 'Cimasa', dataIndex: 'cimasa',  width: 100,
       render: (_, r) => {
         if (r._formData) return r._formData.cimasa ? React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, r._formData.cimasa) : dash();
-        return React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, mockDerived(r).cimasa);
+        return React.createElement('span', { style: { fontFamily: "'SF Mono','Fira Code',monospace", fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, String(idNum(r) * 1483 % 9000 + 1000));
       } },
     autorizzazione: { title: 'Autorizzazione', dataIndex: 'autorizzazione', width: 200,
       render: (_, r) => {
@@ -2031,12 +2171,17 @@ const MOCK_CONCESSIONI = [
 async function fetchAddrSuggestions(q) {
   if (!q || q.length < 3) return [];
   try {
-    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=12&lang=default&lat=41.9&lon=12.4&zoom=12&bbox=6.6,35.5,18.5,47.1`;
+    // Estrai il numero civico digitato (es. "Via Roma 250" → "250")
+    const numMatch = q.match(/\b(\d+)\b/);
+    const typedCivico = numMatch ? numMatch[1] : '';
+    // Rimuovi il numero dalla query per cercare la via su Photon
+    const baseQ = typedCivico ? q.replace(typedCivico, '').replace(/,\s*$/, '').trim() : q;
+
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(baseQ)}&limit=12&lang=default&lat=38.1155&lon=13.3615&zoom=14&bbox=12.9,37.8,13.9,38.5`;
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) return [];
     const data = await res.json();
     const seen = new Set();
-    const qHasNum = /\d/.test(q);
     return (data.features || [])
       .filter(f => f.properties.street || f.properties.name)
       .flatMap(f => {
@@ -2044,7 +2189,8 @@ async function fetchAddrSuggestions(q) {
         const [lng, lat] = f.geometry.coordinates;
         if (!lat || !lng) return [];
         const via    = p.street || p.name || '';
-        const civico = p.housenumber || '';
+        // Preferisci il civico da OSM; se mancante usa quello digitato dall'utente
+        const civico = typedCivico || p.housenumber || '';
         const citta  = p.city || p.town || p.village || '';
         const label  = [via, civico].filter(Boolean).join(' ') || citta;
         if (!label || seen.has(label)) return [];
@@ -2065,10 +2211,10 @@ async function fetchAddrSuggestions(q) {
           nazione: p.country || '',
           lat,
           lng,
-          _hasNum: !!p.housenumber,
+          _hasNum: !!(p.housenumber || typedCivico),
         }];
       })
-      .sort((a, b) => qHasNum && a._hasNum !== b._hasNum ? (a._hasNum ? -1 : 1) : 0)
+      .sort((a, b) => a._hasNum !== b._hasNum ? (a._hasNum ? -1 : 1) : 0)
       .slice(0, 8);
   } catch { return []; }
 }
@@ -3060,42 +3206,45 @@ function AssetDrawer({ open, onClose, onSubmit, editInitial, category }) {
 // Drawer dedicato: aggiunta di una SQUADRA (affissione | manutenzione)
 // ─────────────────────────────────────────────────────────
 function SquadraDrawer({ open, onClose, onSubmit, kind }) {
-  const [squadra, setSquadra] = useState(null);
-  const [tipoAff, setTipoAff] = useState([]);
-  const [costo, setCosto] = useState(null);
-  const [preincoll, setPreincoll] = useState(null);
-  const [tipoInt, setTipoInt] = useState(null);
-  const [oggetto, setOggetto] = useState('');
+  const emptyRow = () => kind === 'affissione'
+    ? { squadra: null, tipo: [], costo: null, preincoll: null }
+    : { squadra: null, tipoInt: null, oggetto: '' };
+  const [row, setRowState] = useState(emptyRow());
   useEffect(() => {
     if (!open) return;
-    setSquadra(null); setTipoAff([]); setCosto(null); setPreincoll(null); setTipoInt(null); setOggetto('');
+    setRowState(emptyRow());
   }, [open, kind]);
+  const set = (key, val) => setRowState(prev => ({ ...prev, [key]: val }));
   const cs = (label, required, children) =>
     React.createElement('div', { className: 'ni-field' },
       React.createElement('div', { className: 'ni-label' }, label, required && React.createElement('span', { className: 'req' }, ' *')),
       children);
+  const g2 = (...kids) => React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px' } }, ...kids);
   const save = () => {
-    if (!squadra) { antdMsg.warning('Seleziona la squadra'); return; }
-    if (kind === 'affissione') onSubmit({ squadra, codice: (SQUADRE_AFF.find(s => s.nome === squadra) || {}).codice, tipo: tipoAff, costo: costo != null ? costo : 0, preincoll });
-    else onSubmit({ squadra, codice: (SQUADRE_AFF.find(s => s.nome === squadra) || {}).codice, tipoInt, oggetto });
+    if (!row.squadra) { antdMsg.warning('Seleziona la squadra'); return; }
+    const codice = (SQUADRE_AFF.find(s => s.nome === row.squadra) || {}).codice;
+    const record = kind === 'affissione'
+      ? { squadra: row.squadra, codice, tipo: row.tipo, costo: row.costo != null ? row.costo : 0, preincoll: row.preincoll }
+      : { squadra: row.squadra, codice, tipoInt: row.tipoInt, oggetto: row.oggetto };
+    onSubmit([record]);
   };
   return React.createElement(Drawer, {
-    title: 'Aggiungi squadra · ' + (kind === 'affissione' ? 'Affissione' : 'Manutenzione'),
+    title: 'Aggiungi squadra ' + (kind === 'affissione' ? 'affissione' : 'manutenzione'),
     placement: 'right', width: 520, styles: { body: { padding: 24 } },
     onClose: onClose, open: open, destroyOnClose: true,
-    extra: React.createElement(Space, null,
-      React.createElement(Button, { onClick: onClose }, 'Annulla'),
-      React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), onClick: save }, 'Aggiungi')),
+    extra: React.createElement(Button, { type: 'primary', onClick: save }, 'Salva'),
   },
-    cs('Squadra', true, React.createElement(Select, { value: squadra, onChange: setSquadra, options: SQUADRE_AFF_OPTS, style: { width: '100%' }, placeholder: 'Seleziona la squadra', showSearch: true, optionFilterProp: 'label' })),
+    cs('Squadra', false, React.createElement(Select, { value: row.squadra, onChange: v => set('squadra', v), options: SQUADRE_AFF_OPTS, style: { width: '100%' }, placeholder: 'Seleziona la squadra', showSearch: true, optionFilterProp: 'label' })),
     kind === 'affissione'
       ? React.createElement(React.Fragment, null,
-          cs('Tipo affissione', false, React.createElement(Select, { mode: 'multiple', allowClear: true, value: tipoAff, onChange: setTipoAff, options: TIPO_AFFISSIONE_OPTS, style: { width: '100%' }, placeholder: 'Seleziona i tipi di affissione' })),
-          cs('Costo affissione (€)', false, React.createElement(InputNumber, { value: costo, onChange: setCosto, min: 0, precision: 2, style: { width: '100%' }, placeholder: '—' })),
-          cs('Costo preincollaggio (€)', false, React.createElement(InputNumber, { value: preincoll, onChange: setPreincoll, min: 0, precision: 2, style: { width: '100%' }, placeholder: '—' })))
+          cs('Tipo affissione', false, React.createElement(Select, { mode: 'multiple', allowClear: true, value: row.tipo, onChange: v => set('tipo', v), options: TIPO_AFFISSIONE_OPTS, style: { width: '100%' }, placeholder: 'Seleziona i tipi di affissione', disabled: !row.squadra })),
+          g2(
+            cs('Costo affissione (€)', false, React.createElement(InputNumber, { value: row.costo, onChange: v => set('costo', v), min: 0, precision: 2, style: { width: '100%' }, placeholder: '—', disabled: !row.squadra })),
+            cs('Costo preincollaggio (€)', false, React.createElement(InputNumber, { value: row.preincoll, onChange: v => set('preincoll', v), min: 0, precision: 2, style: { width: '100%' }, placeholder: '—', disabled: !row.squadra })),
+          ))
       : React.createElement(React.Fragment, null,
-          cs('Tipo intervento', false, React.createElement(Select, { value: tipoInt, onChange: setTipoInt, options: TIPO_MAN_OPTS, style: { width: '100%' }, placeholder: 'Seleziona il tipo di intervento', allowClear: true })),
-          cs('Oggetto', false, React.createElement(Input, { value: oggetto, onChange: e => setOggetto(e.target.value), placeholder: 'Es. Sostituzione faretti' }))));
+          cs('Tipo intervento', false, React.createElement(Select, { value: row.tipoInt, onChange: v => set('tipoInt', v), options: TIPO_MAN_OPTS, style: { width: '100%' }, placeholder: 'Seleziona il tipo di intervento', allowClear: true, disabled: !row.squadra })),
+          cs('Oggetto', false, React.createElement(Input, { value: row.oggetto, onChange: e => set('oggetto', e.target.value), placeholder: 'Es. Sostituzione faretti', disabled: !row.squadra }))));
 }
 
 // ─────────────────────────────────────────────────────────
@@ -3136,61 +3285,78 @@ function ModuliLinkDrawer({ open, onClose, onSubmit, existingIds, currentId }) {
           })));
 }
 
-function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
+function ImpiantoDetailV2({ imp, onBack }) {
   const displayName = imp.nome || imp.code || imp.id || 'Impianto';
   const addr = (imp.indirizzo || 'Via Maqueda, 148').split(',');
-  const iv = imp._formData || {};
-  const [data, setData] = useState({
-    canale:       iv.canale       || imp.canale      || 'OOH',
-    nome:         iv.nome         || displayName,
-    tipologia:    iv.tipologia    || imp.tipo         || '',
-    formato:      iv.formato      || imp.formato      || '',
-    stato:        iv.stato        || imp.stato_amm    || 'Attivo',
-    proprieta:    iv.proprieta    || (imp.suolo === 'Privato' ? 'Privata' : 'Comune'),
-    proprietario: iv.proprietario || imp.media_owner  || 'Proprietario',
-    via:          iv.via          || (addr[0] || '').trim(),
-    civico:       iv.civico       || (addr[1] || '36').trim(),
-    cap:          iv.cap          || '90133',
-    citta:        iv.citta        || 'Palermo',
-    provincia:    iv.provincia    || 'PA',
-    regione:      iv.regione      || 'Sicilia',
-    nazione:      iv.nazione      || 'Italia',
-    zona:         iv.zona         || imp.zona         || 'Centro Storico',
-    lat:          iv.lat          || (imp.lat ? String(imp.lat) : '38.1182'),
-    lng:          iv.lng          || (imp.lng ? String(imp.lng) : '13.3608'),
-    tipoSuolo:    iv.tipoSuolo    || imp.suolo        || 'Pubblico',
-    catSuolo:     iv.catSuolo     || 'Urbano',
-    utenza:       iv.utenza       || mockDerived(imp).utenza,
-    cimasa:       iv.cimasa       || mockDerived(imp).cimasa,
-    progettista:  iv.progettista  || 'Studio Tecnico Russo & Partners',
-    progetto:     iv.progetto     || '1305',
-    ddl:          iv.ddl          || 'Ing. Paolo Greco',
-    rsc:          iv.rsc          || 'Arch. Marta Vitale',
-    laboratorio:  iv.laboratorio  || 'LabStrutture Palermo',
-    geologo:      iv.geologo      || 'Dott. Andrea Rizzo',
-    collaudatore: iv.collaudatore || 'Ing. Sergio Lombardo',
-    dataCollaudo: iv.dataCollaudo || '02/09/2022',
-    calcestruzzo: iv.calcestruzzo || 'RCK > 25 MPA',
-    acciaioCarp:  iv.acciaioCarp  || 'S355JR - IPE 200',
-    acciaioArm:   iv.acciaioArm   || 'FEB 44 K',
-    dittaCA:      iv.dittaCA      || iv.progDittaCA  || 'Edil Costruzioni S.r.l.',
-    tecniche:     iv.tecniche     || iv.tecnicheGc   || 'Saldature con elettrodi basici',
-    dataFine:     iv.dataFine     || iv.progDataFine || '15/10/2024',
-    larghezza:    iv.larghezza    || iv.largImp      || '1250',
-    altezza:      iv.altezza      || iv.altImp       || '1800',
-    profondita:   iv.profondita   || iv.profImp      || '280',
-    areaIngombro: iv.areaIngombro || '225',
-    altTerra:     iv.altTerra     || '350',
-    tipoAltezza:  iv.tipoAltezza  || 'Alto',
-    copertura:    iv.copertura    || (iv.riparato != null ? (iv.riparato ? 'Riparato' : 'Esposto') : 'Riparato'),
-    alias:        iv.alias        || iv.aliasImpianto || 'Pensilina Libertà — Centro',
-    circuiti:     iv.circuiti     || ['Premium City', 'Arredo Urbano'],
-    qualita:      iv.qualita      != null ? iv.qualita      : 4,
-    vendita:      iv.vendita      || mockDerived(imp).vendita,
-    prezzoLordo:  iv.prezzoLordo  || mockDerived(imp).prezzo.toLocaleString('it-IT') + ',00',
-    aliquotaIva:  iv.aliquotaIva  != null ? iv.aliquotaIva  : 22,
-    scontoModuli: iv.scontoModuli != null ? iv.scontoModuli : true,
-    scontoPct:    iv.scontoPct    != null ? iv.scontoPct    : 10,
+  const fd  = imp._formData || null;
+  const _cd = fd ? null : getCommData(imp);
+  const [data, setData] = useState(fd ? {
+    // Impianto appena creato: usa solo i dati inseriti dall'utente nel form
+    canale: fd.canale || imp.canale || null,
+    nome: fd.nome || displayName,
+    tipologia: fd.tipologia || imp.tipo || '',
+    formato: fd.formato || imp.formato || '',
+    stato: fd.stato || imp.stato_amm || null,
+    proprieta: fd.proprieta || null,
+    proprietario: null,
+    via: fd.via || '',
+    civico: fd.civico || '',
+    cap: fd.cap || '',
+    citta: fd.citta || '',
+    provincia: fd.provincia || '',
+    regione: fd.regione || '',
+    nazione: fd.nazione || '',
+    zona: fd.zona || imp.zona || '',
+    lat: fd.lat || (imp.lat ? String(imp.lat) : ''),
+    lng: fd.lng || (imp.lng ? String(imp.lng) : ''),
+    tipoSuolo: fd.tipoSuolo || null,
+    catSuolo: fd.catSuolo || null,
+    utenza: fd.utenza || '',
+    cimasa: fd.cimasa || '',
+    progettista: fd.progettista || '',
+    progetto: fd.progetto || '',
+    ddl: fd.ddl || '',
+    rsc: fd.rsc || '',
+    laboratorio: fd.laboratorio || '',
+    geologo: fd.geologo || '',
+    collaudatore: fd.collaudatore || '',
+    dataCollaudo: fd.dataCollaudo || '',
+    calcestruzzo: fd.calcestruzzo || '',
+    acciaioCarp: fd.acciaioCarp || '',
+    acciaioArm: fd.acciaioArm || '',
+    dittaCA: fd.progDittaCA || '',
+    tecniche: fd.tecnicheGc || '',
+    dataFine: fd.progDataFine || '',
+    larghezza: fd.largImp || '',
+    altezza: fd.altImp || '',
+    profondita: fd.profImp || '',
+    areaIngombro: fd.areaEspositiva ? String(fd.areaEspositiva) : '',
+    altTerra: fd.altTerra || '',
+    tipoAltezza: fd.tipoAltezza || null,
+    copertura: fd.riparato || null,
+    alias: fd.aliasImpianto || '',
+    circuiti: Array.isArray(fd.circuiti) ? fd.circuiti : [],
+    qualita: fd.qualita || 0,
+    vendita: fd.vendita || null,
+    prezzoLordo: fd.prezzoLordo || '',
+    aliquotaIva: fd.aliquotaIva ?? 22,
+    scontoModuli: fd.scontoModuli || false,
+    scontoPct: fd.scontoModuliPct || null,
+  } : {
+    // Impianto esistente (mock): dati di esempio precostituiti
+    canale: imp.canale || 'OOH', nome: displayName, tipologia: imp.tipo || '', formato: imp.formato || '',
+    stato: imp.stato_amm || 'Attivo', proprieta: 'Comune', proprietario: 'AMAT S.p.A.',
+    via: (addr[0] || '').trim(), civico: (addr[1] || '36').trim(), cap: '90133', citta: 'Palermo',
+    provincia: 'PA', regione: 'Sicilia', nazione: 'Italia', zona: imp.zona || 'Centro Storico',
+    lat: imp.lat ? String(imp.lat) : '38.1182', lng: imp.lng ? String(imp.lng) : '13.3608',
+    tipoSuolo: 'Pubblico', catSuolo: 'Urbano', utenza: 'DB45PL', cimasa: 'CIM-2024-00847',
+    progettista: 'Studio Tecnico Russo & Partners', progetto: '1305', ddl: 'Ing. Paolo Greco', rsc: 'Arch. Marta Vitale',
+    laboratorio: 'LabStrutture Palermo', geologo: 'Dott. Andrea Rizzo', collaudatore: 'Ing. Sergio Lombardo',
+    dataCollaudo: '02/09/2022', calcestruzzo: 'RCK > 25 MPA', acciaioCarp: 'S355JR - IPE 200', acciaioArm: 'FEB 44 K',
+    dittaCA: 'Edil Costruzioni S.r.l.', tecniche: 'Saldature con elettrodi basici', dataFine: '15/10/2024',
+    larghezza: '1250', altezza: '1800', profondita: '280', areaIngombro: '225', altTerra: '350', tipoAltezza: 'Alto', copertura: 'Riparato',
+    alias: _cd.alias, circuiti: _cd.circuiti, qualita: _cd.qualita,
+    vendita: _cd.vendita, prezzoLordo: _cd.prezzoLordo, aliquotaIva: 22, scontoModuli: _cd.scontoModuli, scontoPct: _cd.scontoPct,
   });
   const [active, setActive] = useState('dashboard');
   const [dashPreset, setDashPreset] = useState('anno');
@@ -3231,36 +3397,47 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
       description: 'Concessioni, autorizzazioni e stato dell\'iter autorizzativo collegati all\'impianto.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
     },
     {
       title: 'Dati Tecnici',
       description: 'Specifiche costruttive: dimensioni, illuminazione, numero di facce, orientamento e fotografie.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Cespiti e Dispositivi',
       description: 'Cespiti patrimoniali e dispositivi hardware installati sull\'impianto.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Assegnazione Squadre',
       description: 'Squadre affidatarie responsabili della manutenzione ordinaria e straordinaria.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Profilo Commerciale',
       description: 'Modello di vendita, prezzi, sconti e disponibilità commerciale dell\'impianto.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Storico Eventi',
       description: 'Timeline completa di cambi di stato, manutenzioni e note operative.',
       target: () => document.getElementById('grav-tour-detail-tabs'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Fine' },
+      prevButtonProps: { children: 'Indietro' },
     },
   ];
 
@@ -3529,10 +3706,10 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
   const [squadKind,       setSquadKind]       = useState('affissione');
   const openSquadDrawer = (kind) => { setSquadKind(kind); setSquadDrawerOpen(true); };
   const closeSquadDrawer = () => setSquadDrawerOpen(false);
-  const submitSquad = (rec) => {
-    if (squadKind === 'affissione') { setSquadreAff(prev => [...prev, rec]); }
-    else { setSquadreMan(prev => [...prev, rec]); }
-    antdMsg.success('Squadra aggiunta');
+  const submitSquad = (recs) => {
+    if (squadKind === 'affissione') { setSquadreAff(prev => [...prev, ...recs]); }
+    else { setSquadreMan(prev => [...prev, ...recs]); }
+    antdMsg.success(recs.length > 1 ? recs.length + ' squadre aggiunte' : 'Squadra aggiunta');
     closeSquadDrawer();
   };
   const removeSquadAff = (i) => { setSquadreAff(prev => prev.filter((_, x) => x !== i)); antdMsg.success('Squadra rimossa'); };
@@ -3547,11 +3724,6 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
   const closeModuliDrawer = () => setModuliDrawerOpen(false);
   const submitModuli = (recs) => { setModuli(prev => [...prev, ...recs]); antdMsg.success(recs.length + (recs.length > 1 ? ' moduli collegati' : ' modulo collegato')); closeModuliDrawer(); };
   const removeModulo = (id) => { setModuli(prev => prev.filter(m => m.id !== id)); antdMsg.success('Modulo scollegato'); };
-  const salesHistory = [
-    { key: '1', periodo: 'Gen–Mar 2026', cliente: 'Vodafone Italia', campagna: 'Spring Promo', importo: '€ 4.500', stato: 'Conclusa' },
-    { key: '2', periodo: 'Nov–Dic 2025', cliente: 'IKEA Palermo', campagna: 'Black Friday', importo: '€ 3.800', stato: 'Conclusa' },
-  ];
-
   // tag servizi (da anagrafica squadre)
   const servChips = (nome) => { const m = SQUADRE_AFF.find(s => s.nome === nome) || {}; return (m.servizi || []).map((s, i) => React.createElement(Tag, { key: i, style: { margin: 0 } }, s)); };
   const fmtAssetVal = (kind, val) => (val == null || val === '' || (Array.isArray(val) && !val.length)) ? null : (Array.isArray(val) ? val.join(', ') : String(val));
@@ -3806,7 +3978,7 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
                 [{ icon: TagsOutlined, label: 'Tipo intervento', value: s.tipoInt }, { icon: FileTextOutlined, label: 'Oggetto', value: s.oggetto }],
                 () => removeSquadMan(i)))))
           : React.createElement(Empty, { description: 'Nessuna squadra di manutenzione', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '16px 0' } }),
-        React.createElement(Button, { size: 'small', icon: React.createElement(PlusOutlined), onClick: () => openSquadDrawer('manutenzione') }, 'Aggiungi squadra')),
+        React.createElement(Button, { size: 'small', icon: React.createElement(PlusOutlined), onClick: () => openSquadDrawer('manutenzione') }, 'Aggiungi')),
     );
     if (active === 'dashboard') {
       // ── Filtro temporale · dataset per periodo (mock) ──
@@ -4188,25 +4360,7 @@ function ImpiantoDetailV2({ imp, onBack, onUpdate }) {
       initialSection: EDIT_SECTION_MAP[active] || 'identita',
       onClose: () => setEditFormOpen(false),
       initialValues: data,
-      onSave: (d) => {
-        const prevStato = data.stato;
-        setData(prev => ({ ...prev, ...d }));
-        if (onUpdate) onUpdate(imp.id, d);
-        if (d.stato === 'In Manutenzione' && prevStato !== 'In Manutenzione') {
-          const parts = [
-            d.manSquadra    && 'Squadra: '    + d.manSquadra,
-            d.manTipoInt    && 'Intervento: ' + d.manTipoInt,
-            d.manComponente && 'Componente: ' + d.manComponente,
-          ].filter(Boolean);
-          const desc = parts.length ? (d.manNote ? d.manNote + ' · ' : '') + parts.join(' · ') : d.manNote || '—';
-          setExtraEvents(prev => [{
-            date: dayjs().format('DD/MM/YYYY'), time: dayjs().format('HH:mm'),
-            title: 'Intervento di manutenzione', desc,
-            badge: { label: 'In Manutenzione', status: 'warning' },
-            agent: 'Elena Faraci', agentInitial: 'EF',
-          }, ...prev]);
-        }
-      },
+      onSave: (d) => { setData(prev => ({ ...prev, ...d })); },
     }),
 
     // Drawer: collega concessione / autorizzazione
@@ -4864,28 +5018,26 @@ function ImpiantoDetailPage({ imp, onBack, onEdit }) {
     ),
   );
 
-  // Tab Commerciale — dati commerciali (mock), sola lettura. Le foto stanno nella cover in alto.
-  const aliasComm = 'Pensilina Libertà — Centro';
-  const circuitiComm = ['Centro Storico', 'Premium'];
-  const qualitaComm = 4;
-  const venditaComm = 'Long term';
-  const prezzoNettoComm = '1.200,00';
-  const prezzoLordoComm = '1.500,00';
-  const scontoModuliComm = true;
-  const scontoPctComm = 10;
-  const moduliComm = [
-    { id: 'I042', tipo: 'Pensilina', indirizzo: 'Via Libertà, 40, Palermo', formato: '120×180 cm' },
-    { id: 'I043', tipo: 'Pensilina', indirizzo: 'Via Libertà, 52, Palermo', formato: '120×180 cm' },
-  ];
-  // Performance (statica, mock): tasso di riempimento = n. di selezioni in pianificazione; storico di vendita
-  const fillRate = '72%';
-  const fillCount = 14;
-  const ricavoStorico = '€ 11.200';
-  const salesHistory = [
+  // Tab Commerciale — dati commerciali per impianto, sola lettura.
+  const _commTab    = fd ? null : _cd;
+  const aliasComm        = fd ? (gv('alias')     || '—')                    : _commTab.alias;
+  const circuitiComm     = fd ? (Array.isArray(gv('circuiti')) ? gv('circuiti') : []) : _commTab.circuiti;
+  const qualitaComm      = fd ? (gv('qualita')   || 0)                      : _commTab.qualita;
+  const venditaComm      = fd ? (gv('vendita')   || '—')                    : _commTab.vendita;
+  const prezzoNettoComm  = fd ? (() => { const l = parseEuro(gv('prezzoLordo')); const a = Number(gv('aliquotaIva') ?? 22); return l ? (l / (1 + a / 100)).toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—'; })() : _commTab.prezzoNetto;
+  const prezzoLordoComm  = fd ? (gv('prezzoLordo') || '—')                  : _commTab.prezzoLordo;
+  const scontoModuliComm = fd ? !!gv('scontoModuli')                         : _commTab.scontoModuli;
+  const scontoPctComm    = fd ? (gv('scontoPct')  || null)                  : _commTab.scontoPct;
+  const moduliComm       = [];
+  // Performance per impianto
+  const fillRate      = fd ? '72%'       : _commTab.fillRate;
+  const fillCount     = fd ? 14          : _commTab.fillCount;
+  const ricavoStorico = fd ? '€ 11.200'  : _commTab.ricavoStorico;
+  const salesHistory  = fd ? [
     { key: '1', periodo: 'Gen–Mar 2026', cliente: 'Vodafone Italia', campagna: 'Spring Promo',   importo: '€ 4.500', stato: 'Conclusa' },
     { key: '2', periodo: 'Nov–Dic 2025', cliente: 'IKEA Palermo',    campagna: 'Black Friday',    importo: '€ 3.800', stato: 'Conclusa' },
     { key: '3', periodo: 'Set–Ott 2025', cliente: 'Conad',           campagna: 'Back to School',  importo: '€ 2.900', stato: 'Conclusa' },
-  ];
+  ] : _commTab.salesHistory;
   const roField = (label, node) => React.createElement('div', { className: 'field-col' },
     React.createElement(Text, { type: 'secondary', style: { fontSize: 13 } }, label),
     React.createElement('div', { style: { paddingTop: 5 } }, node),
@@ -5395,11 +5547,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [tipologia, setTipologia] = useState(iv.tipologia || null);
   const [formato,   setFormato]   = useState(iv.formato   || null);
   const [stato,     setStato]     = useState(iv.stato     || null);
-  const [manModalOpen,  setManModalOpen]  = useState(false);
-  const [manTipoInt,    setManTipoInt]    = useState(null);
-  const [manSquadra,    setManSquadra]    = useState('');
-  const [manComponente, setManComponente] = useState('');
-  const [manNote,       setManNote]       = useState('');
 
   React.useEffect(() => {
     if (!open) return;
@@ -5409,7 +5556,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setNome(v.nome || '');
     setTipologia(v.tipologia || null);
     setStato(v.stato || null);
-    setManModalOpen(false); setManTipoInt(null); setManSquadra(''); setManComponente(''); setManNote('');
     setVia(v.via || '');
     setCivico(v.civico || '');
     setCap(v.cap || '');
@@ -5451,11 +5597,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setCimasa(v.cimasa || '');
     // ── Squadre (normalizza la forma salvata da collectFormData → forma interna)
     setAffissioni(v.affissioni && v.affissioni.length
-      ? v.affissioni.map(a => ({ squadra: a.squadra ?? null, tipo: a.tipoAffissione ?? a.tipo ?? [], costo: a.costoAffissione ?? a.costo ?? null, preincoll: a.costoPreincoll ?? a.preincoll ?? null }))
-      : [{ squadra: null, tipo: [], costo: null, preincoll: null }]);
+      ? v.affissioni.map(a => ({ squadra: a.squadra ?? null, codice: a.codice ?? null, tipo: a.tipoAffissione ?? a.tipo ?? [], costo: a.costoAffissione ?? a.costo ?? null, preincoll: a.costoPreincoll ?? a.preincoll ?? null }))
+      : []);
     setManutenzioni(v.manutenzioni && v.manutenzioni.length
-      ? v.manutenzioni.map(m => ({ squadra: m.squadra ?? null, tipo: m.tipoIntervento ?? m.tipo ?? null, data: m.data ?? null, oggetto: m.oggetto ?? '' }))
-      : [{ squadra: null, tipo: null, data: null, oggetto: '' }]);
+      ? v.manutenzioni.map(m => ({ squadra: m.squadra ?? null, codice: m.codice ?? null, tipo: m.tipoIntervento ?? m.tipo ?? null, oggetto: m.oggetto ?? '' }))
+      : []);
     // ── Progetto / Genio Civile
     setProgetto(v.progetto || '');
     setProgDittaCA(v.progDittaCA ?? v.dittaCA ?? '');
@@ -5496,18 +5642,23 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       description: 'Il form è diviso in sezioni tematiche: naviga liberamente tra di esse. Le sezioni con * contengono campi obbligatori che devono essere compilati prima di poter salvare.',
       target: () => document.getElementById('grav-tour-form-nav'),
       placement: 'right',
+      nextButtonProps: { children: 'Avanti' },
     },
     {
       title: 'Campi obbligatori',
       description: 'Per creare l\'impianto servono: Canale, Tipologia, Formato, Via, Città e Stato. Tutti gli altri campi sono facoltativi e puoi compilarli in un secondo momento.',
       target: () => document.getElementById('grav-tour-form-required'),
       placement: 'right',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Salva l\'impianto',
       description: 'Il tasto si attiva quando tutti i campi obbligatori sono compilati.',
       target: () => document.getElementById('grav-tour-form-save'),
       placement: 'bottomRight',
+      nextButtonProps: { children: 'Fine' },
+      prevButtonProps: { children: 'Indietro' },
     },
   ];
 
@@ -5769,6 +5920,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [linkDrawerOpen,  setLinkDrawerOpen]  = useState(false);
   const [linkSelectedIds, setLinkSelectedIds] = useState([]);
   const [linkSearch,      setLinkSearch]      = useState('');
+  const [saveLinkOpen,    setSaveLinkOpen]    = useState(false);
+  const [saveLinkChosen,  setSaveLinkChosen]  = useState([]);
   const [proprieta,      setProprieta]      = useState(null);
   const [vendita,        setVendita]        = useState(null);
   const [prezzoNetto,    setPrezzoNetto]    = useState(null);
@@ -5777,12 +5930,25 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [scontoModuli,    setScontoModuli]    = useState(false); // sconto se venduto a moduli
   const [scontoModuliPct, setScontoModuliPct] = useState(null);  // percentuale di sconto
   const [cimasa,         setCimasa]         = useState('');
-  // Squadre — Affissione: una squadra = un gruppo di campi; "Aggiungi squadra" duplica il gruppo
-  const [affissioni, setAffissioni] = useState([{ squadra: null, tipo: [], costo: null, preincoll: null }]);
-  const setAff = (i, key, val) => setAffissioni(prev => prev.map((g, j) => j === i ? { ...g, [key]: val } : g));
-  // Squadre — Manutenzione: gruppo ripetibile con gli stessi campi dell'evento di manutenzione
-  const [manutenzioni, setManutenzioni] = useState([{ squadra: null, tipo: null, data: null, oggetto: '' }]);
-  const setMan = (i, key, val) => setManutenzioni(prev => prev.map((g, j) => j === i ? { ...g, [key]: val } : g));
+  // Squadre
+  const [affissioni, setAffissioni] = useState([]);
+  const [manutenzioni, setManutenzioni] = useState([]);
+  const [formSquadKind, setFormSquadKind] = useState('affissione');
+  const [formSquadOpen, setFormSquadOpen] = useState(false);
+  const openFormSquad = (kind) => { setFormSquadKind(kind); setFormSquadOpen(true); };
+  const submitFormSquad = (recs) => {
+    if (formSquadKind === 'affissione') {
+      setAffissioni(prev => [...prev, ...recs]);
+    } else {
+      setManutenzioni(prev => [...prev, ...recs.map(r => ({ squadra: r.squadra, codice: r.codice ?? null, tipo: r.tipoInt ?? null, oggetto: r.oggetto ?? '' }))]);
+    }
+    antdMsg.success('Squadra aggiunta');
+    setFormSquadOpen(false);
+  };
+  const removeFormAff = (i) => { setAffissioni(prev => prev.filter((_, j) => j !== i)); antdMsg.success('Squadra rimossa'); };
+  const removeFormMan = (i) => { setManutenzioni(prev => prev.filter((_, j) => j !== i)); antdMsg.success('Squadra rimossa'); };
+  const affAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: () => openFormSquad('affissione') }, 'Aggiungi squadra');
+  const manAddBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: () => openFormSquad('manutenzione') }, 'Aggiungi squadra');
 
   // ── Progetto (ex Genio Civile)
   const [progetto,     setProgetto]     = useState('');
@@ -5869,7 +6035,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     antdMsg.success(editMode ? 'Modifiche salvate' : 'Impianto creato con successo');
     onClose();
   };
-  const handleCreate = () => { doSave(); };
+  const handleCreate = () => {
+    const candidates = moduliCompatibili.filter(imp => !moduliCollegati.includes(imp.id));
+    if (candidates.length > 0) { setSaveLinkChosen(candidates.map(i => i.id)); setSaveLinkOpen(true); }
+    else doSave();
+  };
+  const confirmSaveLink = () => { setModuliCollegati(prev => [...new Set([...prev, ...saveLinkChosen])]); setSaveLinkOpen(false); setTimeout(doSave, 0); };
+  const skipSaveLink = () => { setSaveLinkOpen(false); setTimeout(doSave, 0); };
 
   const debRef = useRef(null);
   const [activeSection, setActiveSection] = useState('identita');
@@ -5917,7 +6089,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   const collectFormData = () => ({
     canale, nome, tipologia, formato, stato,
-    manTipoInt, manSquadra, manComponente, manNote,
     via, civico, cap, citta, provincia, regione, nazione, lat, lng,
     tipoSuolo, catSuolo, utenza, zona: zn,
     largImp, altImp, profImp, altTerra, tipoAltezza, areaEspositiva, riparato, facce,
@@ -6238,7 +6409,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     onChange: (val) => { if (typeof val === 'string') setVia(val); },
     onSelect: (val, option) => { if (option._sdata) applyAddr(option._sdata); },
     onClear: () => { setVia(''); setAddrSuggs([]); },
-    allowClear: true, notFoundContent: null,
+    allowClear: true, notFoundContent: null, filterOption: false,
     popupMatchSelectWidth: true, getPopupContainer: () => document.body,
     status: showErrors && !via.trim() ? 'error' : undefined,
   },
@@ -6255,7 +6426,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   };
   const hasRequired = { identita: true };
 
-  return React.createElement(React.Fragment, null, React.createElement(Drawer, {
+  return React.createElement(Drawer, {
     open: open,
     onClose: onClose,
     placement: 'right',
@@ -6268,7 +6439,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       React.createElement(Button, {
         id: 'grav-tour-form-save',
         type: 'primary',
-        icon: React.createElement(editMode ? SaveOutlined : CheckOutlined),
+        icon: React.createElement(editMode ? SaveOutlined : PlusOutlined),
         disabled: !canSave,
         onClick: handleCreate,
       }, editMode ? 'Salva modifiche' : 'Crea Impianto'),
@@ -6357,13 +6528,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                   ],
                 })
               ),
-              cs('Stato', true, sel(stato, v => {
-                setStato(v);
-                if (v === 'In Manutenzione') {
-                  setManTipoInt(null); setManSquadra(''); setManComponente(''); setManNote('');
-                  setManModalOpen(true);
-                }
-              }, STATI_AMM_OPTS, 'Seleziona lo stato',
+              cs('Stato', true, sel(stato, setStato, STATI_AMM_OPTS, 'Seleziona lo stato',
                 { status: showErrors && !stato ? 'error' : undefined })),
             ),
           ),
@@ -6602,60 +6767,60 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
         // ── Squadre (Affissione + Manutenzione)
         sec('affissione', 'Squadre', 'Squadre di default assegnate all\'affissione e alla manutenzione dell\'impianto.',
-          box('Affissione', 'Assegna le squadre incaricate, il tipo di affissione e i relativi costi.',
-            affissioni.map((g, i) =>
-              React.createElement('div', { key: i },
-                i > 0 ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '8px 0 12px' } },
-                  React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.45)' } }, 'Squadra ' + (i + 1)),
-                  React.createElement(Button, { type: 'text', size: 'small', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => setAffissioni(prev => prev.filter((_, j) => j !== i)) }, 'Rimuovi'),
-                ) : null,
-                g2(
-                  cs('Squadra affissione', false,
-                    React.createElement(Select, {
-                      value: g.squadra || undefined, onChange: (v) => setAff(i, 'squadra', v || null),
-                      options: SQUADRE_AFF_OPTS, style: { width: '100%' },
-                      placeholder: 'Seleziona la squadra', showSearch: true, allowClear: true, optionFilterProp: 'label',
-                    })),
-                  cs('Tipo affissione', false, sel(g.tipo, (v) => setAff(i, 'tipo', v), TIPO_AFFISSIONE_OPTS, 'Seleziona i tipi di affissione', { mode: 'multiple', allowClear: true })),
-                ),
-                g2(
-                  cs('Costo affissione (€)',     false, num(g.costo,     (v) => setAff(i, 'costo', v),     { min: 0, precision: 2 })),
-                  cs('Costo preincollaggio (€)', false, num(g.preincoll, (v) => setAff(i, 'preincoll', v), { min: 0, precision: 2 })),
-                ),
-              )
+          boxX(
+            React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+              'Affissione',
+              affissioni.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, affissioni.length) : null,
             ),
-            React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: 20 } },
-              React.createElement(Button, {
-                type: 'dashed', icon: React.createElement(PlusOutlined),
-                onClick: () => setAffissioni(prev => [...prev, { squadra: null, tipo: [], costo: null, preincoll: null }]),
-              }, 'Aggiungi squadra'),
-            ),
+            'Assegna le squadre incaricate, il tipo di affissione e i relativi costi.',
+            affissioni.length > 0 ? affAddBtn : null,
+            affissioni.length > 0
+              ? React.createElement(Row, { gutter: [16, 16] },
+                  affissioni.map((s, i) => React.createElement(Col, { span: 8, key: i },
+                    React.createElement(EntityCard, {
+                      header: {
+                        title: s.squadra,
+                        tags: [s.codice ? { text: s.codice } : null],
+                        menu: [{ key: 'remove', label: 'Rimuovi', icon: React.createElement(DeleteOutlined), danger: true, onClick: () => removeFormAff(i) }],
+                      },
+                      body: { rows: [
+                        { icon: TagsOutlined, label: 'Tipo affissione', value: (s.tipo || []).join(', ') || null },
+                        { icon: EuroCircleOutlined, label: 'Costo affissione', value: s.costo != null ? '€ ' + s.costo : null },
+                        { icon: FormatPainterOutlined, label: 'Costo preincollaggio', value: s.preincoll != null ? '€ ' + s.preincoll : null },
+                      ]},
+                    })
+                  ))
+                )
+              : React.createElement(Empty, { description: 'Nessuna squadra di affissione assegnata', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+                  affAddBtn,
+                ),
           ),
-          box('Manutenzione', 'Assegna le squadre di manutenzione dell\'impianto.',
-            manutenzioni.map((g, i) =>
-              React.createElement('div', { key: i },
-                i > 0 ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '8px 0 12px' } },
-                  React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.45)' } }, 'Squadra ' + (i + 1)),
-                  React.createElement(Button, { type: 'text', size: 'small', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => setManutenzioni(prev => prev.filter((_, j) => j !== i)) }, 'Rimuovi'),
-                ) : null,
-                g2(
-                  cs('Squadra manutenzione', false,
-                    React.createElement(Select, {
-                      value: g.squadra || undefined, onChange: (v) => setMan(i, 'squadra', v || null),
-                      options: SQUADRE_AFF_OPTS, style: { width: '100%' },
-                      placeholder: 'Seleziona la squadra', showSearch: true, allowClear: true, optionFilterProp: 'label',
-                    })),
-                  cs('Tipo intervento', false, sel(g.tipo, (v) => setMan(i, 'tipo', v), TIPO_MAN_OPTS, 'Seleziona il tipo di intervento', { allowClear: true })),
+          boxX(
+            React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+              'Manutenzione',
+              manutenzioni.length > 0 ? React.createElement('span', { style: { fontSize: 13, fontWeight: 700, color: '#3E00FB', lineHeight: '18px' } }, manutenzioni.length) : null,
+            ),
+            'Assegna le squadre di manutenzione dell\'impianto.',
+            manutenzioni.length > 0 ? manAddBtn : null,
+            manutenzioni.length > 0
+              ? React.createElement(Row, { gutter: [16, 16] },
+                  manutenzioni.map((s, i) => React.createElement(Col, { span: 8, key: i },
+                    React.createElement(EntityCard, {
+                      header: {
+                        title: s.squadra,
+                        tags: [s.codice ? { text: s.codice } : null],
+                        menu: [{ key: 'remove', label: 'Rimuovi', icon: React.createElement(DeleteOutlined), danger: true, onClick: () => removeFormMan(i) }],
+                      },
+                      body: { rows: [
+                        { icon: TagsOutlined, label: 'Tipo intervento', value: s.tipo || null },
+                        { icon: FileTextOutlined, label: 'Oggetto', value: s.oggetto || null },
+                      ]},
+                    })
+                  ))
+                )
+              : React.createElement(Empty, { description: 'Nessuna squadra di manutenzione assegnata', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '4px 0', margin: '8px 0' } },
+                  manAddBtn,
                 ),
-                cs('Oggetto', false, inp(g.oggetto, (v) => setMan(i, 'oggetto', v), 'Es. Sostituzione faretti')),
-              )
-            ),
-            React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: 20 } },
-              React.createElement(Button, {
-                type: 'dashed', icon: React.createElement(PlusOutlined),
-                onClick: () => setManutenzioni(prev => [...prev, { squadra: null, tipo: null, data: null, oggetto: '' }]),
-              }, 'Aggiungi squadra'),
-            ),
           ),
         ),
 
@@ -6971,47 +7136,75 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           ),
     ),
 
-    // Modale dettagli manutenzione — si apre quando l'utente seleziona "In Manutenzione"
+    // Drawer aggiunta squadra (affissione | manutenzione)
+    React.createElement(SquadraDrawer, {
+      open: formSquadOpen,
+      onClose: () => setFormSquadOpen(false),
+      onSubmit: submitFormSquad,
+      kind: formSquadKind,
+    }),
+
+    // Tour guidato primo accesso al form
+    React.createElement(Tour, {
+      open: formTourOpen,
+      onClose: closeFormTour,
+      current: formTourStep,
+      onChange: (step) => { setFormTourStep(step); if (step === 1) setActiveSection('identita'); },
+      steps: formTourSteps,
+    }),
+
+    // Modal "salva e collega" — proposto al salvataggio se ci sono impianti compatibili non ancora collegati
     React.createElement(Modal, {
-      title: 'Dettagli manutenzione',
-      open: manModalOpen, width: 480,
-      onCancel: () => setManModalOpen(false),
+      title: 'Collegare come moduli?', open: saveLinkOpen,
+      onCancel: skipSaveLink,
       footer: React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8 } },
-        React.createElement(Button, { onClick: () => setManModalOpen(false) }, 'Salta'),
-        React.createElement(Button, { type: 'primary', onClick: () => setManModalOpen(false) }, 'Registra'),
+        React.createElement(Button, { onClick: skipSaveLink }, 'Salta'),
+        React.createElement(Button, { type: 'primary', icon: React.createElement(LinkOutlined), disabled: saveLinkChosen.length === 0, onClick: confirmSaveLink },
+          saveLinkChosen.length > 0 ? 'Collega (' + saveLinkChosen.length + ')' : 'Collega'),
       ),
     },
-      (() => {
-        const row = (label, control) => React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 } },
-          React.createElement('div', { style: { width: 160, textAlign: 'right', paddingTop: 5, fontSize: 14, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label),
-          React.createElement('div', { style: { flex: 1, minWidth: 0 } }, control),
-        );
-        return React.createElement('div', { style: { paddingTop: 8 } },
-          React.createElement('div', { style: { marginBottom: 20, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
-            'Lo stato è stato impostato su ', React.createElement('strong', null, 'In Manutenzione'), '. Puoi aggiungere i dettagli dell\'intervento — verranno registrati nella cronologia al salvataggio.'),
-          row('Tipo intervento', React.createElement(Select, { value: manTipoInt, onChange: setManTipoInt, options: TIPO_MAN_OPTS, placeholder: 'Seleziona', style: { width: '100%' }, allowClear: true })),
-          row('Squadra', React.createElement(Select, {
-            value: manSquadra || undefined, onChange: v => setManSquadra(v || ''),
-            options: SQUADRE_AFF_OPTS, placeholder: 'Seleziona la squadra',
-            style: { width: '100%' }, showSearch: true, allowClear: true, optionFilterProp: 'label',
-          })),
-          row('Componente interessato', React.createElement(Input, { value: manComponente, onChange: e => setManComponente(e.target.value), placeholder: 'Es. pannello frontale, illuminazione…' })),
-          row('Note', React.createElement(Input.TextArea, { value: manNote, onChange: e => setManNote(e.target.value), placeholder: 'Descrizione dell\'intervento', autoSize: { minRows: 2, maxRows: 4 } })),
-        );
-      })(),
-    ),
-  React.createElement(Tour, { open: formTourOpen, onClose: closeFormTour, steps: formTourSteps })));
+      React.createElement('div', { style: { fontSize: 14, color: 'rgba(0,0,0,0.65)', marginBottom: 16 } },
+        'Sono presenti impianti dello stesso tipo e formato che potresti vendere insieme a questo come moduli. Seleziona quelli da collegare:'),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '40vh', overflow: 'auto' } },
+        moduliCompatibili.filter(imp => !moduliCollegati.includes(imp.id)).map(imp => {
+          const sel = saveLinkChosen.includes(imp.id);
+          return React.createElement('div', {
+            key: imp.id,
+            onClick: () => setSaveLinkChosen(prev => prev.includes(imp.id) ? prev.filter(x => x !== imp.id) : [...prev, imp.id]),
+            style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid ' + (sel ? '#3E00FB' : '#E8E8E8'), borderRadius: 8, cursor: 'pointer', background: sel ? '#F5F2FF' : '#fff' },
+          },
+            React.createElement(Checkbox, { checked: sel }),
+            React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+              React.createElement('div', { style: { fontSize: 14, fontWeight: 600 } }, imp.id + ' · ' + imp.tipo),
+              React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, imp.indirizzo),
+            ),
+            React.createElement(Tag, { style: { margin: 0 } }, imp.formato),
+          );
+        }),
+      ),
+    )
+  );
 }
 
 // ─────────────────────────────────────────────────────────
 // APP
 // ─────────────────────────────────────────────────────────
 function App() {
-  const [page, setPage] = useState('map'); // 'map' | 'detail'
+  // Deep-link da planning: ?sys=SYS-042 → apre direttamente il dettaglio dell'impianto corrispondente
+  const _deepLinkImp = (() => {
+    const param = new URLSearchParams(location.search).get('sys');
+    if (!param) return null;
+    const n = parseInt(param.replace('SYS-', ''), 10);
+    if (isNaN(n)) return null;
+    const targetId = 'I' + String(((n - 1) % IMPIANTI.length) + 1).padStart(3, '0');
+    return IMPIANTI.find(i => i.id === targetId) || null;
+  })();
+
+  const [page, setPage] = useState(_deepLinkImp ? 'detail' : 'map'); // 'map' | 'detail'
   const [fullFormOpen,   setFullFormOpen]   = useState(false);
   const [prefillData,    setPrefillData]    = useState({});
   const [savedFormData,  setSavedFormData]  = useState(null);
-  const [detailImpianto, setDetailImpianto] = useState(null);
+  const [detailImpianto, setDetailImpianto] = useState(_deepLinkImp);
   const [cardImp,        setCardImp]        = useState(null);
   const [highlightedId, setHighlightedId] = useState(null);
   const [selectedIds,   setSelectedIds]   = useState(new Set());
@@ -7032,26 +7225,33 @@ function App() {
   const closeTourMain = () => { setTourMainOpen(false); localStorage.setItem(TOUR_MAIN_KEY, '1'); };
   const tourMainSteps = [
     {
-      title: 'Benvenuto in Inventory Systems',
+      title: 'Benvenuto nel tuo Parco Impianti',
       description: 'Questo modulo raccoglie tutti gli impianti del tuo parco. Puoi visualizzarli su mappa o in lista, filtrarli per ogni caratteristica e crearne di nuovi.',
+      nextButtonProps: { children: 'Avanti' },
     },
     {
       title: 'Crea un nuovo impianto',
       description: 'Apre il form di creazione. Puoi compilare solo le sezioni che conosci — i dati mancanti si possono aggiungere in seguito modificando l\'impianto.',
       target: () => document.getElementById('grav-tour-new-btn'),
       placement: 'bottomRight',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Cerca e filtra',
       description: 'Cerca per zona o indirizzo. "Filtri avanzati" apre il pannello per filtrare per canale, tipologia, stato e molti altri criteri.',
       target: () => document.getElementById('grav-tour-filter-bar'),
       placement: 'bottom',
+      nextButtonProps: { children: 'Avanti' },
+      prevButtonProps: { children: 'Indietro' },
     },
     {
       title: 'Vista mappa e lista',
       description: 'Alterna tra mappa geolocalizzata — per capire la distribuzione territoriale — e lista tabulare con colonne personalizzabili.',
       target: () => document.getElementById('grav-tour-view-toggle'),
       placement: 'left',
+      nextButtonProps: { children: 'Fine' },
+      prevButtonProps: { children: 'Indietro' },
     },
   ];
 
@@ -7138,10 +7338,7 @@ function App() {
   }, [availableLabels, implantiLabels, pickerOpenId, showNewForm, newLabelName, newLabelColor, toggleImpLabel, closePicker, createLabel]);
 
   // ── Geocoding ─────────────────────────────────────────
-  const [geocodedImpianti,  setGeocodedImpianti]  = useState(() => loadStoredImpianti() || IMPIANTI);
-  useEffect(() => {
-    try { localStorage.setItem(IMP_STORE_KEY, JSON.stringify(geocodedImpianti)); } catch(e) {}
-  }, [geocodedImpianti]);
+  const [geocodedImpianti,  setGeocodedImpianti]  = useState(IMPIANTI);
   const [newlyCreatedId,    setNewlyCreatedId]    = useState(null);
   const [geocodingProgress, setGeocodingProgress] = useState(null);
 
@@ -7151,7 +7348,7 @@ function App() {
     try { cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch(e) {}
 
     const applyCache = (c) => {
-      setGeocodedImpianti(prev => prev.map(imp =>
+      setGeocodedImpianti(IMPIANTI.map(imp =>
         c[imp.id] ? { ...imp, lat: c[imp.id].lat, lng: c[imp.id].lng } : imp
       ));
     };
@@ -7164,11 +7361,10 @@ function App() {
     }
 
     setGeocodingProgress({ done: 0, total: toGeocode.length });
-    const geocoder = new google.maps.Geocoder();
     let done = 0;
     let cancelled = false;
 
-    const next = (i) => {
+    const next = async (i) => {
       if (cancelled) return;
       if (i >= toGeocode.length) {
         applyCache(cache);
@@ -7177,34 +7373,30 @@ function App() {
         return;
       }
       const imp = toGeocode[i];
-      const palermoBounds = new google.maps.LatLngBounds(
-        { lat: 38.055, lng: 13.285 },
-        { lat: 38.245, lng: 13.455 }
-      );
-      geocoder.geocode(
-        {
-          address: `${imp.indirizzo}, Palermo`,
-          componentRestrictions: { country: 'IT', locality: 'Palermo' },
-          bounds: palermoBounds,
-        },
-        (results, status) => {
-          if (status === 'OK' && results[0]) {
-            const lat = results[0].geometry.location.lat();
-            const lng = results[0].geometry.location.lng();
+      try {
+        const q = encodeURIComponent(`${imp.indirizzo}, Palermo, Italia`);
+        const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=it&viewbox=13.285,38.245,13.455,38.055&bounded=1`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'it', 'User-Agent': 'GravityPrototype/1.0' } });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data[0]) {
+            const lat = parseFloat(data[0].lat);
+            const lng = parseFloat(data[0].lon);
             // Accetta solo risultati dentro il bounding box di Palermo
             if (lat >= 38.055 && lat <= 38.245 && lng >= 13.285 && lng <= 13.455) {
               cache[imp.id] = { lat, lng };
             }
           }
-          done++;
-          setGeocodingProgress({ done, total: toGeocode.length });
-          if (done % 10 === 0) {
-            applyCache(cache);
-            try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch(e) {}
-          }
-          setTimeout(() => next(i + 1), 80);
         }
-      );
+      } catch(e) {}
+      done++;
+      setGeocodingProgress({ done, total: toGeocode.length });
+      if (done % 10 === 0) {
+        applyCache(cache);
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch(e) {}
+      }
+      // Nominatim: max 1 req/s per policy
+      setTimeout(() => next(i + 1), 1100);
     };
 
     next(0);
@@ -7421,53 +7613,13 @@ function App() {
     });
   }, []);
 
-  const handleUpdateImp = useCallback((id, formData) => {
-    const pLat = parseFloat(formData.lat), pLng = parseFloat(formData.lng);
-    const hasCoord = isFinite(pLat) && isFinite(pLng);
-    const illuminato = !!(formData.facce?.some(x => x.illumStato && x.illumStato !== 'Spento'));
-    setGeocodedImpianti(prev => prev.map(imp =>
-      imp.id !== id ? imp : {
-        ...imp,
-        tipo: formData.tipologia || imp.tipo,
-        canale: formData.canale || imp.canale,
-        indirizzo: [formData.via, formData.civico].filter(Boolean).join(', ') || imp.indirizzo,
-        zona: formData.zona || imp.zona,
-        lat: hasCoord ? pLat : imp.lat,
-        lng: hasCoord ? pLng : imp.lng,
-        faces: formData.facce?.length || imp.faces,
-        formato: formData.formato || imp.formato,
-        illuminato,
-        stato_amm: formData.stato || imp.stato_amm,
-        suolo: formData.tipoSuolo || imp.suolo,
-        media_owner: formData.proprietario || imp.media_owner,
-        nome: formData.nome || imp.nome,
-        _formData: formData,
-      }
-    ));
-    setDetailImpianto(prev => prev?.id === id ? {
-      ...prev,
-      tipo: formData.tipologia || prev.tipo,
-      canale: formData.canale || prev.canale,
-      indirizzo: [formData.via, formData.civico].filter(Boolean).join(', ') || prev.indirizzo,
-      zona: formData.zona || prev.zona,
-      lat: hasCoord ? pLat : prev.lat,
-      lng: hasCoord ? pLng : prev.lng,
-      faces: formData.facce?.length || prev.faces,
-      formato: formData.formato || prev.formato,
-      illuminato,
-      stato_amm: formData.stato || prev.stato_amm,
-      suolo: formData.tipoSuolo || prev.suolo,
-      media_owner: formData.proprietario || prev.media_owner,
-      nome: formData.nome || prev.nome,
-      _formData: formData,
-    } : prev);
-  }, []);
+
 
   return React.createElement('div', { className: 'app-shell' },
     React.createElement(window.GravityNavbar, null),
 
     page === 'detail'
-      ? React.createElement(ImpiantoDetailV2, { imp: detailImpianto, onBack: () => setPage('map'), onUpdate: handleUpdateImp })
+      ? React.createElement(ImpiantoDetailV2, { imp: detailImpianto, onBack: () => setPage('map') })
       : false ? React.createElement(ImpiantoDetailPage, { imp: detailImpianto, onBack: () => setPage('map'), onEdit: () => {
           if (savedFormData) {
             setPrefillData(savedFormData);
