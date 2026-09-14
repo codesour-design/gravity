@@ -1238,11 +1238,6 @@ window.HANDOFF_NOTES = [
     body: 'Concessioni e autorizzazioni scadute **restano visibili e selezionabili** nel drawer — corretto, già così nel prototipo.\n==Manca però== l\'avviso non bloccante richiesto dal criterio di accettazione quando si seleziona/collega un atto scaduto (es. un Alert nel drawer): da aggiungere, senza disabilitare mai la conferma.',
   },
   {
-    id: 'iter-scia-validazioni',
-    title: 'SCIA: validazioni sulle date fuori sprint',
-    body: '==Fuori sprint==: le validazioni sull\'ordine tra le date della SCIA.',
-  },
-  {
     id: 'iter-scarica-modulo-fuori-scope',
     title: '"Scarica modulo": fuori sprint',
     body: '==Fuori sprint==: la generazione del modulo regionale precompilato del Genio Civile.',
