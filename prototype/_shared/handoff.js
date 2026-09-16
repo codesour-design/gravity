@@ -1062,8 +1062,12 @@
   }
 
   // ── Interfaccia semplificata: evidenzia gli elementi FUORI SPRINT ─────────
-  // Aggiunge la classe .ghf-oos agli elementi in OUT_OF_SPRINT (anche portalati
-  // e transitori, es. voci di dropdown). Ripassa in loop perché l'app ri-renderizza.
+  // Aggiunge la classe .ghf-oos-tracked (posizionamento, per ogni entry) e .ghf-oos
+  // (outline tratteggiato + tag, salvo `noOutline: true`) agli elementi in
+  // OUT_OF_SPRINT (anche portalati e transitori, es. voci di dropdown). Ripassa in
+  // loop perché l'app ri-renderizza.
+  var GHF_COMING_SOON_SRC = '../_shared/assets/coming-soon-astronaut.png';
+
   function SprintMarker() {
     useEffect(function () {
       var STYLE_ID = 'ghf-oos-style';
@@ -1071,14 +1075,69 @@
         var st = document.createElement('style');
         st.id = STYLE_ID;
         st.textContent =
-          '.ghf-oos{position:relative!important;outline:1.5px dashed #FF4A1C!important;' +
+          '.ghf-oos-tracked{position:relative!important;}' +
+          '.ghf-oos{outline:1.5px dashed #FF4A1C!important;' +
           'outline-offset:-1px;border-radius:4px;' +
           'background-image:repeating-linear-gradient(45deg,rgba(255,74,28,.05) 0 6px,rgba(255,74,28,.12) 6px 12px)!important;}' +
           '.ghf-oos::after{content:"fuori sprint";position:absolute;top:-8px;right:6px;z-index:30;' +
           'background:#FF4A1C;color:#fff;font-size:8px;font-weight:700;line-height:1;letter-spacing:.3px;' +
-          'padding:2px 5px;border-radius:8px;font-family:' + FONT.replace(/"/g, "'") + ';pointer-events:none;text-transform:uppercase;white-space:nowrap;}';
+          'padding:2px 5px;border-radius:8px;font-family:' + FONT.replace(/"/g, "'") + ';pointer-events:none;text-transform:uppercase;white-space:nowrap;}' +
+          '.ghf-oos-empty{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;' +
+          'align-items:center;justify-content:center;text-align:center;gap:6px;padding:24px;' +
+          'background:rgba(255,255,255,.94);border-radius:4px;font-family:' + FONT.replace(/"/g, "'") + ';}' +
+          '.ghf-oos-empty img{width:120px;height:auto;opacity:.55;margin-bottom:4px;}' +
+          '.ghf-oos-empty .ghf-oos-empty-title{font-size:14px;font-weight:600;color:rgba(0,0,0,.65);}' +
+          '.ghf-oos-empty .ghf-oos-empty-desc{font-size:12px;color:rgba(0,0,0,.45);max-width:320px;line-height:1.4;}';
         document.head.appendChild(st);
       }
+      // Entry con `empty: true` (le AREE fuori sprint, non i singoli campi/pulsanti):
+      // invece del solo outline tratteggiato, nasconde i figli reali e ci mette sopra
+      // un empty state con l'astronauta "coming soon" — copy pensata per chi userà
+      // davvero il prodotto (curiosità sul contenuto in arrivo), non un promemoria
+      // interno: `emptyTitle`/`emptyDesc` la personalizzano, altrimenti default
+      // "Prossimamente" + `note` (il testo interno "fuori sprint" resta nel tooltip
+      // dell'outline, vedi `noOutline`). Disattivando la modalità (hideEmpty in
+      // cleanup) i figli reali tornano visibili così come sono, senza bisogno di
+      // uno stato separato da gestire.
+      function showEmpty(el, entry) {
+        var alreadyEmpty = el.querySelector(':scope > .ghf-oos-empty');
+        if (!alreadyEmpty) {
+          // Misura l'altezza reale del box PRIMA di nascondere i figli: un box la
+          // cui altezza dipende solo dal contenuto (es. i wrapper dedicati di un
+          // singolo box, non un intero pannello con la sua altezza fissa) collasserebbe
+          // a 0 una volta nascosti i figli, schiacciando l'empty state invece di
+          // occupare lo spazio del box originale.
+          var h = el.getBoundingClientRect().height;
+          if (h > 0) el.style.minHeight = h + 'px';
+        }
+        Array.prototype.forEach.call(el.children, function (c) {
+          if (!c.classList.contains('ghf-oos-empty')) c.style.display = 'none';
+        });
+        if (!alreadyEmpty) {
+          var title = entry.emptyTitle || 'Prossimamente';
+          var desc = entry.emptyDesc || entry.note;
+          var box = document.createElement('div');
+          box.className = 'ghf-oos-empty';
+          box.innerHTML =
+            '<img src="' + GHF_COMING_SOON_SRC + '" alt="" />' +
+            '<div class="ghf-oos-empty-title"></div>' +
+            (desc ? '<div class="ghf-oos-empty-desc"></div>' : '');
+          box.querySelector('.ghf-oos-empty-title').textContent = title;
+          if (desc) box.querySelector('.ghf-oos-empty-desc').textContent = desc;
+          el.appendChild(box);
+        }
+      }
+      function hideEmpty(el) {
+        var box = el.querySelector(':scope > .ghf-oos-empty');
+        if (box) box.remove();
+        Array.prototype.forEach.call(el.children, function (c) { c.style.display = ''; });
+        el.style.minHeight = '';
+      }
+      // `noOutline: true`: l'elemento serve solo da host per l'empty state (es. il
+      // solo CONTENUTO di un box, mentre l'intera card — header incluso — ha già il
+      // suo outline tratteggiato/tag su un selettore separato): riceve `position:
+      // relative` (via .ghf-oos-tracked, serve per posizionare l'overlay) ma NON
+      // l'outline/tag `.ghf-oos`, altrimenti si vedrebbero due bordi annidati.
       function apply() {
         var marked = [];
         OUT_OF_SPRINT.forEach(function (entry) {
@@ -1086,22 +1145,27 @@
           try { els = document.querySelectorAll(entry.selector); } catch (e) { return; }
           Array.prototype.forEach.call(els, function (el) {
             if (entry.text && (el.textContent || '').indexOf(entry.text) === -1) return;
-            el.classList.add('ghf-oos');
-            if (entry.note && el.getAttribute('title') == null) el.setAttribute('title', entry.note);
+            el.classList.add('ghf-oos-tracked');
+            if (!entry.noOutline) el.classList.add('ghf-oos');
+            if (entry.empty) {
+              showEmpty(el, entry);
+            } else if (entry.note && el.getAttribute('title') == null) {
+              el.setAttribute('title', entry.note);
+            }
             marked.push(el);
           });
         });
         // rimuove la marcatura dagli elementi non più in lista (es. dropdown chiuso)
-        Array.prototype.forEach.call(document.querySelectorAll('.ghf-oos'), function (el) {
-          if (marked.indexOf(el) === -1) { el.classList.remove('ghf-oos'); el.removeAttribute('title'); }
+        Array.prototype.forEach.call(document.querySelectorAll('.ghf-oos-tracked'), function (el) {
+          if (marked.indexOf(el) === -1) { el.classList.remove('ghf-oos-tracked', 'ghf-oos'); el.removeAttribute('title'); hideEmpty(el); }
         });
       }
       apply();
       var id = setInterval(apply, 400);
       return function () {
         clearInterval(id);
-        Array.prototype.forEach.call(document.querySelectorAll('.ghf-oos'), function (el) {
-          el.classList.remove('ghf-oos'); el.removeAttribute('title');
+        Array.prototype.forEach.call(document.querySelectorAll('.ghf-oos-tracked'), function (el) {
+          el.classList.remove('ghf-oos-tracked', 'ghf-oos'); el.removeAttribute('title'); hideEmpty(el);
         });
       };
     }, []);

@@ -85,7 +85,7 @@ restano in fondo al proprio gruppo, nell'ordine di inserimento in `HANDOFF_TOURS
 | `HANDOFF_COMPONENTS` | inspector `[{ selector, name, level, custom?, funzione, figma, variant?(el) }]` |
 | `HANDOFF_NOTES` | note di design inline |
 | `HANDOFF_DEPENDENCIES` / `RELATIONS` / `SCENARIOS` | metadati pannello — la tab di ciascuna nel dropdown Modello appare **solo se ha elementi**: omettere la variabile (o lasciarla `[]`) nasconde del tutto quella tab invece di mostrarla vuota con "Nessun elemento"; con una sola tab con dati, la barra delle tab stessa non si mostra |
-| `HANDOFF_OUT_OF_SPRINT` | `[{ selector, text?, note }]` — elementi fuori scope sprint |
+| `HANDOFF_OUT_OF_SPRINT` | `[{ selector, text?, note?, empty?, noOutline?, emptyTitle?, emptyDesc? }]` — elementi fuori scope sprint. `empty: true` è solo per le **aree** (box/sezioni/drawer/modal interi — non singoli campi, pulsanti o colonne di tabella, dove romperebbe il layout): invece del solo outline tratteggiato, nasconde il contenuto reale dell'elemento e ci mostra sopra un empty state con l'illustrazione `coming-soon-astronaut`, titolo `emptyTitle` (default `"Prossimamente"`) e descrizione `emptyDesc` (fallback a `note` se assente). `emptyTitle`/`emptyDesc` sono copy rivolta a chi userà davvero il prodotto — curiosità sul contenuto in arrivo, coerente con l'illustrazione (l'astronauta sta per aprire una scatola-sorpresa) — **non** un promemoria di scope: quel testo resta in `note`, mostrato come tooltip sull'outline. Ogni box va marcato con la sua classe dedicata: un `empty: true` su un wrapper che raggruppa più box distinti li fonde in un unico empty state invece di uno per box. Per marcare **l'intera card** (header compreso) ma far comparire l'empty state solo nel **contenuto sotto l'header**: due entry sullo stesso box — una sul wrapper dell'intera card (`note`, senza `empty`, per outline+tag+tooltip) e una `noOutline: true` sul wrapper del solo contenuto (`empty: true`, senza il proprio outline/tag — eviterebbe due bordi annidati — ma con `position: relative` comunque applicato per ancorare l'overlay); il div del contenuto usa lo stesso trick "bleed" già visto per accordion/grid (`margin: '-20px -24px -24px', padding: '20px 24px 24px'`) così l'empty state riempie tutta l'area sotto l'header, non solo l'area con padding. Il motore misura l'altezza reale dell'elemento **prima** di nascondere i figli e la fissa come `min-height` inline: senza, un `<div>` la cui altezza dipende solo dal contenuto (es. un wrapper dedicato a un singolo box, non un pannello con la sua altezza fissa) collasserebbe a 0 una volta nascosti i figli. Disattivando "Interfaccia semplificata" il contenuto reale torna visibile così com'è costruito (min-height ripristinata a `''`) — nessuno stato separato da mantenere |
 | `HANDOFF_SPRINT_NOTE` | stringa opzionale — avviso in cima al dropdown Sprint Jira (`UsPanel`), supporta `**grassetto**`/`==evidenziato==`; assente = nessun avviso |
 
 ## UI iniettata
@@ -109,8 +109,10 @@ restano in fondo al proprio gruppo, nell'ordine di inserimento in `HANDOFF_TOURS
   senza titolo né stato del prototipo, e senza tooltip in hover sul badge.
 - **Note di design**: `CoffeeOutlined` **rossa** `#FF4A1C`, marker inline contestuale con
   popover "Nota di design" — iconografia riservata (vedi `LAYOUT.md` §6.5).
-- **Fuori sprint**: classe `.ghf-oos` (outline tratteggiato + badge + tooltip) sugli elementi in
-  `HANDOFF_OUT_OF_SPRINT`, toggle nel pannello User story.
+- **Fuori sprint**: classe `.ghf-oos` (outline tratteggiato + badge + tooltip, salvo
+  `noOutline: true`) sugli elementi in `HANDOFF_OUT_OF_SPRINT`, toggle nel pannello User story.
+  Sulle entry con `empty: true` (le aree, vedi tabella sopra) il tooltip lascia il posto a un
+  empty state interno con l'illustrazione `coming-soon-astronaut` al posto del contenuto reale.
 
 ## Riferimenti implementativi
 
