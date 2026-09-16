@@ -511,16 +511,13 @@
       right: 102px;
       z-index: 1051;
     }
-    body:has(#grav-tour-form-save) #ghf-nav-slot {
-      right: 272px;
-    }
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script>
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
-const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Radio, Rate, Slider, Popconfirm, Tour } = antd;
+const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Radio, Rate, Slider, Popconfirm } = antd;
 const { Text } = Typography;
 
 // ── Note di design handoff (marker inline contestuale) ─────────────────────
@@ -3564,67 +3561,6 @@ function ImpiantoDetailV2({ imp, onBack }) {
   const goPhoto = (dir) => setPhotoIdx(i => (i + dir + nPhotos) % nPhotos);
   const [editFormOpen, setEditFormOpen] = useState(false);
 
-  // ── Tour guidato alla prima apertura del dettaglio ─────────────────────
-  const DETAIL_TOUR_KEY = 'grav-inv-tour-detail-v1';
-  const [detailTourOpen, setDetailTourOpen] = React.useState(false);
-  const [detailTourStep, setDetailTourStep] = React.useState(0);
-  React.useEffect(() => {
-    if (!localStorage.getItem(DETAIL_TOUR_KEY)) {
-      const t = setTimeout(() => setDetailTourOpen(true), 600);
-      return () => clearTimeout(t);
-    }
-  }, []);
-  const closeDetailTour = () => { setDetailTourOpen(false); localStorage.setItem(DETAIL_TOUR_KEY, '1'); };
-  const detailTourSteps = [
-    {
-      title: 'Dati Amministrativi',
-      description: 'Concessioni, autorizzazioni e stato dell\'iter autorizzativo collegati all\'impianto.',
-      target: () => document.getElementById('grav-tour-detail-tabs'),
-      placement: 'bottom',
-      nextButtonProps: { children: 'Avanti' },
-    },
-    {
-      title: 'Dati Tecnici',
-      description: 'Specifiche costruttive: dimensioni, illuminazione, numero di facce, orientamento e fotografie.',
-      target: () => document.getElementById('grav-tour-detail-tabs'),
-      placement: 'bottom',
-      nextButtonProps: { children: 'Avanti' },
-      prevButtonProps: { children: 'Indietro' },
-    },
-    {
-      title: 'Cespiti e Dispositivi',
-      description: 'Cespiti patrimoniali e dispositivi hardware installati sull\'impianto.',
-      target: () => document.getElementById('grav-tour-detail-tabs'),
-      placement: 'bottom',
-      nextButtonProps: { children: 'Avanti' },
-      prevButtonProps: { children: 'Indietro' },
-    },
-    {
-      title: 'Assegnazione Squadre',
-      description: 'Squadre affidatarie responsabili della manutenzione ordinaria e straordinaria.',
-      target: () => document.getElementById('grav-tour-detail-tabs'),
-      placement: 'bottom',
-      nextButtonProps: { children: 'Avanti' },
-      prevButtonProps: { children: 'Indietro' },
-    },
-    {
-      title: 'Profilo Commerciale',
-      description: 'Modello di vendita, prezzi, sconti e disponibilità commerciale dell\'impianto.',
-      target: () => document.getElementById('grav-tour-detail-tabs'),
-      placement: 'bottom',
-      nextButtonProps: { children: 'Avanti' },
-      prevButtonProps: { children: 'Indietro' },
-    },
-    {
-      title: 'Storico Eventi',
-      description: 'Timeline completa di cambi di stato, manutenzioni e note operative.',
-      target: () => document.getElementById('grav-tour-detail-tabs'),
-      placement: 'bottom',
-      nextButtonProps: { children: 'Fine' },
-      prevButtonProps: { children: 'Indietro' },
-    },
-  ];
-
   // Nuovo evento — modale + eventi aggiunti dall'utente (prependati alla timeline)
   const [newEventOpen, setNewEventOpen] = useState(false);
   const [extraEvents,  setExtraEvents]  = useState([]);
@@ -4601,13 +4537,6 @@ function ImpiantoDetailV2({ imp, onBack }) {
       ),
     ),
 
-    React.createElement(Tour, {
-      open: detailTourOpen,
-      onClose: closeDetailTour,
-      current: detailTourStep,
-      onChange: setDetailTourStep,
-      steps: detailTourSteps,
-    }),
   );
 }
 
@@ -5874,43 +5803,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       permitSciaManual: v.scia && typeof v.scia === 'object' ? v.scia : {},
     };
   }, [open]);
-
-  // ── Tour guidato alla prima apertura del form ──────────────────────────
-  const FORM_TOUR_KEY = 'grav-inv-tour-form-v1';
-  const [formTourOpen, setFormTourOpen] = React.useState(false);
-  const [formTourStep, setFormTourStep] = React.useState(0);
-  React.useEffect(() => {
-    if (open && !localStorage.getItem(FORM_TOUR_KEY)) {
-      const t = setTimeout(() => setFormTourOpen(true), 600);
-      return () => clearTimeout(t);
-    }
-  }, [open]);
-  const closeFormTour = () => { setFormTourOpen(false); localStorage.setItem(FORM_TOUR_KEY, '1'); };
-  const formTourSteps = [
-    {
-      title: 'Sezioni del form',
-      description: 'Il form è diviso in sezioni tematiche: naviga liberamente tra di esse. Le sezioni con * contengono campi obbligatori che devono essere compilati prima di poter salvare.',
-      target: () => document.getElementById('grav-tour-form-nav'),
-      placement: 'right',
-      nextButtonProps: { children: 'Avanti' },
-    },
-    {
-      title: 'Campi obbligatori',
-      description: 'Per creare l\'impianto servono: Canale, Tipologia, Formato, Via, Città e Stato. Tutti gli altri campi sono facoltativi e puoi compilarli in un secondo momento.',
-      target: () => document.getElementById('grav-tour-form-required'),
-      placement: 'right',
-      nextButtonProps: { children: 'Avanti' },
-      prevButtonProps: { children: 'Indietro' },
-    },
-    {
-      title: 'Salva l\'impianto',
-      description: 'Il tasto si attiva quando tutti i campi obbligatori sono compilati.',
-      target: () => document.getElementById('grav-tour-form-save'),
-      placement: 'bottomRight',
-      nextButtonProps: { children: 'Fine' },
-      prevButtonProps: { children: 'Indietro' },
-    },
-  ];
 
   // ── Localizzazione
   const [addrSuggs,   setAddrSuggs]   = useState([]);
@@ -8041,15 +7933,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       ),
     ),
 
-    // Tour guidato primo accesso al form
-    React.createElement(Tour, {
-      open: formTourOpen,
-      onClose: closeFormTour,
-      current: formTourStep,
-      onChange: (step) => { setFormTourStep(step); if (step === 1) setActiveSection('identita'); },
-      steps: formTourSteps,
-    }),
-
     // Modal "salva e collega" — proposto al salvataggio se ci sono impianti compatibili non ancora collegati
     React.createElement(Modal, {
       title: 'Collegare come moduli?', open: saveLinkOpen, rootClassName: 'grav-savelink-modal',
@@ -8108,49 +7991,6 @@ function App() {
   const [expandedIds,   setExpandedIds]   = useState(new Set());
   const [viewMode,           setViewMode]           = useState('map');
   const [activeTab,          setActiveTab]          = useState('tutti');
-
-  // ── Tour guidato al primo accesso ──────────────────────────────────────
-  const TOUR_MAIN_KEY = 'grav-inv-tour-main-v1';
-  const [tourMainOpen, setTourMainOpen] = React.useState(false);
-  const [tourMainStep, setTourMainStep] = React.useState(0);
-  React.useEffect(() => {
-    if (!localStorage.getItem(TOUR_MAIN_KEY)) {
-      const t = setTimeout(() => setTourMainOpen(true), 1000);
-      return () => clearTimeout(t);
-    }
-  }, []);
-  const closeTourMain = () => { setTourMainOpen(false); localStorage.setItem(TOUR_MAIN_KEY, '1'); };
-  const tourMainSteps = [
-    {
-      title: 'Benvenuto nel tuo Parco Impianti',
-      description: 'Questo modulo raccoglie tutti gli impianti del tuo parco. Puoi visualizzarli su mappa o in lista, filtrarli per ogni caratteristica e crearne di nuovi.',
-      nextButtonProps: { children: 'Avanti' },
-    },
-    {
-      title: 'Crea un nuovo impianto',
-      description: 'Apre il form di creazione. Puoi compilare solo le sezioni che conosci — i dati mancanti si possono aggiungere in seguito modificando l\'impianto.',
-      target: () => document.getElementById('grav-tour-new-btn'),
-      placement: 'bottomRight',
-      nextButtonProps: { children: 'Avanti' },
-      prevButtonProps: { children: 'Indietro' },
-    },
-    {
-      title: 'Cerca e filtra',
-      description: 'Cerca per zona o indirizzo. "Filtri avanzati" apre il pannello per filtrare per canale, tipologia, stato e molti altri criteri.',
-      target: () => document.getElementById('grav-tour-filter-bar'),
-      placement: 'bottom',
-      nextButtonProps: { children: 'Avanti' },
-      prevButtonProps: { children: 'Indietro' },
-    },
-    {
-      title: 'Vista mappa e lista',
-      description: 'Alterna tra mappa geolocalizzata — per capire la distribuzione territoriale — e lista tabulare con colonne personalizzabili.',
-      target: () => document.getElementById('grav-tour-view-toggle'),
-      placement: 'left',
-      nextButtonProps: { children: 'Fine' },
-      prevButtonProps: { children: 'Indietro' },
-    },
-  ];
 
   // ── Ricerca zona ──────────────────────────────────────
   const [searchQuery,    setSearchQuery]    = useState('');
@@ -8794,14 +8634,6 @@ function App() {
       values: draftFilters,
       onChange: setDraft,
       options: { allTypes: MACRO_TIPI, typeFormats: TIPO_FORMATI, allFormats: ALL_TIPO_FORMATI },
-    }),
-
-    React.createElement(Tour, {
-      open: tourMainOpen && page !== 'detail',
-      onClose: closeTourMain,
-      current: tourMainStep,
-      onChange: setTourMainStep,
-      steps: tourMainSteps,
     }),
 
     React.createElement(NewImpiantoFullDrawer, {
