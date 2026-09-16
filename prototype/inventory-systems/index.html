@@ -512,6 +512,13 @@
       right: 102px;
       z-index: 1051;
     }
+    body:has(#grav-tour-form-save) #ghf-nav-slot {
+      right: 272px;
+    }
+    /* Qualsiasi altro drawer (Aggiungi cespite, Concessioni, Squadre, Facce, Moduli, ecc.):
+       le larghezze vanno da ~420px a oltre metà schermo, troppo diverse per un valore
+       fisso — lo script a fine pagina misura il bordo sinistro reale del drawer aperto
+       e imposta `right` inline di conseguenza (vince in cascata su questa regola). */
   </style>
 </head>
 <body>
@@ -7649,8 +7656,30 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   if (window.__HANDOFF_ACTIVE) {
     setInterval(function () {
       var slot = document.getElementById('ghf-nav-slot');
-      if (slot && slot.parentElement !== document.body) {
+      if (!slot) return;
+      if (slot.parentElement !== document.body) {
         document.body.appendChild(slot);
+      }
+      // Drawer generico aperto (Aggiungi cespite, Concessioni, Squadre, Facce, Moduli...):
+      // il drawer "Nuovo/Modifica Impianto" ha già il suo posizionamento via CSS
+      // (body:has(#grav-tour-form-save)); per tutti gli altri le larghezze variano troppo
+      // (da ~420px a oltre metà schermo) per un valore fisso in CSS — misuriamo il bordo
+      // sinistro reale del drawer aperto e agganciamo la dev bar appena prima.
+      if (document.getElementById('grav-tour-form-save')) {
+        slot.style.right = '';
+        return;
+      }
+      var openDrawer = document.querySelector('.ant-drawer-open .ant-drawer-content');
+      if (openDrawer) {
+        var left = openDrawer.getBoundingClientRect().left;
+        var desired = window.innerWidth - left + 16;
+        // Drawer larghi (es. width:'70%' di Aggiungi Concessione/Autorizzazione) possono
+        // lasciare meno spazio a sinistra della larghezza della dev bar stessa: non farla
+        // uscire dal viewport, al massimo si appoggia al bordo sinistro.
+        var maxRight = window.innerWidth - slot.getBoundingClientRect().width - 8;
+        slot.style.right = Math.min(desired, maxRight) + 'px';
+      } else {
+        slot.style.right = '';
       }
     }, 300);
   }
