@@ -19,6 +19,7 @@
   };</script>
   <script src="../_shared/navbar.js"></script>
   <script src="../_shared/filter-drawer.js"></script>
+  <script src="../_shared/form-helpers.js"></script>
 
   <!-- Handoff loader — attiva il layer handoff (note di design + tour + interfaccia
        semplificata) SOLO con ?handoff=<versione>. Senza il parametro questo è il
@@ -1217,7 +1218,7 @@ const MAP_STYLES = [
 // Rendering marker/cluster forniti dal modulo condiviso GravityMap
 // (makeMarkerIcon, makeClusterSvg, getMarkerSize, clusterColor, markerSrc).
 
-function GoogleMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect, onMarkerClick, cardImp, onCardClose, onDetail, flyToTarget }) {
+function LeafletMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect, onMarkerClick, cardImp, onCardClose, onDetail, flyToTarget }) {
   const TIPO_ICON_MAP = {
     'Pensilina': ShopOutlined, 'Cartello': TagOutlined, 'Palina': GatewayOutlined, 'Fermata bus': CarOutlined,
     'Cassonetto': DeleteOutlined, 'Palo luce': BulbOutlined, 'Speciale OOH': ThunderboltOutlined, 'Speciale DOOH': ThunderboltOutlined, 'Palina butterfly': GatewayOutlined,
@@ -3134,13 +3135,7 @@ function FaceDrawer({ open, onClose, onSubmit, editInitial, plantLat, plantLng }
     fcTipo, fcSlot, fcCoordLock, fcLat, fcLng, fcOrient, fcCono, fcFormL, fcFormH,
     fcIllumStato, fcIllumMezzo, fcIllumNFaretti, fcIllumWatt, fcVendita, fcPrezzo, fcVisMarcia,
   }) !== JSON.stringify(snapshotRef.current);
-  const cs = (label, required, children) =>
-    React.createElement('div', { className: 'ni-field' },
-      React.createElement('div', { className: 'ni-label' }, label, required && React.createElement('span', { className: 'req' }, ' *')),
-      children);
-  const num = (val, set, props = {}) => React.createElement(InputNumber, { value: val, onChange: set, style: { width: '100%' }, placeholder: '—', ...props });
-  const sel = (val, set, opts, ph = 'Seleziona', props = {}) => React.createElement(Select, { value: val, onChange: set, options: opts, style: { width: '100%' }, placeholder: ph, allowClear: true, ...props });
-  const gapRow = (...f) => React.createElement('div', { style: { display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 16 } }, ...f);
+  const { cs, num, sel, gapRow } = window.GravityFormHelpers;
   const onFcIllumStato = (v) => { setFcIllumStato(v); if (v === 'Spento' || !v) { setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null); } else if (!(ILLUM_MEZZO_BY_STATO[v] || []).includes(fcIllumMezzo)) { setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null); } };
   const onFcIllumMezzo = (v) => { setFcIllumMezzo(v); if (v !== 'Faretti') { setFcIllumNFaretti(null); setFcIllumWatt(null); } };
   const toggleFcCoordLock = () => setFcCoordLock(prev => { const next = !prev; if (next) { setFcLat(plantLat || ''); setFcLng(plantLng || ''); } return next; });
@@ -3233,16 +3228,8 @@ function AssetDrawer({ open, onClose, onSubmit, editInitial, category }) {
     if (!editId) return;
     setAcModified(prev => { const eq = JSON.stringify(nv == null ? null : nv) === JSON.stringify(acOrigVals[key] == null ? null : acOrigVals[key]); const next = new Set(prev); if (eq) next.delete(key); else next.add(key); return next; });
   };
-  const cs = (label, required, children) =>
-    React.createElement('div', { className: 'ni-field' },
-      React.createElement('div', { className: 'ni-label' }, label, required && React.createElement('span', { className: 'req' }, ' *')),
-      children);
+  const { cs, num, sel, inp, dp, tagsInput } = window.GravityFormHelpers;
   const g2 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-2' }, ...f);
-  const inp = (val, set, ph = '—', extra = {}) => React.createElement(Input, { value: val, onChange: e => set(e.target.value), style: { width: '100%' }, placeholder: ph, ...extra });
-  const num = (val, set, props = {}) => React.createElement(InputNumber, { value: val, onChange: set, style: { width: '100%' }, placeholder: '—', ...props });
-  const sel = (val, set, opts, ph = 'Seleziona', props = {}) => React.createElement(Select, { value: val, onChange: set, options: opts, style: { width: '100%' }, placeholder: ph, allowClear: true, ...props });
-  const dp = (val, set) => React.createElement(DatePicker, { value: val, onChange: set, style: { width: '100%' }, placeholder: 'Seleziona data', format: 'DD/MM/YYYY' });
-  const tagsInput = (val, set, ph = 'Aggiungi e premi Invio') => React.createElement(Select, { mode: 'tags', value: val || [], onChange: set, style: { width: '100%' }, placeholder: ph, open: false, suffixIcon: null, tokenSeparators: [','] });
   const renderAssetField = (f) => {
     const set = (nv) => setAcVal(f.key, nv);
     const val = acVals[f.key];
@@ -3337,10 +3324,7 @@ function SquadraDrawer({ open, onClose, onSubmit, kind, editData }) {
     };
     return () => { delete window.__ghfSquadra; };
   });
-  const cs = (label, required, children) =>
-    React.createElement('div', { className: 'ni-field' },
-      React.createElement('div', { className: 'ni-label' }, label, required && React.createElement('span', { className: 'req' }, ' *')),
-      children);
+  const { cs } = window.GravityFormHelpers;
   const g2 = (...kids) => React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px' } }, ...kids);
   const save = () => {
     if (!row.squadra) return;
@@ -5962,14 +5946,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   // dell'ultimo salvataggio (in creazione, formSnapshotRef parte vuoto, quindi
   // qualunque campo compilato è "da salvare"), bordo primary (.input-modified)
   // finché non si salva.
+  const { cs: csBase, num, sel, inp, dp, tagsInput, gapRow } = window.GravityFormHelpers;
   const cs = (label, required, children, dirty) => {
     const modified = typeof dirty === 'boolean' ? dirty : !!dirty && JSON.stringify(dirtySnapshot[dirty]) !== JSON.stringify(savedSnapshot[dirty]);
-    return React.createElement('div', { className: 'ni-field' },
-      React.createElement('div', { className: 'ni-label' },
-        label, required && React.createElement('span', { className: 'req' }, ' *'),
-      ),
-      modified ? React.createElement('div', { className: 'input-modified' }, children) : children,
-    );
+    return csBase(label, required, modified ? React.createElement('div', { className: 'input-modified' }, children) : children);
   };
 
   // Section wrapper — mostra solo la sezione attiva
@@ -6010,8 +5990,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   // Grid helpers
   const g2 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-2' }, ...f);
-  // Riga flex: i campi stanno affiancati alla loro larghezza naturale, separati da un gap (non stirati su colonne)
-  const gapRow = (...f) => React.createElement('div', { style: { display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 16 } }, ...f);
   const g3 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-3' }, ...f);
   const g4 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-4' }, ...f);
   // Sotto-intestazione dentro un box (per raggruppare più sottosezioni in un'unica card)
@@ -6021,31 +5999,16 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       paddingTop: first ? 0 : 18, borderTop: first ? 'none' : '1px solid #F0F0F0' },
   }, t);
 
-  // Field helpers
-  const inp = (val, set, ph='—', extra={}) =>
-    React.createElement(Input, { value: val, onChange: e => set(e.target.value), style: { width: '100%' }, placeholder: ph, ...extra });
-  const num = (val, set, props={}) =>
-    React.createElement(InputNumber, { value: val, onChange: set, style: { width: '100%' }, placeholder: '—', ...props });
-  const sel = (val, set, opts, ph='Seleziona', props={}) =>
-    React.createElement(Select, { value: val, onChange: set, options: opts, style: { width: '100%' }, placeholder: ph, allowClear: true, ...props });
   // Campo a sola lettura compilato in automatico: stesso look di "Nome impianto" (borderless, allineato a sinistra)
   const autoText = (val, ph='Compilato in automatico', extra={}) =>
     React.createElement(Input, {
       value: val, readOnly: true, variant: 'borderless', className: 'readonly-input',
       tabIndex: -1, style: { cursor: 'default', paddingLeft: 0 }, placeholder: ph, ...extra,
     });
-  const dp = (val, set) =>
-    React.createElement(DatePicker, { value: val, onChange: set, style: { width: '100%' }, placeholder: 'Seleziona data', format: 'DD/MM/YYYY' });
   const sw = (val, set) =>
     React.createElement('div', { style: { paddingTop: 5 } },
       React.createElement(Switch, { checked: val, onChange: set, checkedChildren: 'Sì', unCheckedChildren: 'No' }),
     );
-  // Input multi-valore: digita e premi Invio (o virgola) per aggiungere più ID / numeri
-  const tagsInput = (val, set, ph='Aggiungi e premi Invio') =>
-    React.createElement(Select, {
-      mode: 'tags', value: val || [], onChange: set, style: { width: '100%' },
-      placeholder: ph, open: false, suffixIcon: null, tokenSeparators: [','],
-    });
 
   // ── Drawer Cespiti/Dispositivi: rende un campo a partire dalla sua definizione (ASSET_TYPES).
   // Il controllo è sempre editabile; se il campo è stato modificato dall'utente, bordo primary.
@@ -7723,7 +7686,7 @@ function App() {
       viewMode === 'map'
         ? React.createElement('div', { className: 'ooh-map-area' },
 
-            React.createElement(GoogleMap, {
+            React.createElement(LeafletMap, {
               impianti:         geocodedImpianti,
               highlightedId,
               selectedIds,
