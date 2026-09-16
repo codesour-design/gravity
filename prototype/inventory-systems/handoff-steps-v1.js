@@ -15,10 +15,13 @@
  *   ingombro calcolata) e configurazione di ciascuna faccia (tipo, slot,
  *   coordinate, orientamento, cono di visibilità, formato, illuminazione,
  *   dati commerciali).
- * - US#1.4 — Squadre, US#1.5 — Commerciale.
- * US#1.3 — Cespiti e dispositivi è stata rimossa da questa sprint: la sezione
- * resta nel form (tab "Cespiti e dispositivi" + relativi box/sotto-drawer)
- * solo come riferimento, marcata fuori sprint — vedi HANDOFF_OUT_OF_SPRINT.
+ * - US#1.4 — Squadre.
+ * US#1.3 — Cespiti e dispositivi e US#1.5 — Commerciale non sono nello scope
+ * di questa sprint, ma sono comunque richieste nel layout di GRP-622: tab e
+ * box restano nel form senza il trattamento "fuori sprint" (nessun outline/
+ * tag), il contenuto reale è sostituito da un placeholder "coming soon" — vedi
+ * HANDOFF_NOTES struttura-fuori-sprint-coming-soon/commerciale-fuori-sprint-
+ * coming-soon e HANDOFF_OUT_OF_SPRINT.
  * Il resto del Parco Impianti (mappa, lista, ricerca/filtri, gestione
  * tipologie/formati) e la scheda impianto esistente non hanno user story in
  * questo sprint — vedi HANDOFF_OUT_OF_SPRINT.
@@ -154,6 +157,78 @@ function ghfFillAnagraficaAtSection() {
   }
 }
 
+// Facce, Cespiti/Dispositivi e Moduli sono bloccati finché l'impianto non è stato
+// salvato almeno una volta in questa sessione (vedi HANDOFF_NOTES impianto-salvato-
+// prima-subentita) — le Squadre no, si possono collegare da subito: il pulsante
+// finale passa da "Crea Impianto" a "Salva impianto"/"Salva modifiche" (entrambi
+// contengono "Salva") non appena l'impianto viene salvato la prima volta.
+function ghfIsImpiantoSaved() {
+  var btn = document.getElementById('grav-tour-form-save');
+  return !!btn && /Salva/.test(btn.textContent);
+}
+// Compila SOLO i campi obbligatori ancora mancanti (Canale/Tipologia/Formato/Stato
+// sempre richiamabili, idempotenti — "prima opzione" della cascata corrente; Via/
+// Città SOLO se non è già stato compilato un indirizzo, es. da
+// ghfEnsureCaratteristicheSection via applyAddressExample()): a differenza di
+// ghfFillAnagrafica (pensata per un form vuoto) non deve sovrascrivere un
+// indirizzo più ricco — con lat/lng — già impostato da uno step precedente, o le
+// Facce perderebbero le coordinate da ereditare.
+function ghfFillAnagraficaMissing(cb) {
+  ghfCall(['__ghfIdentita', 'pickCanale']);
+  setTimeout(function () {
+    ghfCall(['__ghfIdentita', 'pickTipologia']);
+    setTimeout(function () {
+      ghfCall(['__ghfIdentita', 'pickFormato']);
+      setTimeout(function () {
+        ghfCall(['__ghfIdentita', 'pickStato']);
+        var api = window.__ghfIdentita;
+        if (api && !api.hasAddress) { api.setVia('Via Roma 12'); api.setCitta('Palermo'); }
+        ghfNudge();
+        cb && cb();
+      }, 250);
+    }, 250);
+  }, 250);
+}
+// Porta il form a uno stato "impianto salvato", creandolo davvero se serve
+// (campi obbligatori mancanti + click su "Crea Impianto") prima di richiamare
+// `cb` — passo preliminare condiviso da ogni demo che deve aprire un sotto-drawer
+// di sotto-entità. Idempotente: se è già salvato (o siamo in editMode) richiama
+// `cb` subito, senza toccare sezione attiva o campi già compilati.
+function ghfEnsureImpiantoSaved(cb) {
+  var afterOpen = function () {
+    if (ghfIsImpiantoSaved()) { cb && cb(); return; }
+    ghfFillAnagraficaMissing(function () {
+      setTimeout(function () { ghfClickSaveStay(cb); }, 300);
+    });
+  };
+  if (!ghfIsMainDrawerOpen()) {
+    ghfClick('#grav-tour-new-btn');
+    ghfWaitFor('#grav-tour-form-save', afterOpen, 900);
+  } else {
+    afterOpen();
+  }
+}
+// Il click su #grav-tour-form-save non salva più direttamente: apre un
+// Popconfirm ancorato a sé stesso che chiede se restare nel form o uscire
+// (vedi doSaveStay/doSaveAndExit in index.html) — "Crea/Salva e continua" è
+// cancelText (bottone default), "Crea ed Esci"/"Salva ed Esci" è okText
+// (bottone primary). Questi due helper scelgono l'una o l'altra risposta.
+function ghfClickSaveStay(cb) {
+  ghfClick('#grav-tour-form-save');
+  ghfWaitFor('.ant-popconfirm .ant-btn-default', function () {
+    ghfClick('.ant-popconfirm .ant-btn-default');
+    ghfWaitFor('#grav-tour-form-save', function () { ghfNudge(); cb && cb(); }, 900);
+  }, 900);
+}
+function ghfClickSaveExit(cb) {
+  ghfClick('#grav-tour-form-save');
+  ghfWaitFor('.ant-popconfirm .ant-btn-primary', function () {
+    ghfClick('.ant-popconfirm .ant-btn-primary');
+    ghfNudge();
+    cb && cb();
+  }, 900);
+}
+
 // ── Helper di navigazione — US#1.1 Iter autorizzativo (sezione del form di
 // creazione) — box() e boxX() non aggiungono classi/id propri: le card della
 // sezione si individuano per posizione, dentro #grav-tour-form-required.
@@ -207,25 +282,14 @@ function ghfOpenPermitDrawer(tipo, after) {
     });
   }, 900);
 }
-// Mostra il RISULTATO del collegamento (Tipo suolo valorizzato in sola
-// lettura) invece del form vuoto: se non c'è già una concessione collegata,
-// la collega davvero (prima utenza) prima di mostrare la sezione — così lo
-// step è autosufficiente indipendentemente da cosa è successo prima negli
-// step del drawer (che selezionano ma non sempre confermano, per mostrare
-// l'interazione senza vincolare la narrazione).
-function ghfEnsureConcessioneLinked(cb) {
+// Mostra il RISULTATO della compilazione manuale (Tipo suolo/Categoria suolo
+// valorizzati) invece del form vuoto — campi liberi, indipendenti da eventuali
+// concessioni/autorizzazioni collegate.
+function ghfFillSuoloExample(cb) {
   ghfEnsureIterSection(function () {
-    var api = window.__ghfIterPermessi;
-    if (!api || api.hasConcessione) { cb && cb(); return; }
-    api.openConcessioneDrawer();
-    ghfWaitFor('.ant-drawer-body', function () {
-      api.selectFirstUtenza();
-      setTimeout(function () {
-        window.__ghfIterPermessi.confirmPermit();
-        ghfNudge();
-        cb && cb();
-      }, 250);
-    });
+    if (window.__ghfIterPermessi) window.__ghfIterPermessi.fillSuoloExample();
+    ghfNudge();
+    cb && cb();
   });
 }
 
@@ -316,27 +380,32 @@ function ghfEnsureCaratteristicheSection(cb) {
 // saltando direttamente all'ultimo, "Commerciale", da "Indice").
 function ghfFillFacciaCompleta(cb) {
   ghfEnsureCaratteristicheSection(function () {
-    if (!ghfIsFaceDrawerOpen()) ghfCall(['__ghfCaratteristiche', 'openFace']);
-    ghfWaitFor('.grav-face-drawer .ant-drawer-body', function () {
-      var api = window.__ghfCaratteristiche;
-      if (api) {
-        api.pickFcTipo();
-        api.setFcVisMarciaExample();
-        api.setFcSlotExample();
-        api.unlockFcCoord();
-        api.setFcOrientExample();
-        api.setFcConoExample();
-        api.setFcFormatoExample();
-        api.pickIlluminato();
-        api.pickFaretti();
-        api.setFcIllumNFarettiExample();
-        api.setFcIllumWattExample();
-        api.setFcVenditaExample();
-        api.setFcPrezzoExample();
-      }
-      ghfNudge();
-      cb && cb();
-    }, 900);
+    // Aggiungi Faccia è bloccato finché l'impianto non è salvato (vedi
+    // HANDOFF_NOTES impianto-salvato-prima-subentita): lo salva se serve, senza
+    // toccare l'indirizzo appena compilato da ghfEnsureCaratteristicheSection.
+    ghfEnsureImpiantoSaved(function () {
+      if (!ghfIsFaceDrawerOpen()) ghfCall(['__ghfCaratteristiche', 'openFace']);
+      ghfWaitFor('.grav-face-drawer .ant-drawer-body', function () {
+        var api = window.__ghfCaratteristiche;
+        if (api) {
+          api.pickFcTipo();
+          api.setFcVisMarciaExample();
+          api.setFcSlotExample();
+          api.unlockFcCoord();
+          api.setFcOrientExample();
+          api.setFcConoExample();
+          api.setFcFormatoExample();
+          api.pickIlluminato();
+          api.pickFaretti();
+          api.setFcIllumNFarettiExample();
+          api.setFcIllumWattExample();
+          api.setFcVenditaExample();
+          api.setFcPrezzoExample();
+        }
+        ghfNudge();
+        cb && cb();
+      }, 900);
+    });
   });
 }
 // Mostra il RISULTATO di "Aggiungi": compila la faccia e la salva davvero (il
@@ -380,6 +449,8 @@ function ghfEnsureTipologiaGuardModal(cb) {
 var SQ_CARD_AFFISSIONE   = '#grav-tour-form-required > div > div:nth-child(2)'; // Affissione
 var SQ_CARD_MANUTENZIONE = '#grav-tour-form-required > div > div:nth-child(3)'; // Manutenzione
 function ghfFillSquadra(addBtnSelector, fillFn, cb) {
+  // A differenza di Facce/Cespiti/Moduli, "Collega squadra" non richiede l'impianto
+  // già salvato: si può aprire il sotto-drawer da subito.
   ghfEnsureSubdrawerOpen('affissione', addBtnSelector, 'grav-cespite-drawer', function () {
     ghfWaitFor('.grav-squadra-drawer .ant-drawer-body', function () {
       if (window.__ghfSquadra && fillFn) window.__ghfSquadra[fillFn]();
@@ -399,29 +470,9 @@ function ghfSaveSquadraNow(cb) {
   }, 250);
 }
 
-// ── Helper di navigazione — US#1.5 Commerciale (sezione "commerciale" del
-// form di creazione) — sec('commerciale', ...) ha tre box: "Identità
-// commerciale", "Modello commerciale" e "Moduli". Il collegamento moduli
-// filtra per canale/tipologia/formato correnti: la cascata va compilata prima
-// di aprire il drawer, altrimenti propone l'intero catalogo IMPIANTI.
-var COM_CARD_IDENTITA = '#grav-tour-form-required > div > div:nth-child(2)'; // Identità commerciale
-var COM_CARD_MODELLO  = '#grav-tour-form-required > div > div:nth-child(3)'; // Modello commerciale
-var COM_CARD_MODULI   = '#grav-tour-form-required > div > div:nth-child(4)'; // Moduli
-function ghfEnsureCommercialeReady(cb) {
-  ghfEnsureOpenAtSection('identita');
-  setTimeout(function () {
-    ghfCall(['__ghfIdentita', 'pickCanale']);
-    setTimeout(function () {
-      ghfCall(['__ghfIdentita', 'pickTipologia']);
-      setTimeout(function () {
-        ghfCall(['__ghfIdentita', 'pickFormato']);
-        ghfClick('[data-section="commerciale"]');
-        ghfNudge();
-        cb && cb();
-      }, 250);
-    }, 250);
-  }, 200);
-}
+// US#1.5 Commerciale (sezione "commerciale") è fuori sprint da questa versione:
+// il tour dedicato e i suoi helper (COM_CARD_IDENTITA/MODULI, ghfEnsureCommercialeReady)
+// sono stati rimossi — vedi HANDOFF_OUT_OF_SPRINT.
 
 window.HANDOFF_META = {
   title: 'Inventory — Impianti',
@@ -447,6 +498,14 @@ window.HANDOFF_META = {
 // Elementi FUORI SPRINT: presenti nel prototipo (mappa/lista già toccano la
 // scheda impianto per aprirla) ma senza user story in questo sprint — solo la
 // creazione (GRP-622) è in scope. Il motore li evidenzia quando il toggle è attivo.
+// `empty: true`: solo sulle AREE (box/sezioni/drawer/modal interi, non singoli
+// campi/pulsanti/colonne) DENTRO al drawer di creazione/modifica impianto — al
+// posto del solo outline tratteggiato, il motore nasconde il contenuto reale e
+// mostra al suo posto un empty state con l'astronauta "coming soon" (nota
+// dell'entry come descrizione). Disattivando il toggle torna il contenuto
+// reale, così com'è costruito. Fuori dal form di creazione (scheda impianto,
+// mappa/lista del Parco Impianti, drawer Filtri avanzati) resta solo il
+// trattamento a outline tratteggiato, senza empty state.
 // ════════════════════════════════════════════════════════════════════════════
 window.HANDOFF_OUT_OF_SPRINT = [
   // Scheda impianto (ImpiantoDetailV2): dettaglio, modifica per sezione, storico eventi —
@@ -461,39 +520,41 @@ window.HANDOFF_OUT_OF_SPRINT = [
   // Colonna "Codice Cimasa" nella tabella utenze del drawer Concessione — sospesa,
   // non esiste nell'anagrafica reale delle utenze (vedi nota iter-cimasa-sospeso).
   { selector: '.grav-cimasa-col', note: 'Fuori sprint — colonna "Codice Cimasa" sospesa: non esiste nell\'anagrafica reale delle utenze, non implementarla in questa forma finché il design non chiarisce il destino del campo' },
-  // Intera sezione "Moduli" (box + pulsanti "Collega impianto" + eventuali card
-  // collegate) — TASK DSN P0: oltre alla disponibilità già in creazione (fuori
-  // scope finché non si chiude il capitolo 4), il selettore ha anche un bug di
-  // fondo che lo rende di fatto inutilizzabile (formato cascata disallineato
-  // dagli impianti censiti) e manca la distanza richiesta dal criterio — l'intera
-  // funzionalità resta quindi fuori sprint, visibile solo come riferimento del
-  // comportamento target (vedi note commerciale-moduli-*).
-  // Nota: qui NON si usa COM_CARD_MODULI (selettore posizionale nth-child) perché
-  // #grav-tour-form-required è lo stesso contenitore riusato da ogni sezione del
-  // form — un selettore per indice di posizione combacia anche con il box di
-  // un'ALTRA sezione quando quella è quella attiva (qui collideva con "Titolo a
-  // installare" in Iter autorizzativo, marcandolo fuori sprint per errore).
-  // .grav-moduli-box è una classe dedicata sul box Moduli, stabile a prescindere
-  // da quale sezione è renderizzata in quel momento.
-  { selector: '.grav-moduli-box', note: 'Fuori sprint — l\'intera sezione Moduli: disponibilità in creazione fuori scope (TASK DSN P0, capitolo 4 da chiudere), selettore con formato disallineato dagli impianti censiti e senza distanza. Visibile solo come riferimento del comportamento target, non da realizzare ora' },
-  // "Se venduto a moduli, applica uno sconto del __%" (box Modello commerciale) —
-  // ha senso solo se esiste il concetto di modulo collegato: stesso motivo del
-  // box Moduli, stessa esclusione.
-  { selector: '.grav-sconto-moduli-row', note: 'Fuori sprint — lo sconto "se venduto a moduli" dipende dal concetto di modulo collegato, esso stesso fuori sprint: non ha senso implementarlo prima' },
+  // Sezione "Commerciale" (US#1.5, GRP-631) — il contenuto reale (Identità
+  // commerciale, Modello commerciale, Moduli) non è nello scope di questa
+  // sprint, MA la sezione va comunque inserita nel layout di GRP-622 con il
+  // placeholder "coming soon" al posto dei campi: non è quindi marcata come
+  // "fuori sprint" (nessun outline/tag sulla tab o sulle card, vedi invece la
+  // nota di design sulla tab) — solo il CONTENUTO di ogni box (`-empty`,
+  // `noOutline: true`) mostra l'empty state "coming soon", con copy rivolta a
+  // chi userà il prodotto. Disattivando "Interfaccia semplificata" si vede
+  // comunque il contenuto reale così com'è progettato (riferimento per una
+  // sprint futura, vedi note commerciale-moduli-* e
+  // facce-prezzo-spostamento-modello-commerciale).
+  { selector: '.grav-commerciale-identita-empty', empty: true, noOutline: true, emptyDesc: 'Qui racconterai il lato commerciale del tuo impianto: alias, circuiti di vendita, punteggio di qualità e una galleria di foto tutta sua.' },
+  { selector: '.grav-modello-commerciale-empty', empty: true, noOutline: true, emptyDesc: 'Qui imposterai il modello di vendita e il listino prezzi dell\'impianto, con il calcolo dell\'IVA già pronto per te.' },
+  { selector: '.grav-moduli-empty', empty: true, noOutline: true, emptyDesc: 'Qui potrai collegare altri impianti simili al tuo, per venderli insieme come un unico spazio.' },
+  // "Prezzo faccia" (sezione Dati tecnici, drawer Faccia) — destinato a
+  // spostarsi nel box Modello commerciale (US#1.5, fuori sprint): vedi nota
+  // facce-prezzo-spostamento-modello-commerciale per i dettagli concordati col team.
+  { selector: '.grav-facce-prezzo-field', note: 'Fuori sprint — campo "Prezzo faccia": in attesa di spostamento nel pannello Modello commerciale, vedi nota di design collegata' },
   // Drawer "Collega impianto" (selezione impianti compatibili da collegare) —
-  // stessa esclusione della sezione Moduli che lo apre.
-  { selector: '.grav-moduli-drawer .ant-drawer-content', note: 'Fuori sprint — drawer di selezione moduli: stessa esclusione della sezione Moduli (TASK DSN P0)' },
-  // Modal "Collegare come moduli?" proposta automaticamente al salvataggio —
-  // altro punto di ingresso alla stessa funzionalità fuori scope in creazione.
-  { selector: '.grav-savelink-modal .ant-modal-content', note: 'Fuori sprint — proposta di collegamento moduli al salvataggio: altro punto di ingresso a Moduli in creazione, fuori scope (TASK DSN P0)' },
+  // stessa esclusione della sezione Commerciale che lo apre.
+  { selector: '.grav-moduli-drawer .ant-drawer-content', empty: true, note: 'Fuori sprint — drawer di selezione moduli: stessa esclusione della sezione Commerciale (US#1.5)' },
+  // Modal "Collegare come moduli?" proposta al salvataggio (solo su un impianto
+  // già salvato, mai al primo — vedi HANDOFF_NOTES impianto-salvato-prima-
+  // subentita) — altro punto di ingresso alla stessa funzionalità fuori scope.
+  { selector: '.grav-savelink-modal .ant-modal-content', empty: true, note: 'Fuori sprint — proposta di collegamento moduli al salvataggio: altro punto di ingresso alla sezione Commerciale, fuori scope' },
 
-  // Sezione "Cespiti e dispositivi" (US#1.3, GRP-628) — rimossa da questa
-  // sprint: tab del form, box Cespiti/Dispositivi e sotto-drawer di aggiunta
-  // restano nel prototipo solo come riferimento del comportamento già
-  // costruito, non da considerare in scope per lo sviluppo reale.
-  { selector: '[data-section="struttura"]', note: 'Fuori sprint — tab "Cespiti e dispositivi": US#1.3 (GRP-628) rimossa da questa sprint' },
-  { selector: '.grav-struttura-box', note: 'Fuori sprint — l\'intera sezione Cespiti e dispositivi (box Cespiti, box Dispositivi, accordion, pulsanti Aggiungi): US#1.3 (GRP-628) rimossa da questa sprint, visibile solo come riferimento' },
-  { selector: '.grav-cespite-drawer .ant-drawer-content', note: 'Fuori sprint — sotto-drawer di aggiunta Cespite/Dispositivo: stessa esclusione della sezione Cespiti e dispositivi (US#1.3)' },
+  // Sezione "Cespiti e dispositivi" (US#1.3, GRP-628) — stesso trattamento
+  // della sezione Commerciale qui sopra: il contenuto reale non è nello scope
+  // di questa sprint, ma la sezione va comunque inserita nel layout di GRP-622
+  // con il placeholder "coming soon" (vedi nota di design sulla tab) — nessun
+  // outline/tag "fuori sprint" su tab o card, solo `-empty`/`noOutline` sul
+  // contenuto di ogni box.
+  { selector: '.grav-cespiti-empty', empty: true, noOutline: true, emptyDesc: 'Qui censirai i componenti strutturali del tuo impianto: fondazione, pali, cornice e altro ancora.' },
+  { selector: '.grav-dispositivi-empty', empty: true, noOutline: true, emptyDesc: 'Qui registrerai i dispositivi connessi montati sull\'impianto: player, sensori, telecamere e molto altro.' },
+  { selector: '.grav-cespite-drawer .ant-drawer-content', empty: true, note: 'Fuori sprint — sotto-drawer di aggiunta Cespite/Dispositivo: stessa esclusione della sezione Cespiti e dispositivi (US#1.3)' },
 
   // ── Parco Impianti (schermata "lista"): tutto ciò che ci si vede è fuori
   // sprint, TRANNE il pulsante "Nuovo Impianto" e il suo drawer di creazione
@@ -586,23 +647,54 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Sezione 3 — Dati tecnici',
-        description: 'Misure fisiche del pannello (larghezza, altezza, profondità — l\'area espositiva si **calcola in automatico**) ed esposizione del sito. In fondo alla sezione, le **Facce** dell\'impianto si aggiungono una alla volta con lo stesso pattern che vedremo tra poco per Squadre.',
+        description: 'Misure fisiche del pannello (larghezza, altezza, profondità — l\'area espositiva si **calcola in automatico**) ed esposizione del sito. In fondo alla sezione, le **Facce** dell\'impianto si aggiungono una alla volta — ==disponibili solo dopo aver salvato l\'impianto== (a differenza delle Squadre, collegabili da subito, vedi più avanti).',
         selector: '#grav-tour-form-required',
         placement: 'right',
         onEnter: function () { ghfEnsureOpenAtSection('caratteristiche'); },
         delay: 500,
       },
       {
-        title: 'Sezione 5 — Squadre',
-        description: 'Squadre di affissione e di manutenzione assegnate di default all\'impianto. Stesso pattern add-one-at-a-time: "Aggiungi squadra" apre un sotto-drawer con un solo record da compilare.',
-        selector: '#grav-tour-add-squadra-btn',
-        placement: 'left',
-        onEnter: function () { ghfEnsureOpenAtSection('affissione'); },
-        delay: 500,
+        title: 'Crea l\'impianto: la scelta "resta o esci"',
+        description: 'Con i 6 campi obbligatori dell\'Anagrafica compilati, il pulsante finale è ora **attivo davvero**: cliccandolo compare un **Popconfirm** ancorato al pulsante (mai una Modal a schermo intero — LAYOUT.md §6.6) che chiede se restare nel form o uscire. **"Crea e continua"** crea subito l\'impianto ma non chiude il drawer; **"Crea ed Esci"** crea e torna subito al Parco Impianti — entrambe le scelte dichiarano esplicitamente il salvataggio, non solo l\'uscita.',
+        selector: '.ant-popconfirm',
+        placement: 'bottom',
+        onEnter: function () {
+          var openAndFill = function () {
+            if (ghfIsImpiantoSaved()) { ghfClick('#grav-tour-form-save'); ghfNudge(); return; }
+            ghfFillAnagraficaMissing(function () { setTimeout(function () { ghfClick('#grav-tour-form-save'); ghfNudge(); }, 200); });
+          };
+          if (!ghfIsMainDrawerOpen()) {
+            ghfClick('#grav-tour-new-btn');
+            ghfWaitFor('#grav-tour-form-save', openAndFill, 900);
+          } else {
+            openAndFill();
+          }
+        },
+        delay: 1600,
+        dev: [{ label: 'Campi obbligatori', value: 'Canale · Tipologia · Formato · Via · Città · Stato\n(disabled finché canSave === false — qui tutti compilati)' }],
       },
       {
-        title: 'Selezione squadra',
-        description: 'Scegliendo la squadra dall\'anagrafica (qui la prima disponibile, codice + nome, ricercabile) si sbloccano i campi successivi — tipo di affissione e costi per l\'affissione, tipo di intervento e oggetto per la manutenzione.',
+        title: '"Crea e continua": resta nel form, si sblocca',
+        description: 'Scegliendo **"Crea e continua"**, l\'impianto viene creato subito con i dati inseriti finora, ma il drawer **resta aperto** — da qui si possono aggiungere Facce, Cespiti, Squadre e Moduli nella stessa sessione. Il pulsante diventa **"Salva impianto"** e si **spegne di nuovo** finché non arriva una modifica successiva (nessun cambiamento reale da salvare).',
+        selector: '#grav-tour-form-save',
+        placement: 'bottomRight',
+        onEnter: function () {
+          if (ghfIsImpiantoSaved()) return;
+          // Se il Popconfirm è già aperto (step precedente), risolverlo qui
+          // direttamente: ri-cliccare il pulsante lo chiuderebbe soltanto,
+          // invece di riaprirlo (Popconfirm apre/chiude al click sul trigger).
+          if (document.querySelector('.ant-popconfirm .ant-btn-default')) {
+            ghfClick('.ant-popconfirm .ant-btn-default');
+            ghfWaitFor('#grav-tour-form-save', function () { ghfNudge(); }, 900);
+            return;
+          }
+          ghfEnsureImpiantoSaved();
+        },
+        delay: 700,
+      },
+      {
+        title: 'Squadre: sempre collegabili, anche prima di salvare',
+        description: 'A differenza di Facce, Cespiti/Dispositivi e Moduli, "Collega squadra" è **sempre attivo**, anche se l\'impianto non è stato ancora salvato. Scegliendo la squadra dall\'anagrafica (qui la prima disponibile, codice + nome, ricercabile) si sbloccano i campi successivi — tipo di affissione e costi per l\'affissione, tipo di intervento e oggetto per la manutenzione.',
         selector: '.grav-squadra-drawer .ant-select',
         placement: 'left',
         onEnter: function () {
@@ -611,8 +703,8 @@ window.HANDOFF_TOURS = [
         delay: 900,
       },
       {
-        title: 'Aggiungi la squadra',
-        description: 'Il pulsante "Aggiungi" resta spento finché non si seleziona una squadra; una volta scelta, registra **davvero una sola squadra** e richiude il sotto-drawer. Nota: a differenza del drawer Cespiti, questo non ha un pulsante "Annulla" esplicito — si chiude con la ✕ in alto.',
+        title: 'Collega la squadra',
+        description: 'Il pulsante "Collega" resta spento finché non si seleziona una squadra; una volta scelta, registra **davvero una sola squadra** e richiude il sotto-drawer. Nota: a differenza del drawer Cespiti, questo non ha un pulsante "Annulla" esplicito — si chiude con la ✕ in alto.',
         selector: '.grav-squadra-drawer .ant-btn-primary',
         placement: 'left',
         onEnter: function () {
@@ -621,8 +713,8 @@ window.HANDOFF_TOURS = [
         delay: 900,
       },
       {
-        title: 'Aggiunta: ora è una card',
-        description: '"Aggiungi" registra la squadra e torna alla sezione, ora con la sua **card** (squadra, tipo di affissione, costi) — qui sì una card, non un accordion: i campi di una squadra sono sempre gli stessi, quindi un formato fisso funziona. Stesso pattern di apertura/salvataggio di Cespiti e Dispositivi: si ripete per ogni squadra da assegnare.',
+        title: 'Collegata: ora è una card',
+        description: '"Collega" registra la squadra e torna alla sezione, ora con la sua **card** (squadra, tipo di affissione, costi) — qui sì una card, non un accordion: i campi di una squadra sono sempre gli stessi, quindi un formato fisso funziona. Stesso pattern di apertura/salvataggio di Cespiti e Dispositivi: si ripete per ogni squadra da assegnare.',
         selector: '#grav-tour-form-required',
         placement: 'right',
         onEnter: function () {
@@ -646,16 +738,20 @@ window.HANDOFF_TOURS = [
         dev: [{ label: 'Pattern', value: "DiscardButton + DiscardCloseIcon (LAYOUT.md §6.6)\nokButtonProps: { danger: true } · cancelText di default" }],
       },
       {
-        title: 'Crea l\'impianto',
-        description: 'Con i 6 campi obbligatori dell\'Anagrafica compilati, il pulsante finale è ora **attivo davvero**: cliccandolo l\'impianto viene creato con tutti i dati inseriti in questa demo (identità e squadra appena aggiunti) e si torna al Parco Impianti.',
+        title: 'Salva ed Esci: si chiude davvero',
+        description: 'L\'impianto esiste già da qualche step: il pulsante mostra **"Salva impianto"** invece di "Crea Impianto". Cliccandolo compare di nuovo il Popconfirm — qui scegliamo **"Salva ed Esci"** (invece di "Salva e continua"): salva anche la squadra appena aggiunta, chiude davvero il drawer e torna al Parco Impianti.',
         selector: '#grav-tour-form-save',
         placement: 'bottomRight',
         onEnter: function () {
           ghfClick('.ant-popconfirm .ant-btn-default');
-          ghfEnsureOpen();
+          ghfEnsureImpiantoSaved(function () {
+            // Se l'impianto era già stato creato da uno step precedente in questa
+            // stessa sequenza, ghfEnsureImpiantoSaved (idempotente) non clicca
+            // nulla: l'uscita esplicita va comunque dimostrata qui.
+            if (ghfIsMainDrawerOpen()) { ghfClickSaveExit(); }
+          });
         },
-        delay: 500,
-        dev: [{ label: 'Campi obbligatori', value: 'Canale · Tipologia · Formato · Via · Città · Stato\n(disabled finché canSave === false — qui tutti compilati)' }],
+        delay: 700,
       },
     ],
   },
@@ -675,13 +771,13 @@ window.HANDOFF_TOURS = [
         delay: 700,
       },
       {
-        title: 'Cascata Canale → Tipologia → Formato',
-        description: '**Canale** è il primo campo (OOH/DOOH), obbligatorio. **Tipologia** resta disabilitata finché Canale è vuoto, e mostra solo le tipologie di quel canale, raggruppate per famiglia (intestazione non selezionabile) e ricercabili per testo. **Formato** resta disabilitato finché Tipologia è vuota, e propone solo i formati di quella tipologia. Cambiando Canale si azzerano Tipologia e Formato; cambiando Tipologia si azzera Formato.',
+        title: 'Canale, Tipologia e Formato: campi liberi e ricercabili',
+        description: '**Canale**, **Tipologia** e **Formato** sono tutti compilabili in qualsiasi ordine, con ricerca testuale su Tipologia e Formato. Selezionando prima il **Canale**, Tipologia e Formato si filtrano automaticamente alle sole opzioni coerenti. Selezionando invece Tipologia (o Formato) senza aver ancora scelto il Canale, questo si auto-compila di conseguenza — stessa logica in senso inverso: un Formato scelto prima della Tipologia ne deduce una compatibile. Cambiando Canale si azzerano Tipologia e Formato; cambiando Tipologia si azzera Formato.',
         selector: AN_ROW_CANALE_TIPOLOGIA,
         placement: 'bottom',
         onEnter: function () { ghfFillCascata(); },
         delay: 1200,
-        dev: [{ label: 'Opzioni', value: 'Tipologia: Select grouped (OptGroup) da MACRO_TIPI_PER_CANALE[canale], showSearch\nFormato: Select da FORMATI_PER_TIPO[tipologia]' }],
+        dev: [{ label: 'Opzioni', value: 'Tipologia: Select grouped (OptGroup), showSearch, nessun disabled — MACRO_TIPI_PER_CANALE[canale] se canale scelto, altrimenti MACRO_TIPI (tutti)\nFormato: Select showSearch, nessun disabled — FORMATI_PER_TIPO[tipologia] se tipologia scelta, altrimenti unione formati del canale (o di tutti)\nAuto-fill inverso: TIPOLOGIA_TO_CANALE / FORMATO_TO_TIPOLOGIE' }],
       },
       {
         title: 'Nome impianto generato automaticamente',
@@ -755,6 +851,26 @@ window.HANDOFF_TOURS = [
         dev: [{ label: 'Componente', value: 'GrantsAccordion — Input ricerca + Collapse (AntD) + Pagination, riusato identico nel dettaglio impianto' }],
       },
       {
+        title: 'Concessione con Utenza/Cimasa già inseriti: avviso di sovrascrittura',
+        description: 'Selezionando una concessione la cui utenza ha **sia Numero Utenza sia Codice Cimasa**, se questi due campi in "Iter autorizzativo" sono **già stati compilati a mano** (qui simulato), il pulsante "Aggiungi" apre questa Modale invece di collegare subito: mostra il confronto **valore attuale → nuovo valore** per entrambi i campi. ==Non è un\'azione distruttiva==: nessun pulsante "danger", solo "Annulla" e "Sovrascrivi e collega" in stile neutro. ==Nessun avviso== se Utenza/Cimasa sono vuoti, o se la concessione non possiede entrambi i dati.',
+        selector: '.ant-modal-content',
+        placement: 'bottom',
+        onEnter: function () {
+          ghfOpenPermitDrawer('concessione', function () {
+            if (window.__ghfIterPermessi) {
+              window.__ghfIterPermessi.fillUtenzaCimasaExample();
+              window.__ghfIterPermessi.selectFirstUtenza();
+            }
+            ghfWaitFor('#grav-tour-permit-add-btn', function () {
+              ghfClick('#grav-tour-permit-add-btn');
+              ghfNudge();
+            }, 700);
+          });
+        },
+        delay: 1300,
+        dev: [{ label: 'Componente', value: 'Modal (AntD) — footer custom con Annulla/Sovrascrivi e collega, nessuno stile "danger": sostituire un valore con uno corretto e coerente non è un\'azione distruttiva' }],
+      },
+      {
         title: 'Colonna "Codice Cimasa": in sospeso',
         description: 'La tabella utenze mostra anche "Codice Cimasa" — non ci sono azioni da fare qui, il dettaglio è nella nota sulla colonna stessa (vedi icona note).',
         selector: '.ant-collapse-content-box',
@@ -792,11 +908,11 @@ window.HANDOFF_TOURS = [
         dev: [{ label: 'Componente', value: 'AuthorizationsList — Input ricerca + Switch "Mostra solo i selezionati" + Checkbox multiple' }],
       },
       {
-        title: 'Suolo e canone: valorizzato dal collegamento',
-        description: 'Quando si collega una concessione, **Tipo suolo** si valorizza in sola lettura da essa (Pubblico/Privato) — **Categoria suolo** resta invece a compilazione manuale. ==Qui la concessione è già stata collegata== (se non lo era ancora) per mostrare il campo davvero valorizzato, non solo il placeholder "Collega una concessione".',
+        title: 'Suolo e canone: campi liberi',
+        description: '**Tipo suolo** e **Categoria suolo** sono entrambi a compilazione manuale, indipendenti da quali concessioni o autorizzazioni sono collegate sopra. ==Qui compilati con dati di esempio== per mostrare il risultato invece del placeholder "Seleziona".',
         selector: CF_SUOLO_ROW,
         placement: 'bottom',
-        onEnter: function () { ghfEnsureConcessioneLinked(); },
+        onEnter: function () { ghfFillSuoloExample(); },
         delay: 700,
       },
       {
@@ -851,11 +967,11 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Facce: nessun limite legato alla tipologia',
-        description: 'Le facce non dipendono più dalla tipologia selezionata: il contatore in alto mostra solo il numero di facce create, senza un massimo, e "Aggiungi Faccia" resta sempre attivo — se ne possono creare quante servono. Cambiando canale, tipologia o formato dopo aver già creato delle facce, un avviso informa che verranno tutte rimosse e andranno ricreate. Stesso pattern "aggiungi un elemento alla volta" di Cespiti/Dispositivi/Squadre — qui la faccia aggiunta compare come **card**, non accordion (i campi sono sempre gli stessi).',
+        description: 'Le facce non dipendono più dalla tipologia selezionata: il contatore in alto mostra solo il numero di facce create, senza un massimo — se ne possono creare quante servono, una volta salvato l\'impianto (=="Aggiungi Faccia" è disabilitato prima==, stesso motivo di Cespiti/Dispositivi/Moduli — vedi GRP-622). Cambiando canale, tipologia o formato dopo aver già creato delle facce, un avviso informa che verranno tutte rimosse e andranno ricreate. Stesso pattern "aggiungi un elemento alla volta" — qui la faccia aggiunta compare come **card**, non accordion (i campi sono sempre gli stessi).',
         selector: CT_CARD_FACCE,
         placement: 'top',
-        onEnter: function () { ghfEnsureCaratteristicheSection(); },
-        delay: 1000,
+        onEnter: function () { ghfEnsureCaratteristicheSection(function () { ghfEnsureImpiantoSaved(); }); },
+        delay: 1300,
       },
       {
         title: 'Drawer faccia: tipo, visibilità, slot',
@@ -893,7 +1009,7 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Commerciale: sempre modificabile',
-        description: '**Modello di vendita** (Standard/Long term) e **Prezzo faccia** restano **sempre compilabili**, anche per una faccia posteriore collegata (dove invece posizione, dimensioni, slot e orientamento sono guidati dall\'anteriore e disabilitati) — a differenza di tutti gli altri campi di questo drawer.',
+        description: '**Modello di vendita** (Standard/Long term) e **Prezzo faccia** restano **sempre compilabili**, anche per una faccia posteriore collegata (dove invece posizione, dimensioni, slot e orientamento sono guidati dall\'anteriore e disabilitati) — a differenza di tutti gli altri campi di questo drawer. ==Prezzo faccia è fuori sprint==: destinato a spostarsi nel pannello Modello commerciale, vedi icona nota.',
         selector: FD_ROW_COMMERCIALE,
         placement: 'left',
         onEnter: function () { ghfFillFacciaCompleta(); },
@@ -931,7 +1047,7 @@ window.HANDOFF_TOURS = [
     steps: [
       {
         title: 'Punto di ingresso: sezione "Squadre"',
-        description: 'Quinta sezione del form di creazione: squadre di affissione (con i relativi costi) e di manutenzione assegnate di default all\'impianto.',
+        description: 'Quinta sezione del form di creazione: squadre di affissione (con i relativi costi) e di manutenzione assegnate di default all\'impianto. ==A differenza di Facce, Cespiti/Dispositivi e Moduli==, "Collega squadra" è sempre attivo: non richiede l\'impianto già salvato — vedi GRP-622.',
         selector: '[data-section="affissione"]',
         placement: 'right',
         onEnter: function () { ghfEnsureOpenAtSection('affissione'); },
@@ -939,7 +1055,7 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Affissione: empty state',
-        description: '"Nessuna squadra di affissione assegnata" — "Aggiungi squadra" apre il sotto-drawer dedicato, stesso pattern "aggiungi un elemento alla volta" di Cespiti/Dispositivi/Facce.',
+        description: '"Nessuna squadra di affissione assegnata" — "Collega squadra" apre il sotto-drawer dedicato, stesso pattern "aggiungi un elemento alla volta" di Cespiti/Dispositivi/Facce.',
         selector: SQ_CARD_AFFISSIONE,
         placement: 'right',
         onEnter: function () { ghfEnsureOpenAtSection('affissione'); },
@@ -956,7 +1072,7 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Più squadre di affissione',
-        description: 'Ogni "Aggiungi" salva davvero la squadra e richiude il drawer: qui **due squadre** assegnate per mostrare che se ne possono aggiungere più di una. Il menu (⋮) di ogni card offre però solo **Rimuovi**.',
+        description: 'Ogni "Collega" salva davvero la squadra e richiude il drawer: qui **due squadre** assegnate per mostrare che se ne possono aggiungere più di una. Il menu (⋮) di ogni card offre però solo **Rimuovi**.',
         selector: SQ_CARD_AFFISSIONE,
         placement: 'right',
         onEnter: function () {
@@ -991,7 +1107,7 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Più squadre di manutenzione',
-        description: 'Come per l\'affissione, si ripete "Aggiungi squadra" per ognuna — qui **due squadre** di manutenzione assegnate. Il menu (⋮) offre solo **Rimuovi**: coerente con il criterio di accettazione, che per la manutenzione richiede solo "eliminabile" (non "modificabile").',
+        description: 'Come per l\'affissione, si ripete "Collega squadra" per ognuna — qui **due squadre** di manutenzione assegnate. Il menu (⋮) offre solo **Rimuovi**: coerente con il criterio di accettazione, che per la manutenzione richiede solo "eliminabile" (non "modificabile").',
         selector: SQ_CARD_MANUTENZIONE,
         placement: 'right',
         onEnter: function () {
@@ -1004,119 +1120,6 @@ window.HANDOFF_TOURS = [
           });
         },
         delay: 3000,
-      },
-    ],
-  },
-  {
-    id: 'commerciale',
-    title: 'GRP-631 — US#1.5 — Commerciale',
-    description: 'Come **Inventory Manager**, voglio definire anche l\'identità di vendita, il listino e gli eventuali moduli dell\'impianto così da fornire i dati corretti al sales e all\'operation manager per venderlo ai clienti.',
-    roles: ['Inventory Manager', 'Tenant Admin'],
-    startScreen: 'lista',
-    steps: [
-      {
-        title: 'Punto di ingresso: sezione "Commerciale"',
-        description: 'Ultima sezione del form di creazione: identità di vendita, galleria fotografica, listino con calcolo IVA e moduli collegati.',
-        selector: '[data-section="commerciale"]',
-        placement: 'right',
-        onEnter: function () { ghfEnsureOpenAtSection('commerciale'); },
-        delay: 700,
-      },
-      {
-        title: 'Identità commerciale',
-        description: '**Alias impianto** è testo libero; **Circuiti** un multi-select sull\'anagrafica; **Qualità impianto** un rating a 5 stelle — senza valutazione mostra "Non valutata" invece di "0/5".',
-        selector: COM_CARD_IDENTITA,
-        placement: 'right',
-        onEnter: function () { ghfEnsureCommercialeReady(function () { if (window.__ghfCommerciale) window.__ghfCommerciale.fillIdentitaExample(); ghfNudge(); }); },
-        delay: 1000,
-      },
-      {
-        title: 'Galleria: foto e copertina',
-        description: 'Passando il mouse su una foto compare la ★ per impostarla come copertina — qui **due foto aggiunte** e la seconda impostata come copertina (badge "Copertina" + stella piena). Una sola copertina alla volta: sceglierne una nuova sostituisce sempre la precedente.',
-        selector: COM_CARD_IDENTITA,
-        placement: 'right',
-        onEnter: function () {
-          ghfEnsureCommercialeReady(function () {
-            var api = window.__ghfCommerciale;
-            if (api) { api.addFakePhotos(); setTimeout(function () { api.setCoverExample(); ghfNudge(); }, 200); }
-          });
-        },
-        delay: 1300,
-      },
-      {
-        title: 'Eliminare la copertina: manca il subentro automatico',
-        description: 'Eliminando la foto impostata come copertina (qui la seconda, che lo era), ==nessuna foto rimane segnata come copertina==: il criterio di accettazione richiede che la prima foto rimanente subentri automaticamente, ma il prototipo non aggiorna la copertina quando quella attuale viene rimossa.',
-        selector: COM_CARD_IDENTITA,
-        placement: 'right',
-        onEnter: function () {
-          ghfEnsureCommercialeReady(function () {
-            var api = window.__ghfCommerciale;
-            if (api) { api.addFakePhotos(); setTimeout(function () { api.setCoverExample(); setTimeout(function () { api.removeCoverPhoto(); ghfNudge(); }, 200); }, 200); }
-          });
-        },
-        delay: 1700,
-        dev: [{ label: 'Nota', value: '==coverPhoto non si resetta quando il file a cui punta viene rimosso da fileList== — vedi icona nota.' }],
-      },
-      {
-        title: 'Modello commerciale: listino con IVA in tempo reale',
-        description: '**Modello di vendita**, **Prezzo lordo (IVA inclusa)** e **Aliquota IVA** (default 22%) alimentano un riquadro che calcola davvero **Imponibile**, **IVA** e **Totale** — formattati in euro con separatori italiani (punto delle migliaia, virgola dei decimali), aggiornati ad ogni modifica.',
-        selector: COM_CARD_MODELLO,
-        placement: 'right',
-        onEnter: function () { ghfEnsureCommercialeReady(function () { if (window.__ghfCommerciale) window.__ghfCommerciale.fillModelloExample(); ghfNudge(); }); },
-        delay: 1000,
-      },
-      {
-        title: 'Sconto a moduli: percentuale disabilitata finché non si spunta',
-        description: 'Il campo percentuale (0–100) resta disabilitato finché la casella "Se venduto a moduli, applica uno sconto del…" non è spuntata — qui attivata e valorizzata al 10% per mostrare il campo sbloccato.',
-        selector: COM_CARD_MODELLO,
-        placement: 'right',
-        onEnter: function () {
-          ghfEnsureCommercialeReady(function () {
-            var api = window.__ghfCommerciale;
-            if (api) { api.fillModelloExample(); api.toggleSconto(); setTimeout(function () { api.setScontoPctExample(); ghfNudge(); }, 200); }
-          });
-        },
-        delay: 1300,
-        dev: [{ label: 'Nota', value: '**Il modello di vendita a livello di impianto non limita quello della singola faccia**: il Radio.Group Standard/Long term nel drawer Faccia (sezione Dati tecnici) è sempre pieno indipendentemente da questo valore — corretto, nessun accoppiamento nel codice.' }],
-      },
-      {
-        title: 'Moduli: empty state, filtrato per tipologia e formato',
-        description: '"Nessun impianto collegato." — "Collega impianto" apre il selettore, che propone ==solo impianti già esistenti con lo stesso Canale, Tipologia e Formato== di questo (il vincolo non è mostrato esplicitamente all\'utente, filtra soltanto la lista).',
-        selector: COM_CARD_MODULI,
-        placement: 'top',
-        onEnter: function () { ghfEnsureCommercialeReady(); },
-        delay: 1000,
-      },
-      {
-        title: 'Drawer "Collega impianto": nessun candidato compatibile',
-        description: 'Il drawer ha ricerca testuale (ID, tipo, indirizzo). ==Con Tipologia e Formato scelti dalla cascata (es. "6×3 m") non compare mai alcun candidato==, anche se impianti dello stesso tipo esistono davvero: il catalogo formati della cascata usa una scala diversa da quella degli impianti già censiti (es. "200×140cm"). Inoltre, il criterio di accettazione chiede anche la distanza dall\'impianto corrente, assente in ogni riga del selettore.',
-        selector: '.ant-drawer-body',
-        placement: 'left',
-        onEnter: function () {
-          ghfEnsureCommercialeReady(function () {
-            ghfCall(['__ghfCommerciale', 'openLink']);
-            ghfWaitFor('.ant-drawer-body', function () { ghfNudge(); }, 900);
-          });
-        },
-        delay: 1300,
-        dev: [{ label: 'Nota', value: '==Formato cascata (FORMATI_PER_TIPO, es. "6×3 m") disallineato dal formato degli impianti mock (TIPO_FORMATI, es. "200×140cm")== — il filtro "stessa tipologia e formato" non troverà mai corrispondenze per un impianto appena creato. Vedi icona nota.' }],
-      },
-      {
-        title: 'Impianto collegato: elencato e scollegabile',
-        description: 'Quando un collegamento va a buon fine, l\'impianto compare come card (foto, indirizzo, formato) con "Scollega" nel menu (⋮) — qui collegato direttamente un impianto reale del catalogo, aggirando il disallineamento appena mostrato, per far vedere il risultato atteso. ==Il collegamento bidirezionale== (visibile anche dall\'impianto collegato) è un comportamento di dati/backend: non verificabile in un prototipo frontend-only senza persistenza reale — da validare in sviluppo.',
-        selector: COM_CARD_MODULI,
-        placement: 'top',
-        onEnter: function () { ghfEnsureCommercialeReady(function () { if (window.__ghfCommerciale) window.__ghfCommerciale.forceLinkExample(); ghfNudge(); }); },
-        delay: 1000,
-      },
-      {
-        title: 'Moduli disponibile già in creazione: fuori scope per lo sviluppo reale',
-        description: 'Come appena mostrato, il prototipo permette di collegare moduli **già durante la creazione**, prima ancora di salvare l\'impianto. ==Per lo sviluppo reale questo comportamento resta fuori scope==: la funzione va limitata alla modifica di un impianto già salvato, finché non si chiude la questione tecnica su come scrivere la relazione verso un impianto non ancora esistente. Il prototipo lo mostra solo come riferimento del comportamento target futuro.',
-        selector: COM_CARD_MODULI,
-        placement: 'top',
-        onEnter: function () { ghfEnsureCommercialeReady(); },
-        delay: 1000,
-        dev: [{ label: 'Priorità', value: 'TASK DSN — Correzione prototipo · P0: segnalare esplicitamente in handoff, non implementare "Moduli in creazione" finché il capitolo 4 non è chiuso.' }],
       },
     ],
   },
@@ -1137,12 +1140,24 @@ window.HANDOFF_COMPONENTS = [
   { selector: '.ni-field', name: 'Campo form (label + controllo)', level: 'Molecola', custom: true,
     funzione: 'Wrapper standard di ogni campo del form: label + asterisco se obbligatorio + controllo Ant Design.',
     figma: 'Form.Item — Layout=Vertical' },
-  { selector: '#grav-tour-add-squadra-btn', name: 'Button "Aggiungi squadra"', level: 'Atomo', figma: 'Button — Type=Default · Icon=Plus' },
+  { selector: '#grav-tour-add-squadra-btn', name: 'Button "Collega squadra"', level: 'Atomo', figma: 'Button — Type=Default · Icon=Link · Sempre attivo, anche prima di salvare l\'impianto' },
   { selector: '.grav-squadra-drawer', name: 'Sotto-drawer Squadra', level: 'Organismo', custom: true,
     funzione: 'Drawer impilato sopra il form principale per l\'assegnazione di **una singola** squadra (affissione o manutenzione).',
     composizione: 'Drawer (AntD) + Select squadra + campi condizionati dal tipo + azione Salva',
     figma: 'Drawer — Placement=Right · Size=Default (520px)' },
-  { selector: '#grav-tour-form-save', name: 'Button "Crea Impianto"', level: 'Atomo', figma: 'Button — Type=Primary · Icon=Plus · State=Disabled finché mancano i campi obbligatori' },
+  { selector: '#grav-tour-form-save', name: 'Button "Crea Impianto" / "Salva impianto"', level: 'Atomo', figma: 'Button — Type=Primary · Icon=Plus/Save · State=Disabled finché mancano i campi obbligatori. Etichetta e icona cambiano dopo il primo salvataggio: "Crea Impianto" (Plus) prima di esistere, "Salva impianto" (Save) da lì in poi — vedi HANDOFF_NOTES impianto-salvato-prima-subentita' },
+  { selector: '.ant-popconfirm', name: 'Popconfirm "Uscire dal form?"', level: 'Molecola', custom: true,
+    funzione: 'Compare a ogni click su "Crea Impianto"/"Salva impianto": chiede se restare nel form ("Crea/Salva e continua", cancelText) o uscire ("Crea ed Esci"/"Salva ed Esci", okText) — entrambe le voci dichiarano esplicitamente il salvataggio, non solo l\'uscita. Stesso pattern Popconfirm-ancorato-al-pulsante di DiscardButton (LAYOUT.md §6.6), qui non per un\'azione distruttiva ma per una scelta neutra.',
+    composizione: 'Popconfirm (AntD) — okText/cancelText dinamici, nessun okButtonProps danger',
+    figma: 'Popconfirm — Type=Warning · Placement=Bottom' },
+  { selector: 'img[src*="save-astronaut"], img[src*="add-astronaut"], img[src*="link-entity-astronaut"]', name: 'gravityEmpty — Empty state custom Gravity', level: 'Molecola', custom: true,
+    funzione: 'Componente Empty custom UNICO per ogni empty state illustrato del form senza un\'azione di upload, con un\'illustrazione diversa per casistica: sezioni bloccate (Facce, Cespiti/Dispositivi, Moduli — illustrazione save-astronaut2 + titolo "Impianto da salvare" + descrizione contestuale), invito ad aggiungere il primo elemento (stesse sezioni una volta creato l\'impianto — illustrazione add-astronaut, es. "Nessuna faccia aggiunta") e invito a collegare un\'entità esistente (Moduli, "Nessun impianto collegato."; Concessioni e autorizzazioni, "Collega una concessione o un\'autorizzazione" — illustrazione link-entity-astronaut, azione "Collega" anziché "Aggiungi"). Mai il semplice Empty AntD con un\'immagine infilata nella prop `image`: la sua CSS forza height:100% sull\'<img> e la deforma coi soli vincoli di larghezza.',
+    composizione: 'div custom (non Empty AntD) — sfondo grigio pieno (#FAFAFA, mai tratteggiato: non è un\'area drag&drop) + img (_shared/assets/save-astronaut2.png, add-astronaut.png o link-entity-astronaut.png, height:auto) + titolo opzionale + descrizione + pulsante/azione',
+    figma: '*Empty* — Ant Design System for Gravity, https://www.figma.com/design/uR6CBOh0Y7dUQvH30SyD0P/Ant-Design-System-for-Gravity?node-id=1479-34465' },
+  { selector: '.ant-upload-drag', name: 'documentDragger — zona upload documenti', level: 'Molecola', custom: true,
+    funzione: 'Zona di caricamento per i 4 punti "documento" del form (Genio Civile, SCIA Urbanistica, SCIA Commerciale, permessi scheda impianto): drag&drop reale su tutta l\'area + click per selezionare, illustrazione upload-document-astronaut al posto dell\'icona InboxOutlined di default. Il bottone esplicito "Carica documento" resta comunque nell\'header della sezione, sempre visibile — il dragger stesso resta visibile anche a lista già piena, per trascinare altri file in qualsiasi momento (non solo a vuoto).',
+    composizione: 'Upload.Dragger (AntD, ispirato a ant.design/components/upload#upload-demo-drag) — fileList controllato, showUploadList:false, contenuto custom (img + testo) al posto del default',
+    figma: 'Da definire — pattern custom, variante Gravity di Upload.Dragger' },
   { selector: CF_CARD_CONC, name: 'Card "Concessioni e autorizzazioni"', level: 'Organismo', custom: true,
     funzione: 'Elenca i permessi già collegati all\'impianto (FormPermitCard) e il menu per collegarne di nuovi (concessione o autorizzazione).',
     composizione: 'Row/Col di FormPermitCard + Dropdown (menu Collega Concessione/Autorizzazione) + Button',
@@ -1156,7 +1171,7 @@ window.HANDOFF_COMPONENTS = [
     composizione: 'g4() due righe di campi (InputNumber/Select) — Area ingombro: InputNumber readOnly + variant borderless',
     figma: 'Da definire — pattern custom' },
   { selector: CT_CARD_FACCE, name: 'Card "Facce"', level: 'Organismo', custom: true,
-    funzione: 'Elenca le facce configurate (FormFaceCard) col contatore del numero di facce create (nessun massimo); il pulsante "Aggiungi Faccia" resta sempre attivo.',
+    funzione: 'Elenca le facce configurate (FormFaceCard) col contatore del numero di facce create (nessun massimo); il pulsante "Aggiungi Faccia" è disabilitato finché l\'impianto non è stato salvato (vedi HANDOFF_NOTES impianto-salvato-prima-subentita).',
     composizione: 'Grid di FormFaceCard (EntityCard) + Button "Aggiungi Faccia"',
     figma: 'Da definire — pattern custom' },
   { selector: '.grav-face-drawer', name: 'Sotto-drawer Faccia', level: 'Organismo', custom: true,
@@ -1215,6 +1230,22 @@ window.HANDOFF_NOTES = [
     title: 'Solo l\'Anagrafica ha campi obbligatori',
     body: 'Le altre 5 sezioni (Iter autorizzativo, Dati tecnici, Cespiti e dispositivi, Squadre, Commerciale) sono **tutte facoltative** in creazione: l\'obiettivo è permettere di censire rapidamente un impianto anche con dati parziali, completandolo in un secondo momento dalla modifica.',
   },
+  {
+    id: 'impianto-salvato-prima-subentita',
+    title: 'Facce, Cespiti/Dispositivi e Moduli: richiedono l\'impianto già salvato',
+    body: 'Finché l\'impianto non è stato salvato almeno una volta, aprire un sotto-drawer di sotto-entità (Facce, Cespiti/Dispositivi, Moduli) è **disabilitato**: pulsante "Aggiungi"/"Collega" con icona a **lucchetto** e tooltip col motivo; l\'empty state della sezione usa il componente **Empty custom della libreria Figma Gravity** (illustrazione dedicata + titolo "Impianto da salvare" + descrizione) invece del semplice Empty AntD, con un invito a salvare prima l\'impianto — non esiste ancora un ID a cui collegare questi record. ==Le Squadre fanno eccezione==: "Collega squadra" è sempre attivo, anche prima di salvare — non ha bisogno dell\'ID impianto perché la relazione si scrive al salvataggio.\nIl pulsante finale in basso a destra ("Crea Impianto"/"Salva impianto") apre **sempre**, al click, un **Popconfirm** ("Salvare le modifiche?"/"Creare l\'impianto?") che chiede se restare o uscire — entrambe le risposte dichiarano esplicitamente il salvataggio, per non lasciare dubbi che i dati vengano persi: **"Crea/Salva e continua"** (cancelText) salva senza chiudere — al primo salvataggio l\'impianto viene creato subito e le sotto-entità si sbloccano nella stessa sessione, il pulsante diventa "Salva impianto" — mentre **"Crea ed Esci"/"Salva ed Esci"** (okText) salva e chiude davvero il form, tornando al Parco Impianti.',
+  },
+  // ── Sezioni fuori scope ma richieste nel layout di GRP-622 ──────────────
+  {
+    id: 'struttura-fuori-sprint-coming-soon',
+    title: 'Cespiti e dispositivi: fuori sprint, ma nel layout come "coming soon"',
+    body: 'Il contenuto reale di questa sezione (US#1.3, GRP-628: censimento cespiti e dispositivi) **non è nello scope di questa sprint**. La tab e i due box **vanno comunque inseriti nel layout di GRP-622**: al posto dei campi va mostrato il placeholder "coming soon" (illustrazione + breve testo sul contenuto in arrivo), non la sezione nascosta o assente. ==Disattivando "Interfaccia semplificata"== si vede comunque il contenuto reale così com\'è progettato — riferimento per quando la sprint futura la implementerà davvero.',
+  },
+  {
+    id: 'commerciale-fuori-sprint-coming-soon',
+    title: 'Commerciale: fuori sprint, ma nel layout come "coming soon"',
+    body: 'Il contenuto reale di questa sezione (US#1.5, GRP-631: identità commerciale, modello di vendita, moduli collegati) **non è nello scope di questa sprint**. La tab e i suoi tre box **vanno comunque inseriti nel layout di GRP-622**: al posto dei campi va mostrato il placeholder "coming soon" (illustrazione + breve testo sul contenuto in arrivo), non la sezione nascosta o assente. ==Disattivando "Interfaccia semplificata"== si vede comunque il contenuto reale così com\'è progettato — riferimento per quando la sprint futura la implementerà davvero.',
+  },
   // ── US#1 — Anagrafica e ubicazione: note di design/criteri aperti ───────
   {
     id: 'anagrafica-nome-progressivo',
@@ -1238,14 +1269,15 @@ window.HANDOFF_NOTES = [
     body: 'Concessioni e autorizzazioni scadute **restano visibili e selezionabili** nel drawer — corretto, già così nel prototipo.\n==Manca però== l\'avviso non bloccante richiesto dal criterio di accettazione quando si seleziona/collega un atto scaduto (es. un Alert nel drawer): da aggiungere, senza disabilitare mai la conferma.',
   },
   {
-    id: 'iter-scarica-modulo-fuori-scope',
-    title: '"Scarica modulo": fuori sprint',
-    body: '==Fuori sprint==: la generazione del modulo regionale precompilato del Genio Civile.',
-  },
-  {
     id: 'iter-autorizzazioni-paginazione',
     title: 'Drawer Autorizzazioni: manca la paginazione',
     body: 'Il drawer di collegamento concessione ha ricerca + paginazione; quello di collegamento autorizzazione ha ricerca ma **non è ancora paginato**.\n==Da allineare==: con l\'anagrafica reale delle autorizzazioni la lista potrebbe crescere oltre una singola pagina, come già gestito per le concessioni.',
+  },
+  // ── US#1.2 — Dati tecnici e facce: note di design/criteri aperti ────────
+  {
+    id: 'facce-prezzo-spostamento-modello-commerciale',
+    title: 'Prezzo faccia: fuori sprint, in attesa di spostamento nel Modello commerciale',
+    body: '==Fuori sprint==: il campo **Prezzo faccia** qui in Dati tecnici verrà spostato nel pannello **Modello commerciale** — le indicazioni di design definitive arriveranno in una sprint futura. Nel frattempo il campo **appartiene già al modello dati esistente delle facce**: va concordato con il team di sviluppo cosa farne nell\'immediato, in attesa dello spostamento. Anche una volta spostato, resterà comunque possibile impostare il prezzo di ogni singola faccia anche da quell\'altro pannello.',
   },
   // ── US#1.3 — Cespiti e dispositivi: note di design/criteri aperti ───────
   {
@@ -1263,10 +1295,5 @@ window.HANDOFF_NOTES = [
     id: 'commerciale-moduli-distanza-mancante',
     title: 'Collega impianto: manca la distanza',
     body: 'Il criterio di accettazione chiede che il selettore moduli mostri, oltre alla ricerca testuale, anche la distanza dall\'impianto corrente.\n==Nel prototipo oggi== ogni riga mostra solo ID, tipo, indirizzo e formato — nessun calcolo o visualizzazione della distanza tra i due impianti.',
-  },
-  {
-    id: 'commerciale-moduli-fuori-scope-creazione',
-    title: 'TASK DSN P0 — "Moduli in creazione": non implementare',
-    body: '==Fuori scope per lo sviluppo reale==: il prototipo mostra il collegamento Moduli già disponibile durante la creazione dell\'impianto, prima ancora che sia salvato.\nLo sviluppo reale **si limita al blocco in modifica** (impianto già salvato), finché non è chiusa la questione tecnica su come scrivere la relazione verso un impianto non ancora esistente (vedi capitolo 4).\nIl comportamento resta visibile nel prototipo **solo come riferimento del comportamento target** futuro — non è materiale da implementare in questo sprint.',
   },
 ];
