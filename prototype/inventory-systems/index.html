@@ -97,7 +97,7 @@
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     .ss-unified-bar:focus-within {
-      border-color: #3E00FB;
+      border-color: var(--gravity-primary, #3E00FB);
       box-shadow: 0 0 0 3px rgba(62,0,251,0.08);
     }
     .ss-bar-input {
@@ -118,11 +118,11 @@
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
     }
     .ss-bar-trigger:hover { background: rgba(0,0,0,0.025); color: rgba(0,0,0,0.88); }
-    .ss-bar-trigger.active { color: #3E00FB; }
+    .ss-bar-trigger.active { color: var(--gravity-primary, #3E00FB); }
     .ss-bar-count {
       display: inline-flex; align-items: center; justify-content: center;
       min-width: 18px; height: 18px; border-radius: 9px;
-      background: #3E00FB; color: #fff;
+      background: var(--gravity-primary, #3E00FB); color: #fff;
       font-size: 10px; font-weight: 700; padding: 0 5px; line-height: 1;
     }
     .ss-bar-cerca {
@@ -176,8 +176,8 @@
       color: rgba(0,0,0,0.65); cursor: pointer;
       background: #FAFAFA; transition: all 0.15s; user-select: none;
     }
-    .ss-brief-chip:hover { border-color: #3E00FB; color: #3E00FB; background: #F0EAFF; }
-    .ss-brief-chip.active { border-color: #3E00FB; color: #3E00FB; background: #F0EAFF; font-weight: 600; }
+    .ss-brief-chip:hover { border-color: var(--gravity-primary, #3E00FB); color: var(--gravity-primary, #3E00FB); background: #F0EAFF; }
+    .ss-brief-chip.active { border-color: var(--gravity-primary, #3E00FB); color: var(--gravity-primary, #3E00FB); background: #F0EAFF; font-weight: 600; }
 
     /* ── Suggestions dropdown ── */
     .ss-suggestions-wrap {
@@ -206,11 +206,11 @@
       display: inline-flex; align-items: center; gap: 5px;
       padding: 2px 10px 2px 8px; border-radius: 12px;
       background: #F0EAFF; border: 1px solid #C5B4FF;
-      font-size: 12px; color: #3E00FB; font-weight: 500; cursor: default;
+      font-size: 12px; color: var(--gravity-primary, #3E00FB); font-weight: 500; cursor: default;
     }
     .ss-zone-active-tag .clear-btn {
       margin-left: 4px; cursor: pointer; font-size: 11px;
-      color: #3E00FB; opacity: 0.6; line-height: 1;
+      color: var(--gravity-primary, #3E00FB); opacity: 0.6; line-height: 1;
     }
     .ss-zone-active-tag .clear-btn:hover { opacity: 1; }
 
@@ -223,11 +223,11 @@
       display: inline-flex; align-items: center; gap: 5px;
       padding: 3px 8px 3px 10px; border-radius: 20px;
       border: 1px solid #C5B4FF; background: #F0EAFF;
-      font-size: 12px; color: #3E00FB; font-weight: 500;
+      font-size: 12px; color: var(--gravity-primary, #3E00FB); font-weight: 500;
       white-space: nowrap; user-select: none;
     }
     .ss-filter-chip-x {
-      cursor: pointer; font-size: 13px; line-height: 1; color: #3E00FB;
+      cursor: pointer; font-size: 13px; line-height: 1; color: var(--gravity-primary, #3E00FB);
       opacity: 0.5; display: flex; align-items: center;
       padding: 0 2px; border-radius: 3px;
     }
@@ -244,7 +244,7 @@
       background: transparent; color: rgba(0,0,0,0.88); font-weight: 400;
       transition: background 0.15s, color 0.15s;
     }
-    .ss-tab-btn.active { background: #fff; color: #3E00FB; font-weight: 600; }
+    .ss-tab-btn.active { background: #fff; color: var(--gravity-primary, #3E00FB); font-weight: 600; }
     .ss-tab-btn:not(.active):hover { background: rgba(0,0,0,0.04); }
 
     /* ── Map area ── */
@@ -325,7 +325,7 @@
       padding: 2px 3px; border-radius: 4px; line-height: 1; flex-shrink: 0;
       display: inline-flex; align-items: center;
     }
-    .ss-label-btn:hover { color: #3E00FB; background: rgba(62,0,251,0.06); }
+    .ss-label-btn:hover { color: var(--gravity-primary, #3E00FB); background: rgba(62,0,251,0.06); }
     /* Label picker popover */
     .ss-label-picker { width: 210px; }
     .ss-label-picker-title { font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.4px; padding: 0 0 8px; }
@@ -337,14 +337,14 @@
     .ss-color-swatch:hover { transform: scale(1.15); }
     .ss-face-badge { font-size: 11px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
     .ss-face-badge-all  { color: #52C41A; }
-    .ss-face-badge-part { color: #3E00FB; }
+    .ss-face-badge-part { color: var(--gravity-primary, #3E00FB); }
     .ss-face-badge-none { color: rgba(0,0,0,0.35); }
     .ss-expand-btn {
       color: rgba(0,0,0,0.25); font-size: 10px; cursor: pointer;
       padding: 4px 6px; border-radius: 4px; flex-shrink: 0;
       transition: color 0.15s, background 0.1s;
     }
-    .ss-expand-btn:hover { color: #3E00FB; background: rgba(62,0,251,0.06); }
+    .ss-expand-btn:hover { color: var(--gravity-primary, #3E00FB); background: rgba(62,0,251,0.06); }
     .ss-faces-body { background: #FAFAFA; border-top: 1px solid #F0F0F0; padding: 3px 0 5px; }
     .ss-face-row {
       display: flex; align-items: center; gap: 7px;
@@ -424,7 +424,7 @@
     .create-nav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: rgba(0,0,0,0.3); padding: 0 10px; margin-bottom: 8px; }
     .create-nav-item { display: block; padding: 7px 12px; border-radius: 6px; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; margin-bottom: 2px; transition: background 0.12s, color 0.12s; user-select: none; }
     .create-nav-item:hover { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.88); }
-    .create-nav-item.active { background: rgba(62,0,251,0.07); color: #3E00FB; font-weight: 500; }
+    .create-nav-item.active { background: rgba(62,0,251,0.07); color: var(--gravity-primary, #3E00FB); font-weight: 500; }
     /* Riga tabella appena creata: evidenzia con lilla primary chiaro che sfuma */
     @keyframes rowNewHighlight { 0% { background: #F9F5FF; } 70% { background: #F9F5FF; } 100% { background: transparent; } }
     .ss-row-new > td { animation: rowNewHighlight 4s ease-out forwards; }
@@ -432,7 +432,7 @@
     /* Scheda impianto V2 */
     .dv2-nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; margin-bottom: 2px; transition: background .12s, color .12s; }
     .dv2-nav-item:hover { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.88); }
-    .dv2-nav-item.active { background: rgba(62,0,251,0.07); color: #3E00FB; font-weight: 600; }
+    .dv2-nav-item.active { background: rgba(62,0,251,0.07); color: var(--gravity-primary, #3E00FB); font-weight: 600; }
     .create-scroll { flex: 1; overflow-y: auto; padding: 40px 0; background: #F5F5F5; display: flex; justify-content: center; align-items: flex-start; }
     .create-content { width: 80%; max-width: 100%; }
     .create-section { margin-bottom: 32px; }
@@ -473,10 +473,10 @@
     .input-modified .ant-input-number,
     .input-modified .ant-input-affix-wrapper,
     .input-modified .ant-select .ant-select-selector,
-    .input-modified .ant-picker { border-color: #3E00FB !important; }
+    .input-modified .ant-picker { border-color: var(--gravity-primary, #3E00FB) !important; }
 
     .gc-template-item { transition: border-color .15s, background-color .15s; }
-    .gc-template-item:hover { border-color: #3E00FB; background-color: #f9f7ff; }
+    .gc-template-item:hover { border-color: var(--gravity-primary, #3E00FB); background-color: #f9f7ff; }
     .tab-section { margin-bottom: 24px; }
     .field-col { display: flex; flex-direction: column; gap: 8px; }
     .imp-detail-tl-item { display: flex; gap: 16px; padding: 14px 0; border-bottom: 1px solid #F5F5F5; }
@@ -486,7 +486,7 @@
     /* ── Detail V2 — header card + sidebar DataCard (template Shaker UI) ── */
     .imp-detail-shell { padding: 16px; max-width: none; margin: 0; display: flex; flex-direction: column; gap: 16px; }
     .gv-detail-header { background: #fff; border-radius: 8px; border: 1px solid #F0F0F0; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-    .gv-back { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: #3E00FB; cursor: pointer; text-decoration: none; transition: opacity .15s; }
+    .gv-back { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--gravity-primary, #3E00FB); cursor: pointer; text-decoration: none; transition: opacity .15s; }
     .gv-back:hover { opacity: .75; }
     /* DataCard — pattern brief (icona + label, valore, azione) allineato alla pianificazione */
     .data-card { background: #fff; border-radius: 8px; border: 1px solid #F0F0F0; overflow: hidden; }
@@ -673,8 +673,8 @@ const TIPO_CONFIG = {
   'Fermata bus':      { color: '#722ED1', bg: '#F9F0FF' },
   'Palo luce':        { color: '#FAAD14', bg: '#FFFBE6' },
   'Stendardo':        { color: '#FF4A1C', bg: '#FFF2EC' },
-  'Speciale OOH':     { color: '#3E00FB', bg: '#F0EAFF' },
-  'Speciale DOOH':    { color: '#3E00FB', bg: '#F0EAFF' },
+  'Speciale OOH':     { color: window.GRAVITY_THEME.token.colorPrimary, bg: '#F0EAFF' },
+  'Speciale DOOH':    { color: window.GRAVITY_THEME.token.colorPrimary, bg: '#F0EAFF' },
   'Palina butterfly': { color: '#08979C', bg: '#E6FFFB' },
   'Cassonetto':       { color: '#8C8C8C', bg: '#F5F5F5' },
   'Parapedonale':     { color: '#D4380D', bg: '#FFF2E8' },
@@ -1082,7 +1082,7 @@ const ZONE_CENTERS = (() => {
 
 // ── Suggerimenti ricerca — struttura completa ─────────────
 const SUGG_CONFIG = {
-  city:     { label: 'Città',     bg: '#F0EEFF', color: '#3E00FB' },
+  city:     { label: 'Città',     bg: '#F0EEFF', color: window.GRAVITY_THEME.token.colorPrimary },
   province: { label: 'Provincia', bg: '#E6F7FF', color: '#0091FF' },
   zona:     { label: 'Zona',      bg: '#FFF7E6', color: '#FA8C16' },
   via:      { label: 'Via',       bg: '#F6FFED', color: '#389E0D' },
@@ -1143,7 +1143,7 @@ function highlightMatch(text, query) {
   if (idx < 0) return React.createElement('span', null, text);
   return React.createElement('span', null,
     text.slice(0, idx),
-    React.createElement('strong', { style: { color: '#3E00FB', fontWeight: 600 } }, text.slice(idx, idx + query.length)),
+    React.createElement('strong', { style: { color: window.GRAVITY_THEME.token.colorPrimary, fontWeight: 600 } }, text.slice(idx, idx + query.length)),
     text.slice(idx + query.length)
   );
 }
@@ -2705,7 +2705,7 @@ function FormFaceCard({ name, face, onEdit, onRemove, onCreatePosteriore, onDupl
     { key: 'remove', label: isAnt && face._hasPosteriore ? 'Elimina (con posteriore)' : 'Elimina', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
   ];
   const visTag = face.visMarcia
-    ? { text: 'Visibile', icon: React.createElement(CarOutlined), style: { backgroundColor: '#F0EBFF', border: '1px solid #D3C4FF', color: '#3E00FB', margin: 0, fontWeight: 500, fontSize: 12, flexShrink: 0 } }
+    ? { text: 'Visibile', icon: React.createElement(CarOutlined), style: { backgroundColor: '#F0EBFF', border: '1px solid #D3C4FF', color: window.GRAVITY_THEME.token.colorPrimary, margin: 0, fontWeight: 500, fontSize: 12, flexShrink: 0 } }
     : { text: 'Non visibile', icon: React.createElement(CarOutlined) };
   return React.createElement(EntityCard, {
     header: { title: name, tags: [visTag], menu: menuItems },
@@ -2761,7 +2761,7 @@ function FormAssetCard({ asset, onView, onRemove }) {
       ? React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, value)
       : React.createElement('div', { style: { minWidth: 0, overflow: 'hidden' } }, value),
   );
-  const accent = isDevice ? '#3E00FB' : '#1677FF';
+  const accent = isDevice ? window.GRAVITY_THEME.token.colorPrimary : '#1677FF';
   // Cap: mostra al massimo 4 campi (2 righe della griglia); il resto è indicato con "+N campi".
   // Limita la varianza di altezza tra le card → griglia uniforme. Per vedere tutti i campi,
   // usa "Visualizza" dal menu (riapre il form dell'entità).
@@ -2853,7 +2853,7 @@ function AssetAccordion({ list, onView, onRemove, editing, drafts, onDraftChange
         className: dirty ? 'asset-dirty' : undefined,
         label: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 } },
           React.createElement('span', { style: { fontWeight: 600 } }, titleOf(a)),
-          dirty ? React.createElement('span', { title: 'Modifiche non salvate', style: { width: 6, height: 6, borderRadius: '50%', background: '#3E00FB', flexShrink: 0 } }) : null,
+          dirty ? React.createElement('span', { title: 'Modifiche non salvate', style: { width: 6, height: 6, borderRadius: '50%', background: window.GRAVITY_THEME.token.colorPrimary, flexShrink: 0 } }) : null,
           ((getAssetType(a.tipo) || {}).category === 'Dispositivo') ? React.createElement(Tag, { style: { margin: 0 } }, a.tipo) : null,
           statusDot(a)),
         extra: actions(a),
@@ -2904,7 +2904,7 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
             ) : null,
           ),
         ),
-        isGrantSelected ? React.createElement('div', { style: { paddingLeft: 16, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#3E00FB', fontWeight: 500 } },
+        isGrantSelected ? React.createElement('div', { style: { paddingLeft: 16, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: window.GRAVITY_THEME.token.colorPrimary, fontWeight: 500 } },
           React.createElement(CheckCircleFilled, { style: { fontSize: 16 } }),
           React.createElement('span', null, 'Selezionata'),
         ) : null,
@@ -3056,7 +3056,7 @@ function SystemHistoryTimeline({ events }) {
           ),
           // Colonna timeline (pallino + linea di connessione)
           React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 } },
-            React.createElement('div', { style: { width: 9, height: 9, borderRadius: '50%', border: '2px solid ' + (sched ? '#d9d9d9' : '#3E00FB'), background: sched ? '#fff' : '#3E00FB', boxSizing: 'border-box', flexShrink: 0, marginTop: 5 } }),
+            React.createElement('div', { style: { width: 9, height: 9, borderRadius: '50%', border: '2px solid ' + (sched ? '#d9d9d9' : window.GRAVITY_THEME.token.colorPrimary), background: sched ? '#fff' : window.GRAVITY_THEME.token.colorPrimary, boxSizing: 'border-box', flexShrink: 0, marginTop: 5 } }),
             i < items.length - 1
               ? React.createElement('div', { style: { width: 1, flex: 1, background: '#EDEDED' } })
               : null,
@@ -3069,7 +3069,7 @@ function SystemHistoryTimeline({ events }) {
             ),
             React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', marginTop: 2 } }, ev.desc),
             React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginTop: 6, fontSize: 12, color: 'rgba(0,0,0,0.55)' } },
-              React.createElement('span', { style: { width: 20, height: 20, borderRadius: '50%', background: '#3E00FB', color: '#fff', fontSize: 9, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, ev.agentInitial),
+              React.createElement('span', { style: { width: 20, height: 20, borderRadius: '50%', background: window.GRAVITY_THEME.token.colorPrimary, color: '#fff', fontSize: 9, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, ev.agentInitial),
               ev.agent,
             ),
           ),
@@ -3399,7 +3399,7 @@ function ModuliLinkDrawer({ open, onClose, onSubmit, existingIds, currentId }) {
         ? React.createElement(Empty, { description: 'Nessun impianto trovato', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '24px 0' } })
         : candidates.map(i => {
             const on = selected.includes(i.id);
-            return React.createElement('div', { key: i.id, onClick: () => toggle(i.id), style: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid ' + (on ? '#3E00FB' : '#EAECEF'), background: on ? '#F5F2FF' : '#fff', borderRadius: 8, cursor: 'pointer' } },
+            return React.createElement('div', { key: i.id, onClick: () => toggle(i.id), style: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid ' + (on ? window.GRAVITY_THEME.token.colorPrimary : '#EAECEF'), background: on ? '#F5F2FF' : '#fff', borderRadius: 8, cursor: 'pointer' } },
               React.createElement(Checkbox, { checked: on }),
               React.createElement('div', { style: { flex: 1, minWidth: 0 } },
                 React.createElement('div', { style: { fontSize: 14, fontWeight: 600 } }, i.id + ' · ' + i.tipo),
@@ -3868,7 +3868,7 @@ function ImpiantoDetailV2({ imp, onBack }) {
       return React.createElement('div', { style: { display: 'flex', alignItems: 'flex-end', gap: 8, height: 170, paddingTop: 6, borderBottom: '1px solid #EEE' } },
         data.map((v, i) => React.createElement('div', { key: i, style: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: 6, height: '100%' } },
           o.showValue ? React.createElement('div', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.5)' } }, v + (o.suffix || '')) : null,
-          React.createElement('div', { style: { width: '100%', maxWidth: 34, height: (v / max * 100) + '%', borderRadius: '6px 6px 0 0', background: 'linear-gradient(180deg,#6B3FFF,#3E00FB)' } }),
+          React.createElement('div', { style: { width: '100%', maxWidth: 34, height: (v / max * 100) + '%', borderRadius: '6px 6px 0 0', background: `linear-gradient(180deg,#6B3FFF,${window.GRAVITY_THEME.token.colorPrimary})` } }),
           React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.45)' } }, labels[i]))));
     };
     const occupancyChart = vBars(occData, occMonths, { max: 100, showValue: false });
@@ -3891,8 +3891,8 @@ function ImpiantoDetailV2({ imp, onBack }) {
           React.createElement('line', { x1: padL, x2: W - padR, y1: yf(g), y2: yf(g), stroke: '#EEE', strokeWidth: 1 }),
           React.createElement('text', { x: padL - 8, y: yf(g) + 4, textAnchor: 'end', fontSize: 11, fill: 'rgba(0,0,0,0.35)' }, g))),
         labels.map((lb, i) => React.createElement('text', { key: 'x' + i, x: xf(i), y: H - 8, textAnchor: 'middle', fontSize: 10.5, fill: 'rgba(0,0,0,0.35)' }, lb)),
-        React.createElement('polyline', { points: pts, fill: 'none', stroke: '#3E00FB', strokeWidth: 2.5, strokeLinejoin: 'round', strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke' }),
-        data.map((v, i) => React.createElement('circle', { key: 'c' + i, cx: xf(i), cy: yf(v), r: 3.5, fill: '#fff', stroke: '#3E00FB', strokeWidth: 2 })));
+        React.createElement('polyline', { points: pts, fill: 'none', stroke: window.GRAVITY_THEME.token.colorPrimary, strokeWidth: 2.5, strokeLinejoin: 'round', strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke' }),
+        data.map((v, i) => React.createElement('circle', { key: 'c' + i, cx: xf(i), cy: yf(v), r: 3.5, fill: '#fff', stroke: window.GRAVITY_THEME.token.colorPrimary, strokeWidth: 2 })));
     };
     const otsTrendChart = lineChart(otsTrend, otsDates, 55, 10);
     // Donut chart (SVG) — Top 5 campagne per OTS
@@ -4226,8 +4226,8 @@ function ImpiantoDetailV2({ imp, onBack }) {
           card('dash-camp', 'Top campagne per OTS', 'Campagne che hanno misurato più OTS.', false, rankBars(P.campagne))),
         card('dash-audience', 'Audience', 'Composizione del pubblico esposto all\'impianto.', false,
           React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 } },
-            React.createElement('div', null, subTitle('Pedoni e veicoli'), splitBar([{ label: 'Pedoni', v: P.aud.ped, color: '#3E00FB' }, { label: 'Veicoli', v: 100 - P.aud.ped, color: '#B8A6FF' }])),
-            React.createElement('div', null, subTitle('Gender'), splitBar([{ label: 'Uomini', v: P.aud.uomini, color: '#3E00FB' }, { label: 'Donne', v: 100 - P.aud.uomini, color: '#B8A6FF' }])),
+            React.createElement('div', null, subTitle('Pedoni e veicoli'), splitBar([{ label: 'Pedoni', v: P.aud.ped, color: window.GRAVITY_THEME.token.colorPrimary }, { label: 'Veicoli', v: 100 - P.aud.ped, color: '#B8A6FF' }])),
+            React.createElement('div', null, subTitle('Gender'), splitBar([{ label: 'Uomini', v: P.aud.uomini, color: window.GRAVITY_THEME.token.colorPrimary }, { label: 'Donne', v: 100 - P.aud.uomini, color: '#B8A6FF' }])),
             React.createElement('div', { style: { gridColumn: '1 / -1' } }, subTitle('Fasce d\'età'), vBars(P.aud.eta, etaData.map(d => d.label), { showValue: true, suffix: '%' })))),
       );
     }
@@ -4240,7 +4240,7 @@ function ImpiantoDetailV2({ imp, onBack }) {
               React.createElement('div', { style: { position: 'absolute', top: 12, right: 12, padding: '2px 10px', borderRadius: 12, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 12, lineHeight: '20px' } }, (photoIdx + 1) + ' / ' + nPhotos),
               React.createElement(Button, { icon: React.createElement(ExpandOutlined), onClick: () => setGalleryOpen(true), style: { position: 'absolute', bottom: 12, right: 12 } }, 'Apri galleria')),
             React.createElement('div', { style: { width: 92, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 } },
-              fotos.map((src, i) => React.createElement('div', { key: i, onClick: () => setPhotoIdx(i), style: { flex: 1, minHeight: 0, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: i === photoIdx ? '2px solid #3E00FB' : '2px solid transparent', background: '#eef1f4' } },
+              fotos.map((src, i) => React.createElement('div', { key: i, onClick: () => setPhotoIdx(i), style: { flex: 1, minHeight: 0, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: i === photoIdx ? `2px solid ${window.GRAVITY_THEME.token.colorPrimary}` : '2px solid transparent', background: '#eef1f4' } },
                 React.createElement('img', { src: src, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: i === photoIdx ? 1 : 0.65 } }))))),
           React.createElement('div', null,
             React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 } },
@@ -4332,7 +4332,7 @@ function ImpiantoDetailV2({ imp, onBack }) {
       React.createElement('div', { style: { position: 'absolute', top: 12, right: 12, padding: '2px 10px', borderRadius: 12, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 12, lineHeight: '20px' } }, (photoIdx + 1) + ' / ' + nPhotos),
       React.createElement(Button, { icon: React.createElement(ExpandOutlined), onClick: () => setGalleryOpen(true), style: { position: 'absolute', bottom: 12, right: 12 } }, 'Apri galleria')),
     React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + nPhotos + ', 1fr)', gap: 10, marginTop: 10 } },
-      fotos.map((src, i) => React.createElement('div', { key: i, onClick: () => setPhotoIdx(i), style: { height: 72, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: i === photoIdx ? '2px solid #3E00FB' : '2px solid transparent', background: '#eef1f4' } },
+      fotos.map((src, i) => React.createElement('div', { key: i, onClick: () => setPhotoIdx(i), style: { height: 72, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', border: i === photoIdx ? `2px solid ${window.GRAVITY_THEME.token.colorPrimary}` : '2px solid transparent', background: '#eef1f4' } },
         React.createElement('img', { src: src, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: i === photoIdx ? 1 : 0.7 } })))));
 
   return React.createElement('div', { className: 'imp-detail-page' },
@@ -4531,7 +4531,7 @@ function ImpiantoDetailV2({ imp, onBack }) {
         GC_TEMPLATES.map(tpl =>
           React.createElement('div', { key: tpl.id, onClick: () => downloadGcModulo(tpl), className: 'gc-template-item',
             style: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid #E8E8E8', borderRadius: 8, cursor: 'pointer' } },
-            React.createElement(FileTextOutlined, { style: { fontSize: 18, color: '#3E00FB', flexShrink: 0 } }),
+            React.createElement(FileTextOutlined, { style: { fontSize: 18, color: window.GRAVITY_THEME.token.colorPrimary, flexShrink: 0 } }),
             React.createElement('div', { style: { flex: 1, minWidth: 0 } },
               React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, tpl.nome),
               React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginTop: 2 } }, tpl.desc)),
@@ -5991,7 +5991,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     style: {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
-      background: '#3E00FB', color: '#fff', fontSize: 12, fontWeight: 700, lineHeight: 1,
+      background: window.GRAVITY_THEME.token.colorPrimary, color: '#fff', fontSize: 12, fontWeight: 700, lineHeight: 1,
     },
   }, n);
 
@@ -6061,7 +6061,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       value: s.via, key: s.id, _sdata: s,
       label: React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'flex-start', padding: '2px 0' } },
         React.createElement('div', { style: { width: 24, height: 24, borderRadius: 4, background: 'rgba(62,0,251,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 } },
-          React.createElement(EnvironmentOutlined, { style: { fontSize: 11, color: '#3E00FB' } })
+          React.createElement(EnvironmentOutlined, { style: { fontSize: 11, color: window.GRAVITY_THEME.token.colorPrimary } })
         ),
         React.createElement('div', { style: { flex: 1, minWidth: 0 } },
           React.createElement('div', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, s.display),
@@ -6194,7 +6194,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             ),
             sectionDirty[id] && React.createElement(Tooltip, { title: 'Modifiche non salvate in questa sezione' },
               React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', lineHeight: 0, flexShrink: 0 } },
-                React.createElement('span', { style: { width: 5, height: 5, borderRadius: '50%', background: '#3E00FB', display: 'block' } }))),
+                React.createElement('span', { style: { width: 5, height: 5, borderRadius: '50%', background: window.GRAVITY_THEME.token.colorPrimary, display: 'block' } }))),
           );
         }),
       ),
@@ -6607,7 +6607,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                   const isCover = (coverPhoto || (fileList[0] && fileList[0].uid)) === file.uid;
                   return React.createElement('div', { style: { position: 'relative', width: '100%', height: '100%' } },
                     originNode,
-                    React.createElement('button', { type: 'button', onClick: (e) => { e.stopPropagation(); setCoverPhoto(file.uid); }, title: isCover ? 'Immagine di copertina' : 'Imposta come copertina', style: { position: 'absolute', top: 6, left: 6, zIndex: 10, width: 24, height: 24, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isCover ? '#3E00FB' : 'rgba(0,0,0,0.55)', color: '#fff', padding: 0 } },
+                    React.createElement('button', { type: 'button', onClick: (e) => { e.stopPropagation(); setCoverPhoto(file.uid); }, title: isCover ? 'Immagine di copertina' : 'Imposta come copertina', style: { position: 'absolute', top: 6, left: 6, zIndex: 10, width: 24, height: 24, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isCover ? window.GRAVITY_THEME.token.colorPrimary : 'rgba(0,0,0,0.55)', color: '#fff', padding: 0 } },
                       React.createElement(isCover ? icons.StarFilled : icons.StarOutlined, { style: { fontSize: 12 } })),
                     isCover ? React.createElement('div', { style: { position: 'absolute', bottom: 6, left: 6, right: 6, textAlign: 'center', fontSize: 10, fontWeight: 600, color: '#fff', background: 'rgba(62,0,251,0.9)', borderRadius: 4, padding: '1px 0', pointerEvents: 'none' } }, 'Copertina') : null);
                 },
@@ -6747,7 +6747,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             React.createElement('span', { style: { width: 60, fontSize: 12, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, label),
             React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', textDecoration: 'line-through' } }, oldVal),
             React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.35)' } }, '→'),
-            React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: '#3E00FB' } }, newVal),
+            React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: window.GRAVITY_THEME.token.colorPrimary } }, newVal),
           )
         )
       ),
@@ -6793,7 +6793,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             className: 'gc-template-item',
             style: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid #E8E8E8', borderRadius: 8, cursor: 'pointer' },
           },
-            React.createElement(FileTextOutlined, { style: { fontSize: 18, color: '#3E00FB', flexShrink: 0 } }),
+            React.createElement(FileTextOutlined, { style: { fontSize: 18, color: window.GRAVITY_THEME.token.colorPrimary, flexShrink: 0 } }),
             React.createElement('div', { style: { flex: 1, minWidth: 0 } },
               React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, tpl.nome),
               React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, tpl.desc),
@@ -6820,7 +6820,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       ),
     },
       fcIsLinkedPost ? React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginBottom: 16, background: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
-        React.createElement(InfoCircleOutlined, { style: { fontSize: 14, color: '#3E00FB', marginTop: 2 } }),
+        React.createElement(InfoCircleOutlined, { style: { fontSize: 14, color: window.GRAVITY_THEME.token.colorPrimary, marginTop: 2 } }),
         React.createElement('span', null, 'Faccia posteriore collegata: posizione, dimensioni, slot e orientamento sono guidati dalla faccia anteriore. Qui puoi modificare illuminazione, modello di vendita e prezzo.'),
       ) : null,
       cs(tipoFacciaLabel, false,
@@ -6942,7 +6942,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         React.createElement(HandoffDesignNote, { id: 'commerciale-moduli-distanza-mancante', placement: 'bottom' }),
       ),
       (!tipologia || !formato) ? React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginBottom: 16, background: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
-        React.createElement(InfoCircleOutlined, { style: { fontSize: 14, color: '#3E00FB', marginTop: 2 } }),
+        React.createElement(InfoCircleOutlined, { style: { fontSize: 14, color: window.GRAVITY_THEME.token.colorPrimary, marginTop: 2 } }),
         React.createElement('span', null, 'Imposta tipologia e formato dell\'impianto per filtrare automaticamente i moduli compatibili.'),
       ) : null,
       linkCandidates.length === 0
@@ -6952,7 +6952,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
               const sel = linkSelectedIds.includes(imp.id);
               return React.createElement('div', {
                 key: imp.id, onClick: () => toggleLinkSel(imp.id),
-                style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid ' + (sel ? '#3E00FB' : '#E8E8E8'), borderRadius: 8, cursor: 'pointer', background: sel ? '#F5F2FF' : '#fff' },
+                style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid ' + (sel ? window.GRAVITY_THEME.token.colorPrimary : '#E8E8E8'), borderRadius: 8, cursor: 'pointer', background: sel ? '#F5F2FF' : '#fff' },
               },
                 React.createElement(Checkbox, { checked: sel }),
                 React.createElement('div', { style: { flex: 1, minWidth: 0 } },
@@ -7038,7 +7038,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           return React.createElement('div', {
             key: imp.id,
             onClick: () => setSaveLinkChosen(prev => prev.includes(imp.id) ? prev.filter(x => x !== imp.id) : [...prev, imp.id]),
-            style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid ' + (sel ? '#3E00FB' : '#E8E8E8'), borderRadius: 8, cursor: 'pointer', background: sel ? '#F5F2FF' : '#fff' },
+            style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid ' + (sel ? window.GRAVITY_THEME.token.colorPrimary : '#E8E8E8'), borderRadius: 8, cursor: 'pointer', background: sel ? '#F5F2FF' : '#fff' },
           },
             React.createElement(Checkbox, { checked: sel }),
             React.createElement('div', { style: { flex: 1, minWidth: 0 } },
@@ -7177,7 +7177,7 @@ function App() {
       React.createElement('div', { style: { borderTop: '1px solid #F0F0F0', margin: '8px 0 4px' } }),
       !showNewForm
         ? React.createElement('div', {
-            style: { display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', cursor: 'pointer', color: '#3E00FB', fontSize: 13 },
+            style: { display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', cursor: 'pointer', color: window.GRAVITY_THEME.token.colorPrimary, fontSize: 13 },
             onClick: () => setShowNewForm(true),
           },
             React.createElement(PlusOutlined, { style: { fontSize: 11 } }),
@@ -7628,7 +7628,7 @@ function App() {
                   onMouseDown: () => { setSearchQuery(s.display); setShowSugg(false); setFlyToTarget({ lat: s.lat, lng: s.lng, zoom: 16, _ts: Date.now() }); },
                 },
                   React.createElement('div', { style: { width: 28, height: 28, borderRadius: 6, background: '#F0EEFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
-                    React.createElement(EnvironmentOutlined, { style: { fontSize: 12, color: '#3E00FB' } })
+                    React.createElement(EnvironmentOutlined, { style: { fontSize: 12, color: window.GRAVITY_THEME.token.colorPrimary } })
                   ),
                   React.createElement('div', { style: { flex: 1, minWidth: 0 } },
                     React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.85)', lineHeight: '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
