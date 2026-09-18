@@ -6767,8 +6767,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         cs('Watt per faretto', false, num(fcIllumWatt, setFcIllumWatt, { min: 0, addonAfter: 'W', style: { width: 160 } })),
       ) : null,
       React.createElement('div', { className: 'ni-section-title', style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '8px 0 12px' } },
-        React.createElement(React.Fragment, null, 'Commerciale', React.createElement(HandoffDesignNote, { id: 'facce-commerciale-fuori-sprint-coming-soon', placement: 'right' }))),
-      React.createElement('div', { className: 'grav-facce-commerciale-empty' },
+        React.createElement(React.Fragment, null, 'Commerciale', React.createElement(HandoffDesignNote, { id: 'facce-commerciale-spostamento-tab-commerciale', placement: 'right' }))),
+      React.createElement('div', { className: 'grav-facce-commerciale-field' },
         gapRow(
           cs('Modello di vendita', false,
             React.createElement(Radio.Group, { optionType: 'button', value: fcVendita || 'Standard', onChange: e => setFcVendita(e.target.value),
