@@ -530,14 +530,15 @@ window.HANDOFF_OUT_OF_SPRINT = [
   // chi userà il prodotto. Disattivando "Interfaccia semplificata" si vede
   // comunque il contenuto reale così com'è progettato (riferimento per una
   // sprint futura, vedi note commerciale-moduli-* e
-  // facce-prezzo-spostamento-modello-commerciale).
+  // facce-commerciale-fuori-sprint-coming-soon).
   { selector: '.grav-commerciale-identita-empty', empty: true, noOutline: true, emptyDesc: 'Qui racconterai il lato commerciale del tuo impianto: alias, circuiti di vendita, punteggio di qualità e una galleria di foto tutta sua.' },
   { selector: '.grav-modello-commerciale-empty', empty: true, noOutline: true, emptyDesc: 'Qui imposterai il modello di vendita e il listino prezzi dell\'impianto, con il calcolo dell\'IVA già pronto per te.' },
   { selector: '.grav-moduli-empty', empty: true, noOutline: true, emptyDesc: 'Qui potrai collegare altri impianti simili al tuo, per venderli insieme come un unico spazio.' },
-  // "Prezzo faccia" (sezione Dati tecnici, drawer Faccia) — destinato a
-  // spostarsi nel box Modello commerciale (US#1.5, fuori sprint): vedi nota
-  // facce-prezzo-spostamento-modello-commerciale per i dettagli concordati col team.
-  { selector: '.grav-facce-prezzo-field', note: 'Fuori sprint — campo "Prezzo faccia": in attesa di spostamento nel pannello Modello commerciale, vedi nota di design collegata' },
+  // Sottosezione "Commerciale" del drawer Faccia (Modello di vendita + Prezzo
+  // faccia) — stesso trattamento della sezione Commerciale qui sopra: destinata
+  // a confluire nel box Modello commerciale (US#1.5, fuori sprint), vedi nota
+  // facce-commerciale-fuori-sprint-coming-soon per i dettagli concordati col team.
+  { selector: '.grav-facce-commerciale-empty', empty: true, noOutline: true, emptyDesc: 'Qui imposterai il modello di vendita e il prezzo di questa faccia, in linea con il Modello commerciale dell\'impianto.' },
   // Drawer "Collega impianto" (selezione impianti compatibili da collegare) —
   // stessa esclusione della sezione Commerciale che lo apre.
   { selector: '.grav-moduli-drawer .ant-drawer-content', empty: true, note: 'Fuori sprint — drawer di selezione moduli: stessa esclusione della sezione Commerciale (US#1.5)' },
@@ -983,8 +984,8 @@ window.HANDOFF_TOURS = [
         dev: [{ label: 'Componente', value: 'Drawer (AntD) impilato sopra il form principale — stesso pattern di Cespite/Dispositivo e Squadra' }],
       },
       {
-        title: 'Coordinate: ereditate dall\'impianto, sbloccabili',
-        description: 'Le coordinate della faccia sono **precompilate e in sola lettura**, ereditate da quelle dell\'impianto (qui valorizzate con l\'indirizzo di esempio compilato in Anagrafica) — il lucchetto le sblocca per sovrascriverle manualmente. Ribloccando, tornano quelle dell\'impianto.',
+        title: 'Coordinate: ereditate dall\'ubicazione, sempre modificabili',
+        description: 'Le coordinate della faccia sono **precompilate** con quelle dell\'ubicazione dell\'impianto (qui valorizzate con l\'indirizzo di esempio compilato in Anagrafica) e restano **sempre modificabili direttamente**, senza bisogno di sbloccarle. L\'etichetta del campo mostra "(ereditate dall\'ubicazione)" finché i valori combaciano con quelli dell\'impianto — appena se ne modifica anche solo uno, torna alla semplice "Coordinate".',
         selector: FD_ROW_COORD,
         placement: 'left',
         onEnter: function () { ghfFillFacciaCompleta(); },
@@ -1008,8 +1009,8 @@ window.HANDOFF_TOURS = [
         dev: [{ label: 'Mezzo per stato', value: "ILLUM_MEZZO_BY_STATO = { Illuminato: ['Faretti','LED','Neon'], Luminoso: ['LED','Neon','Diodi'] }" }],
       },
       {
-        title: 'Commerciale: sempre modificabile',
-        description: '**Modello di vendita** (Standard/Long term) e **Prezzo faccia** restano **sempre compilabili**, anche per una faccia posteriore collegata (dove invece posizione, dimensioni, slot e orientamento sono guidati dall\'anteriore e disabilitati) — a differenza di tutti gli altri campi di questo drawer. ==Prezzo faccia è fuori sprint==: destinato a spostarsi nel pannello Modello commerciale, vedi icona nota.',
+        title: 'Commerciale: sempre modificabile, ma fuori sprint',
+        description: '**Modello di vendita** (Standard/Long term) e **Prezzo faccia** restano **sempre compilabili** nel prototipo, anche per una faccia posteriore collegata (dove invece posizione, dimensioni, slot e orientamento sono guidati dall\'anteriore e disabilitati) — a differenza di tutti gli altri campi di questo drawer. ==Tutta la sottosezione è fuori sprint==: destinata a spostarsi nel pannello Modello commerciale, vedi icona nota sul titolo "Commerciale".',
         selector: FD_ROW_COMMERCIALE,
         placement: 'left',
         onEnter: function () { ghfFillFacciaCompleta(); },
@@ -1275,9 +1276,9 @@ window.HANDOFF_NOTES = [
   },
   // ── US#1.2 — Dati tecnici e facce: note di design/criteri aperti ────────
   {
-    id: 'facce-prezzo-spostamento-modello-commerciale',
-    title: 'Prezzo faccia: fuori sprint, in attesa di spostamento nel Modello commerciale',
-    body: '==Fuori sprint==: il campo **Prezzo faccia** qui in Dati tecnici verrà spostato nel pannello **Modello commerciale** — le indicazioni di design definitive arriveranno in una sprint futura. Nel frattempo il campo **appartiene già al modello dati esistente delle facce**: va concordato con il team di sviluppo cosa farne nell\'immediato, in attesa dello spostamento. Anche una volta spostato, resterà comunque possibile impostare il prezzo di ogni singola faccia anche da quell\'altro pannello.',
+    id: 'facce-commerciale-fuori-sprint-coming-soon',
+    title: 'Commerciale (drawer Faccia): fuori sprint, in attesa di spostamento nel Modello commerciale',
+    body: '==Fuori sprint==: l\'intera sottosezione **Commerciale** del drawer Faccia (**Modello di vendita** e **Prezzo faccia**) verrà spostata nel pannello **Modello commerciale** — le indicazioni di design definitive arriveranno in una sprint futura. Nel frattempo entrambi i campi **appartengono già al modello dati esistente delle facce**: va concordato con il team di sviluppo cosa farne nell\'immediato, in attesa dello spostamento. Anche una volta spostata, resterà comunque possibile impostare modello e prezzo di ogni singola faccia anche da quell\'altro pannello.',
   },
   // ── US#1.3 — Cespiti e dispositivi: note di design/criteri aperti ───────
   {
