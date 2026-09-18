@@ -1,0 +1,390 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entity Card — Gravity Design System</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@ant-design/icons@5/dist/index.umd.js"></script>
+  <script src="../prototype/_shared/tokens.js"></script>
+  <script src="../prototype/_shared/image-slot.js"></script>
+  <script src="../prototype/_shared/entity-card.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f5f5f5;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      font-size: 14px;
+      color: rgba(0,0,0,0.88);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .dc-header {
+      background: #fff;
+      border-bottom: 1px solid #f0f0f0;
+      padding: 20px 32px;
+    }
+    .dc-header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0 0 4px;
+      color: rgba(0,0,0,0.88);
+    }
+    .dc-header p {
+      margin: 0;
+      font-size: 14px;
+      color: rgba(0,0,0,0.45);
+    }
+
+    /* ── Layout ── */
+    .dc-body { padding: 32px; }
+    .dc-section { margin-bottom: 48px; }
+    .dc-section-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.45);
+      margin: 0 0 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    /* ── Card groups ── */
+    .dc-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .dc-cards--wide {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .dc-card-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .dc-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.35);
+    }
+
+    /* ── Variant ── */
+    .dc-variant {
+      background: #fff;
+      border: 1px solid #f0f0f0;
+      border-radius: 8px;
+      padding: 24px;
+    }
+    .dc-variant .dc-cards { justify-content: flex-start; }
+  </style>
+</head>
+<body>
+
+<div class="dc-header">
+  <h1>Entity Card</h1>
+  <p>Componente unico e parametrico — header, immagine, body e footer composti in base al tipo di entità.</p>
+</div>
+
+<div class="dc-body" id="root"></div>
+
+<script>
+window.applyGravityTokens && window.applyGravityTokens();
+
+(function () {
+  var h    = React.createElement;
+  var GEC  = window.GravityEntityCard;
+  var dot  = GEC.statusDot;
+  var Btn  = antd.Button;
+  var CP   = antd.ConfigProvider;
+  var theme = window.GRAVITY_THEME || {};
+
+  function T(node) {
+    return h(CP, { theme: theme }, node);
+  }
+
+  // ─── Ricette ──────────────────────────────────────────────────────────────
+
+  /* 1. Scheda impianto — verticale, con immagine */
+  function cardImpianto() {
+    return h(GEC, {
+      title: 'Impianto Via Maqueda 148',
+      badge: { text: 'PA-001', variant: 'default' },
+      showMenu: true,
+      image: { id: 'imp-001', placeholder: 'foto impianto', heightPx: 160 },
+      bodyBadges: [
+        { text: 'OOH',       variant: 'ooh' },
+        { text: 'Pensilina', variant: 'default' },
+      ],
+      address: {
+        primary:   'Via Maqueda 148, 90134 Palermo',
+        secondary: 'Centro storico',
+      },
+      fields: [
+        { icon: 'ExpandOutlined',    label: 'Formato:',    value: '140×200 cm' },
+        { icon: 'AppstoreOutlined',  label: 'Facce:',      value: '2' },
+        { icon: 'AimOutlined',       label: 'Stato:',      valueNode: dot('#52C41A', 'Attivo') },
+      ],
+    });
+  }
+
+  /* 2. Concessione */
+  function cardConcessione() {
+    return h(GEC, {
+      title: 'Atto Amministrativo',
+      badge: { text: 'CONC-2022-003', variant: 'default' },
+      showMenu: true,
+      fields: [
+        { icon: 'BankOutlined',      label: 'Ente emittente:',  value: 'Comune di Palermo' },
+        { icon: 'CalendarOutlined',  label: 'Presentata il:',   value: '15/04/2004' },
+        { icon: 'AimOutlined',       label: 'Stato:',           valueNode: dot('#1677FF', 'Attiva') },
+      ],
+      footerText: 'Scade il 31/12/2027',
+    });
+  }
+
+  /* 3. Autorizzazione */
+  function cardAutorizzazione() {
+    return h(GEC, {
+      title: 'Autorizzazione esposizione (art. 23 CdS)',
+      badge: { text: 'AUT-2024-001', variant: 'default' },
+      showMenu: true,
+      fields: [
+        { icon: 'BankOutlined',     label: 'Ente emittente:',  value: 'Comune di Palermo' },
+        { icon: 'CalendarOutlined', label: 'Presentata il:',   value: '12/01/2024' },
+        { icon: 'AimOutlined',      label: 'Stato:',           valueNode: dot('#FAAD14', 'Presentata') },
+      ],
+      footerText: 'Scade il 15/06/2026',
+    });
+  }
+
+  /* 4. Faccia — una colonna */
+  function cardFaccia() {
+    return h(GEC, {
+      title: 'Anteriore-1',
+      badge: { text: 'Visibile', variant: 'success' },
+      showMenu: true,
+      fields: [
+        { icon: 'NumberOutlined',    label: 'Slot:',             value: '1' },
+        { icon: 'CompassOutlined',   label: 'Orientamento:',     value: '45°' },
+        { icon: 'GatewayOutlined',   label: 'Cono visibilità:',  value: 'r 40 cm' },
+        { icon: 'ExpandOutlined',    label: 'Formato:',          value: '140×200 cm' },
+        { icon: 'BulbOutlined',      label: 'Illuminazione:',    value: '2 faretti · 150W' },
+        { icon: 'TagOutlined',       label: 'Modello:',          value: 'Long term' },
+        { icon: 'EuroOutlined',      label: 'Prezzo:',           value: '€ 300' },
+      ],
+    });
+  }
+
+  /* 5. Faccia — due colonne */
+  function cardFaccia2col() {
+    return h(GEC, {
+      title: 'Anteriore-1',
+      badge: { text: 'Visibile', variant: 'success' },
+      showMenu: true,
+      bodyColumns: 2,
+      style: { width: '460px' },
+      fields: [
+        { icon: 'NumberOutlined',    label: 'Slot:',             value: '1' },
+        { icon: 'CompassOutlined',   label: 'Orientamento:',     value: '45°' },
+        { icon: 'GatewayOutlined',   label: 'Cono visibilità:',  value: 'r 40 cm' },
+        { icon: 'ExpandOutlined',    label: 'Formato:',          value: '140×200 cm' },
+        { icon: 'BulbOutlined',      label: 'Illuminazione:',    value: '2 faretti · 150W' },
+        { icon: 'TagOutlined',       label: 'Modello:',          value: 'Long term' },
+        { icon: 'EuroOutlined',      label: 'Prezzo:',           value: '€ 300' },
+      ],
+    });
+  }
+
+  /* 6. Squadra */
+  function cardSquadra() {
+    return h(GEC, {
+      title: 'Rossi Affissioni',
+      badge: { text: 'SQ-AFF-04', variant: 'default' },
+      showMenu: true,
+      fields: [
+        { icon: 'TagOutlined',  label: 'Tipo affissione:',     value: 'Cartello, Manifesto' },
+        { icon: 'EuroOutlined', label: 'Costo affissione:',    value: '€ 45' },
+        { icon: 'EuroOutlined', label: 'Costo preincollaggio:', value: '€ 12' },
+      ],
+    });
+  }
+
+  /* 7. Modulo */
+  function cardModulo() {
+    return h(GEC, {
+      title: 'I001 · Pensilina',
+      badge: { text: 'OOH', variant: 'ooh' },
+      showMenu: true,
+      image: { id: 'mod-001', placeholder: 'foto impianto', heightPx: 140 },
+      fields: [
+        { icon: 'EnvironmentOutlined', label: 'Indirizzo:',  value: 'Via Maqueda 148' },
+        { icon: 'AppstoreOutlined',    label: 'Facce:',      value: '2 facce' },
+        { icon: 'ExpandOutlined',      label: 'Formato:',    value: '140×200 cm' },
+      ],
+    });
+  }
+
+  /* 8. Ubicazione */
+  function cardUbicazione() {
+    return h(GEC, {
+      title: 'Ubicazione',
+      showMenu: false,
+      image: { id: 'ub-001', placeholder: 'mappa', heightPx: 140 },
+      fields: [
+        { icon: 'EnvironmentOutlined', label: 'Indirizzo:',   value: 'Via Maqueda, 148' },
+        { icon: 'BankOutlined',        label: 'Comune:',      value: '90134 Palermo (PA)' },
+        { icon: 'AimOutlined',         label: 'Zona:',        value: 'Centro storico' },
+      ],
+    });
+  }
+
+  /* 9. Sistema nel dettaglio concessione — layout orizzontale */
+  function cardSistema() {
+    return h(GEC, {
+      title: 'Torre Traiano 12',
+      badge: { text: 'SYS-042', variant: 'default' },
+      showMenu: true,
+      bodyLayout: 'horizontal',
+      image: { id: 'sys-042', placeholder: 'foto impianto', heightPx: 160 },
+      bodyBadges: [
+        { text: 'DOOH',  variant: 'dooh' },
+        { text: 'Totem', variant: 'default' },
+      ],
+      address: {
+        primary:   'Via Roma 42',
+        secondary: 'Palermo, Politeama',
+      },
+      fields: [
+        { icon: 'GatewayOutlined',   label: 'Formato:', value: '3×6 m' },
+        { icon: 'AppstoreOutlined',  label: 'Facce:',   value: '2' },
+        { icon: 'AimOutlined',       label: 'Stato:',   valueNode: dot('#1677FF', 'Attivo') },
+      ],
+      footerText: '',
+      footerButton: h(Btn, { size: 'small', icon: h(icons.EyeOutlined) }, 'Vai al dettaglio'),
+      style: { width: '640px' },
+    });
+  }
+
+  /* 10. Campagna */
+  function cardCampagna() {
+    return h(GEC, {
+      title: 'Nuovo Test Elena OOH Standard',
+      showMenu: true,
+      fields: [
+        { icon: 'CalendarOutlined',  label: 'Periodo:',         value: '25/08/2026 – 07/09/2026' },
+        { icon: 'EuroOutlined',      label: 'Budget:',          value: '1.000,00 €' },
+        { icon: 'SwapOutlined',      label: 'Cambi soggetto:',  value: '1' },
+        { icon: 'PictureOutlined',   label: 'Costi grafica:',   value: 'Non inclusi' },
+        { icon: 'PrinterOutlined',   label: 'Costi stampa:',    value: 'Non inclusi' },
+      ],
+      footer: h('div', { style: { display: 'flex', gap: '8px', width: '100%' } },
+        h(Btn, { disabled: true, style: { flex: 1 } }, 'Scegli i formati'),
+        h(Btn, { type: 'primary', style: { flex: 1 } }, 'Pianificazione richiesta'),
+      ),
+    });
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+
+  var app = T(h('div', null,
+
+    /* Verticale — singola colonna */
+    h('div', { className: 'dc-section' },
+      h('p', { className: 'dc-section-title' }, 'Verticale (bodyLayout: vertical — default)'),
+      h('div', { className: 'dc-variant' },
+        h('div', { className: 'dc-cards' },
+          h('div', { className: 'dc-card-wrap' }, h('span', { className: 'dc-label' }, 'Scheda impianto'), cardImpianto()),
+          h('div', { className: 'dc-card-wrap' }, h('span', { className: 'dc-label' }, 'Concessione'),    cardConcessione()),
+          h('div', { className: 'dc-card-wrap' }, h('span', { className: 'dc-label' }, 'Autorizzazione'), cardAutorizzazione()),
+          h('div', { className: 'dc-card-wrap' }, h('span', { className: 'dc-label' }, 'Squadra'),        cardSquadra()),
+          h('div', { className: 'dc-card-wrap' }, h('span', { className: 'dc-label' }, 'Modulo'),         cardModulo()),
+          h('div', { className: 'dc-card-wrap' }, h('span', { className: 'dc-label' }, 'Ubicazione'),     cardUbicazione()),
+          h('div', { className: 'dc-card-wrap' }, h('span', { className: 'dc-label' }, 'Campagna'),       cardCampagna()),
+        )
+      )
+    ),
+
+    /* Faccia 1 colonna */
+    h('div', { className: 'dc-section' },
+      h('p', { className: 'dc-section-title' }, 'Faccia'),
+      h('div', { className: 'dc-variant' },
+        h('div', { className: 'dc-cards' },
+          h('div', { className: 'dc-card-wrap' }, h('span', { className: 'dc-label' }, '1 colonna'), cardFaccia()),
+          h('div', { className: 'dc-card-wrap' }, h('span', { className: 'dc-label' }, '2 colonne'), cardFaccia2col()),
+        )
+      )
+    ),
+
+    /* Orizzontale */
+    h('div', { className: 'dc-section' },
+      h('p', { className: 'dc-section-title' }, 'Orizzontale (bodyLayout: horizontal)'),
+      h('div', { className: 'dc-variant' },
+        h('div', { className: 'dc-cards--wide' },
+          h('div', { className: 'dc-card-wrap' },
+            h('span', { className: 'dc-label' }, 'Sistema nel dettaglio concessione / autorizzazione'),
+            cardSistema()
+          ),
+        )
+      )
+    ),
+
+    /* Badge variants */
+    h('div', { className: 'dc-section' },
+      h('p', { className: 'dc-section-title' }, 'Badge variants'),
+      h('div', { className: 'dc-variant' },
+        h('div', { className: 'dc-cards' },
+          ['default','primary','ooh','dooh','success','warning','error','blue','cyan'].map(function (v) {
+            return h('div', { key: v, className: 'dc-card-wrap' },
+              h('span', { className: 'dc-label' }, v),
+              h(GEC, { title: v, badge: { text: v, variant: v }, style: { width: '180px' } })
+            );
+          })
+        )
+      )
+    ),
+
+    /* Status dot */
+    h('div', { className: 'dc-section' },
+      h('p', { className: 'dc-section-title' }, 'Status dot'),
+      h('div', { className: 'dc-variant' },
+        h('div', { className: 'dc-cards' },
+          [
+            { color: '#52C41A', label: 'Disponibile' },
+            { color: '#EB2F96', label: 'In opzione' },
+            { color: '#1677FF', label: 'Riservato / Attivo' },
+            { color: '#FA8C16', label: 'In manutenzione' },
+            { color: '#FAAD14', label: 'Inizializzato' },
+            { color: 'rgba(0,0,0,0.25)', label: 'Rimosso' },
+          ].map(function (s) {
+            return h('div', { key: s.label, style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
+              h('span', { className: 'dc-label' }, s.label),
+              dot(s.color, s.label)
+            );
+          })
+        )
+      )
+    ),
+
+  ));
+
+  ReactDOM.createRoot(document.getElementById('root')).render(app);
+}());
+</script>
+</body>
+</html>
