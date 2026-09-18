@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entity Card — Gravity Docs</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@ant-design/icons@5/dist/index.umd.js"></script>
+  <script src="../prototype/_shared/tokens.js"></script>
+  <script src="../prototype/_shared/entity-card.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:#FAF9FD; --surface:#FFFFFF; --surface-sunk:#F4F2FA;
+      --ink:#1A1730; --ink-soft:#5D5878; --ink-faint:#8B87A3;
+      --rule:#E4E1F0; --rule-strong:#CFCAE4;
+      --accent:#3E00FB; --accent-wash:#EFEAFF;
+      --shadow:0 8px 32px rgba(62,0,251,.10);
+      --pill-ooh-bg:#F1FBEA; --pill-ooh-fg:#3B8A12; --pill-ooh-br:#BCE6A2;
+    }
+    @media (prefers-color-scheme:dark){
+      :root:not([data-theme="light"]){
+        --bg:#121022; --surface:#1B1832; --surface-sunk:#171430;
+        --ink:#EDEAF8; --ink-soft:#A8A2C4; --ink-faint:#7C769A;
+        --rule:#2C2850; --rule-strong:#3D3768;
+        --accent:#A98CFF; --accent-wash:#241C49;
+        --shadow:0 8px 32px rgba(0,0,0,.45);
+        --pill-ooh-bg:#1B3312; --pill-ooh-fg:#9BE07A; --pill-ooh-br:#2F5C20;
+      }
+    }
+    :root[data-theme="dark"]{
+      --bg:#121022; --surface:#1B1832; --surface-sunk:#171430;
+      --ink:#EDEAF8; --ink-soft:#A8A2C4; --ink-faint:#7C769A;
+      --rule:#2C2850; --rule-strong:#3D3768;
+      --accent:#A98CFF; --accent-wash:#241C49;
+      --shadow:0 8px 32px rgba(0,0,0,.45);
+      --pill-ooh-bg:#1B3312; --pill-ooh-fg:#9BE07A; --pill-ooh-br:#2F5C20;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;scroll-padding-top:76px}
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+      font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+    }
+    code,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+    code{
+      font-size:.86em; background:var(--surface-sunk); color:var(--ink);
+      padding:.1em .35em; border-radius:3px; border:1px solid var(--rule);
+    }
+    a{color:var(--accent)}
+    p{max-width:70ch;margin:0 0 16px}
+    ul,ol{max-width:70ch;padding-left:20px;margin:0 0 16px}
+    li{margin-bottom:6px}
+
+    /* ── Header ── */
+    .doc-header{
+      position:sticky; top:0; z-index:100; height:64px;
+      background:rgba(250,249,253,0.92); backdrop-filter:blur(8px);
+      border-bottom:1px solid var(--rule);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 40px;
+    }
+    :root[data-theme="dark"] .doc-header,
+    @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .doc-header{ background:rgba(18,16,34,0.92); } }
+    .doc-logo{display:flex;align-items:center;gap:6px;text-decoration:none;flex-shrink:0}
+    .doc-logo img{height:22px}
+    .doc-logo .sep{color:var(--ink-faint);font-weight:300;font-size:18px;margin:0 2px}
+    .doc-logo .site{color:var(--ink-soft);font-weight:500;font-size:14px}
+    .theme-btn{
+      background:none; border:1px solid var(--rule); border-radius:6px;
+      color:var(--ink-soft); padding:4px 10px; font-size:13px;
+      cursor:pointer; font-family:inherit; transition:all .15s;
+    }
+    .theme-btn:hover{color:var(--ink);border-color:var(--rule-strong)}
+
+    /* ── Shell ── */
+    .shell{display:grid;grid-template-columns:264px minmax(0,1fr);max-width:1360px;margin:0 auto;padding:0 40px}
+
+    /* ── Rail ── */
+    .rail{
+      position:sticky; top:64px; align-self:start;
+      height:calc(100vh - 64px); overflow-y:auto;
+      padding:32px 24px 48px 0; border-right:1px solid var(--rule);
+    }
+    .rail .group{margin-bottom:20px}
+    .rail .group > span{
+      display:block; font-size:11.5px; font-weight:600;
+      letter-spacing:.05em; text-transform:uppercase;
+      color:var(--ink-faint); margin-bottom:4px;
+    }
+    .rail a{
+      display:block; text-decoration:none; color:var(--ink-soft);
+      padding:3px 0 3px 12px; border-left:2px solid transparent;
+      line-height:1.4; margin-bottom:1px; font-size:14px; transition:all .15s;
+    }
+    .rail a:hover{color:var(--ink)}
+    .rail a.on{color:var(--accent);border-left-color:var(--accent);font-weight:500}
+    .rail a.sub{
+      font-size:12.5px; font-family:"IBM Plex Mono",ui-monospace,monospace;
+      padding-left:20px; color:var(--ink-faint);
+    }
+    .rail a.sub:hover{color:var(--ink-soft)}
+    .rail a.sub.on{color:var(--accent)}
+
+    /* ── Main ── */
+    main{padding:40px 0 120px 64px;min-width:0}
+    .lede{font-size:18px;line-height:1.55;max-width:62ch;color:var(--ink-soft);margin:0 0 40px}
+    .lede strong{color:var(--ink);font-weight:500}
+    section{padding-top:36px;margin-bottom:12px}
+    section > h2{
+      font-size:15px;font-weight:600;margin:0 0 18px;letter-spacing:.005em;
+      padding-bottom:8px;border-bottom:1px solid var(--rule-strong);
+    }
+
+    /* ── Tables ── */
+    .tw{overflow-x:auto;margin:0 0 22px;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+    table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+    th{text-align:left;font-weight:600;color:var(--ink);padding:11px 16px;border-bottom:1px solid var(--rule-strong);vertical-align:bottom;white-space:nowrap}
+    td{padding:11px 16px;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--ink-soft)}
+    tbody tr:last-child td{border-bottom:none}
+    td:first-child{color:var(--ink);font-weight:500;white-space:nowrap}
+    table.wf td:first-child{white-space:normal}
+
+    /* ── Anatomy ── */
+    .anatomy{display:grid;grid-template-columns:320px minmax(0,1fr);gap:48px;align-items:start;margin:0 0 28px}
+    .acard{background:var(--surface);border:1px solid var(--rule);border-radius:8px;box-shadow:var(--shadow);font-size:14px;position:relative}
+    .azone{position:relative}
+    .amarker{
+      position:absolute;left:-13px;top:10px;width:22px;height:22px;border-radius:50%;
+      background:var(--accent);color:#fff;font-size:12px;font-weight:600;
+      display:grid;place-items:center;font-family:"IBM Plex Mono",monospace;
+    }
+    .ahead{padding:14px 16px 12px;display:flex;align-items:flex-start;gap:8px}
+    .atitle{font-size:16px;font-weight:600;color:var(--ink);line-height:1.25;flex:1}
+    .abadges{display:flex;gap:6px;margin-top:7px}
+    .apill{font-size:12px;padding:1px 8px;border-radius:10px;border:1px solid;line-height:1.5}
+    .apill.ooh{color:var(--pill-ooh-fg);border-color:var(--pill-ooh-br);background:var(--pill-ooh-bg)}
+    .apill.def{color:var(--ink-soft);border-color:var(--rule-strong);background:var(--surface-sunk)}
+    .akebab{color:var(--ink-faint);font-size:17px;line-height:1;padding:2px 4px}
+    .aimg{height:100px;background:var(--surface-sunk);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);display:grid;place-items:center;color:var(--ink-faint);font-size:13px;gap:4px}
+    .abody{padding:13px 16px;display:flex;flex-direction:column;gap:9px}
+    .arow{display:flex;gap:7px;align-items:baseline;font-size:13.5px}
+    .arow .lbl{font-weight:600;color:var(--ink)}
+    .arow .val{color:var(--ink-soft)}
+    .arow .ico{color:var(--ink-faint);font-size:12px;width:14px}
+    .adot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:baseline}
+    .afoot{padding:10px 16px;background:var(--surface-sunk);border-top:1px solid var(--rule);color:var(--ink-soft);font-size:13px;border-radius:0 0 7px 7px}
+    .legend{margin:0;padding:0;list-style:none;max-width:52ch}
+    .legend li{display:grid;grid-template-columns:24px 1fr;gap:10px;margin-bottom:14px;font-size:14.5px;line-height:1.5}
+    .legend .n{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:50%;width:22px;height:22px;display:grid;place-items:center}
+    .legend b{font-weight:600;color:var(--ink)}
+    .legend span{color:var(--ink-soft)}
+
+    /* ── Badge swatches ── */
+    .swatches{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+    .sw{font-size:12.5px;padding:2px 10px;border-radius:11px;border:1px solid var(--rule-strong);background:var(--surface);color:var(--ink-soft)}
+
+    /* ── Note ── */
+    .note{border-left:2px solid var(--accent);background:var(--accent-wash);padding:12px 16px;margin:0 0 22px;max-width:70ch;border-radius:0 4px 4px 0;font-size:14.5px;color:var(--ink-soft)}
+    .note b{color:var(--ink);font-weight:600}
+
+    /* ── Todo ── */
+    .todo{list-style:none;padding:0}
+    .todo li{position:relative;padding-left:24px}
+    .todo li::before{content:"";position:absolute;left:0;top:7px;width:12px;height:12px;border:1.5px solid var(--rule-strong);border-radius:2px}
+
+    /* ── Pre ── */
+    pre{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:16px;overflow-x:auto;font-size:13px;line-height:1.65;margin:0 0 22px;color:var(--ink)}
+    pre code{background:none;border:none;padding:0;font-size:13px}
+
+    /* ── Stories / Demo blocks ── */
+    .stories-intro{font-size:14px;color:var(--ink-soft);margin:0 0 20px;max-width:70ch}
+    .demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .demo-grid.full{grid-template-columns:1fr}
+    .demo-block{border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:var(--surface)}
+    .demo-preview{padding:32px 24px;background:var(--surface);display:flex;align-items:flex-start;justify-content:center}
+    .demo-preview.pad-sm{padding:24px}
+    .demo-bar{border-top:1px solid var(--rule);background:var(--surface-sunk);padding:10px 14px;display:flex;align-items:flex-start;gap:12px}
+    .demo-bar-info{flex:1;min-width:0}
+    .demo-bar-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px}
+    .demo-bar-desc{font-size:12px;color:var(--ink-faint);line-height:1.5}
+    .demo-bar-btn{flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--ink-faint);padding:4px 8px;border-radius:4px;font-size:12px;transition:all .15s;display:flex;align-items:center;gap:4px;font-family:inherit}
+    .demo-bar-btn:hover{color:var(--ink);background:var(--rule)}
+    .demo-usage{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px}
+    .demo-usage-label{font-size:11px;color:var(--ink-faint);white-space:nowrap;flex-shrink:0}
+    .demo-usage-chip{font-size:11px;padding:1px 7px;border-radius:3px;line-height:18px;background:var(--surface-sunk);border:1px solid var(--rule);color:var(--ink-soft);white-space:nowrap}
+    .demo-usage-chip strong{font-weight:600;color:var(--ink)}
+    .demo-story-chip{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;font-weight:400;padding:1px 6px;border-radius:3px;line-height:18px;background:var(--accent-wash);color:var(--accent);border:1px solid rgba(62,0,251,0.14);white-space:nowrap;vertical-align:middle;margin-left:6px}
+    .demo-code{display:none;border-top:1px solid var(--rule)}
+    .demo-code.open{display:block}
+    .demo-code pre{margin:0;padding:18px 20px;background:#14141f;color:#cdd3de;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;line-height:1.65;overflow-x:auto;border:none;border-radius:0}
+
+    /* ── API tables (interactive) ── */
+    .api-sub{font-size:15px;font-weight:600;margin:28px 0 10px;color:var(--ink)}
+    .api-wrap{overflow-x:auto;margin-bottom:32px;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+    .api-table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+    .api-table th{text-align:left;padding:10px 16px;font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--surface-sunk);border-bottom:1px solid var(--rule-strong);white-space:nowrap}
+    .api-table td{padding:9px 16px;vertical-align:top;border-bottom:1px solid var(--rule);line-height:1.55;color:var(--ink-soft)}
+    .api-table tr:last-child td{border-bottom:none}
+    .api-table tr:hover td{background:var(--surface-sunk)}
+    .api-table code{border:none;background:var(--surface-sunk)}
+    .api-table .c-prop{white-space:nowrap}
+    .api-table .c-prop code{color:var(--accent)}
+    .api-table .c-type code{color:#c7254e;white-space:nowrap}
+    .api-table .c-req{color:#FF4A1C;font-size:12px;font-weight:700;text-align:center}
+    .api-table .c-def{color:var(--ink-faint);font-size:12px}
+
+    /* ── Footer ── */
+    .doc-footer{border-top:1px solid var(--rule);margin-top:60px;padding-top:20px;font-size:13.5px;color:var(--ink-faint);max-width:70ch}
+
+    /* ── Responsive ── */
+    @media (max-width:900px){
+      .shell{grid-template-columns:1fr;gap:0;padding:0 20px}
+      .rail{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:28px 0 20px}
+      .rail nav{display:flex;flex-wrap:wrap;gap:4px 18px}
+      .rail .group{margin-bottom:8px}
+      main{padding:32px 0 80px}
+      .anatomy{grid-template-columns:1fr;gap:28px}
+      .amarker{left:auto;right:8px}
+      .demo-grid{grid-template-columns:1fr}
+    }
+    @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  </style>
+</head>
+<body>
+
+<header class="doc-header">
+  <a class="doc-logo" href="#">
+    <img src="../brand/Gravity_type.svg" alt="Gravity">
+    <span class="sep">/</span>
+    <span class="site">Docs</span>
+  </a>
+  <button class="theme-btn" id="theme-toggle">Dark</button>
+</header>
+
+<div class="shell">
+  <div class="rail">
+    <nav>
+      <div class="group"><span>Fondamenti</span>
+        <a href="#anatomia">Anatomia</a>
+        <a href="#quando">Cos'è e quando usarla</a>
+        <a href="#api">API e proprietà</a>
+      </div>
+      <div class="group"><span>Contenuto</span>
+        <a href="#badge">Badge e indicatori di stato</a>
+        <a href="#dati">Modello dati</a>
+        <a href="#ricette">Ricette</a>
+      </div>
+      <div class="group"><span>Stories</span>
+        <a href="#stories">Panoramica</a>
+        <a href="#story-Default" class="sub">Default</a>
+        <a href="#story-WithStatusDot" class="sub">WithStatusDot</a>
+        <a href="#story-TwoColumnBody" class="sub">TwoColumnBody</a>
+        <a href="#story-MultipleBadgesAndMenu" class="sub">MultipleBadgesAndMenu</a>
+        <a href="#story-FooterWithActions" class="sub">FooterWithActions</a>
+        <a href="#story-BadgeVariants" class="sub">BadgeVariants</a>
+        <a href="#story-SystemInGrantDetail" class="sub">SystemInGrantDetail</a>
+      </div>
+      <div class="group"><span>Comportamento</span>
+        <a href="#stati">Stati e interazione</a>
+        <a href="#responsive">Responsive e troncamento</a>
+        <a href="#ruoli">Visibilità per ruolo</a>
+        <a href="#a11y">Accessibilità</a>
+        <a href="#zero">Zero state</a>
+      </div>
+      <div class="group"><span>Uso</span>
+        <a href="#casi">Casi d'uso</a>
+        <a href="#aperti">Punti aperti</a>
+      </div>
+    </nav>
+  </div>
+
+  <main>
+    <p class="lede">L'Entity Card è il formato con cui Gravity rappresenta <strong>un singolo oggetto di dominio</strong> quando questo ha bisogno di spazio proprio: un'identità visiva, un insieme eterogeneo di attributi e spesso un'azione diretta raggiungibile senza aprire il dettaglio.</p>
+
+    <section id="anatomia">
+      <h2>Anatomia</h2>
+      <div class="anatomy">
+        <div class="acard">
+          <div class="azone ahead"><span class="amarker">1</span>
+            <div>
+              <div class="atitle">Via Maqueda 148</div>
+              <div class="abadges">
+                <span class="apill ooh">OOH</span>
+                <span class="apill def">PA-001</span>
+              </div>
+            </div>
+            <div class="akebab">⋮</div>
+          </div>
+          <div class="azone aimg"><span class="amarker">2</span>
+            <span>▣</span><span>Foto impianto</span>
+          </div>
+          <div class="azone abody"><span class="amarker">3</span>
+            <div class="arow"><span class="ico">◇</span><span class="lbl">Tipologia:</span><span class="val">Pensilina</span></div>
+            <div class="arow"><span class="ico">⤢</span><span class="lbl">Formato:</span><span class="val">140×200 cm</span></div>
+            <div class="arow"><span class="ico">◉</span><span class="lbl">Stato:</span><span class="val"><span class="adot" style="background:#52C41A"></span>Disponibile</span></div>
+          </div>
+          <div class="azone afoot"><span class="amarker">4</span>Scade il 21/01/2031</div>
+        </div>
+        <ul class="legend">
+          <li><span class="n">1</span><span><b>Header</b> — sempre presente. Titolo dell'entità, uno o più badge, menu kebab quando ci sono azioni contestuali. Titolo semibold 16px, badge pill 12px.</span></li>
+          <li><span class="n">2</span><span><b>Image area</b> — foto in rapporto 16:9, o placeholder con icona e testo. Usa <code>&lt;image-slot&gt;</code> se il custom element è registrato, altrimenti un div di fallback.</span></li>
+          <li><span class="n">3</span><span><b>Body</b> — righe di icona, etichetta e valore. Una colonna di default, due con <code>bodyColumns: 2</code>.</span></li>
+          <li><span class="n">4</span><span><b>Footer</b> — slot libero React su sfondo <code>#FCFCFD</code>: pulsanti, scadenze, indicatori secondari.</span></li>
+        </ul>
+      </div>
+      <p>Solo l'header è obbligatorio. Le altre tre zone compaiono in base ai dati e al contesto: il body a due colonne serve alle entità con molti campi, il footer esiste per togliere dal body ciò che non è un attributo dell'entità.</p>
+    </section>
+
+    <section id="quando">
+      <h2>Cos'è e quando usarla</h2>
+      <p>Gli oggetti della piattaforma — impianti, facce, concessioni, autorizzazioni, cespiti — non sono righe piatte di dati. Hanno una struttura interna ricca, uno stato operativo da comunicare a colpo d'occhio e relazioni con altri oggetti che li qualificano. La card racchiude tutto questo in un contenitore autonomo, senza drawer né navigazione.</p>
+      <p>Usa la card quando almeno due di queste condizioni sono vere:</p>
+      <ol>
+        <li>L'entità ha un'identità visiva propria (foto, identificativo visivo).</li>
+        <li>Ha più di tre attributi eterogenei da mostrare insieme.</li>
+        <li>È una sotto-entità da elencare dentro il contesto della principale.</li>
+        <li>Ha azioni contestuali che devono restare accessibili senza navigare altrove.</li>
+      </ol>
+      <div class="tw"><table>
+        <thead><tr><th>Situazione</th><th>Componente corretto</th></tr></thead>
+        <tbody>
+          <tr><td>Molte entità omogenee da confrontare sugli stessi campi</td><td>Tabella</td></tr>
+          <tr><td>KPI sintetica (icona, numero, label)</td><td><code>Card</code> Ant Design con <code>Statistic</code></td></tr>
+        </tbody>
+      </table></div>
+      <div class="note"><b>Eccezione — il popover della mappa.</b> Il popover che appare al click su un marker è un componente a sé, modellato sull'Entity Card. Ne eredita il modello informativo ma ha una struttura propria, definita in <code>prototype/_shared/map-popover.js</code>: larghezza 380px, body orizzontale con foto a sinistra (160px) e pannello info a destra, footer con il solo pulsante "Vai al dettaglio". Va trattato come componente derivato: una modifica all'Entity Card non si propaga al popover, e viceversa.</div>
+    </section>
+
+    <section id="api">
+      <h2>API e proprietà</h2>
+      <p>Il componente è esposto come <code>window.GravityEntityCard</code> da <code>prototype/_shared/entity-card.js</code>. Ogni prototipo lo include via <code>&lt;script&gt;</code> e non ridefinisce localmente la struttura della card.</p>
+<pre><code>React.createElement(window.GravityEntityCard, {
+  title: 'Via Maqueda 148',
+  badges: [
+    { text: 'OOH', variant: 'ooh' },
+    { text: 'PA-001', variant: 'default' }
+  ],
+  showMenu: true,
+  image: { id: 'imp-001', placeholder: 'Foto impianto', aspectRatio: '16/9' },
+  fields: [
+    { icon: 'TagOutlined',    label: 'Tipologia:', value: 'Pensilina' },
+    { icon: 'ExpandOutlined', label: 'Formato:',   value: '140×200 cm' },
+    { icon: 'WifiOutlined',   label: 'Stato:',
+      valueNode: GravityEntityCard.statusDot('#52C41A', 'Disponibile') }
+  ],
+  bodyColumns: 1,
+  footer: React.createElement('span', null, 'Scade il 21/01/2031'),
+  style: { width: 360 }
+})</code></pre>
+      <p><code>badge</code> e <code>badges</code> sono mutuamente esclusivi. In un campo, <code>valueNode</code> ha precedenza su <code>value</code> quando entrambi sono forniti.</p>
+
+      <h3 class="api-sub">GravityEntityCard</h3>
+      <div class="api-wrap" id="t-main"></div>
+
+      <h3 class="api-sub">badge / badges[n]</h3>
+      <div class="api-wrap" id="t-badge"></div>
+
+      <h3 class="api-sub">fields[n]</h3>
+      <div class="api-wrap" id="t-field"></div>
+
+      <h3 class="api-sub">image</h3>
+      <div class="api-wrap" id="t-image"></div>
+    </section>
+
+    <section id="badge">
+      <h2>Badge e indicatori di stato</h2>
+      <p>Due canali distinti: i badge nell'header comunicano tipo o stato dell'entità nel suo complesso, lo <code>statusDot</code> nel body comunica lo stato operativo come valore di un campo.</p>
+      <div class="swatches">
+        <span class="sw">default</span><span class="sw">primary</span><span class="sw">ooh</span><span class="sw">dooh</span>
+        <span class="sw">success</span><span class="sw">warning</span><span class="sw">error</span><span class="sw">blue</span>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Variante</th><th>Colore</th><th>Uso previsto</th></tr></thead>
+        <tbody>
+          <tr><td><code>default</code></td><td>Bordo grigio, testo scuro, sfondo quasi bianco</td><td>Identificatori neutri, come un codice documento</td></tr>
+          <tr><td><code>primary</code></td><td>Violetto Gravity</td><td>Canale principale del brand o stati di primaria importanza</td></tr>
+          <tr><td><code>ooh</code></td><td>Verde</td><td>Impianti e formati del canale OOH</td></tr>
+          <tr><td><code>dooh</code></td><td>Rosa</td><td>Impianti e formati del canale DOOH</td></tr>
+          <tr><td><code>success</code></td><td>Verde</td><td>Stati positivi generici: attivo, approvato</td></tr>
+          <tr><td><code>warning</code></td><td>Giallo ambra</td><td>Stati che richiedono attenzione: in scadenza, in attesa</td></tr>
+          <tr><td><code>error</code></td><td>Rosso</td><td>Stati critici: scaduto, rifiutato</td></tr>
+          <tr><td><code>blue</code></td><td>Blu Ant Design</td><td>Stati informativi neutri: in lavorazione, in revisione</td></tr>
+        </tbody>
+      </table></div>
+      <p><code>success</code> e <code>ooh</code> sono cromaticamente identici nella palette attuale: distinguono il significato, non l'aspetto. Da evitare nella stessa card. Non c'è un massimo formale al numero di badge, ma oltre tre l'header diventa denso: nella pratica se ne usano due, canale più identificativo.</p>
+      <p><code>GravityEntityCard.statusDot(color, label)</code> restituisce un cerchietto da 8px affiancato da un'etichetta. Colori dalla palette stati di <code>LAYOUT.md</code> §6.3:</p>
+      <div class="tw"><table>
+        <thead><tr><th>Stato</th><th>Colore</th></tr></thead>
+        <tbody>
+          <tr><td><span class="adot" style="background:#52C41A"></span>Disponibile</td><td><code>#52C41A</code></td></tr>
+          <tr><td><span class="adot" style="background:#EB2F96"></span>In opzione</td><td><code>#EB2F96</code></td></tr>
+          <tr><td><span class="adot" style="background:#1677FF"></span>Riservato o attivo</td><td><code>#1677FF</code></td></tr>
+          <tr><td><span class="adot" style="background:#FA8C16"></span>Manutenzione</td><td><code>#FA8C16</code></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="dati">
+      <h2>Modello dati</h2>
+      <p>La card è presentazionale: non conosce le entità, riceve slot. Questa matrice dice cosa finisce in ogni slot per ciascuna entità rappresentata oggi.</p>
+      <div class="tw"><table>
+        <thead><tr><th>Slot</th><th>Impianto</th><th>Faccia</th><th>Permesso</th><th>Cespite / Dispositivo</th></tr></thead>
+        <tbody>
+          <tr><td>Titolo</td><td>Indirizzo</td><td>Denominazione faccia</td><td>Tipo di documento</td><td>Denominazione</td></tr>
+          <tr><td>Badge header</td><td>Canale + codice impianto</td><td>—</td><td>Codice identificativo</td><td>—</td></tr>
+          <tr><td>Image area</td><td>Foto 16:9</td><td>Nessuna</td><td>Nessuna</td><td>Nessuna</td></tr>
+          <tr><td>Body</td><td>Tipologia, formato, canale, stato</td><td>Slot pubblicitario, orientamento, cono di visibilità, formato, illuminazione, modello di vendita, prezzo</td><td>Ente, data di presentazione, stato</td><td>Attributi dal catalogo</td></tr>
+          <tr><td>Colonne body</td><td>1</td><td>2</td><td>1</td><td>2</td></tr>
+          <tr><td>Stato operativo</td><td><code>statusDot</code></td><td>—</td><td><code>statusDot</code></td><td>—</td></tr>
+          <tr><td>Footer</td><td>Azioni rapide</td><td>—</td><td>Data di scadenza</td><td>—</td></tr>
+          <tr><td>Menu kebab</td><td>Azioni sull'impianto</td><td>Modifica, Duplica, Crea posteriore, Elimina</td><td>Visualizza, Sostituisci, Scollega</td><td>Visualizza, Elimina</td></tr>
+          <tr><td>Larghezza</td><td>Per contesto</td><td>Fissa, 450px</td><td>Per contesto</td><td>Per contesto</td></tr>
+        </tbody>
+      </table></div>
+      <p>Nella card permessi l'etichetta dell'ente cambia con il tipo di documento: <b>Ente emittente</b> per le concessioni, <b>Ente destinatario</b> per le autorizzazioni, <b>Ente competente</b> per le SCIA. Il valore occupa lo stesso slot, cambia solo la label.</p>
+      <div class="note"><b>Multi-tenant.</b> Tipologie, formati e stati vengono dal catalogo del tenant. Le label hanno quindi lunghezza imprevedibile e il layout deve reggerle senza rompere la griglia; il set di stati varia fra tenant, perciò nessuna logica della card può assumere un elenco chiuso di stati o di colori.</div>
+    </section>
+
+    <section id="ricette">
+      <h2>Ricette</h2>
+      <p>Quattro configurazioni della card base sono già in uso. Non sono componenti nuovi: sono l'Entity Card con slot riempiti in modo stabile per una specifica entità.</p>
+      <div class="tw"><table class="wf">
+        <thead><tr><th>Ricetta</th><th>Cosa rappresenta</th><th>Particolarità</th></tr></thead>
+        <tbody>
+          <tr><td>FormFaceCard</td><td>Ogni faccia dell'impianto durante la compilazione del form</td><td>Body a due colonne sugli attributi fisici, nessuna image area, larghezza fissa a 450px</td></tr>
+          <tr><td>FormPermitCard</td><td>Concessione, autorizzazione o SCIA collegata mentre il form è in corso</td><td>Etichette dell'ente adattate al tipo di documento; stato dallo <code>statusDot</code>, scadenza dal footer</td></tr>
+          <tr><td>PermitCard</td><td>Lo stesso permesso nel dettaglio di un impianto salvato</td><td>Struttura identica alla FormPermitCard: cambia il contesto, non il layout. "Scollega" non è sempre disponibile</td></tr>
+          <tr><td>FormAssetCard</td><td>Cespiti fisici e dispositivi tecnologici associati all'impianto</td><td>Unica ricetta con body generato dinamicamente dal catalogo, su due colonne</td></tr>
+        </tbody>
+      </table></div>
+      <p>Se serve una nuova ricetta, va configurata sul componente condiviso e documentata qui, non ricostruita localmente nel prototipo che la usa.</p>
+    </section>
+
+    <section id="stories">
+      <h2>Stories</h2>
+      <p class="stories-intro">Demo interattive del componente. Ogni story mostra una configurazione reale in uso nella piattaforma — apri il pannello <em>Code</em> per vedere il codice di riferimento.</p>
+      <div class="demo-grid" id="grid-2col"></div>
+      <div class="demo-grid full" id="grid-full"></div>
+    </section>
+
+    <section id="stati">
+      <h2>Stati e interazione</h2>
+      <p>La card non è cliccabile nel suo insieme: agiscono solo il menu kebab e i pulsanti del footer. Il contenitore non ha hover, non riceve focus da tastiera e mantiene il cursore di default.</p>
+      <div class="tw"><table>
+        <thead><tr><th>Stato</th><th>Comportamento</th></tr></thead>
+        <tbody>
+          <tr><td>Default</td><td>Nessuna affordance sul contenitore</td></tr>
+          <tr><td>Hover</td><td>Solo su kebab e pulsanti del footer; la card non cambia</td></tr>
+          <tr><td>Selezionata</td><td>Non esiste: la card non ha stato di selezione in nessun contesto</td></tr>
+          <tr><td>Caricamento</td><td>Skeleton che riproduce l'anatomia della ricetta. Per i body generati dal catalogo, un numero fisso di righe placeholder</td></tr>
+          <tr><td>Errore</td><td>Non è uno stato della card: l'errore si mostra sulla lista o sulla sezione che la contiene</td></tr>
+          <tr><td>Campo senza valore</td><td>La riga sparisce dal body, non resta un placeholder</td></tr>
+        </tbody>
+      </table></div>
+      <p>Poiché una riga senza valore sparisce, l'altezza della card varia con i dati e la posizione di un campo non è stabile — nessuna specifica può riferirsi alla "terza riga del body".</p>
+    </section>
+
+    <section id="responsive">
+      <h2>Responsive e troncamento</h2>
+      <div class="tw"><table class="wf">
+        <thead><tr><th>Elemento</th><th>Regola</th></tr></thead>
+        <tbody>
+          <tr><td>Titolo dell'header</td><td>Ellissi su una riga, con tooltip al passaggio; non va mai a capo</td></tr>
+          <tr><td>Valore del body</td><td>Va a capo nella cella, nessun troncamento</td></tr>
+          <tr><td>FormFaceCard</td><td>Larghezza fissa a 450px; l'uso sotto quel breakpoint non è previsto</td></tr>
+        </tbody>
+      </table></div>
+      <p>In questa fase è progettata solo la versione desktop. Su schermi stretti la card deve restare visibile e il layout non deve rompersi, ma interazioni e viste mobile dedicate arrivano in una fase successiva.</p>
+    </section>
+
+    <section id="ruoli">
+      <h2>Visibilità per ruolo</h2>
+      <p>I permessi tolgono azioni, non contenuto: una card che l'utente può vedere ma non modificare resta visibile per intero, con gli stessi campi.</p>
+      <div class="tw"><table class="wf">
+        <thead><tr><th>Elemento</th><th>Ruolo senza permessi di modifica</th></tr></thead>
+        <tbody>
+          <tr><td>Card</td><td>Visibile, invariata nei contenuti</td></tr>
+          <tr><td>Menu kebab</td><td>Ridotto alle sole azioni permesse; se non ne resta nessuna, non compare</td></tr>
+          <tr><td>Footer</td><td>Resta se contiene informazioni, sparisce se contiene azioni</td></tr>
+        </tbody>
+      </table></div>
+      <p>Il componente non conosce i ruoli: riceve slot già filtrati, quindi la logica dei permessi sta nella schermata che lo usa. Il caso già noto: l'Operation Manager non ha permessi di creazione impianto, quindi non incontra mai le ricette del form. Nel dettaglio impianto vede le card di riepilogo sopra le tab e laterali. L'Inventory Manager vede e modifica tutte le sezioni, senza blocchi.</p>
+    </section>
+
+    <section id="a11y">
+      <h2>Accessibilità</h2>
+      <div class="tw"><table class="wf">
+        <thead><tr><th>Aspetto</th><th>Regola</th></tr></thead>
+        <tbody>
+          <tr><td>Titolo</td><td>È un heading; il livello segue la gerarchia della schermata che ospita la card, non è fissato dal componente</td></tr>
+          <tr><td>Testo alternativo della foto</td><td><code>foto impianto [nome impianto]</code></td></tr>
+          <tr><td>Focus da tastiera</td><td>Solo il kebab e i pulsanti del footer; la card in sé non entra nella tabulazione</td></tr>
+          <tr><td>Contrasto dei badge</td><td>AA su tutte e otto le varianti: 4,5:1 fra testo del badge e sfondo del badge</td></tr>
+          <tr><td>Colore come canale</td><td>Mai l'unico: ogni badge porta il suo testo, ogni <code>statusDot</code> la sua etichetta</td></tr>
+        </tbody>
+      </table></div>
+      <p>Le varianti da verificare per prime sono <code>warning</code> e <code>ooh</code> / <code>success</code>: sono quelle dove il testo scuro su fondo saturo chiaro rischia di non arrivare a 4,5:1. Il vincolo vale sulla coppia testo/sfondo del badge, non sul badge rispetto alla card.</p>
+    </section>
+
+    <section id="zero">
+      <h2>Zero state</h2>
+      <p>Quando una lista non contiene ancora nessuna card, mostra un messaggio e il pulsante per aggiungere la prima entità. Il pattern è lo stesso ovunque: non cambia da ricetta a ricetta né fra form e dettaglio. Vale anche qui la regola sui permessi — il pulsante è un'azione, quindi un ruolo che non può aggiungere vede il messaggio senza il pulsante.</p>
+    </section>
+
+    <section id="casi">
+      <h2>Casi d'uso nella piattaforma</h2>
+      <div class="tw"><table class="wf">
+        <thead><tr><th>Schermata</th><th>Entità</th><th>Ricetta</th><th>Azioni</th></tr></thead>
+        <tbody>
+          <tr><td>Inventory — form impianto, step facce</td><td>Faccia impianto</td><td>FormFaceCard</td><td>Modifica, Duplica, Crea posteriore, Elimina</td></tr>
+          <tr><td>Inventory — form impianto, step permessi</td><td>Concessione, autorizzazione, SCIA</td><td>FormPermitCard</td><td>Visualizza, Sostituisci (solo concessioni), Scollega</td></tr>
+          <tr><td>Inventory — form impianto, step cespiti</td><td>Cespite, dispositivo</td><td>FormAssetCard</td><td>Visualizza, Elimina</td></tr>
+          <tr><td>Inventory — dettaglio impianto, permessi collegati</td><td>Concessione, autorizzazione, SCIA</td><td>PermitCard</td><td>Visualizza, Sostituisci; Scollega non sempre disponibile</td></tr>
+          <tr><td>Parco Impianti — popover su marker</td><td>Impianto</td><td>Map popover (derivato)</td><td>Vai al dettaglio, nell'interfaccia corrente</td></tr>
+          <tr><td>Pianificazione — popover su marker</td><td>Impianto</td><td>Map popover (derivato)</td><td>Vai al dettaglio, in una nuova tab</td></tr>
+        </tbody>
+      </table></div>
+      <p>Il form di creazione impianto è il contesto più ricco: tre ricette diverse convivono nello stesso flusso a step. I due popover condividono struttura e dimensioni ma divergono sul dato chiave: Parco Impianti mostra lo stato amministrativo, Pianificazione le facce disponibili.</p>
+    </section>
+
+    <section id="aperti">
+      <h2>Punti aperti</h2>
+      <ul class="todo">
+        <li>Versionamento: una riga che registri ogni modifica a <code>entity-card.js</code>, così che la documentazione invecchi insieme al componente.</li>
+        <li>Visibilità per ruolo schermata per schermata, da fissare quando verranno analizzate le schermate che usano il componente.</li>
+      </ul>
+    </section>
+
+    <footer class="doc-footer">Entity Card — componente condiviso della piattaforma Gravity. <code>prototype/_shared/entity-card.js</code>, esposto come <code>window.GravityEntityCard</code>.</footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById('theme-toggle');
+  var html = document.documentElement;
+  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  function sync() {
+    var isDark = html.dataset.theme === 'dark' || (!html.dataset.theme && prefersDark);
+    btn.textContent = isDark ? 'Light' : 'Dark';
+  }
+  sync();
+  btn.addEventListener('click', function () {
+    html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+    sync();
+  });
+})();
+
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.rail a'));
+  var map = {};
+  links.forEach(function (a) {
+    var href = a.getAttribute('href');
+    if (href && href.startsWith('#')) map[href.slice(1)] = a;
+  });
+  var sections = Array.prototype.slice.call(document.querySelectorAll('main section'));
+  var current = null;
+  function setActive(id) {
+    if (current === id) return;
+    links.forEach(function (a) { a.classList.remove('on'); });
+    if (map[id]) { map[id].classList.add('on'); current = id; }
+  }
+  if ('IntersectionObserver' in window) {
+    var seen = {};
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        seen[e.target.id] = e.isIntersecting ? e.boundingClientRect.top : null;
+      });
+      var visible = sections.filter(function (s) { return seen[s.id] !== null && seen[s.id] !== undefined; });
+      if (visible.length) setActive(visible[0].id);
+    }, { rootMargin: '-10% 0px -70% 0px', threshold: 0 });
+    sections.forEach(function (s) { obs.observe(s); });
+  }
+})();
+</script>
+
+<script>
+window.applyGravityTokens && window.applyGravityTokens();
+
+(function () {
+  var h   = React.createElement;
+  var GEC = window.GravityEntityCard;
+  var dot = GEC.statusDot;
+  var CP  = antd.ConfigProvider;
+  var Btn = antd.Button;
+  var theme = window.GRAVITY_THEME || {};
+
+  function wrap(node, full) {
+    return h(CP, { theme: theme },
+      h('div', { style: { width: '100%', maxWidth: full ? '100%' : '300px' } }, node)
+    );
+  }
+
+  function demo(opts) {
+    var block = document.createElement('div');
+    block.className = 'demo-block';
+    if (opts.storyName) block.id = 'story-' + opts.storyName;
+
+    var preview = document.createElement('div');
+    preview.className = 'demo-preview' + (opts.full ? ' pad-sm' : '');
+
+    var bar = document.createElement('div');
+    bar.className = 'demo-bar';
+
+    var info = document.createElement('div');
+    info.className = 'demo-bar-info';
+
+    var tt = document.createElement('div');
+    tt.className = 'demo-bar-title';
+    tt.textContent = opts.title;
+    if (opts.storyName) {
+      var chip = document.createElement('code');
+      chip.className = 'demo-story-chip';
+      chip.textContent = opts.storyName;
+      tt.appendChild(chip);
+    }
+
+    var dd = document.createElement('div');
+    dd.className = 'demo-bar-desc';
+    dd.textContent = opts.desc;
+    info.appendChild(tt);
+    info.appendChild(dd);
+
+    if (opts.usedIn && opts.usedIn.length) {
+      var usageRow = document.createElement('div');
+      usageRow.className = 'demo-usage';
+      var lbl = document.createElement('span');
+      lbl.className = 'demo-usage-label';
+      lbl.textContent = 'Used in';
+      usageRow.appendChild(lbl);
+      opts.usedIn.forEach(function (u) {
+        var uchip = document.createElement('span');
+        uchip.className = 'demo-usage-chip';
+        uchip.innerHTML = '<strong>' + u.module + '</strong> · ' + u.context;
+        usageRow.appendChild(uchip);
+      });
+      info.appendChild(usageRow);
+    }
+
+    var btn = document.createElement('button');
+    btn.className = 'demo-bar-btn';
+    btn.title = 'Toggle code';
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M5.854 4.146a.5.5 0 0 1 0 .708L3.707 7l2.147 2.146a.5.5 0 0 1-.708.708l-2.5-2.5a.5.5 0 0 1 0-.708l2.5-2.5a.5.5 0 0 1 .708 0zm4.292 0a.5.5 0 0 1 .708 0l2.5 2.5a.5.5 0 0 1 0 .708l-2.5 2.5a.5.5 0 0 1-.708-.708L12.293 7 10.146 5.146a.5.5 0 0 1 0-.708z"/></svg>&nbsp;Code';
+
+    bar.appendChild(info);
+    bar.appendChild(btn);
+
+    var codeDiv = document.createElement('div');
+    codeDiv.className = 'demo-code';
+    var pre = document.createElement('pre');
+    pre.textContent = opts.code;
+    codeDiv.appendChild(pre);
+    btn.addEventListener('click', function () { codeDiv.classList.toggle('open'); });
+
+    block.appendChild(preview);
+    block.appendChild(bar);
+    block.appendChild(codeDiv);
+    ReactDOM.createRoot(preview).render(wrap(opts.node, opts.full));
+    return block;
+  }
+
+  var d1 = demo({
+    storyName: 'Default', title: 'Basic',
+    desc: 'Header, image placeholder and structured fields.',
+    usedIn: [
+      { module: 'Inventory Systems', context: 'Scheda impianto base' },
+      { module: 'Inventory Systems', context: 'Card permit in system detail' },
+      { module: 'Inventory Systems', context: 'Squadre di affissione' },
+    ],
+    node: h(GEC, {
+      title: 'Impianto Via Maqueda 148',
+      badge: { text: 'PA-001', variant: 'default' },
+      image: { id: 'd1', placeholder: 'foto impianto' },
+      fields: [
+        { icon: 'TagOutlined',         label: 'Tipologia:', value: 'Pensilina' },
+        { icon: 'EnvironmentOutlined', label: 'Comune:',    value: 'Palermo' },
+        { icon: 'ExpandOutlined',      label: 'Formato:',   value: '140×200 cm' },
+      ],
+    }),
+    code: 'var GEC = window.GravityEntityCard;\n\nReact.createElement(GEC, {\n  title: \'Impianto Via Maqueda 148\',\n  badge: { text: \'PA-001\', variant: \'default\' },\n  image: { id: \'imp-001\', placeholder: \'foto impianto\' },\n  fields: [\n    { icon: \'TagOutlined\',         label: \'Tipologia:\', value: \'Pensilina\' },\n    { icon: \'EnvironmentOutlined\', label: \'Comune:\',    value: \'Palermo\' },\n    { icon: \'ExpandOutlined\',      label: \'Formato:\',   value: \'140×200 cm\' },\n  ],\n})',
+  });
+
+  var d2 = demo({
+    storyName: 'WithStatusDot', title: 'Status Dot',
+    desc: 'Use GravityEntityCard.statusDot() for colour-coded state in a field.',
+    usedIn: [
+      { module: 'Inventory Systems', context: 'Stato impianto (Attivo / In Manutenzione)' },
+      { module: 'Planning', context: 'Disponibilità impianto nella selezione' },
+    ],
+    node: h(GEC, {
+      title: 'Impianto Viale Libertà 22',
+      badge: { text: 'OOH', variant: 'ooh' },
+      fields: [
+        { icon: 'TagOutlined',      label: 'Tipologia:', value: 'Poster' },
+        { icon: 'AimOutlined',      label: 'Stato:',     valueNode: dot('#52C41A', 'Disponibile') },
+        { icon: 'CalendarOutlined', label: 'Dal:',       value: '01/08/2025' },
+      ],
+    }),
+    code: 'var GEC = window.GravityEntityCard;\nvar statusDot = GEC.statusDot;\n\nReact.createElement(GEC, {\n  title: \'Impianto Viale Libertà 22\',\n  badge: { text: \'OOH\', variant: \'ooh\' },\n  fields: [\n    { icon: \'TagOutlined\',      label: \'Tipologia:\', value: \'Poster\' },\n    { icon: \'AimOutlined\',      label: \'Stato:\',\n      valueNode: statusDot(\'#52C41A\', \'Disponibile\') },\n    { icon: \'CalendarOutlined\', label: \'Dal:\',       value: \'01/08/2025\' },\n  ],\n})',
+  });
+
+  var d3 = demo({
+    storyName: 'TwoColumnBody', title: 'Two-Column Body',
+    desc: 'bodyColumns: 2 for information-dense entities.',
+    usedIn: [{ module: 'Inventory Systems', context: 'Dettaglio faccia impianto' }],
+    node: h(GEC, {
+      title: 'Impianto Piazza Verdi 3',
+      badge: { text: 'DOOH', variant: 'dooh' },
+      bodyColumns: 2,
+      fields: [
+        { icon: 'TagOutlined',         label: 'Tipologia:',   value: 'LED Screen' },
+        { icon: 'EnvironmentOutlined', label: 'Comune:',      value: 'Milano' },
+        { icon: 'ExpandOutlined',      label: 'Formato:',     value: '200×300 cm' },
+        { icon: 'EyeOutlined',         label: 'Visibilità:',  value: '2.400/g' },
+        { icon: 'WifiOutlined',        label: 'Connessione:', value: '4G LTE' },
+        { icon: 'CalendarOutlined',    label: 'Dal:',         value: '01/08/2025' },
+      ],
+    }),
+    code: 'React.createElement(GEC, {\n  title: \'Impianto Piazza Verdi 3\',\n  badge: { text: \'DOOH\', variant: \'dooh\' },\n  bodyColumns: 2,\n  fields: [\n    { icon: \'TagOutlined\',         label: \'Tipologia:\',   value: \'LED Screen\' },\n    { icon: \'EnvironmentOutlined\', label: \'Comune:\',      value: \'Milano\' },\n    { icon: \'ExpandOutlined\',      label: \'Formato:\',     value: \'200×300 cm\' },\n    { icon: \'EyeOutlined\',         label: \'Visibilità:\',  value: \'2.400/g\' },\n    { icon: \'WifiOutlined\',        label: \'Connessione:\', value: \'4G LTE\' },\n    { icon: \'CalendarOutlined\',    label: \'Dal:\',         value: \'01/08/2025\' },\n  ],\n})',
+  });
+
+  var d4 = demo({
+    storyName: 'MultipleBadgesAndMenu', title: 'Multiple Badges & Menu',
+    desc: 'badges[] for multiple classifiers. showMenu adds the kebab ⋮ in the header.',
+    usedIn: [
+      { module: 'Inventory Systems', context: 'Card impianto con canale + tipologia' },
+      { module: 'Planning', context: 'Card impianto nella selezione' },
+    ],
+    node: h(GEC, {
+      title: 'LED Wall Centrale',
+      badges: [{ text: 'DOOH', variant: 'dooh' }, { text: 'Premium', variant: 'primary' }],
+      showMenu: true,
+      fields: [
+        { icon: 'TagOutlined',         label: 'Tipologia:', value: 'LED Wall' },
+        { icon: 'EnvironmentOutlined', label: 'Comune:',    value: 'Roma' },
+        { icon: 'AimOutlined',         label: 'Stato:',     valueNode: dot('#1677FF', 'Riservato') },
+      ],
+    }),
+    code: 'React.createElement(GEC, {\n  title: \'LED Wall Centrale\',\n  badges: [\n    { text: \'DOOH\',    variant: \'dooh\' },\n    { text: \'Premium\', variant: \'primary\' },\n  ],\n  showMenu: true,\n  fields: [\n    { icon: \'TagOutlined\',         label: \'Tipologia:\', value: \'LED Wall\' },\n    { icon: \'EnvironmentOutlined\', label: \'Comune:\',    value: \'Roma\' },\n    { icon: \'AimOutlined\',         label: \'Stato:\',\n      valueNode: GEC.statusDot(\'#1677FF\', \'Riservato\') },\n  ],\n})',
+  });
+
+  var d5 = demo({
+    storyName: 'FooterWithActions', title: 'Footer with Actions', full: true,
+    desc: 'footer accepts any React node. The primary action disables when the system is unavailable.',
+    usedIn: [
+      { module: 'Planning', context: 'Floating card su marker — Aggiungi / Rimuovi' },
+      { module: 'Inventory Systems', context: '"Vai al dettaglio" in card mappa' },
+    ],
+    node: h('div', { style: { display: 'flex', gap: '16px', maxWidth: '640px' } },
+      h(GEC, { key: 'a', title: 'Impianto PA-001', badge: { text: 'OOH', variant: 'ooh' },
+        fields: [
+          { icon: 'TagOutlined', label: 'Tipologia:', value: 'Pensilina' },
+          { icon: 'AimOutlined', label: 'Stato:', valueNode: dot('#52C41A', 'Disponibile') },
+        ],
+        footer: h('div', { style: { display: 'flex', gap: '8px', width: '100%' } },
+          h(Btn, { size: 'small', style: { flex: 1 } }, 'Dettagli'),
+          h(Btn, { size: 'small', type: 'primary', style: { flex: 1 } }, 'Prenota'),
+        ),
+      }),
+      h(GEC, { key: 'b', title: 'Impianto MI-034', badge: { text: 'DOOH', variant: 'dooh' },
+        fields: [
+          { icon: 'TagOutlined', label: 'Tipologia:', value: 'LED Screen' },
+          { icon: 'AimOutlined', label: 'Stato:', valueNode: dot('#EB2F96', 'In Opzione') },
+        ],
+        footer: h('div', { style: { display: 'flex', gap: '8px', width: '100%' } },
+          h(Btn, { size: 'small', style: { flex: 1 } }, 'Dettagli'),
+          h(Btn, { size: 'small', type: 'primary', disabled: true, style: { flex: 1 } }, 'Prenota'),
+        ),
+      }),
+    ),
+    code: '// Disponibile — entrambe le azioni attive\nReact.createElement(GEC, {\n  title: \'Impianto PA-001\',\n  badge: { text: \'OOH\', variant: \'ooh\' },\n  fields: [\n    { icon: \'TagOutlined\', label: \'Tipologia:\', value: \'Pensilina\' },\n    { icon: \'AimOutlined\', label: \'Stato:\',\n      valueNode: GEC.statusDot(\'#52C41A\', \'Disponibile\') },\n  ],\n  footer: React.createElement(\'div\',\n    { style: { display: \'flex\', gap: \'8px\', width: \'100%\' } },\n    React.createElement(antd.Button, { size: \'small\', style: { flex: 1 } }, \'Dettagli\'),\n    React.createElement(antd.Button,\n      { size: \'small\', type: \'primary\', style: { flex: 1 } }, \'Prenota\'),\n  ),\n})',
+  });
+
+  var VARIANTS = ['default','primary','ooh','dooh','success','warning','error','blue'];
+  var VLABELS  = { default:'Default', primary:'Primary', ooh:'OOH', dooh:'DOOH', success:'Success', warning:'Warning', error:'Error', blue:'Blue' };
+  var d6 = demo({
+    storyName: 'BadgeVariants', title: 'Badge Variants', full: true,
+    desc: 'All available badge variants. Use ooh / dooh for channel, primary for Gravity identity.',
+    node: h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', width: '100%' } },
+      VARIANTS.map(function (v) { return h(GEC, { key: v, title: VLABELS[v], badge: { text: v, variant: v } }); })
+    ),
+    code: '// Variants: default | primary | ooh | dooh | success | warning | error | blue\nReact.createElement(GEC, {\n  title: \'Canale OOH\',\n  badge: { text: \'OOH\', variant: \'ooh\' },\n})\nReact.createElement(GEC, {\n  title: \'Canale DOOH\',\n  badge: { text: \'DOOH\', variant: \'dooh\' },\n})',
+  });
+
+  function addrNode(line1, line2) {
+    return h('span', { style: { display: 'flex', flexDirection: 'column', lineHeight: '18px' } },
+      h('span', { style: { color: 'rgba(0,0,0,0.65)' } }, line1),
+      h('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: '11px' } }, line2)
+    );
+  }
+  function sysCard(key, title, ch, type, addr, zone, fmt, faces, slots) {
+    return h(GEC, { key: key, title: title, showMenu: true,
+      badges: [{ text: ch, variant: ch === 'DOOH' ? 'dooh' : 'ooh' }, { text: type, variant: 'default' }],
+      image: { id: key, placeholder: 'foto impianto', heightPx: 160 },
+      fields: [
+        { icon: 'EnvironmentOutlined', label: 'Indirizzo:',    valueNode: addrNode(addr, zone) },
+        { icon: 'GatewayOutlined',     label: 'Format:',       value: fmt },
+        { icon: 'BlockOutlined',       label: 'Face Quantity:', value: faces },
+        { icon: 'AppstoreOutlined',    label: 'Slots:',         value: slots },
+      ],
+    });
+  }
+  var d7 = demo({
+    storyName: 'SystemInGrantDetail', title: 'System in Grant / Authorization Detail', full: true,
+    desc: 'Channel and type as badges. Address uses valueNode for the two-line format (main + zone).',
+    usedIn: [
+      { module: 'Inventory Systems', context: 'Grid impianti collegati a concessione' },
+      { module: 'Inventory Systems', context: 'Floating card su marker mappa impianti' },
+      { module: 'Planning', context: 'Floating card su marker mappa pianificazione' },
+    ],
+    node: h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '16px', width: '100%' } },
+      sysCard('sg1', 'Sistema Via Maqueda 45',  'OOH',  'Pensilina',  'Via Maqueda 45, 90134 Palermo',    'Zona Centro Storico',     '140 cm × 200 cm', '2', '4'),
+      sysCard('sg2', 'Sistema Via Casalini',    'DOOH', 'Poster',     'Via Casalini, 90136 Palermo PA',   'Rotonda Nord Ovest',      '150 cm × 200 cm', '1', '6'),
+      sysCard('sg3', 'LED Wall Piazza Verdi',   'DOOH', 'LED Screen', 'Piazza Verdi 3, 90138 Palermo PA', 'Ingresso Teatro Massimo', '300 cm × 400 cm', '1', '12'),
+    ),
+    code: 'var GEC = window.GravityEntityCard;\n\nvar addrNode = React.createElement(\'span\',\n  { style: { display: \'flex\', flexDirection: \'column\', lineHeight: \'18px\' } },\n  React.createElement(\'span\', { style: { color: \'rgba(0,0,0,0.65)\' } }, \'Via Casalini, 90136 Palermo PA\'),\n  React.createElement(\'span\', { style: { color: \'rgba(0,0,0,0.45)\', fontSize: \'11px\' } }, \'Rotonda Nord Ovest\')\n);\n\nReact.createElement(GEC, {\n  title: \'Sistema Via Casalini\',\n  showMenu: true,\n  badges: [\n    { text: \'DOOH\',   variant: \'dooh\' },\n    { text: \'Poster\', variant: \'default\' },\n  ],\n  image: { id: \'sg-1\', placeholder: \'foto impianto\', heightPx: 160 },\n  fields: [\n    { icon: \'EnvironmentOutlined\', label: \'Indirizzo:\',    valueNode: addrNode },\n    { icon: \'GatewayOutlined\',     label: \'Format:\',       value: \'150 cm × 200 cm\' },\n    { icon: \'BlockOutlined\',       label: \'Face Quantity:\', value: \'1\' },\n    { icon: \'AppstoreOutlined\',    label: \'Slots:\',         value: \'6\' },\n  ],\n})',
+  });
+
+  var g2 = document.getElementById('grid-2col');
+  var gf = document.getElementById('grid-full');
+  [d1, d2, d3, d4].forEach(function (d) { g2.appendChild(d); });
+  [d5, d6, d7].forEach(function (d) { gf.appendChild(d); });
+
+  /* ── API tables ── */
+  var COLS = [
+    { label: 'Property', w: '170px' }, { label: 'Type', w: '190px' },
+    { label: '', w: '32px' }, { label: 'Default', w: '90px' }, { label: 'Description', w: null },
+  ];
+  function tbl(rows) {
+    var table = document.createElement('table');
+    table.className = 'api-table';
+    var thead = document.createElement('thead');
+    var hr = document.createElement('tr');
+    COLS.forEach(function (c) {
+      var th = document.createElement('th');
+      th.textContent = c.label;
+      if (c.w) th.style.width = c.w;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    var tbody = document.createElement('tbody');
+    rows.forEach(function (row) {
+      var tr = document.createElement('tr');
+      row.forEach(function (cell, i) {
+        var td = document.createElement('td');
+        if (i === 0)      { td.className = 'c-prop'; td.innerHTML = '<code>' + cell + '</code>'; }
+        else if (i === 1) { td.className = 'c-type'; td.innerHTML = '<code>' + cell + '</code>'; }
+        else if (i === 2) { td.className = 'c-req';  td.innerHTML = cell ? '<span style="color:#FF4A1C">&#10006;</span>' : ''; }
+        else if (i === 3) { td.className = 'c-def';  td.innerHTML = cell ? '<code>' + cell + '</code>' : '—'; }
+        else              { td.innerHTML = cell; }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
+  }
+  function r(def) { return [true,  def || '']; }
+  function o(def) { return [false, def || '']; }
+
+  document.getElementById('t-main').appendChild(tbl([
+    ['title',       'string',          ...r(''),       'Titolo dell\'entità nell\'header.'],
+    ['badge',       'Badge',           ...o(''),       'Badge singolo. Alternativo a <code>badges</code>.'],
+    ['badges',      'Badge[]',         ...o(''),       'Array di badge. Alternativo a <code>badge</code>.'],
+    ['showMenu',    'boolean',         ...o('false'),  'Mostra il menu kebab ⋮ nell\'header.'],
+    ['image',       'Image',           ...o(''),       'Slot immagine. Vedi oggetto <em>image</em> sotto.'],
+    ['fields',      'Field[]',         ...o('[]'),     'Righe informative del body. Vedi <em>fields[n]</em>.'],
+    ['bodyColumns', '1 | 2',           ...o('1'),      'Numero di colonne del body.'],
+    ['footer',      'React.ReactNode', ...o(''),       'Contenuto del footer. Qualsiasi nodo React.'],
+    ['style',       'CSSProperties',   ...o(''),       'Stile inline aggiuntivo sul wrapper esterno.'],
+    ['className',   'string',          ...o(''),       'Classe CSS aggiuntiva sul wrapper esterno.'],
+  ]));
+  document.getElementById('t-badge').appendChild(tbl([
+    ['text',    'string',       ...r(''),          'Testo del badge.'],
+    ['variant', 'BadgeVariant', ...o('"default"'), '<code>default</code> <code>primary</code> <code>ooh</code> <code>dooh</code> <code>success</code> <code>warning</code> <code>error</code> <code>blue</code>'],
+  ]));
+  document.getElementById('t-field').appendChild(tbl([
+    ['label',      'string',          ...r(''), 'Etichetta del campo, con il due-punti — es. <code>"Tipologia:"</code>.'],
+    ['icon',       'string | null',   ...o(''), 'Nome icona Ant Design, es. <code>"TagOutlined"</code>. <code>null</code> per nessuna icona.'],
+    ['value',      'string',          ...o(''), 'Valore testuale. Omettere se si usa <code>valueNode</code>.'],
+    ['valueNode',  'React.ReactNode', ...o(''), 'Nodo React complesso (es. <code>GEC.statusDot()</code>). Ha precedenza su <code>value</code>.'],
+    ['valueStyle', 'CSSProperties',   ...o(''), 'Stile inline aggiuntivo sul nodo valore testuale.'],
+  ]));
+  document.getElementById('t-image').appendChild(tbl([
+    ['id',          'string', ...r(''),           'Chiave univoca per lo slot immagine.'],
+    ['placeholder', 'string', ...o('"Immagine"'), 'Testo dell\'empty state.'],
+    ['aspectRatio', 'string', ...o('"16/9"'),     'CSS <code>aspect-ratio</code> del contenitore immagine.'],
+    ['heightPx',    'number', ...o(''),           'Altezza fissa in px. Alternativo ad <code>aspectRatio</code>.'],
+  ]));
+})();
+</script>
+</body>
+</html>
