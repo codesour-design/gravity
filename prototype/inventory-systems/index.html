@@ -2691,7 +2691,7 @@ function faceIllumShort(f) {
 
 // Faccia posteriore: campi fisici condivisi con l'anteriore, orientamento speculare (+180°).
 // Illuminazione, modello di vendita e prezzo restano indipendenti per faccia.
-const SHARED_FACE_FIELDS = ['lat', 'lng', 'coordLock', 'slot', 'cono', 'formL', 'formH'];
+const SHARED_FACE_FIELDS = ['lat', 'lng', 'slot', 'cono', 'formL', 'formH'];
 const mirrorOrient = (o) => ((Number(o) || 0) + 180) % 360;
 const syncedFromAnteriore = (ant) => {
   const p = { orient: mirrorOrient(ant.orient) };
@@ -3362,7 +3362,7 @@ function SquadraDrawer({ open, onClose, onSubmit, kind, editData }) {
           cs('Tipo affissione', false, React.createElement(Select, { mode: 'multiple', allowClear: true, value: row.tipo, onChange: v => set('tipo', v), options: TIPO_AFFISSIONE_OPTS, style: { width: '100%' }, placeholder: 'Seleziona i tipi di affissione', disabled: !row.squadra })),
           g2(
             cs('Costo affissione (€)', false, React.createElement(InputNumber, { value: row.costo, onChange: v => set('costo', v), min: 0, precision: 2, style: { width: '100%' }, placeholder: '—', disabled: !row.squadra })),
-            cs('Costo pre-affissione (€)', false, React.createElement(InputNumber, { value: row.preincoll, onChange: v => set('preincoll', v), min: 0, precision: 2, style: { width: '100%' }, placeholder: '—', disabled: !row.squadra })),
+            cs('Costo pre-incollaggio (€)', false, React.createElement(InputNumber, { value: row.preincoll, onChange: v => set('preincoll', v), min: 0, precision: 2, style: { width: '100%' }, placeholder: '—', disabled: !row.squadra })),
           ),
           cs('Note', false, React.createElement(Input.TextArea, { value: row.note, onChange: e => set('note', e.target.value), placeholder: 'Aggiungi una nota sull\'intervento', autoSize: { minRows: 2, maxRows: 4 }, disabled: !row.squadra })))
       : React.createElement(React.Fragment, null,
@@ -4041,7 +4041,7 @@ function ImpiantoDetailV2({ imp, onBack }) {
         squadreAff.length > 0
           ? React.createElement(Row, { gutter: [16, 16] }, squadreAff.map((s, i) => React.createElement(Col, { span: 8, key: i },
               squadEntityCard(s,
-                [{ icon: TagsOutlined, label: 'Tipo affissione', value: (s.tipo || []).join(', ') }, { icon: EuroCircleOutlined, label: 'Costo affissione', value: s.costo != null ? '€ ' + s.costo : null }, { icon: FormatPainterOutlined, label: 'Costo pre-affissione', value: s.preincoll != null ? '€ ' + s.preincoll : null }, { icon: FileTextOutlined, label: 'Note', value: s.note || null }],
+                [{ icon: TagsOutlined, label: 'Tipo affissione', value: (s.tipo || []).join(', ') }, { icon: EuroCircleOutlined, label: 'Costo affissione', value: s.costo != null ? '€ ' + s.costo : null }, { icon: FormatPainterOutlined, label: 'Costo pre-incollaggio', value: s.preincoll != null ? '€ ' + s.preincoll : null }, { icon: FileTextOutlined, label: 'Note', value: s.note || null }],
                 () => removeSquadAff(i)))))
           : React.createElement(Empty, { description: 'Nessuna squadra di affissione', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '16px 0' } }),
         React.createElement(Button, { size: 'small', icon: React.createElement(PlusOutlined), onClick: () => openSquadDrawer('affissione') }, 'Aggiungi')),
@@ -4835,7 +4835,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [fcSlot,        setFcSlot]        = useState(null);
   const [fcLat,         setFcLat]         = useState('');
   const [fcLng,         setFcLng]         = useState('');
-  const [fcCoordLock,   setFcCoordLock]   = useState(true);  // coordinate ereditate dall'impianto finché bloccate
   const [fcOrient,      setFcOrient]      = useState(0);     // orientamento in gradi 0–360
   const [fcCono,        setFcCono]        = useState(null);  // raggio cono visibilità (cm)
   const [fcFormL,       setFcFormL]       = useState(null);  // larghezza faccia (cm)
@@ -4866,30 +4865,21 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     if (v !== 'Faretti') { setFcIllumNFaretti(null); setFcIllumWatt(null); }
   };
   const resetFaceForm = () => {
-    setFcTipo(null); setFcSlot(null); setFcLat(''); setFcLng(''); setFcCoordLock(true);
+    setFcTipo(null); setFcSlot(null); setFcLat(''); setFcLng('');
     setFcOrient(0); setFcCono(null); setFcFormL(null); setFcFormH(null);
     setFcIllumStato(null); setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null);
     setFcVendita(null); setFcPrezzo(null); setFcVisMarcia(false);
   };
-  // Nuova faccia: eredita coordinate e illuminazione dall'impianto (logica dell'impianto)
-  // Coordinate ereditate dall'impianto finché il lucchetto è chiuso
-  const inheritFaceCoord = () => { setFcLat(lat || ''); setFcLng(lng || ''); };
-  const toggleFcCoordLock = () => {
-    setFcCoordLock(prev => {
-      const next = !prev;
-      if (next) inheritFaceCoord(); // ri-bloccando, reimposta le coordinate dell'impianto
-      return next;
-    });
-  };
+  // Nuova faccia: eredita coordinate e illuminazione dall'impianto come valore di
+  // partenza — restano sempre modificabili direttamente, non c'è più un lucchetto.
   const openNewFace = () => {
     if (!canAddSubItems) return;
     resetFaceForm();
     setFaceEditId(null);
-    setFcCoordLock(true);
     setFcLat(lat || ''); setFcLng(lng || '');
     setFaceDrawerOpen(true);
     faceSnapshotRef.current = {
-      fcTipo: null, fcSlot: null, fcLat: lat || '', fcLng: lng || '', fcCoordLock: true,
+      fcTipo: null, fcSlot: null, fcLat: lat || '', fcLng: lng || '',
       fcOrient: 0, fcCono: null, fcFormL: null, fcFormH: null,
       fcIllumStato: null, fcIllumMezzo: null, fcIllumNFaretti: null, fcIllumWatt: null,
       fcVendita: null, fcPrezzo: null, fcVisMarcia: false,
@@ -4897,11 +4887,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   };
   const openEditFace = (f) => {
     setFaceEditId(f.id);
-    const locked = f.coordLock !== false;
-    setFcCoordLock(locked);
     setFcTipo(f.tipo); setFcSlot(f.slot);
-    const fLat = locked ? (lat || '') : (f.lat || '');
-    const fLng = locked ? (lng || '') : (f.lng || '');
+    const fLat = f.lat || lat || '';
+    const fLng = f.lng || lng || '';
     setFcLat(fLat);
     setFcLng(fLng);
     setFcOrient(f.orient ?? 0); setFcCono(f.cono ?? null); setFcFormL(f.formL ?? null); setFcFormH(f.formH ?? null);
@@ -4911,7 +4899,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setFcVisMarcia(!!f.visMarcia);
     setFaceDrawerOpen(true);
     faceSnapshotRef.current = {
-      fcTipo: f.tipo, fcSlot: f.slot, fcLat: fLat, fcLng: fLng, fcCoordLock: locked,
+      fcTipo: f.tipo, fcSlot: f.slot, fcLat: fLat, fcLng: fLng,
       fcOrient: f.orient ?? 0, fcCono: f.cono ?? null, fcFormL: f.formL ?? null, fcFormH: f.formH ?? null,
       fcIllumStato: f.illumStato, fcIllumMezzo: f.illumMezzo, fcIllumNFaretti: f.illumNFaretti, fcIllumWatt: f.illumWatt,
       fcVendita: f.vendita, fcPrezzo: f.prezzo, fcVisMarcia: !!f.visMarcia,
@@ -4919,14 +4907,14 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   };
   const closeFaceDrawer = () => { setFaceDrawerOpen(false); setFaceEditId(null); };
   const isFaceDirty = () => JSON.stringify({
-    fcTipo, fcSlot, fcLat, fcLng, fcCoordLock, fcOrient, fcCono, fcFormL, fcFormH,
+    fcTipo, fcSlot, fcLat, fcLng, fcOrient, fcCono, fcFormL, fcFormH,
     fcIllumStato, fcIllumMezzo, fcIllumNFaretti, fcIllumWatt, fcVendita, fcPrezzo, fcVisMarcia,
   }) !== JSON.stringify(faceSnapshotRef.current);
   const saveFace = () => {
     if (!fcTipo) return;
     const data = {
       tipo: fcTipo, slot: fcSlot,
-      lat: fcCoordLock ? (lat || '') : fcLat, lng: fcCoordLock ? (lng || '') : fcLng, coordLock: fcCoordLock,
+      lat: fcLat, lng: fcLng,
       orient: fcOrient, cono: fcCono, formL: fcFormL, formH: fcFormH,
       illumStato: fcIllumStato, illumMezzo: fcIllumMezzo, illumNFaretti: fcIllumNFaretti, illumWatt: fcIllumWatt,
       vendita: fcVendita, prezzo: fcPrezzo, visMarcia: fcVisMarcia,
@@ -5037,7 +5025,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       pickFcTipo: () => setFcTipo('Anteriore'),
       setFcVisMarciaExample: () => setFcVisMarcia(true),
       setFcSlotExample: () => setFcSlot(1),
-      unlockFcCoord: () => { if (fcCoordLock) toggleFcCoordLock(); },
+      // No-op: le coordinate faccia non sono più bloccabili (vedi resetFaceForm) —
+      // resta solo per compatibilità con lo step "Coordinate" del tour in
+      // handoff-steps-v1.js (versione approvata).
+      unlockFcCoord: () => {},
       setFcOrientExample: () => setFcOrient(135),
       setFcConoExample: () => setFcCono(50),
       setFcFormatoExample: () => { setFcFormL(600); setFcFormH(300); },
@@ -5104,6 +5095,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   );
   // Stiamo modificando una posteriore collegata? In tal caso i campi fisici sono guidati dall'anteriore
   const fcIsLinkedPost = !!(facce.find(f => f.id === faceEditId) || {}).pairOf;
+  // "Ereditate" è solo un'indicazione (combaciano ancora con l'ubicazione dell'impianto):
+  // il campo resta sempre modificabile, non c'è più un lucchetto da sbloccare.
+  const fcCoordInherited = fcLat === (lat || '') && fcLng === (lng || '');
+  const fcCoordLabel = fcCoordInherited ? 'Coordinate (ereditate dall\'ubicazione)' : 'Coordinate';
 
   // ── Cespiti e Dispositivi — drawer unico: la select "Tipo" elenca tutti i tipi
   // (cespiti + dispositivi) e i campi mostrati cambiano in base alla scelta (ASSET_TYPES).
@@ -5238,12 +5233,15 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [formSquadEditIndex, setFormSquadEditIndex] = useState(null);
   const openFormSquad = (kind) => { setFormSquadKind(kind); setFormSquadEditIndex(null); setFormSquadOpen(true); };
   const openEditFormAff = (i) => { setFormSquadKind('affissione'); setFormSquadEditIndex(i); setFormSquadOpen(true); };
+  const openEditFormMan = (i) => { setFormSquadKind('manutenzione'); setFormSquadEditIndex(i); setFormSquadOpen(true); };
   const submitFormSquad = (recs) => {
     if (formSquadKind === 'affissione') {
       if (formSquadEditIndex != null) setAffissioni(prev => prev.map((a, j) => j === formSquadEditIndex ? recs[0] : a));
       else setAffissioni(prev => [...prev, ...recs]);
     } else {
-      setManutenzioni(prev => [...prev, ...recs.map(r => ({ squadra: r.squadra, codice: r.codice ?? null, tipo: r.tipoInt || [], note: r.note ?? '' }))]);
+      const manRecs = recs.map(r => ({ squadra: r.squadra, codice: r.codice ?? null, tipo: r.tipoInt || [], note: r.note ?? '' }));
+      if (formSquadEditIndex != null) setManutenzioni(prev => prev.map((a, j) => j === formSquadEditIndex ? manRecs[0] : a));
+      else setManutenzioni(prev => [...prev, ...manRecs]);
     }
     antdMsg.success(formSquadEditIndex != null ? 'Squadra aggiornata' : 'Squadra collegata');
     setFormSquadOpen(false);
@@ -6434,7 +6432,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                         body: { rows: [
                           { icon: TagsOutlined, label: 'Tipo affissione', value: (s.tipo || []).join(', ') || null },
                           { icon: EuroCircleOutlined, label: 'Costo affissione', value: s.costo != null ? '€ ' + s.costo : null },
-                          { icon: FormatPainterOutlined, label: 'Costo pre-affissione', value: s.preincoll != null ? '€ ' + s.preincoll : null },
+                          { icon: FormatPainterOutlined, label: 'Costo pre-incollaggio', value: s.preincoll != null ? '€ ' + s.preincoll : null },
                           { icon: FileTextOutlined, label: 'Note', value: s.note || null },
                         ]},
                       })
@@ -6458,7 +6456,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                         header: {
                           title: s.squadra,
                           tags: [s.codice ? { text: s.codice } : null],
-                          menu: [{ key: 'remove', label: 'Rimuovi', icon: React.createElement(DeleteOutlined), danger: true, onClick: () => removeFormMan(i) }],
+                          menu: [
+                            { key: 'edit', label: 'Modifica', icon: React.createElement(EditOutlined), onClick: () => openEditFormMan(i) },
+                            { key: 'remove', label: 'Rimuovi', icon: React.createElement(DeleteOutlined), danger: true, onClick: () => removeFormMan(i) },
+                          ],
                         },
                         body: { rows: [
                           { icon: TagsOutlined, label: 'Tipo intervento', value: (s.tipo || []).join(', ') || null },
@@ -6730,16 +6731,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         React.createElement(Switch, { checked: fcVisMarcia, onChange: setFcVisMarcia, checkedChildren: 'Sì', unCheckedChildren: 'No' }),
       ),
       cs('Numero slot', false, num(fcSlot, setFcSlot, { min: 1, disabled: fcIsLinkedPost, style: { width: 160 } })),
-      cs(fcCoordLock ? 'Coordinate (ereditate dall\'impianto)' : 'Coordinate', false,
+      cs(fcCoordLabel, false,
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-          React.createElement(Input, { value: fcLat, onChange: e => setFcLat(e.target.value), placeholder: 'Latitudine', disabled: fcCoordLock || fcIsLinkedPost, style: { flex: 1 } }),
-          React.createElement(Input, { value: fcLng, onChange: e => setFcLng(e.target.value), placeholder: 'Longitudine', disabled: fcCoordLock || fcIsLinkedPost, style: { flex: 1 } }),
-          React.createElement(Tooltip, { title: fcCoordLock ? 'Coordinate ereditate dall\'impianto — sblocca per modificarle' : 'Blocca e reimposta le coordinate dell\'impianto' },
-            React.createElement(Button, {
-              icon: React.createElement(fcCoordLock ? LockOutlined : UnlockOutlined),
-              type: fcCoordLock ? 'primary' : 'default', disabled: fcIsLinkedPost,
-              onClick: toggleFcCoordLock,
-            })),
+          React.createElement(Input, { value: fcLat, onChange: e => setFcLat(e.target.value), placeholder: 'Latitudine', disabled: fcIsLinkedPost, style: { flex: 1 } }),
+          React.createElement(Input, { value: fcLng, onChange: e => setFcLng(e.target.value), placeholder: 'Longitudine', disabled: fcIsLinkedPost, style: { flex: 1 } }),
         )),
       cs('Orientamento — ' + (fcOrient || 0) + '°' + (fcIsLinkedPost ? ' (speculare all\'anteriore)' : ''), false,
         React.createElement('div', { style: { padding: '0 8px' } },
@@ -6771,13 +6766,14 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         cs('Numero faretti', false, num(fcIllumNFaretti, setFcIllumNFaretti, { min: 0, style: { width: 160 } })),
         cs('Watt per faretto', false, num(fcIllumWatt, setFcIllumWatt, { min: 0, addonAfter: 'W', style: { width: 160 } })),
       ) : null,
-      React.createElement('div', { className: 'ni-section-title', style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '8px 0 12px' } }, 'Commerciale'),
-      gapRow(
-        cs('Modello di vendita', false,
-          React.createElement(Radio.Group, { optionType: 'button', value: fcVendita || 'Standard', onChange: e => setFcVendita(e.target.value),
-            options: [{ label: 'Standard', value: 'Standard' }, { label: 'Long term', value: 'Long term' }] })),
-        React.createElement('div', { className: 'grav-facce-prezzo-field' },
-          cs(React.createElement(React.Fragment, null, 'Prezzo faccia (€)', React.createElement(HandoffDesignNote, { id: 'facce-prezzo-spostamento-modello-commerciale', placement: 'top' })), false,
+      React.createElement('div', { className: 'ni-section-title', style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '8px 0 12px' } },
+        React.createElement(React.Fragment, null, 'Commerciale', React.createElement(HandoffDesignNote, { id: 'facce-commerciale-fuori-sprint-coming-soon', placement: 'right' }))),
+      React.createElement('div', { className: 'grav-facce-commerciale-empty' },
+        gapRow(
+          cs('Modello di vendita', false,
+            React.createElement(Radio.Group, { optionType: 'button', value: fcVendita || 'Standard', onChange: e => setFcVendita(e.target.value),
+              options: [{ label: 'Standard', value: 'Standard' }, { label: 'Long term', value: 'Long term' }] })),
+          cs('Prezzo faccia (€)', false,
             num(fcPrezzo, setFcPrezzo, { min: 0, precision: 2, style: { width: 200 } })),
         ),
       ),
