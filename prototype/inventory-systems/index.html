@@ -4833,8 +4833,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [faceEditId,    setFaceEditId]    = useState(null);
   const [fcTipo,        setFcTipo]        = useState(null);
   const [fcSlot,        setFcSlot]        = useState(null);
-  const [fcLat,         setFcLat]         = useState('');
-  const [fcLng,         setFcLng]         = useState('');
   const [fcOrient,      setFcOrient]      = useState(0);     // orientamento in gradi 0–360
   const [fcCono,        setFcCono]        = useState(null);  // raggio cono visibilità (cm)
   const [fcFormL,       setFcFormL]       = useState(null);  // larghezza faccia (cm)
@@ -4865,21 +4863,21 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     if (v !== 'Faretti') { setFcIllumNFaretti(null); setFcIllumWatt(null); }
   };
   const resetFaceForm = () => {
-    setFcTipo(null); setFcSlot(null); setFcLat(''); setFcLng('');
+    setFcTipo(null); setFcSlot(null);
     setFcOrient(0); setFcCono(null); setFcFormL(null); setFcFormH(null);
     setFcIllumStato(null); setFcIllumMezzo(null); setFcIllumNFaretti(null); setFcIllumWatt(null);
     setFcVendita(null); setFcPrezzo(null); setFcVisMarcia(false);
   };
-  // Nuova faccia: eredita coordinate e illuminazione dall'impianto come valore di
-  // partenza — restano sempre modificabili direttamente, non c'è più un lucchetto.
+  // Coordinate faccia: campo del modello dati già esistente, ma oggi non utilizzato —
+  // sempre in sola lettura, ereditano quelle dell'impianto (vedi HandoffDesignNote
+  // sul campo per il piano di sviluppo futuro con selezione su mappa).
   const openNewFace = () => {
     if (!canAddSubItems) return;
     resetFaceForm();
     setFaceEditId(null);
-    setFcLat(lat || ''); setFcLng(lng || '');
     setFaceDrawerOpen(true);
     faceSnapshotRef.current = {
-      fcTipo: null, fcSlot: null, fcLat: lat || '', fcLng: lng || '',
+      fcTipo: null, fcSlot: null,
       fcOrient: 0, fcCono: null, fcFormL: null, fcFormH: null,
       fcIllumStato: null, fcIllumMezzo: null, fcIllumNFaretti: null, fcIllumWatt: null,
       fcVendita: null, fcPrezzo: null, fcVisMarcia: false,
@@ -4888,10 +4886,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const openEditFace = (f) => {
     setFaceEditId(f.id);
     setFcTipo(f.tipo); setFcSlot(f.slot);
-    const fLat = f.lat || lat || '';
-    const fLng = f.lng || lng || '';
-    setFcLat(fLat);
-    setFcLng(fLng);
     setFcOrient(f.orient ?? 0); setFcCono(f.cono ?? null); setFcFormL(f.formL ?? null); setFcFormH(f.formH ?? null);
     setFcIllumStato(f.illumStato); setFcIllumMezzo(f.illumMezzo);
     setFcIllumNFaretti(f.illumNFaretti); setFcIllumWatt(f.illumWatt);
@@ -4899,7 +4893,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setFcVisMarcia(!!f.visMarcia);
     setFaceDrawerOpen(true);
     faceSnapshotRef.current = {
-      fcTipo: f.tipo, fcSlot: f.slot, fcLat: fLat, fcLng: fLng,
+      fcTipo: f.tipo, fcSlot: f.slot,
       fcOrient: f.orient ?? 0, fcCono: f.cono ?? null, fcFormL: f.formL ?? null, fcFormH: f.formH ?? null,
       fcIllumStato: f.illumStato, fcIllumMezzo: f.illumMezzo, fcIllumNFaretti: f.illumNFaretti, fcIllumWatt: f.illumWatt,
       fcVendita: f.vendita, fcPrezzo: f.prezzo, fcVisMarcia: !!f.visMarcia,
@@ -4907,14 +4901,14 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   };
   const closeFaceDrawer = () => { setFaceDrawerOpen(false); setFaceEditId(null); };
   const isFaceDirty = () => JSON.stringify({
-    fcTipo, fcSlot, fcLat, fcLng, fcOrient, fcCono, fcFormL, fcFormH,
+    fcTipo, fcSlot, fcOrient, fcCono, fcFormL, fcFormH,
     fcIllumStato, fcIllumMezzo, fcIllumNFaretti, fcIllumWatt, fcVendita, fcPrezzo, fcVisMarcia,
   }) !== JSON.stringify(faceSnapshotRef.current);
   const saveFace = () => {
     if (!fcTipo) return;
     const data = {
       tipo: fcTipo, slot: fcSlot,
-      lat: fcLat, lng: fcLng,
+      lat: lat || '', lng: lng || '',
       orient: fcOrient, cono: fcCono, formL: fcFormL, formH: fcFormH,
       illumStato: fcIllumStato, illumMezzo: fcIllumMezzo, illumNFaretti: fcIllumNFaretti, illumWatt: fcIllumWatt,
       vendita: fcVendita, prezzo: fcPrezzo, visMarcia: fcVisMarcia,
@@ -5025,9 +5019,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       pickFcTipo: () => setFcTipo('Anteriore'),
       setFcVisMarciaExample: () => setFcVisMarcia(true),
       setFcSlotExample: () => setFcSlot(1),
-      // No-op: le coordinate faccia non sono più bloccabili (vedi resetFaceForm) —
-      // resta solo per compatibilità con lo step "Coordinate" del tour in
-      // handoff-steps-v1.js (versione approvata).
+      // No-op: le coordinate faccia sono di nuovo sempre in sola lettura (vedi
+      // HandoffDesignNote sul campo) — resta solo per compatibilità con lo step
+      // "Coordinate" del tour in handoff-steps-v1.js (versione approvata).
       unlockFcCoord: () => {},
       setFcOrientExample: () => setFcOrient(135),
       setFcConoExample: () => setFcCono(50),
@@ -5095,10 +5089,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   );
   // Stiamo modificando una posteriore collegata? In tal caso i campi fisici sono guidati dall'anteriore
   const fcIsLinkedPost = !!(facce.find(f => f.id === faceEditId) || {}).pairOf;
-  // "Ereditate" è solo un'indicazione (combaciano ancora con l'ubicazione dell'impianto):
-  // il campo resta sempre modificabile, non c'è più un lucchetto da sbloccare.
-  const fcCoordInherited = fcLat === (lat || '') && fcLng === (lng || '');
-  const fcCoordLabel = fcCoordInherited ? 'Coordinate (ereditate dall\'ubicazione)' : 'Coordinate';
+  const fcCoordLabel = React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+    'Coordinate (ereditate dall\'ubicazione)',
+    React.createElement(HandoffDesignNote, { id: 'facce-coordinate-sola-lettura-mappa-futura', placement: 'top' }),
+  );
 
   // ── Cespiti e Dispositivi — drawer unico: la select "Tipo" elenca tutti i tipi
   // (cespiti + dispositivi) e i campi mostrati cambiano in base alla scelta (ASSET_TYPES).
@@ -6733,8 +6727,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       cs('Numero slot', false, num(fcSlot, setFcSlot, { min: 1, disabled: fcIsLinkedPost, style: { width: 160 } })),
       cs(fcCoordLabel, false,
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-          React.createElement(Input, { value: fcLat, onChange: e => setFcLat(e.target.value), placeholder: 'Latitudine', disabled: fcIsLinkedPost, style: { flex: 1 } }),
-          React.createElement(Input, { value: fcLng, onChange: e => setFcLng(e.target.value), placeholder: 'Longitudine', disabled: fcIsLinkedPost, style: { flex: 1 } }),
+          React.createElement(Input, { value: lat || '', placeholder: 'Latitudine', disabled: true, style: { flex: 1 } }),
+          React.createElement(Input, { value: lng || '', placeholder: 'Longitudine', disabled: true, style: { flex: 1 } }),
         )),
       cs('Orientamento — ' + (fcOrient || 0) + '°' + (fcIsLinkedPost ? ' (speculare all\'anteriore)' : ''), false,
         React.createElement('div', { style: { padding: '0 8px' } },

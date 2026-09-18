@@ -986,8 +986,8 @@ window.HANDOFF_TOURS = [
         dev: [{ label: 'Componente', value: 'Drawer (AntD) impilato sopra il form principale — stesso pattern di Cespite/Dispositivo e Squadra' }],
       },
       {
-        title: 'Coordinate: ereditate dall\'ubicazione, sempre modificabili',
-        description: 'Le coordinate della faccia sono **precompilate** con quelle dell\'ubicazione dell\'impianto (qui valorizzate con l\'indirizzo di esempio compilato in Anagrafica) e restano **sempre modificabili direttamente**, senza bisogno di sbloccarle. L\'etichetta del campo mostra "(ereditate dall\'ubicazione)" finché i valori combaciano con quelli dell\'impianto — appena se ne modifica anche solo uno, torna alla semplice "Coordinate".',
+        title: 'Coordinate: sempre in sola lettura, ereditate dall\'ubicazione',
+        description: 'Le coordinate della faccia sono **sempre in sola lettura**, ereditate da quelle dell\'ubicazione dell\'impianto (qui valorizzate con l\'indirizzo di esempio compilato in Anagrafica) — non c\'è un lucchetto da sbloccare, il campo appartiene già al modello dati delle facce ma questa informazione non viene ancora utilizzata. Vedi icona nota per il piano di sviluppo futuro (selezione su mappa).',
         selector: FD_ROW_COORD,
         placement: 'left',
         onEnter: function () { ghfFillFacciaCompleta(); },
@@ -1277,6 +1277,11 @@ window.HANDOFF_NOTES = [
     body: 'Il drawer di collegamento concessione ha ricerca + paginazione; quello di collegamento autorizzazione ha ricerca ma **non è ancora paginato**.\n==Da allineare==: con l\'anagrafica reale delle autorizzazioni la lista potrebbe crescere oltre una singola pagina, come già gestito per le concessioni.',
   },
   // ── US#1.2 — Dati tecnici e facce: note di design/criteri aperti ────────
+  {
+    id: 'facce-coordinate-sola-lettura-mappa-futura',
+    title: 'Coordinate faccia: sola lettura, in attesa dell\'interazione su mappa',
+    body: 'Le coordinate della faccia **fanno già parte del modello dati delle facce**, ma questa informazione **non viene ancora utilizzata**: il campo resta sempre in sola lettura ed eredita quelle dell\'ubicazione dell\'impianto.\n==Sviluppo futuro==: è prevista un\'interazione su mappa che "esplode" il marker dell\'ubicazione dell\'impianto mostrando le coordinate delle singole facce — molto utile per impianti con più facce a posizioni leggermente diverse (es. pensiline, paline con parapedonale). Comporterà l\'introduzione, nel form, di una mappa con la possibilità di scegliere la posizione spostando un pin, vincolando l\'utente a un punto vicino a quello di ubicazione dell\'impianto.',
+  },
   {
     id: 'facce-commerciale-spostamento-tab-commerciale',
     title: 'Commerciale (drawer Faccia): fuori sprint, in attesa di spostamento nella tab Commerciale',
