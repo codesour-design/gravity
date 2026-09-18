@@ -530,15 +530,17 @@ window.HANDOFF_OUT_OF_SPRINT = [
   // chi userà il prodotto. Disattivando "Interfaccia semplificata" si vede
   // comunque il contenuto reale così com'è progettato (riferimento per una
   // sprint futura, vedi note commerciale-moduli-* e
-  // facce-commerciale-fuori-sprint-coming-soon).
+  // facce-commerciale-spostamento-tab-commerciale).
   { selector: '.grav-commerciale-identita-empty', empty: true, noOutline: true, emptyDesc: 'Qui racconterai il lato commerciale del tuo impianto: alias, circuiti di vendita, punteggio di qualità e una galleria di foto tutta sua.' },
   { selector: '.grav-modello-commerciale-empty', empty: true, noOutline: true, emptyDesc: 'Qui imposterai il modello di vendita e il listino prezzi dell\'impianto, con il calcolo dell\'IVA già pronto per te.' },
   { selector: '.grav-moduli-empty', empty: true, noOutline: true, emptyDesc: 'Qui potrai collegare altri impianti simili al tuo, per venderli insieme come un unico spazio.' },
   // Sottosezione "Commerciale" del drawer Faccia (Modello di vendita + Prezzo
-  // faccia) — stesso trattamento della sezione Commerciale qui sopra: destinata
-  // a confluire nel box Modello commerciale (US#1.5, fuori sprint), vedi nota
-  // facce-commerciale-fuori-sprint-coming-soon per i dettagli concordati col team.
-  { selector: '.grav-facce-commerciale-empty', empty: true, noOutline: true, emptyDesc: 'Qui imposterai il modello di vendita e il prezzo di questa faccia, in linea con il Modello commerciale dell\'impianto.' },
+  // faccia) — a differenza della sezione Commerciale qui sopra, qui resta il solo
+  // trattamento a outline tratteggiato/tag (niente empty state "coming soon"): i
+  // campi sono già oggi realmente compilabili nel drawer, destinati a confluire
+  // nella tab Commerciale del form (US#1.5, fuori sprint) — vedi nota
+  // facce-commerciale-spostamento-tab-commerciale per i dettagli concordati col team.
+  { selector: '.grav-facce-commerciale-field', note: 'Fuori sprint — sottosezione "Commerciale" (Modello di vendita, Prezzo faccia): in attesa di spostamento nella tab Commerciale del form, vedi nota di design collegata' },
   // Drawer "Collega impianto" (selezione impianti compatibili da collegare) —
   // stessa esclusione della sezione Commerciale che lo apre.
   { selector: '.grav-moduli-drawer .ant-drawer-content', empty: true, note: 'Fuori sprint — drawer di selezione moduli: stessa esclusione della sezione Commerciale (US#1.5)' },
@@ -1010,7 +1012,7 @@ window.HANDOFF_TOURS = [
       },
       {
         title: 'Commerciale: sempre modificabile, ma fuori sprint',
-        description: '**Modello di vendita** (Standard/Long term) e **Prezzo faccia** restano **sempre compilabili** nel prototipo, anche per una faccia posteriore collegata (dove invece posizione, dimensioni, slot e orientamento sono guidati dall\'anteriore e disabilitati) — a differenza di tutti gli altri campi di questo drawer. ==Tutta la sottosezione è fuori sprint==: destinata a spostarsi nel pannello Modello commerciale, vedi icona nota sul titolo "Commerciale".',
+        description: '**Modello di vendita** (Standard/Long term) e **Prezzo faccia** restano **sempre compilabili** nel prototipo, anche per una faccia posteriore collegata (dove invece posizione, dimensioni, slot e orientamento sono guidati dall\'anteriore e disabilitati) — a differenza di tutti gli altri campi di questo drawer. ==Tutta la sottosezione è fuori sprint== (outline tratteggiato, non un placeholder "coming soon" — i campi sono già oggi realmente compilabili): destinata a spostarsi nella tab Commerciale del form, vedi icona nota sul titolo "Commerciale".',
         selector: FD_ROW_COMMERCIALE,
         placement: 'left',
         onEnter: function () { ghfFillFacciaCompleta(); },
@@ -1276,9 +1278,9 @@ window.HANDOFF_NOTES = [
   },
   // ── US#1.2 — Dati tecnici e facce: note di design/criteri aperti ────────
   {
-    id: 'facce-commerciale-fuori-sprint-coming-soon',
-    title: 'Commerciale (drawer Faccia): fuori sprint, in attesa di spostamento nel Modello commerciale',
-    body: '==Fuori sprint==: l\'intera sottosezione **Commerciale** del drawer Faccia (**Modello di vendita** e **Prezzo faccia**) verrà spostata nel pannello **Modello commerciale** — le indicazioni di design definitive arriveranno in una sprint futura. Nel frattempo entrambi i campi **appartengono già al modello dati esistente delle facce**: va concordato con il team di sviluppo cosa farne nell\'immediato, in attesa dello spostamento. Anche una volta spostata, resterà comunque possibile impostare modello e prezzo di ogni singola faccia anche da quell\'altro pannello.',
+    id: 'facce-commerciale-spostamento-tab-commerciale',
+    title: 'Commerciale (drawer Faccia): fuori sprint, in attesa di spostamento nella tab Commerciale',
+    body: '==Fuori sprint==: l\'intera sottosezione **Commerciale** del drawer Faccia (**Modello di vendita** e **Prezzo faccia**) verrà spostata nella **tab Commerciale** del form (nel box Modello commerciale) — le indicazioni di design definitive arriveranno in una sprint futura. Nel frattempo entrambi i campi **appartengono già al modello dati esistente delle facce**: va concordato con il team di sviluppo cosa farne nell\'immediato, in attesa dello spostamento. Anche una volta spostata, resterà comunque possibile impostare modello e prezzo di ogni singola faccia anche da quella tab.',
   },
   // ── US#1.3 — Cespiti e dispositivi: note di design/criteri aperti ───────
   {
