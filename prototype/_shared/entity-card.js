@@ -146,7 +146,7 @@
       /* Card wrapper */
       '.gec-card{border-radius:8px;border:1px solid #f0f0f0;overflow:hidden;background:#fff;display:flex;flex-direction:column;align-items:flex-start;width:320px;box-sizing:border-box}',
       /* Header */
-      '.gec-header{display:flex;gap:8px;align-items:center;padding:8px 12px;width:100%;box-sizing:border-box;border-bottom:1px solid #f5f5f5}',
+      '.gec-header{display:flex;gap:8px;align-items:center;padding:8px 12px;width:100%;box-sizing:border-box;border-bottom:1px solid #f0f0f0}',
       '.gec-header-title-row{display:flex;flex:1;gap:8px;align-items:center;min-width:0;overflow:hidden}',
       '.gec-title{font-size:16px;font-weight:600;line-height:24px;color:rgba(0,0,0,0.88);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}',
       '.gec-menu{font-size:16px;color:rgba(0,0,0,0.45);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px}',
@@ -155,6 +155,7 @@
       '.gec-informations{display:flex;flex-direction:column;gap:12px;padding:12px;width:100%;box-sizing:border-box;flex:1}',
       /* Informations — horizontal (image + content side by side) */
       '.gec-informations--h{display:flex;flex-direction:row;gap:0;width:100%;box-sizing:border-box;flex:1}',
+      '.gec-img-col{width:220px;flex-shrink:0;align-self:flex-start;border-right:1px solid #f0f0f0;overflow:hidden}',
       '.gec-info-content{display:flex;flex-direction:column;gap:12px;padding:12px;flex:1;min-width:0}',
       /* Body badges row */
       '.gec-body-badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap}',
@@ -168,7 +169,7 @@
       '.gec-fields{display:flex;flex-direction:column;gap:12px}',
       '.gec-fields--2col{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;row-gap:9px}',
       /* Footer */
-      '.gec-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-top:1px solid #f0f0f0;width:100%;box-sizing:border-box;background:#FCFCFD}',
+      '.gec-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-top:1px solid #f0f0f0;width:100%;box-sizing:border-box}',
       '.gec-footer-text{font-size:16px;font-weight:600;line-height:24px;color:rgba(0,0,0,0.88);white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}',
     ].join('');
     document.head.appendChild(s);
@@ -270,9 +271,13 @@
     // ── Body section ──
     var bodySection = null;
     if (isHorizontal) {
-      // Image LEFT + content RIGHT
+      // Image LEFT (220px, 16:9) + content RIGHT (flex:1, height libera)
       bodySection = h('div', { className: 'gec-informations--h' },
-        imageEl,
+        image
+          ? h('div', { className: 'gec-img-col' },
+              h(ImageArea, { id: image.id, placeholder: image.placeholder, aspectRatio: '16/9' })
+            )
+          : null,
         hasBodyContent ? infoContent : null
       );
     } else {

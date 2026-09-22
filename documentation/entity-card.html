@@ -59,8 +59,8 @@
       padding:.1em .35em; border-radius:3px; border:1px solid var(--rule);
     }
     a{color:var(--accent)}
-    p{max-width:70ch;margin:0 0 16px}
-    ul,ol{max-width:70ch;padding-left:20px;margin:0 0 16px}
+    p{margin:0 0 16px}
+    ul,ol{padding-left:20px;margin:0 0 16px}
     li{margin-bottom:6px}
 
     /* ── Header ── */
@@ -115,7 +115,7 @@
 
     /* ── Main ── */
     main{padding:40px 0 120px 64px;min-width:0}
-    .lede{font-size:18px;line-height:1.55;max-width:62ch;color:var(--ink-soft);margin:0 0 40px}
+    .lede{font-size:18px;line-height:1.55;color:var(--ink-soft);margin:0 0 40px}
     .lede strong{color:var(--ink);font-weight:500}
     section{padding-top:36px;margin-bottom:12px}
     section > h2{
@@ -133,30 +133,53 @@
     table.wf td:first-child{white-space:normal}
 
     /* ── Anatomy ── */
-    .anatomy{display:grid;grid-template-columns:320px minmax(0,1fr);gap:48px;align-items:start;margin:0 0 28px}
-    .acard{background:var(--surface);border:1px solid var(--rule);border-radius:8px;box-shadow:var(--shadow);font-size:14px;position:relative}
+    .anatomy-cards{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;margin:0 0 28px}
+    .anatomy-card-wrap{display:flex;flex-direction:column;gap:10px}
+    .acard{background:var(--surface);border:1px solid #f0f0f0;border-radius:8px;box-shadow:var(--shadow);font-size:14px;position:relative;width:320px}
     .azone{position:relative}
     .amarker{
       position:absolute;left:-13px;top:10px;width:22px;height:22px;border-radius:50%;
       background:var(--accent);color:#fff;font-size:12px;font-weight:600;
       display:grid;place-items:center;font-family:"IBM Plex Mono",monospace;
+      z-index:1;
     }
-    .ahead{padding:14px 16px 12px;display:flex;align-items:flex-start;gap:8px}
-    .atitle{font-size:16px;font-weight:600;color:var(--ink);line-height:1.25;flex:1}
-    .abadges{display:flex;gap:6px;margin-top:7px}
-    .apill{font-size:12px;padding:1px 8px;border-radius:10px;border:1px solid;line-height:1.5}
-    .apill.ooh{color:var(--pill-ooh-fg);border-color:var(--pill-ooh-br);background:var(--pill-ooh-bg)}
-    .apill.def{color:var(--ink-soft);border-color:var(--rule-strong);background:var(--surface-sunk)}
-    .akebab{color:var(--ink-faint);font-size:17px;line-height:1;padding:2px 4px}
-    .aimg{height:100px;background:var(--surface-sunk);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);display:grid;place-items:center;color:var(--ink-faint);font-size:13px;gap:4px}
-    .abody{padding:13px 16px;display:flex;flex-direction:column;gap:9px}
-    .arow{display:flex;gap:7px;align-items:baseline;font-size:13.5px}
-    .arow .lbl{font-weight:600;color:var(--ink)}
-    .arow .val{color:var(--ink-soft)}
-    .arow .ico{color:var(--ink-faint);font-size:12px;width:14px}
-    .adot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:baseline}
-    .afoot{padding:10px 16px;background:var(--surface-sunk);border-top:1px solid var(--rule);color:var(--ink-soft);font-size:13px;border-radius:0 0 7px 7px}
-    .legend{margin:0;padding:0;list-style:none;max-width:52ch}
+    /* Header */
+    .ahead{padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f0f0f0}
+    .atitle{font-size:16px;font-weight:600;color:rgba(0,0,0,0.88);line-height:24px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+    .apill{display:inline-flex;align-items:center;font-size:12px;padding:1px 8px;border-radius:4px;border:1px solid;line-height:20px;white-space:nowrap;flex-shrink:0;font-weight:400}
+    .apill.def{color:rgba(0,0,0,0.88);border-color:#d9d9d9;background:#fff}
+    .apill.ooh{color:#389e0d;border-color:#B7EB8F;background:#F6FFED}
+    .apill.dooh{color:#eb2f96;border-color:#FFADD2;background:#fff0f6}
+    .ahead-spacer{flex:1}
+    .akebab{color:rgba(0,0,0,0.45);font-size:18px;line-height:1;width:32px;height:32px;display:grid;place-items:center;flex-shrink:0;letter-spacing:0.05em}
+    /* Body (zona 2): immagine + contenuto testo */
+    .abody{display:flex;flex-direction:column}
+    .aimg{aspect-ratio:16/9;background:#d9d9d9;border-bottom:1px solid #f0f0f0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(0,0,0,0.25);font-size:12px;gap:6px;width:100%}
+    .aimg svg{opacity:.5}
+    .abody-inner{padding:12px;display:flex;flex-direction:column;gap:12px}
+    .abody-badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .aaddress{display:flex;flex-direction:column;font-size:12px;line-height:20px}
+    .aaddress .aprimary{color:rgba(0,0,0,0.65)}
+    .aaddress .asecondary{color:rgba(0,0,0,0.45)}
+    .adivider{height:1px;background:#f0f0f0;width:100%}
+    .afields{display:flex;flex-direction:column;gap:4px}
+    .arow{display:flex;gap:4px;align-items:center;font-size:12px;line-height:20px;height:20px}
+    .arow .ico{color:rgba(0,0,0,0.45);font-size:12px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .arow .lbl{font-weight:600;color:rgba(0,0,0,0.88);white-space:nowrap;flex-shrink:0}
+    .arow .val{color:rgba(0,0,0,0.65)}
+    .adot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;flex-shrink:0}
+    /* Footer */
+    .afoot{padding:12px;border-top:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:0 0 7px 7px}
+    .afoot-text{font-size:16px;font-weight:600;color:rgba(0,0,0,0.88);line-height:24px}
+    .afoot-btn{font-size:13px;padding:4px 12px;border-radius:6px;border:1px solid #d9d9d9;background:#fff;color:rgba(0,0,0,0.88);cursor:default;line-height:22px;display:flex;align-items:center;gap:6px;flex-shrink:0}
+    /* Variante label */
+    .anatomy-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 10px}
+    /* Horizontal variant */
+    .acard--h{width:560px}
+    .abody--h{flex-direction:row}
+    .aimg--h{width:320px;aspect-ratio:16/9;flex-shrink:0;align-self:flex-start;border-bottom:none;border-right:1px solid #f0f0f0}
+    .abody--h .abody-inner{flex:1}
+    .legend{margin:0 0 24px;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:16px 24px}
     .legend li{display:grid;grid-template-columns:24px 1fr;gap:10px;margin-bottom:14px;font-size:14.5px;line-height:1.5}
     .legend .n{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:50%;width:22px;height:22px;display:grid;place-items:center}
     .legend b{font-weight:600;color:var(--ink)}
@@ -282,60 +305,105 @@
   </div>
 
   <main>
-    <p class="lede">L'Entity Card è il formato con cui Gravity rappresenta <strong>un singolo oggetto di dominio</strong> quando questo ha bisogno di spazio proprio: un'identità visiva, un insieme eterogeneo di attributi e spesso un'azione diretta raggiungibile senza aprire il dettaglio.</p>
+    <h1 style="font-size:32px;font-weight:600;line-height:1.2;margin:0 0 16px;color:var(--ink)">Entity Card</h1>
+    <p class="lede">L'Entity Card è il formato in cui viene rappresentato un singolo oggetto di dominio quando ha bisogno di spazio proprio all'interno di una schermata. Composta da header, body e footer, raccoglie in poche righe l'identità dell'entità, le sue caratteristiche principali e un'azione di accesso diretto. Solo l'header è obbligatorio, le altre zone compaiono in base ai dati e al contesto.</p>
 
     <section id="anatomia">
       <h2>Anatomia</h2>
-      <div class="anatomy">
-        <div class="acard">
-          <div class="azone ahead"><span class="amarker">1</span>
-            <div>
-              <div class="atitle">Via Maqueda 148</div>
-              <div class="abadges">
-                <span class="apill ooh">OOH</span>
-                <span class="apill def">PA-001</span>
+      <div class="anatomy-cards">
+        <div class="anatomy-card-wrap">
+          <p class="anatomy-label">Verticale</p>
+          <div class="acard">
+            <!-- 1 Header -->
+            <div class="azone ahead"><span class="amarker">1</span>
+              <span class="atitle">Via Maqueda 148</span>
+              <span class="apill def">PA-001</span>
+              <span class="ahead-spacer"></span>
+              <span class="akebab">···</span>
+            </div>
+            <!-- 2 Body (immagine + campi) -->
+            <div class="azone abody"><span class="amarker">2</span>
+              <div class="aimg">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="2" fill="rgba(0,0,0,0.15)"/><path d="M6 16l3.5-4.5 2.5 3 2-2.5L18 16H6z" fill="rgba(0,0,0,0.3)"/><circle cx="8.5" cy="8.5" r="1.5" fill="rgba(0,0,0,0.3)"/></svg>
+                <span>foto impianto</span>
+              </div>
+              <div class="abody-inner">
+                <div class="abody-badges">
+                  <span class="apill ooh">OOH</span>
+                  <span class="apill def">Pensilina</span>
+                </div>
+                <div class="aaddress">
+                  <span class="aprimary">Via Maqueda 148, 90134 Palermo</span>
+                  <span class="asecondary">Centro storico</span>
+                </div>
+                <div class="adivider"></div>
+                <div class="afields">
+                  <div class="arow"><span class="ico">⤢</span><span class="lbl">Formato:</span><span class="val">140×200 cm</span></div>
+                  <div class="arow"><span class="ico">▣</span><span class="lbl">Facce:</span><span class="val">2</span></div>
+                  <div class="arow"><span class="ico">◎</span><span class="lbl">Stato:</span><span class="val"><span class="adot" style="background:#52C41A"></span>Attivo</span></div>
+                </div>
               </div>
             </div>
-            <div class="akebab">⋮</div>
+            <!-- 3 Footer -->
+            <div class="azone afoot"><span class="amarker">3</span>
+              <span class="afoot-text">Scade il 31/12/2027</span>
+              <span class="afoot-btn">Vai al dettaglio</span>
+            </div>
           </div>
-          <div class="azone aimg"><span class="amarker">2</span>
-            <span>▣</span><span>Foto impianto</span>
-          </div>
-          <div class="azone abody"><span class="amarker">3</span>
-            <div class="arow"><span class="ico">◇</span><span class="lbl">Tipologia:</span><span class="val">Pensilina</span></div>
-            <div class="arow"><span class="ico">⤢</span><span class="lbl">Formato:</span><span class="val">140×200 cm</span></div>
-            <div class="arow"><span class="ico">◉</span><span class="lbl">Stato:</span><span class="val"><span class="adot" style="background:#52C41A"></span>Disponibile</span></div>
-          </div>
-          <div class="azone afoot"><span class="amarker">4</span>Scade il 21/01/2031</div>
         </div>
-        <ul class="legend">
-          <li><span class="n">1</span><span><b>Header</b> — sempre presente. Titolo dell'entità, uno o più badge, menu kebab quando ci sono azioni contestuali. Titolo semibold 16px, badge pill 12px.</span></li>
-          <li><span class="n">2</span><span><b>Image area</b> — foto in rapporto 16:9, o placeholder con icona e testo. Usa <code>&lt;image-slot&gt;</code> se il custom element è registrato, altrimenti un div di fallback.</span></li>
-          <li><span class="n">3</span><span><b>Body</b> — righe di icona, etichetta e valore. Una colonna di default, due con <code>bodyColumns: 2</code>.</span></li>
-          <li><span class="n">4</span><span><b>Footer</b> — slot libero React su sfondo <code>#FCFCFD</code>: pulsanti, scadenze, indicatori secondari.</span></li>
-        </ul>
+        <div class="anatomy-card-wrap">
+          <p class="anatomy-label">Orizzontale</p>
+          <div class="acard acard--h">
+            <!-- 1 Header -->
+            <div class="azone ahead"><span class="amarker">1</span>
+              <span class="atitle">Via Maqueda 148</span>
+              <span class="apill def">PA-001</span>
+              <span class="ahead-spacer"></span>
+              <span class="akebab">···</span>
+            </div>
+            <!-- 2 Body (immagine sinistra + campi destra) -->
+            <div class="azone abody abody--h"><span class="amarker">2</span>
+              <div class="aimg aimg--h">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="2" fill="rgba(0,0,0,0.15)"/><path d="M6 16l3.5-4.5 2.5 3 2-2.5L18 16H6z" fill="rgba(0,0,0,0.3)"/><circle cx="8.5" cy="8.5" r="1.5" fill="rgba(0,0,0,0.3)"/></svg>
+                <span>foto impianto</span>
+              </div>
+              <div class="abody-inner">
+                <div class="abody-badges">
+                  <span class="apill ooh">OOH</span>
+                  <span class="apill def">Pensilina</span>
+                </div>
+                <div class="aaddress">
+                  <span class="aprimary">Via Maqueda 148, 90134 Palermo</span>
+                  <span class="asecondary">Centro storico</span>
+                </div>
+                <div class="adivider"></div>
+                <div class="afields">
+                  <div class="arow"><span class="ico">⤢</span><span class="lbl">Formato:</span><span class="val">140×200 cm</span></div>
+                  <div class="arow"><span class="ico">▣</span><span class="lbl">Facce:</span><span class="val">2</span></div>
+                  <div class="arow"><span class="ico">◎</span><span class="lbl">Stato:</span><span class="val"><span class="adot" style="background:#52C41A"></span>Attivo</span></div>
+                </div>
+              </div>
+            </div>
+            <!-- 3 Footer -->
+            <div class="azone afoot"><span class="amarker">3</span>
+              <span class="afoot-text">Scade il 31/12/2027</span>
+              <span class="afoot-btn">Vai al dettaglio</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <p>Solo l'header è obbligatorio. Le altre tre zone compaiono in base ai dati e al contesto: il body a due colonne serve alle entità con molti campi, il footer esiste per togliere dal body ciò che non è un attributo dell'entità.</p>
+      <ul class="legend">
+        <li><span class="n">1</span><span><b>Header</b> — sempre presente. Titolo dell'entità, tag identificativi inline, menu kebab (···) all'estremità destra quando ci sono azioni contestuali. Titolo 16px/600, tag 12px.</span></li>
+        <li><span class="n">2</span><span><b>Body</b> — quando previsto dal design, l'immagine appare in cima in rapporto 16:9 (o come placeholder); sotto, tag di canale e tipo, indirizzo su due righe, divider e righe icona + etichetta + valore. Lo stato operativo usa un indicatore di stato (pallino colorato). Senza immagine diventa una colonna di testo. Una colonna di default, due con <code>bodyColumns: 2</code>.</span></li>
+        <li><span class="n">3</span><span><b>Footer</b> — testo a sinistra (<code>footerText</code>) e pulsante a destra (<code>footerButton</code>). Sfondo bianco, separato da <code>border-top</code>.</span></li>
+      </ul>
     </section>
 
     <section id="quando">
       <h2>Cos'è e quando usarla</h2>
-      <p>Gli oggetti della piattaforma — impianti, facce, concessioni, autorizzazioni, cespiti — non sono righe piatte di dati. Hanno una struttura interna ricca, uno stato operativo da comunicare a colpo d'occhio e relazioni con altri oggetti che li qualificano. La card racchiude tutto questo in un contenitore autonomo, senza drawer né navigazione.</p>
-      <p>Usa la card quando almeno due di queste condizioni sono vere:</p>
-      <ol>
-        <li>L'entità ha un'identità visiva propria (foto, identificativo visivo).</li>
-        <li>Ha più di tre attributi eterogenei da mostrare insieme.</li>
-        <li>È una sotto-entità da elencare dentro il contesto della principale.</li>
-        <li>Ha azioni contestuali che devono restare accessibili senza navigare altrove.</li>
-      </ol>
-      <div class="tw"><table>
-        <thead><tr><th>Situazione</th><th>Componente corretto</th></tr></thead>
-        <tbody>
-          <tr><td>Molte entità omogenee da confrontare sugli stessi campi</td><td>Tabella</td></tr>
-          <tr><td>KPI sintetica (icona, numero, label)</td><td><code>Card</code> Ant Design con <code>Statistic</code></td></tr>
-        </tbody>
-      </table></div>
-      <div class="note"><b>Eccezione — il popover della mappa.</b> Il popover che appare al click su un marker è un componente a sé, modellato sull'Entity Card. Ne eredita il modello informativo ma ha una struttura propria, definita in <code>prototype/_shared/map-popover.js</code>: larghezza 380px, body orizzontale con foto a sinistra (160px) e pannello info a destra, footer con il solo pulsante "Vai al dettaglio". Va trattato come componente derivato: una modifica all'Entity Card non si propaga al popover, e viceversa.</div>
+      <p>Va usata quando l'entità da rappresentare è una sotto-entità o è collegata all'entità principale. Nel dettaglio impianto compare lateralmente nella scheda dell'impianto e in quella dell'ubicazione, poi nelle varie tab per rappresentare concessioni, autorizzazioni, facce, squadre e moduli. Compare anche nell'elenco campagne per ogni strategia e come riferimento dell'impianto nella pagina di dettaglio di un permesso, sia autorizzazione che concessione.</p>
+
+      <div class="note"><b>Eccezione: il popover della mappa.</b> Il popover che appare al click su un marker è un componente a sé, modellato sull'Entity Card ma con una struttura propria, quindi va trattato come componente derivato: una modifica all'Entity Card non si propaga al popover, e viceversa.</div>
     </section>
 
     <section id="api">
@@ -349,6 +417,7 @@
   ],
   showMenu: true,
   image: { id: 'imp-001', placeholder: 'Foto impianto', aspectRatio: '16/9' },
+  address: { primary: 'Via Maqueda 148, 90134 Palermo', secondary: 'Centro storico' },
   fields: [
     { icon: 'TagOutlined',    label: 'Tipologia:', value: 'Pensilina' },
     { icon: 'ExpandOutlined', label: 'Formato:',   value: '140×200 cm' },
@@ -356,10 +425,11 @@
       valueNode: GravityEntityCard.statusDot('#52C41A', 'Disponibile') }
   ],
   bodyColumns: 1,
-  footer: React.createElement('span', null, 'Scade il 21/01/2031'),
+  bodyLayout: 'vertical',
+  footerText: 'Scade il 21/01/2031',
   style: { width: 360 }
 })</code></pre>
-      <p><code>badge</code> e <code>badges</code> sono mutuamente esclusivi. In un campo, <code>valueNode</code> ha precedenza su <code>value</code> quando entrambi sono forniti.</p>
+      <p><code>badge</code> e <code>badges</code> sono mutuamente esclusivi. <code>footerText</code> / <code>footerButton</code> e <code>footer</code> sono mutuamente esclusivi: usare il footer strutturato quando il contenuto è testo + pulsante, il generico per layout liberi. In un campo, <code>valueNode</code> ha precedenza su <code>value</code> quando entrambi sono forniti.</p>
 
       <h3 class="api-sub">GravityEntityCard</h3>
       <div class="api-wrap" id="t-main"></div>
@@ -370,21 +440,20 @@
       <h3 class="api-sub">fields[n]</h3>
       <div class="api-wrap" id="t-field"></div>
 
+      <h3 class="api-sub">address</h3>
+      <div class="api-wrap" id="t-address"></div>
+
       <h3 class="api-sub">image</h3>
       <div class="api-wrap" id="t-image"></div>
     </section>
 
     <section id="badge">
       <h2>Badge e indicatori di stato</h2>
-      <p>Due canali distinti: i badge nell'header comunicano tipo o stato dell'entità nel suo complesso, lo <code>statusDot</code> nel body comunica lo stato operativo come valore di un campo.</p>
-      <div class="swatches">
-        <span class="sw">default</span><span class="sw">primary</span><span class="sw">ooh</span><span class="sw">dooh</span>
-        <span class="sw">success</span><span class="sw">warning</span><span class="sw">error</span><span class="sw">blue</span>
-      </div>
+      <p>Due strumenti distinti con ruoli diversi. I <b>tag</b> sono pill colorate che compaiono nell'header e all'inizio del body: classificano e identificano l'entità nel suo complesso e li usiamo per indicare canale (OOH/DOOH), visibilità della faccia (Visibile/Non visibile), modalità di vendita di una campagna (Standard/Long Term), tipologia, codice identificativo. I <b>badge status</b> compaiono esclusivamente come valore di un campo nel body: comunicano lo stato operativo puntuale di quell'entità in quel momento (disponibile, in opzione, in manutenzione…)</p>
       <div class="tw"><table>
         <thead><tr><th>Variante</th><th>Colore</th><th>Uso previsto</th></tr></thead>
         <tbody>
-          <tr><td><code>default</code></td><td>Bordo grigio, testo scuro, sfondo quasi bianco</td><td>Identificatori neutri, come un codice documento</td></tr>
+          <tr><td><code>default</code></td><td>Bordo grigio, testo scuro, sfondo quasi bianco</td><td>Identificatori neutri (codice documento, ID) e tag tipologia impianto con icona grigia inline</td></tr>
           <tr><td><code>primary</code></td><td>Violetto Gravity</td><td>Canale principale del brand o stati di primaria importanza</td></tr>
           <tr><td><code>ooh</code></td><td>Verde</td><td>Impianti e formati del canale OOH</td></tr>
           <tr><td><code>dooh</code></td><td>Rosa</td><td>Impianti e formati del canale DOOH</td></tr>
@@ -394,15 +463,20 @@
           <tr><td><code>blue</code></td><td>Blu Ant Design</td><td>Stati informativi neutri: in lavorazione, in revisione</td></tr>
         </tbody>
       </table></div>
-      <p><code>success</code> e <code>ooh</code> sono cromaticamente identici nella palette attuale: distinguono il significato, non l'aspetto. Da evitare nella stessa card. Non c'è un massimo formale al numero di badge, ma oltre tre l'header diventa denso: nella pratica se ne usano due, canale più identificativo.</p>
-      <p><code>GravityEntityCard.statusDot(color, label)</code> restituisce un cerchietto da 8px affiancato da un'etichetta. Colori dalla palette stati di <code>LAYOUT.md</code> §6.3:</p>
+      <h3 class="api-sub">Badge status</h3>
+      <p>Un cerchietto da 8px abbinato a un'etichetta, sempre posizionato come valore di un campo body — mai come badge autonomo nell'header. Il colore non è semanticamente fisso: lo stesso verde può indicare "Disponibile" nel Planning e "Attiva" per una concessione nell'Inventory; è la coppia colore + etichetta a costruire il significato, non il colore da solo. La palette varia per tenant e modulo: passare sempre un colore esplicito in hex a <code>GravityEntityCard.statusDot(color, label)</code> anziché assumere un set chiuso di stati.</p>
       <div class="tw"><table>
-        <thead><tr><th>Stato</th><th>Colore</th></tr></thead>
+        <thead><tr><th>Stato</th><th>Colore</th><th>Contesto d'uso</th></tr></thead>
         <tbody>
-          <tr><td><span class="adot" style="background:#52C41A"></span>Disponibile</td><td><code>#52C41A</code></td></tr>
-          <tr><td><span class="adot" style="background:#EB2F96"></span>In opzione</td><td><code>#EB2F96</code></td></tr>
-          <tr><td><span class="adot" style="background:#1677FF"></span>Riservato o attivo</td><td><code>#1677FF</code></td></tr>
-          <tr><td><span class="adot" style="background:#FA8C16"></span>Manutenzione</td><td><code>#FA8C16</code></td></tr>
+          <tr><td><span class="adot" style="background:#52C41A"></span>Disponibile</td><td><code>#52C41A</code></td><td>Planning — spazio prenotabile</td></tr>
+          <tr><td><span class="adot" style="background:#F759AB"></span>In opzione</td><td><code>#F759AB</code></td><td>Planning — spazio in attesa di conferma</td></tr>
+          <tr><td><span class="adot" style="background:#9254DE"></span>Riservato</td><td><code>#9254DE</code></td><td>Planning — spazio occupato</td></tr>
+          <tr><td><span class="adot" style="background:#4096FF"></span>Attivo</td><td><code>#4096FF</code></td><td>Inventory — impianto attivo</td></tr>
+          <tr><td><span class="adot" style="background:#FFC53D"></span>Inizializzato</td><td><code>#FFC53D</code></td><td>Inventory — impianto configurato ma non ancora attivo</td></tr>
+          <tr><td><span class="adot" style="background:#FFA940"></span>In manutenzione</td><td><code>#FFA940</code></td><td>Inventory — impianto temporaneamente fuori servizio</td></tr>
+          <tr><td><span class="adot" style="background:#D9D9D9"></span>Rimosso</td><td><code>#D9D9D9</code></td><td>Inventory — impianto dismesso</td></tr>
+          <tr><td><span class="adot" style="background:#52C41A"></span>Attiva</td><td><code>#52C41A</code></td><td>Concessione o autorizzazione attiva</td></tr>
+          <tr><td><span class="adot" style="background:#FF4D4F"></span>Scaduta</td><td><code>#FF4D4F</code></td><td>Concessione o autorizzazione scaduta</td></tr>
         </tbody>
       </table></div>
     </section>
@@ -872,20 +946,26 @@ window.applyGravityTokens && window.applyGravityTokens();
   function o(def) { return [false, def || '']; }
 
   document.getElementById('t-main').appendChild(tbl([
-    ['title',       'string',          ...r(''),       'Titolo dell\'entità nell\'header.'],
-    ['badge',       'Badge',           ...o(''),       'Badge singolo. Alternativo a <code>badges</code>.'],
-    ['badges',      'Badge[]',         ...o(''),       'Array di badge. Alternativo a <code>badge</code>.'],
-    ['showMenu',    'boolean',         ...o('false'),  'Mostra il menu kebab ⋮ nell\'header.'],
-    ['image',       'Image',           ...o(''),       'Slot immagine. Vedi oggetto <em>image</em> sotto.'],
-    ['fields',      'Field[]',         ...o('[]'),     'Righe informative del body. Vedi <em>fields[n]</em>.'],
-    ['bodyColumns', '1 | 2',           ...o('1'),      'Numero di colonne del body.'],
-    ['footer',      'React.ReactNode', ...o(''),       'Contenuto del footer. Qualsiasi nodo React.'],
-    ['style',       'CSSProperties',   ...o(''),       'Stile inline aggiuntivo sul wrapper esterno.'],
-    ['className',   'string',          ...o(''),       'Classe CSS aggiuntiva sul wrapper esterno.'],
+    ['title',        'string',          ...r(''),             'Titolo dell\'entità nell\'header.'],
+    ['badge',        'Badge',           ...o(''),             'Badge singolo. Alternativo a <code>badges</code>.'],
+    ['badges',       'Badge[]',         ...o(''),             'Array di badge. Alternativo a <code>badge</code>.'],
+    ['showMenu',     'boolean',         ...o('false'),        'Mostra il menu kebab ⋮ nell\'header.'],
+    ['image',        'Image',           ...o(''),             'Slot immagine. Vedi oggetto <em>image</em> sotto.'],
+    ['bodyBadges',   'Badge[]',         ...o('[]'),           'Badge nel body (sezione Informazioni), distinti da quelli header.'],
+    ['address',      'Address',         ...o(''),             'Indirizzo su due righe (primary + secondary). Vedi oggetto <em>address</em> sotto.'],
+    ['fields',       'Field[]',         ...o('[]'),           'Righe informative del body. Vedi <em>fields[n]</em>.'],
+    ['bodyColumns',  '1 | 2',           ...o('1'),            'Numero di colonne del body.'],
+    ['bodyLayout',   '"vertical" | "horizontal"', ...o('"vertical"'), 'Layout del body: <code>vertical</code> → immagine sopra il contenuto; <code>horizontal</code> → immagine a sinistra (220px) e contenuto a destra.'],
+    ['footer',       'React.ReactNode', ...o(''),             'Contenuto footer generico. Qualsiasi nodo React. Alternativo a <code>footerText</code> / <code>footerButton</code>.'],
+    ['footerText',   'string',          ...o(''),             'Testo a sinistra nel footer strutturato. Alternativo a <code>footer</code>.'],
+    ['footerButton', 'React.ReactNode', ...o(''),             'Pulsante a destra nel footer strutturato. Alternativo a <code>footer</code>.'],
+    ['style',        'CSSProperties',   ...o(''),             'Stile inline aggiuntivo sul wrapper esterno.'],
+    ['className',    'string',          ...o(''),             'Classe CSS aggiuntiva sul wrapper esterno.'],
   ]));
   document.getElementById('t-badge').appendChild(tbl([
     ['text',    'string',       ...r(''),          'Testo del badge.'],
     ['variant', 'BadgeVariant', ...o('"default"'), '<code>default</code> <code>primary</code> <code>ooh</code> <code>dooh</code> <code>success</code> <code>warning</code> <code>error</code> <code>blue</code>'],
+    ['icon',    'string',       ...o(''),          'Nome icona Ant Design visualizzata prima del testo, es. <code>"CheckOutlined"</code>. Omettere per nessuna icona.'],
   ]));
   document.getElementById('t-field').appendChild(tbl([
     ['label',      'string',          ...r(''), 'Etichetta del campo, con il due-punti — es. <code>"Tipologia:"</code>.'],
@@ -893,6 +973,10 @@ window.applyGravityTokens && window.applyGravityTokens();
     ['value',      'string',          ...o(''), 'Valore testuale. Omettere se si usa <code>valueNode</code>.'],
     ['valueNode',  'React.ReactNode', ...o(''), 'Nodo React complesso (es. <code>GEC.statusDot()</code>). Ha precedenza su <code>value</code>.'],
     ['valueStyle', 'CSSProperties',   ...o(''), 'Stile inline aggiuntivo sul nodo valore testuale.'],
+  ]));
+  document.getElementById('t-address').appendChild(tbl([
+    ['primary',   'string', ...o(''), 'Riga principale — tipicamente via e numero civico con CAP e città.'],
+    ['secondary', 'string', ...o(''), 'Riga secondaria — zona, quartiere o altra indicazione geografica.'],
   ]));
   document.getElementById('t-image').appendChild(tbl([
     ['id',          'string', ...r(''),           'Chiave univoca per lo slot immagine.'],
