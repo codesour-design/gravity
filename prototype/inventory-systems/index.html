@@ -2728,85 +2728,6 @@ function FormFaceCard({ name, face, onEdit, onRemove, onCreatePosteriore, onDupl
   });
 }
 
-// Card unica cespite/dispositivo — generata dal catalogo ASSET_TYPES.
-// Mostra solo i campi valorizzati; i campi multi-valore (tags) come tag.
-// Card generica per cespiti e dispositivi: layout comune e scalabile.
-// Header con titolo prominente (il tipo, identità del cespite; per i dispositivi il nome),
-// poi una griglia a 2 colonne di celle etichetta/valore che si adatta a qualsiasi insieme di campi.
-function FormAssetCard({ asset, onView, onRemove }) {
-  const def = getAssetType(asset.tipo) || { category: 'Cespite', fields: [] };
-  const v = asset.vals || {};
-  const isDevice = def.category === 'Dispositivo';
-  const menuItems = [
-    { key: 'view', label: 'Visualizza', icon: React.createElement(EyeOutlined), onClick: onView },
-    { key: 'remove', label: 'Elimina', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
-  ];
-  // Titolo: per i dispositivi il nome (fallback al tipo); per i cespiti il tipo è l'identità.
-  const title   = isDevice ? (v.nome || asset.tipo) : asset.tipo;
-  const eyebrow = isDevice ? asset.tipo : null;
-
-  // Valore formattato (date, lista/tag, booleano e scalari), o null se vuoto
-  const fmtVal = (kind, val) => {
-    if (val == null || val === '' || (Array.isArray(val) && !val.length)) return null;
-    if (kind === 'tags' || kind === 'list') return React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
-      val.map((x, i) => React.createElement(Tag, { key: i, style: { margin: 0, fontSize: 12, border: '1px solid #d9d9d9', backgroundColor: '#fafafa', color: 'rgba(0,0,0,0.75)' } }, x)));
-    if (kind === 'date') return val.format ? val.format('DD/MM/YYYY') : String(val);
-    return String(val);
-  };
-  // Celle dai campi del tipo (ASSET_TYPES), esclusi nome/stato/descrizione (mostrati nell'header).
-  // Vale identico per cespiti e dispositivi: ogni tipo ha i suoi campi coerenti.
-  const cells = def.fields
-    .filter(f => f.key !== 'nome' && f.key !== 'desc' && f.key !== 'stato')
-    .map(f => ({ label: f.label, value: fmtVal(f.kind, v[f.key]) }))
-    .filter(c => c.value != null);
-
-  // Riga dettaglio compatta in stile faccia: etichetta + valore sulla stessa riga
-  const detailRow = (label, value) => React.createElement('div', { key: label, style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 } },
-    React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, label),
-    (typeof value === 'string')
-      ? React.createElement('span', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, value)
-      : React.createElement('div', { style: { minWidth: 0, overflow: 'hidden' } }, value),
-  );
-  const accent = isDevice ? window.GRAVITY_THEME.token.colorPrimary : '#1677FF';
-  // Cap: mostra al massimo 4 campi (2 righe della griglia); il resto è indicato con "+N campi".
-  // Limita la varianza di altezza tra le card → griglia uniforme. Per vedere tutti i campi,
-  // usa "Visualizza" dal menu (riapre il form dell'entità).
-  const CAP = 4;
-  const overflow = cells.length - CAP;
-  const shownCells = cells.slice(0, CAP);
-
-  return React.createElement(Card, {
-    style: { borderRadius: 8, border: '1px solid #f0f0f0', borderLeft: '3px solid ' + accent, height: '100%' },
-    styles: { body: { padding: '10px 14px', minHeight: 96 } },
-  },
-    // Intestazione su una riga, con divisore — come la card faccia
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: cells.length || v.desc ? 8 : 0, paddingBottom: cells.length || v.desc ? 8 : 0, borderBottom: cells.length || v.desc ? '1px solid #f5f5f5' : 'none' } },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
-        React.createElement('span', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, title),
-        eyebrow ? React.createElement(Tag, { style: { margin: 0 } }, eyebrow) : null,
-      ),
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 } },
-        (isDevice && v.stato) ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
-          React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: DEVICE_STATO_COLORS[v.stato] || '#d9d9d9' } }),
-          v.stato) : null,
-        React.createElement(Dropdown, { menu: { items: menuItems }, trigger: ['click'] },
-          React.createElement(MoreOutlined, { style: { fontSize: 16, color: '#595959', cursor: 'pointer' } }),
-        ),
-      ),
-    ),
-    v.desc ? React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.55)', lineHeight: '18px', marginBottom: cells.length ? 8 : 0 } }, v.desc) : null,
-    // Dettagli — griglia 2 colonne, righe inline (etichetta + valore), limitate a CAP
-    cells.length
-      ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 16, rowGap: 8 } },
-          shownCells.map((c) => detailRow(c.label, c.value)))
-      : null,
-    // Indicatore campi non mostrati: testo grigio, non cliccabile (per il dettaglio: "Visualizza" dal menu)
-    overflow > 0
-      ? React.createElement('div', { style: { marginTop: 8, fontSize: 12, color: 'rgba(0,0,0,0.4)' } },
-          '+ ' + overflow + ' camp' + (overflow === 1 ? 'o' : 'i'))
-      : null,
-  );
-}
 
 function AssetAccordion({ list, onView, onRemove, editing, drafts, onDraftChange }) {
   const val = (kind, v) => {
@@ -3499,7 +3420,6 @@ function ImpiantoDetailV2({ imp, onBack }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [photoIdx, setPhotoIdx] = useState(0);
   const [coverIdx, setCoverIdx] = useState(0);
-  const [assetView, setAssetView] = useState('card');
   const [fotos, setFotos] = useState(FOTO_IMPIANTO);
   const nPhotos = fotos.length;
   const addFoto = (file) => {
@@ -4003,20 +3923,6 @@ function ImpiantoDetailV2({ imp, onBack }) {
         React.createElement(Button, { size: 'small', icon: React.createElement(PlusOutlined), onClick: openNewFace }, 'Aggiungi')),
     );
     if (active === 'cespiti') {
-      const val = (kind, v) => {
-        if (v == null || v === '' || (Array.isArray(v) && !v.length)) return null;
-        if (kind === 'tags' || kind === 'list') return React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } }, v.map((x, i) => React.createElement(Tag, { key: i, style: { margin: 0, fontSize: 12, border: '1px solid #d9d9d9', background: '#fafafa', color: 'rgba(0,0,0,0.75)' } }, x)));
-        if (kind === 'date') return v && v.format ? v.format('DD/MM/YYYY') : String(v);
-        return String(v);
-      };
-      const cellsOf = (a) => { const def = getAssetType(a.tipo) || { fields: [] }; const v = a.vals || {}; return def.fields.filter(f => f.key !== 'nome' && f.key !== 'desc' && f.key !== 'stato').map(f => ({ label: f.label, node: val(f.kind, v[f.key]) })).filter(c => c.node != null); };
-      const titleOf = (a) => ((getAssetType(a.tipo) || {}).category === 'Dispositivo') ? ((a.vals || {}).nome || a.tipo) : a.tipo;
-      const statusDot = (a) => { const v = a.vals || {}; return ((getAssetType(a.tipo) || {}).category === 'Dispositivo' && v.stato) ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } }, React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: DEVICE_STATO_COLORS[v.stato] || '#d9d9d9' } }), v.stato) : null; };
-      const viewCard = (list) => React.createElement(Row, { gutter: [16, 16] }, list.map(a => React.createElement(Col, { span: 8, key: a.id }, React.createElement(FormAssetCard, { asset: a, onView: () => antdMsg.info('Visualizza'), onRemove: () => antdMsg.info('Elimina') }))));
-      const viewAccordion = (list) => React.createElement(antd.Collapse, { accordion: true, defaultActiveKey: list[0] && list[0].id, style: { background: '#fff', borderRadius: 8 }, items: list.map(a => ({ key: a.id, label: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } }, React.createElement('span', { style: { fontWeight: 600 } }, titleOf(a)), React.createElement(Tag, { style: { margin: 0 } }, a.tipo), statusDot(a)), children: (() => { const cells = cellsOf(a); return cells.length ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 24, rowGap: 10 } }, cells.map((c, i) => React.createElement('div', { key: i, style: { display: 'flex', gap: 8, fontSize: 13, alignItems: 'flex-start' } }, React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', minWidth: 130, flexShrink: 0 } }, c.label), React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)' } }, c.node)))) : React.createElement('span', { style: { color: 'rgba(0,0,0,0.35)', fontSize: 13 } }, 'Nessun dato'); })() })) });
-      const viewSpec = (list, accent) => React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16 } }, list.map(a => { const cells = cellsOf(a); return React.createElement('div', { key: a.id, style: { border: '1px solid #f0f0f0', borderLeft: '3px solid ' + accent, borderRadius: 8, padding: '14px 16px' } }, React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: cells.length ? 12 : 0, paddingBottom: cells.length ? 10 : 0, borderBottom: cells.length ? '1px solid #f5f5f5' : 'none' } }, React.createElement('span', { style: { fontSize: 15, fontWeight: 600 } }, titleOf(a)), React.createElement(Tag, { style: { margin: 0 } }, a.tipo), statusDot(a)), cells.length ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px 20px' } }, cells.map((c, i) => React.createElement('div', { key: i, style: { display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 } }, React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, c.label), React.createElement('div', { style: { fontSize: 13, fontWeight: 500, color: 'rgba(0,0,0,0.85)' } }, c.node)))) : null); }));
-      const renderGroup = (list, accent) => assetView === 'card' ? viewCard(list) : assetView === 'accordion' ? viewAccordion(list) : viewSpec(list, accent);
-      const switcher = () => React.createElement(Segmented, { size: 'small', value: assetView, onChange: setAssetView, options: [{ label: 'Card', value: 'card' }, { label: 'Accordion', value: 'accordion' }, { label: 'Griglia attributi', value: 'grid' }] });
       const assetDirty = (arr) => !!assetDraft && arr.some(a => JSON.stringify(assetDraft[a.id]) !== JSON.stringify(a.vals || {}));
       const startAssetEdit = (group, arr) => { const m = {}; arr.forEach(a => { m[a.id] = { ...(a.vals || {}) }; }); setAssetDraft(m); setAssetEditGroup(group); };
       const cancelAssetEdit = () => { setAssetDraft(null); setAssetEditGroup(null); };
