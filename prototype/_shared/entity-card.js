@@ -148,7 +148,7 @@
       /* Header */
       '.gec-header{display:flex;gap:8px;align-items:center;padding:8px 12px;width:100%;box-sizing:border-box;border-bottom:1px solid #f0f0f0}',
       '.gec-header-title-row{display:flex;flex:1;gap:8px;align-items:center;min-width:0;overflow:hidden}',
-      '.gec-title{font-size:16px;font-weight:600;line-height:24px;color:rgba(0,0,0,0.88);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}',
+      '.gec-title{font-size:16px;font-weight:600;line-height:24px;color:rgba(0,0,0,0.88);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:1;min-width:0}',
       '.gec-menu{font-size:16px;color:rgba(0,0,0,0.45);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px}',
       '.gec-menu:hover{background:rgba(0,0,0,0.04);color:rgba(0,0,0,0.65)}',
       /* Informations — vertical */
