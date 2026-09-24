@@ -43,6 +43,12 @@ window.GRAVITY_PROTOTYPES = {
     handoff: 'poi-collections/index--handoff.html',
     nav: { section: 'Delivery', item: 'Collections' },
   },
+  'portafoglio': {
+    label: 'Portafoglio', status: 'in-progress',
+    entry: 'portafoglio/index.html',
+    handoff: 'portafoglio/index--handoff.html',
+    nav: { section: 'Commercial', item: 'Wallet' },
+  },
   'negotiations': {
     label: 'Trattative', status: 'in-progress',
     entry: 'negotiations/index.html',
