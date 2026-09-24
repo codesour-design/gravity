@@ -71,6 +71,44 @@ mode-aware"). Per questo `registry.js` distingue esplicitamente `entry` (demo) e
 **annotazioni** (note/tour/scope sprint), non il prototipo: se il prototipo cambia, le versioni
 vecchie mostrano il prototipo aggiornato con le vecchie annotazioni.
 
+#### Eccezione documentata — switch UI reale v1/v2 (Permessi)
+
+In `prototype/inventory-licenses/index.html` la versione handoff pilota **anche** un vero switch
+di UI della lista, non solo le annotazioni — deroga esplicita alla regola sopra, per poter
+mostrare/confrontare la UI v1 approvata e la UI v2 in lavorazione (componenti/list-table.md)
+senza toccare v1. Pattern:
+
+- Loader in `<head>`: oltre a caricare la config, imposta `window.__PERMESSI_UI_VERSION`
+  (`'v1'` di default e con `?handoff=v1`; `'v2'` solo con `?handoff=v2`) — letto **prima** del
+  primo render React.
+- Nel componente React: `const isV2 = window.__PERMESSI_UI_VERSION === 'v2'` sceglie tra due
+  implementazioni sorelle (es. `PermitTable` invariata vs `PermitTableV2` con header
+  card/KPI/card tabella) — mai una singola implementazione con `if` sparsi dentro.
+- CSS della v2 scoped sotto una classe dedicata (`.lic-v2`) applicata al contenitore solo quando
+  `isV2`, così le regole (hover riga, colonne fisse, `.data-card`) non toccano in alcun modo la
+  v1.
+
+Usa questo pattern **solo** quando serve davvero confrontare due stati UI diversi dello stesso
+prototipo dietro lo stesso switch versione (caso raro): nella stragrande maggioranza dei casi
+resta valida la regola generale sopra — un prototipo, le versioni sono solo annotazioni.
+
+#### Eccezione documentata — switch UI reale v1/v2 (Nuovo Impianto)
+
+In `prototype/inventory-systems/index.html` stesso pattern, applicato al form **Nuovo Impianto**
+(`NewImpiantoFullDrawer`): la v1 è in realizzazione lato sviluppo e non va più toccata, la v2 è la
+versione in lavorazione dietro lo stesso switch.
+
+- Loader in `<head>`: imposta `window.__SYSTEMS_UI_VERSION` (`'v1'` di default e con
+  `?handoff=v1`; `'v2'` solo con `?handoff=v2`) — letto **prima** del primo render React.
+- `App()` calcola `const isV2 = window.__SYSTEMS_UI_VERSION === 'v2'` e la passa come prop
+  `isV2` a `NewImpiantoFullDrawer` (solo nel call site di creazione, non in quello di modifica
+  dentro `ImpiantoDetailV2` — l'ambito dell'eccezione è la creazione, non l'editing).
+- Il `Drawer` applica `rootClassName: isV2 ? 'grav-main-drawer sys-v2' : 'grav-main-drawer'` per
+  poter scopare futuro CSS v2 sotto `.sys-v2` senza toccare la v1.
+- Le differenze di contenuto tra v1 e v2 dentro `NewImpiantoFullDrawer` vanno diramate con
+  `isV2 ? ... : ...` (o componenti sorelli se il markup diverge troppo), mai con una singola
+  implementazione confusa.
+
 ## Configurazione (globali letti da `handoff.js`)
 
 | Globale | Contenuto |

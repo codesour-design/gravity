@@ -309,6 +309,10 @@ window.GRAVITY_CSS_VARS = {
   '--gravity-text-disabled':    'rgba(0,0,0,0.25)',
   '--gravity-border':           '#D9D9D9',
   '--gravity-border-secondary': '#F0F0F0',
+  // Bordo per card bianche sopra sfondo --gravity-bg (#F5F5F5, LAYOUT.md §3.9/§4): un bordo
+  // --gravity-border-secondary (#F0F0F0) è più chiaro dello sfondo circostante, quindi
+  // invisibile — serve un grigio leggermente più scuro per restare percepibile.
+  '--gravity-border-oncanvas':  '#E8E8E8',
   '--gravity-split':            'rgba(0,0,0,0.06)',
   '--gravity-shadow':           '0 1px 2px 0 rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02), 0 2px 4px 0 rgba(0,0,0,0.02)',
   '--gravity-shadow-md':        '0 6px 16px 0 rgba(0,0,0,0.08), 0 3px 6px -4px rgba(0,0,0,0.12), 0 9px 28px 8px rgba(0,0,0,0.05)',
