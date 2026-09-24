@@ -410,7 +410,7 @@ function renderStatoV2(record) {
   const manuale = !!record.statoOverride;
   return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
     React.createElement(Badge, { status: STATO_BADGE_V2[stato] || 'default', text: stato }),
-    manuale && React.createElement(Tooltip, { title: 'Stato impostato manualmente dall\'operatore — non calcolato dalle date.' },
+    manuale && React.createElement(Tooltip, { title: 'Stato impostato manualmente da un operatore, non calcolato dalle date. Per tornare al calcolo automatico, rimuovilo dal menu qui accanto.' },
       React.createElement(EditOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.35)' } })),
   );
 }
@@ -493,7 +493,7 @@ const TIPO_AUTORIZZAZIONE_OPTS_V2 = [
   'Parere luminanza / Inquinamento luminoso (DOOH)',
 ].map(v => (v === 'Esposizione pubblicitaria (Comunale)'
   ? { value: v, label: v }
-  : { value: v, label: v, disabled: true, disabledReason: 'Non ancora disponibile in questo prototipo — solo Esposizione pubblicitaria (Comunale) è sviluppata in questo giro di lavoro.' }));
+  : { value: v, label: v, disabled: true, disabledReason: 'Questa categoria non è ancora disponibile.' }));
 const TIPO_AUTORIZZAZIONE_ESPOSIZIONE = 'Esposizione pubblicitaria (Comunale)';
 const TIPO_CONTRATTO_OPTS = ['Locazione', 'Comodato', 'Diritto di superficie', 'Servitù'].map(v => ({ value: v, label: v }));
 
@@ -788,12 +788,12 @@ function promemoriaField(promemoria, setPromemoria, dataScadenza, options) {
     className: 'grav-permit-promemoria-field',
     label: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
       'Promemoria',
-      React.createElement(Tooltip, { title: 'Invia una notifica prima della scadenza del permesso.' },
+      React.createElement(Tooltip, { title: 'Ti avvisa prima della scadenza, scegliendo con quanti giorni di anticipo vuoi essere avvertito.' },
         React.createElement(QuestionCircleOutlined, { style: { color: 'rgba(0,0,0,0.45)', cursor: 'help' } })),
     ),
     style: { marginBottom: 20 },
   },
-    enabled ? select : React.createElement(Tooltip, { title: 'Imposta prima la Data Scadenza per attivare il promemoria.' },
+    enabled ? select : React.createElement(Tooltip, { title: 'Compila prima la Data Scadenza: il promemoria si attiva solo dopo, perché parte da quella data.' },
       React.createElement('span', { style: { display: 'inline-block', width: '100%' } }, select)),
   );
 }
@@ -1165,7 +1165,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                 React.createElement(Form.Item, {
                   className: 'grav-permit-tipo-field',
                   label: React.createElement('span', null,
-                    tipLabel('Tipo Autorizzazione', 'Non solo l\'esposizione pubblicitaria: qualunque autorizzazione necessaria per l\'impianto — comunale, viabilità, paesaggistica, edilizia, strutturale, allaccio elettrico, o inquinamento luminoso (DOOH). Il CUP (canone unico patrimoniale) si applica solo a questa categoria: le altre sono già in elenco ma non ancora attive in questo prototipo.'),
+                    tipLabel('Tipo Autorizzazione', 'Copre qualunque autorizzazione necessaria per l\'impianto, non solo l\'esposizione pubblicitaria: vincolo comunale, viabilità, paesaggistico, edilizio, strutturale, allaccio elettrico o inquinamento luminoso per il DOOH. Il CUP si applica solo a questa categoria.'),
                     React.createElement(HandoffDesignNote, { id: 'ente-emittente-filtrato-per-tipo', placement: 'right' })),
                   required: true, style: { marginBottom: 0 },
                 },
@@ -1183,7 +1183,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
               React.createElement(Form, { layout: 'vertical', component: 'div' },
                 React.createElement(Form.Item, {
                   label: React.createElement('span', null,
-                    tipLabel('Ente Emittente', 'L\'elenco è filtrato dal Tipo Autorizzazione scelto sopra: ogni ente competente propone solo le proprie sedi/uffici territoriali.'),
+                    tipLabel('Ente Emittente', 'Le opzioni cambiano in base al Tipo Autorizzazione scelto sopra, così vedi solo gli enti davvero competenti per quella pratica. Esempio: con "Strutturale / Genio Civile" vedrai gli uffici del Genio Civile, non i Comuni.'),
                     React.createElement(HandoffDesignNote, { id: 'ente-emittente-crud-fornitori', placement: 'right' })),
                   required: true, style: { marginBottom: 20 },
                 },
@@ -1196,7 +1196,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                 ),
                 React.createElement(Form.Item, {
                   className: 'grav-permit-protocollo-field',
-                  label: tipLabel('Numero di Protocollo', 'Il numero con cui l\'ente emittente ha registrato l\'atto nel proprio protocollo — usalo per rintracciarlo con l\'ente.'),
+                  label: tipLabel('Numero di Protocollo', 'Il numero con cui l\'ente emittente ha registrato l\'atto nel proprio protocollo. Ti serve per rintracciare la pratica se devi contattarlo, ad esempio per un chiarimento o un rinnovo.'),
                   required: true, style: { marginBottom: 20 },
                 },
                   React.createElement(Input, { value: f.numeroProtocollo, onChange: e => set('numeroProtocollo')(e.target.value), placeholder: 'Es. Prot. 12345/2026' }),
@@ -1204,7 +1204,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                 React.createElement(Row, { gutter: 16 },
                   React.createElement(Col, { span: 8 },
                     React.createElement(Form.Item, {
-                      label: tipLabel('Data Stipula', 'La data in cui l\'atto è stato firmato dall\'ente emittente — vedi Data Decorrenza per quando diventa effettivo.'),
+                      label: tipLabel('Data Stipula', 'La data in cui l\'atto è stato firmato dall\'ente emittente. Se il permesso diventa valido da un\'altra data, usa il campo Data Decorrenza.'),
                       required: true, style: { marginBottom: 20 },
                     },
                       React.createElement(DatePicker, {
@@ -1216,7 +1216,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                   React.createElement(Col, { span: 8 }, dataDecorrenzaField(f.dataDecorrenza, set('dataDecorrenza'), f.dataStipula)),
                   React.createElement(Col, { span: 8 },
                     React.createElement(Form.Item, {
-                      label: tipLabel('Data Scadenza', 'Da quando l\'Autorizzazione non è più valida — oltre questa data va rinnovata.'),
+                      label: tipLabel('Data Scadenza', 'Da questa data l\'Autorizzazione non è più valida e va rinnovata. Imposta un Promemoria qui sotto per non farti trovare impreparato.'),
                       required: true, style: { marginBottom: 20 },
                     },
                       React.createElement(DatePicker, {
@@ -1237,7 +1237,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
               React.createElement(Form, { layout: 'vertical', component: 'div' },
                 React.createElement(Form.Item, { valuePropName: 'checked', style: { marginBottom: 16 } },
                   React.createElement(Checkbox, { checked: f.includeConcessioneSuoloPubblico, onChange: e => onIncludeSuoloChange(e.target.checked) },
-                    tipLabel('Include automaticamente concessione di suolo pubblico', 'Attiva quando l\'Autorizzazione comprende automaticamente l\'effetto di una concessione di suolo pubblico, senza un atto di Concessione separato — tipico delle autorizzazioni con validità triennale in presenza di occupazione di suolo.')),
+                    tipLabel('Include automaticamente concessione di suolo pubblico', 'Spuntala quando il Comune concede, insieme all\'autorizzazione, anche l\'uso del suolo pubblico, senza rilasciare un atto di Concessione separato. È il caso più comune nelle autorizzazioni triennali per occupazione di suolo: se l\'atto non menziona una Concessione a parte, probabilmente è già inclusa qui.')),
                 ),
                 (() => {
                   const disabled = f.includeConcessioneSuoloPubblico;
@@ -1247,13 +1247,13 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                     showSearch: true, optionFilterProp: 'label', allowClear: true, disabled,
                   });
                   return React.createElement(Form.Item, {
-                    label: React.createElement('span', null, tipLabel('Concessione o Contratto di riferimento', 'L\'atto — Concessione o Contratto Privato — che ha dato il bene su cui insiste l\'impianto poi autorizzato.'), ' ',
+                    label: React.createElement('span', null, tipLabel('Concessione o Contratto di riferimento', 'Collega qui la Concessione o il Contratto Privato che riguarda il terreno o lo spazio su cui si trova l\'impianto. Usalo per tenere traccia di chi possiede o concede quel suolo.'), ' ',
                       React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)'),
                       React.createElement(HandoffDesignNote, { id: 'autorizzazione-atto-provenienza-scollegato', placement: 'right' })),
                     style: { marginBottom: 0 },
                   },
                     disabled
-                      ? React.createElement(Tooltip, { title: 'Non disponibile: l\'Autorizzazione include già automaticamente una concessione di suolo pubblico.' },
+                      ? React.createElement(Tooltip, { title: 'Non serve collegarla: l\'hai già inclusa spuntando "Include automaticamente concessione di suolo pubblico" qui sopra.' },
                           React.createElement('span', { style: { display: 'inline-block', width: '100%' } }, select))
                       : select,
                   );
@@ -1283,9 +1283,9 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
               React.createElement(Row, { gutter: 12, style: { marginBottom: 8 } },
                 React.createElement(Col, { span: 9 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } }, 'Impianto')),
                 React.createElement(Col, { span: 7 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } },
-                  tipLabel('Codice Autorizzazione per cimasa', 'Il codice interno che identifica la cimasa (la struttura del cartello) di questo impianto — facoltativo, assegnabile anche in un secondo momento.'))),
+                  tipLabel('Codice Autorizzazione per cimasa', 'Il codice che identifica la cimasa, cioè la struttura del cartello, per questo impianto. Puoi lasciarlo vuoto e compilarlo più avanti, quando l\'ente te lo comunica.'))),
                 React.createElement(Col, { span: 5 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } },
-                  tipLabel('CUP', 'Canone Unico Patrimoniale dovuto per questo impianto in questa Autorizzazione — la somma di tutte le righe è il CUP totale mostrato nel dettaglio.'))),
+                  tipLabel('CUP', 'Il Canone Unico Patrimoniale dovuto ogni anno per questo impianto. La somma di tutte le righe compare come CUP totale nel dettaglio dell\'Autorizzazione.'))),
               ),
               f.impiantiAutorizzati.length === 0
                 ? React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 16 } }, 'Nessun impianto collegato.')
@@ -1327,7 +1327,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           React.createElement(Row, { className: 'grav-contratto-proprietario-row', gutter: 16 },
             React.createElement(Col, { span: 16 },
               React.createElement(Form.Item, {
-                label: tipLabel('Proprietario/Locatore', 'Il soggetto privato proprietario dello spazio, con cui si stipula il contratto — non un ente pubblico.'),
+                label: tipLabel('Proprietario/Locatore', 'Il soggetto privato proprietario dello spazio, con cui stipuli il contratto. Non un ente pubblico: per quello serve una Concessione, non un Contratto Privato.'),
                 required: true, style: { marginBottom: 20 },
               },
                 React.createElement(Input, { value: f.proprietarioLocatore, onChange: e => set('proprietarioLocatore')(e.target.value), placeholder: 'Es. Immobiliare San Lorenzo Srl' }),
@@ -1335,7 +1335,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
             ),
             React.createElement(Col, { span: 8 },
               React.createElement(Form.Item, {
-                label: tipLabel('Tipo Contratto', 'Locazione (affitto), Comodato (uso gratuito) o un altro tipo di accordo privato.'),
+                label: tipLabel('Tipo Contratto', 'Scegli Locazione se paghi un affitto, Comodato se il proprietario ti concede lo spazio gratuitamente, oppure un altro tipo di accordo privato.'),
                 required: true, style: { marginBottom: 20 },
               },
                 React.createElement(Select, {
@@ -1348,7 +1348,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           React.createElement(Row, { gutter: 16 },
             React.createElement(Col, { span: 12 },
               React.createElement(Form.Item, {
-                label: tipLabel('Identificativo Contratto', 'Codice o numero con cui il contratto è identificato internamente.'),
+                label: tipLabel('Identificativo Contratto', 'Il codice o numero con cui riconosci questo contratto nei tuoi archivi interni.'),
                 required: true, style: { marginBottom: 20 },
               },
                 React.createElement(Input, { value: f.identificativoContratto, onChange: e => set('identificativoContratto')(e.target.value), placeholder: 'Es. LOC-2026-003' }),
@@ -1356,7 +1356,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
             ),
             React.createElement(Col, { span: 12 },
               React.createElement(Form.Item, {
-                label: React.createElement('span', null, tipLabel('Canone Locazione', 'L\'affitto privato dovuto al proprietario — concettualmente distinto dal canone patrimoniale pubblico, che è una tassa.'), ' ',
+                label: React.createElement('span', null, tipLabel('Canone Locazione', 'L\'affitto privato dovuto al proprietario. È un pagamento diverso dal canone patrimoniale pubblico, che invece è una tassa versata al Comune.'), ' ',
                   React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(affitto privato, non canone patrimoniale)')),
                 required: true, style: { marginBottom: 20 },
               },
@@ -1388,7 +1388,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           promemoriaField(f.promemoria, set('promemoria'), f.dataScadenza, PROMEMORIA_OPTS_V2),
 
           React.createElement(Form.Item, {
-            label: tipLabel('Indirizzo', 'Ubicazione dello spazio oggetto del contratto.'),
+            label: tipLabel('Indirizzo', 'Dove si trova fisicamente lo spazio oggetto del contratto.'),
             style: { marginBottom: 20 },
           },
             React.createElement(Input, { value: f.indirizzo, onChange: e => set('indirizzo')(e.target.value), placeholder: 'Es. Via Roma 45, Palermo' }),
@@ -1397,7 +1397,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           React.createElement('div', {
             className: 'grav-contratto-catastale-section',
             style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 12, display: 'flex', alignItems: 'center' },
-          }, tipLabel('Riferimento Catastale', 'Coordinate catastali dell\'unità immobiliare — utili anche come riferimento interno che il proprietario può usare per identificare quello spazio.'), ' ',
+          }, tipLabel('Riferimento Catastale', 'Le coordinate catastali dell\'unità immobiliare. Tienile a portata di mano: sono spesso il riferimento più rapido con cui il proprietario identifica quello spazio.'), ' ',
             React.createElement('span', { style: { fontWeight: 400, fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
           React.createElement(Row, { gutter: 16, style: { marginBottom: 4 } },
             React.createElement(Col, { span: 8 },
@@ -1435,7 +1435,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
             className: 'grav-permit-tipo-field',
             label: isV2
               ? React.createElement('span', null,
-                  tipLabel('Tipo Autorizzazione', 'Non solo l\'esposizione pubblicitaria: qualunque autorizzazione necessaria per l\'impianto — comunale, viabilità, paesaggistica, edilizia, strutturale, allaccio elettrico, o inquinamento luminoso (DOOH). Il CUP si applica solo al primo tipo.'),
+                  tipLabel('Tipo Autorizzazione', 'Copre qualunque autorizzazione necessaria per l\'impianto, non solo l\'esposizione pubblicitaria: vincolo comunale, viabilità, paesaggistico, edilizio, strutturale, allaccio elettrico o inquinamento luminoso per il DOOH. Il CUP si applica solo a questa categoria.'),
                   React.createElement(HandoffDesignNote, { id: 'ente-emittente-filtrato-per-tipo', placement: 'right' }))
               : 'Tipo Autorizzazione',
             required: true, style: { marginBottom: 20 },
@@ -1461,7 +1461,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
             label: isV2
               ? React.createElement('span', null,
                   isAutorizzazione
-                    ? tipLabel('Ente Emittente', 'L\'elenco è filtrato dal Tipo Autorizzazione scelto sopra: ogni ente competente propone solo le proprie sedi/uffici territoriali.')
+                    ? tipLabel('Ente Emittente', 'Le opzioni cambiano in base al Tipo Autorizzazione scelto sopra, così vedi solo gli enti davvero competenti per quella pratica. Esempio: con "Strutturale / Genio Civile" vedrai gli uffici del Genio Civile, non i Comuni.')
                     : 'Ente Emittente',
                   React.createElement(HandoffDesignNote, { id: 'ente-emittente-crud-fornitori', placement: 'right' }))
               : 'Ente Emittente',
@@ -1520,7 +1520,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
       isConcessione && isV2 && React.createElement(Row, { className: 'grav-concessione-estesi-row', gutter: 16 },
         React.createElement(Col, { span: 12 },
           React.createElement(Form.Item, {
-            label: tipLabel('Ubicazione', 'Indirizzo di riferimento dell\'area oggetto della Concessione.'),
+            label: tipLabel('Ubicazione', 'L\'indirizzo dell\'area concessa, utile per individuarla rapidamente in lista.'),
             style: { marginBottom: 20 },
           },
             React.createElement(Input, { value: f.ubicazione, onChange: e => set('ubicazione')(e.target.value), placeholder: 'Es. Viale Regione Siciliana, Palermo' }),
@@ -1528,7 +1528,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
         ),
         React.createElement(Col, { span: 6 },
           React.createElement(Form.Item, {
-            label: tipLabel('Superficie', 'Superficie dell\'area concessa, in metri quadrati.'),
+            label: tipLabel('Superficie', 'La superficie dell\'area concessa, in metri quadrati.'),
             style: { marginBottom: 20 },
           },
             React.createElement(InputNumber, { value: f.superficieConcessaMq, onChange: set('superficieConcessaMq'), min: 0, style: { width: '100%' }, addonAfter: 'mq' }),
@@ -1536,7 +1536,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
         ),
         React.createElement(Col, { span: 6 },
           React.createElement(Form.Item, {
-            label: tipLabel('Canone Concessorio', 'Importo annuo dovuto per la Concessione — sostituisce la somma per riga di Numeri Utenza (v1).'),
+            label: tipLabel('Canone Concessorio', 'L\'importo annuo complessivo dovuto per la Concessione.'),
             required: true, style: { marginBottom: 20 },
           },
             React.createElement(InputNumber, { value: f.canoneConcessorio, onChange: set('canoneConcessorio'), min: 0, style: { width: '100%' }, addonAfter: '€/anno', placeholder: '0,00' }),
@@ -1547,7 +1547,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
       isConcessione && isV2 && React.createElement('div', { className: 'grav-concessione-provenienza-section', style: { marginBottom: 20 } },
         React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 12 } }, 'Provenienza'),
         React.createElement(Form.Item, {
-          label: tipLabel('Modalità di attribuzione', 'Come la Concessione è stata attribuita: bando pubblico, affidamento diretto senza gara, oppure rinnovo di una concessione già in essere.'),
+          label: tipLabel('Modalità di attribuzione', 'Come hai ottenuto la Concessione: partecipando a un bando pubblico, con un affidamento diretto senza gara, oppure rinnovando una concessione già in essere.'),
           required: true, style: { marginBottom: 16 },
         },
           React.createElement(Select, {
@@ -1559,7 +1559,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           React.createElement(Row, { gutter: 16 },
             React.createElement(Col, { span: 12 },
               React.createElement(Form.Item, {
-                label: tipLabel('Riferimento Bando', 'Identificativo o codice della gara pubblica con cui è stata aggiudicata la Concessione.'),
+                label: tipLabel('Riferimento Bando', 'Il codice o identificativo della gara pubblica con cui hai vinto la Concessione, così puoi ritrovarla nei tuoi archivi.'),
                 required: true, style: { marginBottom: 16 },
               },
                 React.createElement(Input, { value: f.riferimentoBando, onChange: e => set('riferimentoBando')(e.target.value), placeholder: 'Es. GARA-PA-2026-002' }),
@@ -1567,7 +1567,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
             ),
             React.createElement(Col, { span: 12 },
               React.createElement(Form.Item, {
-                label: tipLabel('Ente Banditore', 'L\'ente che ha pubblicato il bando — può essere diverso dall\'Ente Emittente della Concessione.'),
+                label: tipLabel('Ente Banditore', 'L\'ente che ha pubblicato il bando. Non sempre coincide con l\'Ente Emittente: ad esempio una Regione può bandire una gara che poi un Comune gestisce.'),
                 required: true, style: { marginBottom: 16 },
               },
                 React.createElement(Input, { value: f.enteBanditore, onChange: e => set('enteBanditore')(e.target.value) }),
@@ -1577,7 +1577,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           React.createElement(Row, { gutter: 16 },
             React.createElement(Col, { span: 12 },
               React.createElement(Form.Item, {
-                label: tipLabel('Data Aggiudicazione', 'Data in cui il bando è stato aggiudicato — distinta dalla Data Stipula del contratto.'),
+                label: tipLabel('Data Aggiudicazione', 'La data in cui il bando è stato aggiudicato, di norma precedente alla Data Stipula del contratto vero e proprio.'),
                 required: true, style: { marginBottom: 16 },
               },
                 React.createElement(DatePicker, { value: f.dataAggiudicazione, onChange: set('dataAggiudicazione'), style: { width: '100%' }, format: 'DD/MM/YYYY', placeholder: 'gg/mm/aaaa' }),
@@ -1585,7 +1585,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
             ),
             React.createElement(Col, { span: 12 },
               React.createElement(Form.Item, {
-                label: React.createElement('span', null, tipLabel('Lotto', 'Identifica il pacchetto di postazioni assegnato in gara, se il bando prevedeva una suddivisione in lotti.'), ' ',
+                label: React.createElement('span', null, tipLabel('Lotto', 'Il pacchetto di postazioni che ti è stato assegnato in gara, se il bando prevedeva una suddivisione in lotti.'), ' ',
                   React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
                 style: { marginBottom: 16 },
               },
@@ -1594,7 +1594,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
             ),
           ),
           React.createElement(Form.Item, {
-            label: React.createElement('span', null, tipLabel('Note Bando', 'Annotazioni libere sul procedimento di gara — es. riserve, ricorsi, condizioni particolari.'), ' ',
+            label: React.createElement('span', null, tipLabel('Note Bando', 'Annotazioni libere sul procedimento di gara, ad esempio riserve, ricorsi o condizioni particolari da tenere a mente.'), ' ',
               React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
             style: { marginBottom: 0 },
           },
@@ -1629,7 +1629,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
       // v2 — Include automaticamente concessione di suolo pubblico: subito sotto Promemoria.
       isV2 && isEsposizionePubblicitaria && React.createElement(Form.Item, { valuePropName: 'checked', style: { marginBottom: 16 } },
         React.createElement(Checkbox, { checked: f.includeConcessioneSuoloPubblico, onChange: e => onIncludeSuoloChange(e.target.checked) },
-          tipLabel('Include automaticamente concessione di suolo pubblico', 'Attiva quando l\'Autorizzazione comprende automaticamente l\'effetto di una concessione di suolo pubblico, senza un atto di Concessione separato — tipico delle autorizzazioni con validità triennale in presenza di occupazione di suolo.')),
+          tipLabel('Include automaticamente concessione di suolo pubblico', 'Spuntala quando il Comune concede, insieme all\'autorizzazione, anche l\'uso del suolo pubblico, senza rilasciare un atto di Concessione separato. È il caso più comune nelle autorizzazioni triennali per occupazione di suolo: se l\'atto non menziona una Concessione a parte, probabilmente è già inclusa qui.')),
       ),
       // v2 — Atto di provenienza: SCOLLEGATO dal check "Include automaticamente concessione
       // di suolo pubblico" (nota 'autorizzazione-atto-provenienza-scollegato') — indicano due
@@ -1646,13 +1646,13 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           showSearch: true, optionFilterProp: 'label', allowClear: true, disabled,
         });
         return React.createElement(Form.Item, {
-          label: React.createElement('span', null, tipLabel('Concessione o Contratto di riferimento', 'L\'atto — Concessione o Contratto Privato — che ha dato il bene su cui insiste l\'impianto poi autorizzato.'), ' ',
+          label: React.createElement('span', null, tipLabel('Concessione o Contratto di riferimento', 'Collega qui la Concessione o il Contratto Privato che riguarda il terreno o lo spazio su cui si trova l\'impianto. Usalo per tenere traccia di chi possiede o concede quel suolo.'), ' ',
             React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)'),
             React.createElement(HandoffDesignNote, { id: 'autorizzazione-atto-provenienza-scollegato', placement: 'right' })),
           style: { marginBottom: 20 },
         },
           disabled
-            ? React.createElement(Tooltip, { title: 'Non disponibile: l\'Autorizzazione include già automaticamente una concessione di suolo pubblico.' },
+            ? React.createElement(Tooltip, { title: 'Non serve collegarla: l\'hai già inclusa spuntando "Include automaticamente concessione di suolo pubblico" qui sopra.' },
                 React.createElement('span', { style: { display: 'inline-block', width: '100%' } }, select))
             : select,
         );
@@ -1972,7 +1972,7 @@ function PermitDetailPage({ record, kind, isV2, concessioniList, autorizzazioniL
       isV2
         ? React.createElement(Descriptions.Item, {
             label: React.createElement('span', null,
-              tipLabel('Stato', 'In istruttoria/Attiva/In scadenza/Scaduta sono calcolati dalle date. In rinnovo, Revocata/Decaduta e Cessata vanno impostati manualmente e prevalgono sul calcolo.'),
+              tipLabel('Stato', 'In istruttoria, Attiva, In scadenza e Scaduta si calcolano da soli in base alle date. Usa In rinnovo, Revocata/Decaduta o Cessata solo per i casi che le date da sole non spiegano, ad esempio una revoca anticipata: prevalgono sempre sul calcolo automatico.'),
               React.createElement(HandoffDesignNote, { id: 'stato-engine-base-comune', placement: 'right' })),
           },
             React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
@@ -2073,7 +2073,7 @@ function PermitDetailPage({ record, kind, isV2, concessioniList, autorizzazioniL
     // v2 — nota 'contratto-vista-derivata': nessun FK, dedotte dagli impianti in comune.
     isContratto && React.createElement('div', { className: 'grav-detail-autorizzazioni-derivate', style: { marginBottom: 24 } },
       React.createElement(Title, { level: 4, style: { margin: '0 0 12px' } },
-        tipLabel('Autorizzazioni collegate', 'Dedotte dagli impianti in comune con questo Contratto — nessun collegamento diretto da impostare.'),
+        tipLabel('Autorizzazioni collegate', 'Calcolate automaticamente dagli impianti che condividono con questo Contratto. Non devi collegarle manualmente.'),
         React.createElement(HandoffDesignNote, { id: 'contratto-vista-derivata', placement: 'right' })),
       autorizzazioniDerivate.length === 0
         ? React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, 'Nessuna — nessun impianto di questo Contratto è collegato anche a un\'Autorizzazione.')
@@ -2318,7 +2318,7 @@ function AppRoot() {
     { title: 'Proprietario/Locatore', dataIndex: 'proprietarioLocatore', width: 220, ...makeSearchFilter('proprietarioLocatore') },
     { title: 'Identificativo Contratto', dataIndex: 'identificativoContratto', width: 200, ...makeSearchFilter('identificativoContratto'),
       render: (v, r) => React.createElement('span', null, v,
-        r.migrata && React.createElement(Tooltip, { title: `Migrato da Concessione ${r.migratoDa} — verifica manuale consigliata` },
+        r.migrata && React.createElement(Tooltip, { title: `Arriva dalla Concessione ${r.migratoDa}. Controlla che i dati siano ancora corretti.` },
           React.createElement(Tag, { color: 'gold', style: { marginInlineStart: 6 } }, 'Migrata')),
         r.migrata && React.createElement(HandoffDesignNote, { id: 'migrazione-concessioni-privato', placement: 'right' })) },
     { title: 'Data Stipula', dataIndex: 'dataStipula', width: 120, sorter: (a, b) => parseItDate(a.dataStipula) - parseItDate(b.dataStipula) },
