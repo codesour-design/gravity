@@ -26,16 +26,24 @@
        prototipo pulito. Le versioni sono file di config: il prototipo resta unico.
        - ?handoff        → versione approvata
        - ?handoff=v1/v2  → versione specifica
+
+       ECCEZIONE documentata (vedi components/handoff-engine.md → "Switch UI reale
+       v1/v2 — Nuovo Impianto"): qui la versione handoff pilota ANCHE un vero switch
+       di UI del form Nuovo Impianto (window.__SYSTEMS_UI_VERSION), non solo le
+       annotazioni. Senza ?handoff, o con ?handoff=v1, resta la UI v1 (approvata, in
+       realizzazione, invariata); solo ?handoff=v2 attiva la UI v2 (in lavorazione).
        Il document.write in <head> carica la config in modo sincrono, così le note
        inline (window.HANDOFF_NOTES) sono disponibili già al primo render. -->
   <script>
     (function () {
       var CONFIGS  = { v1: './handoff-steps-v1.js', v2: './handoff-steps.js' };
       var APPROVED = 'v1';
+      window.__SYSTEMS_UI_VERSION = APPROVED;
       var params = new URLSearchParams(location.search);
       if (!params.has('handoff')) return;
       var v = (params.get('handoff') || APPROVED).toLowerCase();
       var cfg = CONFIGS[v] || CONFIGS[APPROVED];
+      window.__SYSTEMS_UI_VERSION = CONFIGS[v] ? v : APPROVED;
       window.__HANDOFF_ACTIVE = true;
       document.write('<scr' + 'ipt src="' + cfg + '"></scr' + 'ipt>');
     })();
@@ -55,6 +63,23 @@
       background: #F5F5F5;
       font-size: 14px;
       line-height: 1.5714;
+    }
+
+    /* ── Cimasa (V2, tab Struttura) — "Scarica PDF" stampa solo l'anteprima
+       (.cimasa-print-area), sfruttando "Salva come PDF" del dialogo di stampa nativo
+       del browser: nessun motore PDF nel prototipo. Attivato solo da downloadCimasaPdf
+       in NewImpiantoFullDrawer (isV2), mai in v1. */
+    @media print {
+      body.sys-printing-cimasa * { visibility: hidden !important; }
+      body.sys-printing-cimasa .cimasa-print-area,
+      body.sys-printing-cimasa .cimasa-print-area * { visibility: visible !important; }
+      /* Centrata sulla pagina alle sue proporzioni reali (8:5), non stirata a piena
+         pagina — ombra/bordo sono solo l'affordance "oggetto fisico" a schermo,
+         non fanno parte del contenuto stampato. */
+      body.sys-printing-cimasa .cimasa-print-area {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 300px; max-width: none; box-shadow: none; border-color: transparent;
+      }
     }
 
     /* ── App shell ── */
@@ -525,7 +550,7 @@
 <div id="root"></div>
 <script>
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
-const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Radio, Rate, Slider, Popconfirm } = antd;
+const { ConfigProvider, Input, Tag, Badge, Avatar, Button, Empty, Drawer, InputNumber, Switch, Typography, Popover, Menu, Segmented, Table, Space, Cascader, Select, Dropdown, Form, AutoComplete, DatePicker, Upload, Modal, Tabs, Descriptions, Tooltip, Collapse, Pagination, Checkbox, Carousel, Row, Col, Card, Radio, Rate, Slider, Popconfirm, ColorPicker } = antd;
 const { Text } = Typography;
 
 // ── Note di design handoff (marker inline contestuale) ─────────────────────
@@ -580,7 +605,7 @@ const {
   EnvironmentOutlined, CloseOutlined, BarsOutlined,
   ClockCircleOutlined, CopyOutlined,
   BulbOutlined, InboxOutlined, SlidersOutlined, TagOutlined, EllipsisOutlined,
-  ExpandOutlined, SaveOutlined, EyeOutlined, PictureOutlined,
+  ExpandOutlined, SaveOutlined, EyeOutlined, EyeInvisibleOutlined, PictureOutlined,
   InfoCircleOutlined, CompassOutlined, CheckCircleFilled, MoreOutlined,
   SwapOutlined, DeleteOutlined, TagsOutlined, ThunderboltOutlined, FileTextOutlined,
   CalendarOutlined, SyncOutlined, AimOutlined, EuroCircleOutlined, BankOutlined, FormatPainterOutlined,
@@ -2648,10 +2673,10 @@ function PermitCard({ permitType, documentType, documentId, accountNumber, autho
 function FormPermitCard({ permitType, title, docId, tipo, ente, scadenza, presentata, collaudata, state, isActive, onReplace, onRemove }) {
   const menuItems = [
     { key: 'view', label: 'Visualizza', icon: React.createElement(EyeOutlined) },
-    ...(permitType === 'concessione' || permitType === 'autocertificazione' ? [{ key: 'replace', label: 'Sostituisci', icon: React.createElement(SwapOutlined), onClick: onReplace }] : []),
+    ...(permitType === 'concessione' || permitType === 'contratto' || permitType === 'autocertificazione' ? [{ key: 'replace', label: 'Sostituisci', icon: React.createElement(SwapOutlined), onClick: onReplace }] : []),
     { key: 'remove', label: 'Scollega', icon: React.createElement(DeleteOutlined), danger: true, onClick: onRemove },
   ];
-  const typeLabel = permitType === 'concessione' ? 'Concessione' : permitType === 'autorizzazione' ? 'Autorizzazione' : 'SCIA';
+  const typeLabel = permitType === 'concessione' ? 'Concessione' : permitType === 'contratto' ? 'Contratto Privato' : permitType === 'autorizzazione' ? 'Autorizzazione' : 'SCIA';
   // La SCIA non scade: presentazione + termine di verifica. Genio Civile: deposito + collaudo.
   const cols = permitType === 'autocertificazione'
     ? { ente: 'Ente destinatario', presentata: 'Presentata il', last: ['Termine verifica', scadenza] }
@@ -2876,7 +2901,7 @@ function AssetAccordion({ list, onView, onRemove, editing, drafts, onDraftChange
   });
 }
 
-function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
+function GrantsAccordion({ data, selectedRowKey, onRowSelect, kindLabel = 'concessione' }) {
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [activeKeys, setActiveKeys] = useState(data.length > 0 ? [data[0].key] : []);
@@ -2949,8 +2974,8 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect }) {
   });
 
   return React.createElement('div', null,
-    React.createElement(Input, { placeholder: 'Cerca concessione...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: 16 }, allowClear: true }),
-    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', gap: 6 } }, "Seleziona una concessione e scegli il numero utenza che vuoi collegare all'impianto", React.createElement(HandoffDesignNote, { id: 'iter-scaduti-avviso', placement: 'bottom' })),
+    React.createElement(Input, { placeholder: 'Cerca ' + kindLabel + '...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: 16 }, allowClear: true }),
+    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', gap: 6 } }, 'Seleziona ' + (kindLabel === 'concessione' ? 'una' : 'un') + ' ' + kindLabel + " e scegli il numero utenza che vuoi collegare all'impianto", React.createElement(HandoffDesignNote, { id: 'iter-scaduti-avviso', placement: 'bottom' })),
     React.createElement(Collapse, { items: collapseItems, ghost: false, style: { backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 6 }, activeKey: activeKeys, onChange: keys => setActiveKeys(keys) }),
     filtered.length > pageSize ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', padding: '16px 0', borderTop: '1px solid #f0f0f0', marginTop: 16 } },
       React.createElement(Pagination, { current: currentPage, total: filtered.length, pageSize: pageSize, onChange: setCurrentPage, size: 'small' }),
@@ -4657,7 +4682,7 @@ const SQUADRE_AFF_OPTS = SQUADRE_AFF.map(s => ({ value: s.nome, label: s.codice 
 const TIPO_AFFISSIONE_OPTS = ['Prebagnato','Adesivo','Telo'].map(v=>({value:v,label:v}));
 const TIPO_AMM_OPTS        = ['Lineare','Degress','A quote costanti'].map(v=>({value:v,label:v}));
 
-function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, editMode = false, initialSection }) {
+function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, editMode = false, initialSection, isV2 = false }) {
   const iv = initialValues;
   // ── Identità
   const [canale,    setCanale]    = useState(iv.canale    || null);
@@ -4772,6 +4797,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     // ── Iter autorizzativo (permessi / SCIA)
     setSelConcessioni(Array.isArray(v.concessioni) ? v.concessioni : []);
     setSelAutorizzazioni(Array.isArray(v.autorizzazioni) ? v.autorizzazioni : []);
+    setSelContratti(Array.isArray(v.contrattiPrivati) ? v.contrattiPrivati : []);
     setPermitSciaManual(v.scia && typeof v.scia === 'object' ? v.scia : {});
     // formato dopo tipologia perché useMemo(formatiOpts) dipende da tipologia
     setTimeout(() => setFormato(v.formato || null), 0);
@@ -4787,6 +4813,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       moduliCollegati: Array.isArray(v.moduliCollegati) ? v.moduliCollegati : [],
       proprieta: v.proprieta || null, vendita: v.vendita || null, prezzoNetto: toNum(v.prezzoNetto), prezzoLordo: toNum(v.prezzoLordo),
       aliquotaIva: v.aliquotaIva ?? 22, scontoModuli: !!v.scontoModuli, scontoModuliPct: v.scontoModuliPct ?? v.scontoPct ?? null, cimasa: v.cimasa || '',
+      // Box Cimasa (Struttura): non ancora idratato da initialValues (nessun dato mock
+      // per questi campi) — stessi default degli useState, per non segnarli "modificati"
+      // appena il drawer si apre.
+      cimasaLogo: null, cimasaLogoBg: null, cimasaExtra: '', cimasaInheritPermessi: true,
+      cimasaEnteManual: null, cimasaEnteVisible: true, cimasaAutManual: '', cimasaAutVisible: true, cimasaUteManual: '', cimasaUteVisible: true,
       affissioni: v.affissioni && v.affissioni.length
         ? v.affissioni.map(a => ({ squadra: a.squadra ?? null, codice: a.codice ?? null, tipo: a.tipoAffissione ?? a.tipo ?? [], costo: a.costoAffissione ?? a.costo ?? null, preincoll: a.costoPreincoll ?? a.preincoll ?? null }))
         : [],
@@ -4798,6 +4829,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       calcestruzzo: v.calcestruzzo || '', acciaioCarp: v.acciaioCarp || '', acciaioArm: v.acciaioArm || '', tecnicheGc: v.tecnicheGc ?? v.tecniche ?? '',
       progettista: v.progettista || '', ddl: v.ddl || '', rsc: v.rsc || '', collaudatore: v.collaudatore || '', laboratorio: v.laboratorio || '', geologo: v.geologo || '',
       selConcessioni: Array.isArray(v.concessioni) ? v.concessioni : [], selAutorizzazioni: Array.isArray(v.autorizzazioni) ? v.autorizzazioni : [],
+      selContratti: Array.isArray(v.contrattiPrivati) ? v.contrattiPrivati : [],
       permitSciaManual: v.scia && typeof v.scia === 'object' ? v.scia : {},
     };
   }, [open]);
@@ -5219,6 +5251,58 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [scontoModuli,    setScontoModuli]    = useState(false); // sconto se venduto a moduli
   const [scontoModuliPct, setScontoModuliPct] = useState(null);  // percentuale di sconto
   const [cimasa,         setCimasa]         = useState('');
+
+  // ── Cimasa (V2, tab Struttura) — contenuti da stampare sulla cimasa
+  // dell'impianto: anteprima + download PDF. Isolato sotto isV2, non tocca la v1.
+  const [cimasaLogo,   setCimasaLogo]   = useState(null); // data URL logo custom; null = logo Gravity type (bianco) di default
+  const [cimasaLogoBg, setCimasaLogoBg] = useState(null); // colore hex custom per lo sfondo della colonna logo; null = primary Gravity di default
+  const [cimasaExtra,  setCimasaExtra]  = useState('');
+  // Ente emittente, Codice Autorizzazione e Numero Utenza ereditano tutti
+  // insieme da un unico switch "Eredita da permessi" (non più uno switch per
+  // campo): quando acceso, ognuno prende il proprio valore dal permesso
+  // collegato pertinente (Autorizzazione per i primi due, Concessione o
+  // Contratto privato per l'utenza) se c'è, altrimenti resta vuoto in sola
+  // lettura — non torna al manuale campo per campo, per restare un interruttore
+  // unico e prevedibile. Disabilitato se non c'è alcun permesso collegato. La
+  // visibilità in cimasa resta un'icona occhio a parte per ciascun campo,
+  // indipendente da "come" arriva il valore. I valori derivati dal
+  // collegamento reale (cimasaLinkedAut/Conc) sono calcolati più sotto, dopo
+  // la dichiarazione di addedPermits/utenza.
+  const [cimasaInheritPermessi, setCimasaInheritPermessi] = useState(true);
+  const [cimasaEnteManual,  setCimasaEnteManual]  = useState(null); // id in CIMASA_ENTI_OPTS
+  const [cimasaEnteVisible, setCimasaEnteVisible] = useState(true);
+  const [cimasaAutManual,   setCimasaAutManual]   = useState('');
+  const [cimasaAutVisible,  setCimasaAutVisible]  = useState(true);
+  const [cimasaUteManual,   setCimasaUteManual]   = useState('');
+  const [cimasaUteVisible,  setCimasaUteVisible]  = useState(true);
+  // Enti emittenti mock, simili a "Comune di Palermo" — Palermo ha lo stemma
+  // reale (unico logo comunale disponibile), gli altri un monogramma colorato
+  // (vedi cimasaEnteColor/cimasaEnteInitial più sotto).
+  const CIMASA_ENTI_OPTS = [
+    { value: 'palermo',   label: 'Comune di Palermo',   logo: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Palermo-Stemma.svg/1280px-Palermo-Stemma.svg.png' },
+    { value: 'catania',   label: 'Comune di Catania' },
+    { value: 'messina',   label: 'Comune di Messina' },
+    { value: 'siracusa',  label: 'Comune di Siracusa' },
+    { value: 'agrigento', label: 'Comune di Agrigento' },
+  ];
+  const cimasaEnteLogoFor = (nome) => (CIMASA_ENTI_OPTS.find(e => e.label === nome) || {}).logo || null;
+  const addCimasaLogo = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => setCimasaLogo(e.target.result);
+    reader.readAsDataURL(file);
+    return false; // impedisce l'upload automatico di antd
+  };
+  // Mock "Scarica PDF": non c'è un motore di generazione PDF nel prototipo, quindi
+  // si stampa solo l'anteprima (classe .cimasa-print-area, regole in <head>) tramite
+  // la finestra di stampa nativa del browser — "Salva come PDF" produce un file reale.
+  const downloadCimasaPdf = () => {
+    document.body.classList.add('sys-printing-cimasa');
+    const cleanup = () => { document.body.classList.remove('sys-printing-cimasa'); window.removeEventListener('afterprint', cleanup); };
+    window.addEventListener('afterprint', cleanup);
+    window.print();
+  };
+  // cimasaBox è definito più sotto (dopo cs/boxX/g2/autoText, di cui ha bisogno).
+
   // Squadre
   const [affissioni, setAffissioni] = useState([]);
   const [manutenzioni, setManutenzioni] = useState([]);
@@ -5307,6 +5391,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   const [selConcessioni,    setSelConcessioni]    = useState([]);
   const [selAutorizzazioni, setSelAutorizzazioni] = useState([]);
+  // v2 — Contratto Privato: sibling di Concessione, non un suo sottotipo (vedi
+  // handoff-steps.js inventory-licenses, nota 'concessione-solo-pubblica').
+  const [selContratti,      setSelContratti]      = useState([]);
 
   // Permessi collegati — stessa UX del dettaglio impianto
   const [addedPermits,      setAddedPermits]      = useState([]);
@@ -5399,6 +5486,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   const debRef = useRef(null);
   const [activeSection, setActiveSection] = useState('identita');
+  // Ricorda la sezione attiva tra un refresh e l'altro — solo in creazione (non
+  // in modifica, che ha già la sua sorgente in EDIT_SECTION_MAP) e solo V2, vedi
+  // il pairing con sessionStorage('grav_newimpianto_open') in App().
+  React.useEffect(() => {
+    if (!isV2 || editMode) return;
+    try { sessionStorage.setItem('grav_newimpianto_section', activeSection); } catch (e) {}
+  }, [activeSection, isV2, editMode]);
 
   // Sezioni in ordine cronologico del ciclo di vita dell'impianto:
   // sito → iter autorizzativo → realizzazione fisica → collaudo/verifiche → affissione → commerciale.
@@ -5406,7 +5500,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     { id: 'identita',        label: 'Anagrafica e ubicazione' },
     { id: 'dati-amministrativi',   label: 'Iter autorizzativo' },
     { id: 'caratteristiche', label: 'Dati tecnici' },
-    { id: 'struttura',       label: 'Cespiti e dispositivi' },
+    { id: 'struttura',       label: isV2 ? 'Struttura' : 'Cespiti e dispositivi' },
     { id: 'affissione',      label: 'Squadre' },
     { id: 'commerciale',     label: 'Commerciale' },
   ];
@@ -5589,7 +5683,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     calcestruzzo, acciaioCarp, acciaioArm, tecnicheGc,
     progettista, ddl, rsc, collaudatore, laboratorio, geologo,
     assets,
-    concessioni: selConcessioni, autorizzazioni: selAutorizzazioni, permessi: addedPermits,
+    concessioni: selConcessioni, autorizzazioni: selAutorizzazioni, contrattiPrivati: selContratti, permessi: addedPermits,
     scia: permitSciaManual,
   });
 
@@ -5671,6 +5765,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       antdMsg.success(newPerms.length + (newPerms.length > 1 ? ' autorizzazioni aggiunte' : ' autorizzazione aggiunta'));
       return;
     }
+    // Concessione e Contratto Privato condividono la stessa selezione a singola utenza —
+    // mutuamente esclusivi (nota 'impianto-suolo-esclusivo-concessione-contratto'): un
+    // impianto ha o l'una o l'altro, mai entrambi, coerente con inventory-licenses.
     if (!permitRowKey) { antdMsg.warning("Seleziona un'utenza"); return; }
     let sg = null, su = null;
     for (const g of GRANTS_DATA) {
@@ -5678,13 +5775,16 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       if (u) { sg = g; su = u; break; }
     }
     if (!sg) return;
-    const np = { id: permitRowKey, permitType: 'concessione', title: sg.documentType, docId: sg.documentId, tipo: sg.grantType, ente: sg.issuingAuthority, scadenza: su.expirationDate || sg.expirationDate, presentata: sg.issueDate, state: sg.status || 'Attiva', isActive: sg.isActive !== false, bando: sg.bando, lotto: sg.lotto, aggiudicazione: sg.aggiudicazione };
-    setAddedPermits(prev => [...prev.filter(p => p.permitType !== 'concessione'), np]);
-    setSelConcessioni([sg.key]);
+    const isContratto = permitDrawerType === 'contratto';
+    const np = { id: permitRowKey, permitType: isContratto ? 'contratto' : 'concessione', title: sg.documentType, docId: sg.documentId, tipo: sg.grantType, ente: sg.issuingAuthority, scadenza: su.expirationDate || sg.expirationDate, presentata: sg.issueDate, state: sg.status || 'Attiva', isActive: sg.isActive !== false, bando: sg.bando, lotto: sg.lotto, aggiudicazione: sg.aggiudicazione };
+    setAddedPermits(prev => [...prev.filter(p => p.permitType !== 'concessione' && p.permitType !== 'contratto'), np]);
+    if (isContratto) setSelContratti([sg.key]); else setSelConcessioni([sg.key]);
     setUtenza(su.utilityNumber);
     if (su.cimasaCode && su.cimasaCode !== 'Non specificata') setCimasa(su.cimasaCode);
     closePermitDrawer();
-    antdMsg.success(permitReplaceMode ? 'Concessione sostituita' : 'Concessione aggiunta');
+    antdMsg.success(permitReplaceMode
+      ? (isContratto ? 'Contratto Privato sostituito' : 'Concessione sostituita')
+      : (isContratto ? 'Contratto Privato aggiunto' : 'Concessione aggiunta'));
   };
 
   const handleRemovePermit = (id) => {
@@ -5692,17 +5792,18 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     if (!p) return;
     setAddedPermits(prev => prev.filter(x => x.id !== id));
     if (p.permitType === 'concessione') { setSelConcessioni([]); setUtenza(''); setCimasa(''); }
+    else if (p.permitType === 'contratto') { setSelContratti([]); setUtenza(''); setCimasa(''); }
     else if (p.permitType === 'autorizzazione') {
       setSelAutorizzazioni(prev => prev.filter(k => k !== id));
     }
     antdMsg.success('Permesso scollegato');
   };
 
-  // Utenza/Cimasa già compilate a mano in "Iter autorizzativo" + concessione selezionata che
-  // possiede a sua volta entrambi i dati: collegandola, handleAddPermit le sovrascrive in
+  // Utenza/Cimasa già compilate a mano in "Iter autorizzativo" + concessione/contratto selezionato
+  // che possiede a sua volta entrambi i dati: collegandolo, handleAddPermit le sovrascrive in
   // silenzio (righe sopra) — qui calcoliamo solo SE succederebbe, l'avviso è sul pulsante "Aggiungi".
   const permitSelectedUtility = React.useMemo(() => {
-    if (permitDrawerType !== 'concessione' || !permitRowKey) return null;
+    if (!(permitDrawerType === 'concessione' || permitDrawerType === 'contratto') || !permitRowKey) return null;
     for (const g of GRANTS_DATA) {
       const u = g.utilities.find(u => g.key + '-' + u.utilityNumber === permitRowKey);
       if (u) return u;
@@ -5717,12 +5818,59 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const confirmPermitOverwrite = () => { setPermitOverwriteOpen(false); handleAddPermit(); };
 
   const hasConcessione = addedPermits.some(p => p.permitType === 'concessione');
+  const hasContratto   = addedPermits.some(p => p.permitType === 'contratto');
+  // v2 — un impianto ha o una Concessione o un Contratto Privato, mai entrambi
+  // (nota 'impianto-suolo-esclusivo-concessione-contratto', stesso vincolo di inventory-licenses).
+  const hasSuoloAtto = hasConcessione || hasContratto;
 
   // ── Permessi raggruppati per stadio dell'iter autorizzativo ──
-  // Step 1: concessioni + autorizzazioni (escluse le pratiche Genio Civile, che hanno un box dedicato)
-  const permessiConcAut     = addedPermits.filter(p => p.permitType === 'concessione' || (p.permitType === 'autorizzazione' && p.title !== 'Genio Civile'));
+  // Step 1: concessioni + contratti privati + autorizzazioni (escluse le pratiche Genio Civile, che hanno un box dedicato)
+  const permessiConcAut     = addedPermits.filter(p => p.permitType === 'concessione' || p.permitType === 'contratto' || (p.permitType === 'autorizzazione' && p.title !== 'Genio Civile'));
+
+  // ── Cimasa: valori ereditati dal collegamento reale (non da mock) —
+  // Ente emittente + Codice Autorizzazione dalla prima Autorizzazione collegata,
+  // Numero Utenza dalla prima Concessione/Contratto privato collegati (la sua
+  // utenza, se scelta, è già in `utenza`). Un solo switch (cimasaInheritPermessi)
+  // decide per tutti e tre se ereditare o usare il valore manuale — se acceso
+  // ma per un campo specifico non c'è il permesso pertinente collegato, quel
+  // campo resta comunque in sola lettura ma vuoto (non torna al manuale da
+  // solo: l'interruttore è unico e vale per tutti).
+  const cimasaLinkedAut   = addedPermits.find(p => p.permitType === 'autorizzazione') || null;
+  const cimasaLinkedSuolo = addedPermits.find(p => p.permitType === 'concessione' || p.permitType === 'contratto') || null;
+  const cimasaHasPermesso = !!cimasaLinkedAut || !!cimasaLinkedSuolo;
+  const cimasaEnteAuto = cimasaLinkedAut ? (cimasaLinkedAut.ente || '') : '';
+  const cimasaAutAuto  = cimasaLinkedAut ? (cimasaLinkedAut.docId || '') : '';
+  const cimasaUteAuto  = cimasaLinkedSuolo ? (utenza || '') : '';
+  const cimasaEnteManualLabel = (CIMASA_ENTI_OPTS.find(e => e.value === cimasaEnteManual) || {}).label || '';
+  const cimasaEnteRaw = cimasaInheritPermessi ? cimasaEnteAuto : cimasaEnteManualLabel;
+  const cimasaAutRaw  = cimasaInheritPermessi ? cimasaAutAuto  : cimasaAutManual;
+  const cimasaUteRaw  = cimasaInheritPermessi ? cimasaUteAuto  : cimasaUteManual;
+  const cimasaEnteValue = cimasaEnteVisible ? cimasaEnteRaw : '';
+  const cimasaAutValue  = cimasaAutVisible  ? cimasaAutRaw  : '';
+  const cimasaUteValue  = cimasaUteVisible  ? cimasaUteRaw  : '';
+  // Monogramma colorato per il logo ente emittente: nessun asset di stemma
+  // comunale nel prototipo, colore derivato deterministicamente dal nome.
+  const CIMASA_ENTE_COLORS = ['#B8860B', '#C0392B', '#2471A3', '#7D3C98', '#117864', '#B9770E', '#34495E'];
+  const cimasaEnteColor = (nome) => {
+    const s = (nome || '').trim();
+    if (!s) return '#BFBFBF';
+    const sum = Array.from(s).reduce((h, c) => h + c.charCodeAt(0), 0);
+    return CIMASA_ENTE_COLORS[sum % CIMASA_ENTE_COLORS.length];
+  };
+  const cimasaEnteInitial = (nome) => {
+    const parts = (nome || '').trim().split(/\s+/);
+    return parts.length && parts[parts.length - 1] ? parts[parts.length - 1][0].toUpperCase() : '?';
+  };
+  // Stemma reale se l'ente è tra quelli mappati (solo Palermo, per ora), altrimenti monogramma.
+  const cimasaEnteBadge = (nome, size) => {
+    const logo = cimasaEnteLogoFor(nome);
+    return logo
+      ? React.createElement('img', { src: logo, alt: nome, style: { width: size, height: size, objectFit: 'contain', flexShrink: 0 } })
+      : React.createElement(Avatar, { size, style: { backgroundColor: cimasaEnteColor(nome), fontWeight: 700, fontSize: Math.round(size * 0.45), flexShrink: 0 } }, cimasaEnteInitial(nome));
+  };
 
   const openConcessioneDrawer = () => { setPermitDrawerType('concessione'); setPermitDrawerOpen(true); };
+  const openContrattoDrawer = () => { setPermitDrawerType('contratto'); setPermitDrawerOpen(true); };
   const openAutorizzazioneDrawer = () => { setPermitDrawerType('autorizzazione'); setAuthDrawerScope('autorizzazioni'); setPermitDrawerOpen(true); };
   // Solo per l'handoff: il menu "Collega permesso" è un Dropdown AntD e, come i
   // Select (vedi commento su window.__ghfIdentita più sotto), non risponde a
@@ -5733,8 +5881,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   // RISULTATO della compilazione, non solo un form vuoto.
   React.useEffect(() => {
     window.__ghfIterPermessi = {
-      openConcessioneDrawer, openAutorizzazioneDrawer, closePermitDrawer,
-      hasConcessione,
+      openConcessioneDrawer, openContrattoDrawer, openAutorizzazioneDrawer, closePermitDrawer,
+      hasConcessione, hasContratto, hasSuoloAtto,
       confirmPermit: handleAddPermit,
       selectFirstUtenza: () => { const g = GRANTS_DATA[0]; setPermitRowKey(g.key + '-' + g.utilities[0].utilityNumber); },
       selectExpiredUtenza: () => { const g = GRANTS_DATA.find(x => x.status === 'Scaduta'); if (g) setPermitRowKey(g.key + '-' + g.utilities[0].utilityNumber); },
@@ -5773,12 +5921,31 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     return () => { delete window.__ghfIterPermessi; };
   });
 
-  // Dropdown "Collega permesso" per lo Step 1: concessione o autorizzazione (la SCIA sta nello step dedicato)
+  // Dropdown "Collega permesso" per lo Step 1: concessione/contratto privato o autorizzazione
+  // (la SCIA sta nello step dedicato). V2 — Concessione e Contratto Privato sono mutuamente
+  // esclusivi tra loro e filtrati dal Tipo suolo dell'impianto (nota
+  // 'impianto-suolo-esclusivo-concessione-contratto'), col motivo in tooltip quando disabilitati
+  // (LAYOUT.md §6.2). Autorizzazione non ha questo vincolo, invariata. V1 resta come prima.
+  const suoloDisabledReason = (kindSuolo) => hasSuoloAtto
+    ? 'Impianto già collegato a una Concessione o a un Contratto Privato: scollega quello esistente per cambiarlo.'
+    : (tipoSuolo && tipoSuolo !== kindSuolo) ? ('Disponibile solo per impianti su suolo ' + kindSuolo + '.') : null;
+  const suoloMenuItem = (key, label, kindSuolo, onClick) => {
+    const reason = suoloDisabledReason(kindSuolo);
+    return reason
+      ? { key, disabled: true, label: React.createElement(Tooltip, { title: reason, placement: 'left' }, React.createElement('span', null, label)) }
+      : { key, label, onClick };
+  };
   const concAutDropdown = React.createElement(Dropdown, {
-    menu: { items: [
-      { key: 'concessione',   label: 'Collega Concessione',   disabled: hasConcessione, onClick: openConcessioneDrawer },
-      { key: 'autorizzazione', label: 'Collega Autorizzazione', onClick: openAutorizzazioneDrawer },
-    ]},
+    menu: { items: isV2
+      ? [
+          { key: 'autorizzazione', label: 'Collega Autorizzazione', onClick: openAutorizzazioneDrawer },
+          suoloMenuItem('concessione', 'Collega Concessione', 'Pubblico', openConcessioneDrawer),
+          suoloMenuItem('contratto', 'Collega Contratto Privato', 'Privato', openContrattoDrawer),
+        ]
+      : [
+          { key: 'concessione',   label: 'Collega Concessione',   disabled: hasConcessione, onClick: openConcessioneDrawer },
+          { key: 'autorizzazione', label: 'Collega Autorizzazione', onClick: openAutorizzazioneDrawer },
+        ] },
   }, React.createElement(Button, { icon: React.createElement(PlusOutlined) }, 'Collega permesso'));
 
   // Upload del documento di progetto (Genio Civile): carica e, come mock, estrae i dati nei campi
@@ -5817,7 +5984,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         ente: p.ente, scadenza: p.scadenza, presentata: p.presentata, collaudata: p.collaudata,
         state: p.state, isActive: p.isActive,
         onReplace: () => {
-          setPermitDrawerType('concessione');
+          setPermitDrawerType(p.permitType === 'contratto' ? 'contratto' : 'concessione');
           setPermitReplaceMode(true);
           setPermitDrawerOpen(true);
         },
@@ -5849,6 +6016,46 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     const modified = typeof dirty === 'boolean' ? dirty : !!dirty && JSON.stringify(dirtySnapshot[dirty]) !== JSON.stringify(savedSnapshot[dirty]);
     return csBase(label, required, modified ? React.createElement('div', { className: 'input-modified' }, children) : children);
   };
+
+  // Campi required per sezione — usati per il nav indicator
+  const sectionRequired = {
+    identita: [canale, tipologia, formato, stato, via.trim(), citta.trim(), lat.trim(), lng.trim()].every(Boolean),
+  };
+  const hasRequired = { identita: true };
+
+  // Estratta da isDirty per poter riallineare formSnapshotRef.current anche dopo
+  // un salvataggio che non chiude il drawer (doSaveStay): senza questo, "Annulla"
+  // continuerebbe ad avvisare di modifiche non salvate che in realtà sono già
+  // state salvate un istante prima.
+  const buildDirtySnapshot = () => ({
+    canale, nome, tipologia, stato, formato,
+    via, civico, cap, citta, provincia, regione, nazione, lat, lng, zn, note, tipoSuolo, catSuolo, utenza,
+    largImp, altImp, profImp, altTerra, tipoAltezza, riparato, facce, assets,
+    aliasImpianto, circuiti, qualita, moduliCollegati, proprieta, vendita, prezzoNetto, prezzoLordo, aliquotaIva, scontoModuli, scontoModuliPct, cimasa,
+    cimasaLogo, cimasaLogoBg, cimasaExtra, cimasaInheritPermessi, cimasaEnteManual, cimasaEnteVisible, cimasaAutManual, cimasaAutVisible, cimasaUteManual, cimasaUteVisible,
+    affissioni, manutenzioni,
+    genioCivileStato, progetto, progDittaCA, progDataFine, dataCollaudo, calcestruzzo, acciaioCarp, acciaioArm, tecnicheGc, progettista, ddl, rsc, collaudatore, laboratorio, geologo,
+    selConcessioni, selAutorizzazioni, selContratti, permitSciaManual,
+  });
+  const isDirty = () => JSON.stringify(buildDirtySnapshot()) !== JSON.stringify(formSnapshotRef.current);
+  const dirty = isDirty();
+
+  // Segnalino per sezione: quale campo appartiene a quale voce del nav, per capire
+  // dove sono le modifiche non salvate senza dover girare tutte le sezioni.
+  const SECTION_FIELDS = {
+    identita: ['canale', 'tipologia', 'formato', 'stato', 'proprieta', 'via', 'civico', 'cap', 'citta', 'provincia', 'regione', 'nazione', 'lat', 'lng', 'zn', 'note'],
+    'dati-amministrativi': ['tipoSuolo', 'catSuolo', 'utenza', 'cimasa', 'genioCivileStato', 'progetto', 'progDittaCA', 'progDataFine', 'dataCollaudo', 'calcestruzzo', 'acciaioCarp', 'acciaioArm', 'tecnicheGc', 'progettista', 'ddl', 'rsc', 'collaudatore', 'laboratorio', 'geologo', 'selConcessioni', 'selAutorizzazioni', 'selContratti', 'permitSciaManual'],
+    caratteristiche: ['largImp', 'altImp', 'profImp', 'altTerra', 'tipoAltezza', 'riparato', 'facce'],
+    struttura: ['assets', 'cimasaLogo', 'cimasaLogoBg', 'cimasaExtra', 'cimasaInheritPermessi', 'cimasaEnteManual', 'cimasaEnteVisible', 'cimasaAutManual', 'cimasaAutVisible', 'cimasaUteManual', 'cimasaUteVisible'],
+    affissione: ['affissioni', 'manutenzioni'],
+    commerciale: ['aliasImpianto', 'circuiti', 'qualita', 'moduliCollegati', 'vendita', 'prezzoNetto', 'prezzoLordo', 'aliquotaIva', 'scontoModuli', 'scontoModuliPct'],
+  };
+  const dirtySnapshot = buildDirtySnapshot();
+  const savedSnapshot = formSnapshotRef.current || {};
+  const sectionDirty = {};
+  SECTIONS.forEach(({ id }) => {
+    sectionDirty[id] = (SECTION_FIELDS[id] || []).some(k => JSON.stringify(dirtySnapshot[k]) !== JSON.stringify(savedSnapshot[k]));
+  });
 
   // Section wrapper — mostra solo la sezione attiva
   const sec = (id, title, description, ...children) =>
@@ -5890,12 +6097,17 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const g2 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-2' }, ...f);
   const g3 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-3' }, ...f);
   const g4 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-4' }, ...f);
-  // Sotto-intestazione dentro un box (per raggruppare più sottosezioni in un'unica card)
-  const subH = (t, first) => React.createElement('div', {
-    style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.75)',
+  // Sotto-intestazione dentro un box (per raggruppare più sottosezioni in un'unica card).
+  // `extra`: nodo opzionale allineato a destra sulla stessa riga del titolo
+  // (es. uno switch che riguarda l'intera sottosezione sottostante).
+  const subH = (t, first, extra) => React.createElement('div', {
+    style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       margin: first ? '0 0 14px' : '24px 0 14px',
       paddingTop: first ? 0 : 18, borderTop: first ? 'none' : '1px solid #F0F0F0' },
-  }, t);
+  },
+    React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.75)' } }, t),
+    extra || null,
+  );
 
   // Campo a sola lettura compilato in automatico: stesso look di "Nome impianto" (borderless, allineato a sinistra)
   const autoText = (val, ph='Compilato in automatico', extra={}) =>
@@ -5907,6 +6119,143 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     React.createElement('div', { style: { paddingTop: 5 } },
       React.createElement(Switch, { checked: val, onChange: set, checkedChildren: 'Sì', unCheckedChildren: 'No' }),
     );
+
+  // Campo cimasa: "come" arriva il valore (eredita da permessi o manuale) è
+  // deciso da un unico switch a monte (cimasaInheritPermessi, vedi sotto),
+  // uguale per Ente emittente/Codice Autorizzazione/Numero Utenza — qui resta
+  // solo "se" mostrarlo in cimasa (icona occhio), indipendente dalla fonte.
+  const cimasaField = (label, autoNode, manualNode, visible, setVisible, dirtyKey) => {
+    // Solo il valore manuale conta come "modifica da salvare": quello ereditato
+    // dai permessi non è un campo compilato dall'utente in questa sezione.
+    const modified = !cimasaInheritPermessi && !!dirtyKey && JSON.stringify(dirtySnapshot[dirtyKey]) !== JSON.stringify(savedSnapshot[dirtyKey]);
+    return React.createElement('div', { className: 'ni-field' },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 } },
+        React.createElement('div', { className: 'ni-label' }, label),
+        React.createElement(Tooltip, { title: visible ? 'Visibile in cimasa' : 'Nascosto in cimasa' },
+          React.createElement(Button, {
+            type: 'text', size: 'small', shape: 'circle',
+            icon: React.createElement(visible ? EyeOutlined : EyeInvisibleOutlined),
+            onClick: () => setVisible(!visible),
+            style: { color: visible ? 'rgba(0,0,0,0.45)' : window.GRAVITY_THEME.token.colorPrimary },
+          }),
+        ),
+      ),
+      React.createElement('div', { style: { opacity: visible ? 1 : 0.5 }, className: modified ? 'input-modified' : undefined },
+        cimasaInheritPermessi ? autoNode : manualNode,
+      ),
+    );
+  };
+
+  // Sezioni della targhetta, 2 colonne uguali (50/50): logo azienda, poi
+  // logo+nome ente emittente impilati in verticale in cima alle altre
+  // informazioni (autorizzazione, utenza, altro).
+  const cimasaLogoAziendaSection = React.createElement('div', { key: 'logo-azienda', style: { flex: '1 1 0', minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: cimasaLogoBg || window.GRAVITY_THEME.token.colorPrimary } },
+    // Senza logo custom, il default (Gravity type) va in bianco per leggersi sullo
+    // sfondo primary di default — un logo caricato dall'utente resta nei suoi colori.
+    React.createElement('img', { src: cimasaLogo || '../../brand/Gravity_type.svg', alt: 'Logo azienda', style: { width: '100%', height: '100%', objectFit: 'contain', filter: cimasaLogo ? 'none' : 'brightness(0) invert(1)' } }),
+  );
+  const cimasaTestoSection = React.createElement('div', { key: 'testo', style: { flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 14px', gap: 4, textAlign: 'center' } },
+    cimasaEnteValue && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginBottom: 8 } },
+      cimasaEnteBadge(cimasaEnteValue, 40),
+      React.createElement('span', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.75)', textAlign: 'center' } }, cimasaEnteValue),
+    ),
+    cimasaAutValue && React.createElement('div', { style: { fontSize: 13, fontWeight: 600 } }, 'Aut. ' + cimasaAutValue),
+    cimasaUteValue && React.createElement('div', { style: { fontSize: 13, fontWeight: 600 } }, 'Utenza n° ' + cimasaUteValue),
+    cimasaExtra && React.createElement('div', { style: { fontSize: 11, color: 'rgba(0,0,0,0.65)', marginTop: 4, whiteSpace: 'pre-wrap' } }, cimasaExtra),
+    !cimasaEnteValue && !cimasaAutValue && !cimasaUteValue && !cimasaExtra && React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.4)' } }, '—'),
+  );
+  const cimasaSections = [cimasaLogoAziendaSection, cimasaTestoSection];
+
+  const cimasaBox = boxX(React.createElement(React.Fragment, null, 'Cimasa', React.createElement(HandoffDesignNote, { id: 'cimasa-v3-template-brand', placement: 'right' })),
+    'Definisci i contenuti da stampare sulla cimasa da affiggere sull\'impianto: logo, codici e testo libero.',
+    null,
+    React.createElement(Row, { gutter: window.GRAVITY_THEME.token.marginLG },
+      React.createElement(Col, { span: 12 },
+        subH('Logo', true),
+        g2(
+          cs('Logo azienda', false,
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+              React.createElement('div', { style: { width: 48, height: 48, borderRadius: 6, border: '1px solid #E8E8E8', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#fff', flexShrink: 0 } },
+                React.createElement('img', { src: cimasaLogo || '../../brand/Gravity_type.svg', alt: 'Logo', style: { maxWidth: '70%', maxHeight: '70%' } }),
+              ),
+              React.createElement(Upload, { accept: 'image/*', showUploadList: false, beforeUpload: addCimasaLogo },
+                React.createElement(Button, { size: 'small', icon: React.createElement(UploadOutlined) }, 'Carica logo'),
+              ),
+              cimasaLogo && React.createElement(Button, { size: 'small', type: 'link', onClick: () => setCimasaLogo(null) }, 'Usa logo Gravity'),
+            ),
+          'cimasaLogo'),
+          // Il logo occupa sempre tutto lo spazio della sua colonna (nel rispetto
+          // del padding), niente più dimensione manuale: qui si personalizza solo
+          // lo sfondo della colonna, utile con loghi trasparenti scuri/chiari.
+          cs('Sfondo colonna logo', false,
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+              React.createElement('div', { style: { width: 48, height: 48, borderRadius: 6, border: '1px solid #E8E8E8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
+                React.createElement(ColorPicker, { value: cimasaLogoBg || window.GRAVITY_THEME.token.colorPrimary, onChange: (c) => setCimasaLogoBg(c.toHexString()) }),
+              ),
+              cimasaLogoBg && React.createElement(Button, { size: 'small', type: 'link', onClick: () => setCimasaLogoBg(null) }, 'Usa colore Gravity'),
+            ),
+          'cimasaLogoBg'),
+        ),
+        subH('Contenuti', false,
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            React.createElement('span', { style: { fontSize: 13, fontWeight: 400, color: 'rgba(0,0,0,0.65)' } }, 'Eredita da permessi'),
+            cimasaHasPermesso
+              ? React.createElement(Switch, { size: 'small', checked: cimasaInheritPermessi, onChange: setCimasaInheritPermessi })
+              : React.createElement(Tooltip, { title: 'Nessun permesso collegato: collegane uno in Iter autorizzativo per poter ereditare queste informazioni.' },
+                  React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center' } }, React.createElement(Switch, { size: 'small', disabled: true, checked: false })),
+                ),
+          ),
+        ),
+        React.createElement('div', { style: { marginTop: 20 } },
+          cimasaField('Ente emittente',
+            cimasaEnteAuto
+              ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, cimasaEnteBadge(cimasaEnteAuto, 24), autoText(cimasaEnteAuto, '—'))
+              : autoText(cimasaEnteAuto, '—'),
+            sel(cimasaEnteManual, setCimasaEnteManual, CIMASA_ENTI_OPTS.map(e => ({
+              value: e.value,
+              label: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } }, cimasaEnteBadge(e.label, 16), e.label),
+            })), 'Seleziona ente'),
+            cimasaEnteVisible, setCimasaEnteVisible, 'cimasaEnteManual'),
+        ),
+        React.createElement('div', { style: { marginTop: 20 } },
+          g2(
+            cimasaField('Codice Autorizzazione',
+              autoText(cimasaAutAuto, '—'),
+              inp(cimasaAutManual, setCimasaAutManual, 'Es. Prot. 23456/2023'),
+              cimasaAutVisible, setCimasaAutVisible, 'cimasaAutManual'),
+            cimasaField('Numero Utenza',
+              autoText(cimasaUteAuto, '—'),
+              inp(cimasaUteManual, setCimasaUteManual, 'Es. DB45PL'),
+              cimasaUteVisible, setCimasaUteVisible, 'cimasaUteManual'),
+          ),
+        ),
+        React.createElement('div', { style: { marginTop: 20 } },
+          cs('Altri contenuti', false,
+            React.createElement(Input.TextArea, { value: cimasaExtra, onChange: e => setCimasaExtra(e.target.value), placeholder: 'Testo libero aggiuntivo da inserire in cimasa', autoSize: { minRows: 2, maxRows: 4 } }),
+          'cimasaExtra'),
+        ),
+      ),
+      React.createElement(Col, { span: 12 },
+        cs('Anteprima di stampa', false,
+          // La targhetta vive su un "tavolo" neutro per leggersi come oggetto fisico
+          // distinto dal form: proporzione 8:5, ombra leggera, bordi netti. 2 colonne:
+          // logo azienda, poi logo+nome ente emittente in cima al testo
+          // (autorizzazione/utenza/altro) — l'ente compare solo se c'è un valore.
+          React.createElement('div', { style: { background: '#FAFAFA', border: '1px solid #F0F0F0', borderRadius: 12, padding: 24, display: 'flex', justifyContent: 'center' } },
+            React.createElement('div', { className: 'cimasa-print-area', style: { width: '100%', maxWidth: 340, aspectRatio: '8 / 5', background: '#fff', borderRadius: 8, border: '1px solid #E8E8E8', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'row', overflow: 'hidden' } },
+              cimasaSections.flatMap((section, i) => i === 0 ? [section] : [
+                React.createElement('div', { key: 'div' + i, style: { width: 1, alignSelf: 'stretch', background: '#F0F0F0', flexShrink: 0 } }),
+                section,
+              ]),
+            ),
+          ),
+        ),
+        React.createElement('div', { style: { marginTop: 12, textAlign: 'center' } },
+          React.createElement(Button, { icon: React.createElement(DownloadOutlined), onClick: downloadCimasaPdf }, 'Scarica PDF'),
+        ),
+      ),
+    ),
+  );
 
   // ── Drawer Cespiti/Dispositivi: rende un campo a partire dalla sua definizione (ASSET_TYPES).
   // Il controllo è sempre editabile; se il campo è stato modificato dall'utente, bordo primary.
@@ -5975,51 +6324,12 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     })
   );
 
-  // Campi required per sezione — usati per il nav indicator
-  const sectionRequired = {
-    identita: [canale, tipologia, formato, stato, via.trim(), citta.trim(), lat.trim(), lng.trim()].every(Boolean),
-  };
-  const hasRequired = { identita: true };
-
-  // Estratta da isDirty per poter riallineare formSnapshotRef.current anche dopo
-  // un salvataggio che non chiude il drawer (doSaveStay): senza questo, "Annulla"
-  // continuerebbe ad avvisare di modifiche non salvate che in realtà sono già
-  // state salvate un istante prima.
-  const buildDirtySnapshot = () => ({
-    canale, nome, tipologia, stato, formato,
-    via, civico, cap, citta, provincia, regione, nazione, lat, lng, zn, note, tipoSuolo, catSuolo, utenza,
-    largImp, altImp, profImp, altTerra, tipoAltezza, riparato, facce, assets,
-    aliasImpianto, circuiti, qualita, moduliCollegati, proprieta, vendita, prezzoNetto, prezzoLordo, aliquotaIva, scontoModuli, scontoModuliPct, cimasa,
-    affissioni, manutenzioni,
-    genioCivileStato, progetto, progDittaCA, progDataFine, dataCollaudo, calcestruzzo, acciaioCarp, acciaioArm, tecnicheGc, progettista, ddl, rsc, collaudatore, laboratorio, geologo,
-    selConcessioni, selAutorizzazioni, permitSciaManual,
-  });
-  const isDirty = () => JSON.stringify(buildDirtySnapshot()) !== JSON.stringify(formSnapshotRef.current);
-  const dirty = isDirty();
-
-  // Segnalino per sezione: quale campo appartiene a quale voce del nav, per capire
-  // dove sono le modifiche non salvate senza dover girare tutte le sezioni.
-  const SECTION_FIELDS = {
-    identita: ['canale', 'tipologia', 'formato', 'stato', 'proprieta', 'via', 'civico', 'cap', 'citta', 'provincia', 'regione', 'nazione', 'lat', 'lng', 'zn', 'note'],
-    'dati-amministrativi': ['tipoSuolo', 'catSuolo', 'utenza', 'cimasa', 'genioCivileStato', 'progetto', 'progDittaCA', 'progDataFine', 'dataCollaudo', 'calcestruzzo', 'acciaioCarp', 'acciaioArm', 'tecnicheGc', 'progettista', 'ddl', 'rsc', 'collaudatore', 'laboratorio', 'geologo', 'selConcessioni', 'selAutorizzazioni', 'permitSciaManual'],
-    caratteristiche: ['largImp', 'altImp', 'profImp', 'altTerra', 'tipoAltezza', 'riparato', 'facce'],
-    struttura: ['assets'],
-    affissione: ['affissioni', 'manutenzioni'],
-    commerciale: ['aliasImpianto', 'circuiti', 'qualita', 'moduliCollegati', 'vendita', 'prezzoNetto', 'prezzoLordo', 'aliquotaIva', 'scontoModuli', 'scontoModuliPct'],
-  };
-  const dirtySnapshot = buildDirtySnapshot();
-  const savedSnapshot = formSnapshotRef.current || {};
-  const sectionDirty = {};
-  SECTIONS.forEach(({ id }) => {
-    sectionDirty[id] = (SECTION_FIELDS[id] || []).some(k => JSON.stringify(dirtySnapshot[k]) !== JSON.stringify(savedSnapshot[k]));
-  });
-
   return React.createElement(Drawer, {
     open: open,
     onClose: onClose,
     placement: 'right',
     width: '100%',
-    rootClassName: 'grav-main-drawer',
+    rootClassName: isV2 ? 'grav-main-drawer sys-v2' : 'grav-main-drawer',
     closable: false, maskClosable: !dirty, keyboard: !dirty,
     destroyOnClose: true,
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
@@ -6200,19 +6510,29 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         sec('dati-amministrativi', 'Iter autorizzativo', 'Il percorso amministrativo e burocratico per installare l\'impianto.',
 
           // ── STEP 1 · Concessioni e autorizzazioni ───────────────────
-          boxX('Concessioni e autorizzazioni', 'Collega i titoli relativi all\'esposizione sullo spazio, come concessioni di suolo pubblico, contratti su suolo privato o autorizzazioni, ai fini del canone unico patrimoniale. I permessi proposti nel collegamento potrebbero essere filtrati in base ai campi già compilati (es. tipo e categoria di suolo).',
+          boxX(isV2
+              ? React.createElement(React.Fragment, null, 'Concessioni e autorizzazioni', React.createElement(HandoffDesignNote, { id: 'iter-contratto-privato-suolo-esclusivo', placement: 'right' }))
+              : 'Concessioni e autorizzazioni',
+            'Collega i titoli relativi all\'esposizione sullo spazio, come concessioni di suolo pubblico, contratti su suolo privato o autorizzazioni, ai fini del canone unico patrimoniale. I permessi proposti nel collegamento potrebbero essere filtrati in base ai campi già compilati (es. tipo e categoria di suolo).',
             permessiConcAut.length > 0 ? concAutDropdown : null,
             g2(
               cs('Tipo suolo', false, sel(tipoSuolo, setTipoSuolo, [{ value: 'Pubblico', label: 'Pubblico' }, { value: 'Privato', label: 'Privato' }], 'Seleziona il tipo di suolo'), 'tipoSuolo'),
               cs('Categoria suolo', false, sel(catSuolo, setCatSuolo, CAT_SUOLO_OPTS, 'Seleziona la categoria di suolo'), 'catSuolo'),
             ),
+            // V2: stesso ordine e naming del box Cimasa (Struttura) — Codice
+            // Autorizzazione poi Numero Utenza — invertito e rinominato rispetto
+            // alla v1 (Utenza, Cimasa), che resta invariata.
             g2(
-              cs('Utenza', false, inp(utenza, setUtenza, '—'), 'utenza'),
-              cs('Cimasa', false, inp(cimasa, setCimasa, 'Es. CIM-2024-001'), 'cimasa'),
+              isV2
+                ? cs('Codice Autorizzazione', false, inp(cimasa, setCimasa, 'Es. AUT-2024-001'), 'cimasa')
+                : cs('Utenza', false, inp(utenza, setUtenza, '—'), 'utenza'),
+              isV2
+                ? cs('Numero Utenza', false, inp(utenza, setUtenza, '—'), 'utenza')
+                : cs('Cimasa', false, inp(cimasa, setCimasa, 'Es. CIM-2024-001'), 'cimasa'),
             ),
             permessiConcAut.length > 0
               ? React.createElement('div', { style: { background: '#FAFAFA', margin: '20px -24px -24px', padding: '20px 24px 24px' } }, renderPermitCards(permessiConcAut))
-              : gravityEmpty({ image: LINK_ENTITY_ASTRONAUT_SRC, title: 'Collega una concessione o un\'autorizzazione', description: 'Potrebbero essere filtrati in base ai campi già compilati.', children: concAutDropdown, style: { margin: '20px -24px -24px' } }),
+              : gravityEmpty({ image: LINK_ENTITY_ASTRONAUT_SRC, title: isV2 ? 'Collega un\'autorizzazione, una concessione o un contratto privato' : 'Collega una concessione o un\'autorizzazione', description: 'Potrebbero essere filtrati in base ai campi già compilati.', children: concAutDropdown, style: { margin: '20px -24px -24px' } }),
           ),
 
           // ── STEP 2 · Progetto (sotto-sezione Genio Civile) ────────────
@@ -6366,7 +6686,12 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         // coming-soon): niente outline/tag "fuori sprint" su tab o card, solo
         // .grav-cespiti-empty/.grav-dispositivi-empty (empty state "coming soon" sul
         // solo contenuto sotto l'header, bleed a tutta l'area del box).
-        sec('struttura', React.createElement(React.Fragment, null, 'Cespiti e dispositivi', React.createElement(HandoffDesignNote, { id: 'struttura-fuori-sprint-coming-soon', placement: 'right' })), 'Componenti strutturali montati e dispositivi connessi, con ditte e date di montaggio.',
+        sec('struttura',
+          isV2
+            ? 'Struttura'
+            : React.createElement(React.Fragment, null, 'Cespiti e dispositivi', React.createElement(HandoffDesignNote, { id: 'struttura-fuori-sprint-coming-soon', placement: 'right' })),
+          'Componenti strutturali montati e dispositivi connessi, con ditte e date di montaggio.',
+          isV2 && cimasaBox,
           boxX(React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Cespiti',
               cespiti.length > 0 ? countBadge(cespiti.length) : null,
@@ -6596,7 +6921,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     React.createElement(Drawer, {
       title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
         React.createElement(DiscardCloseIcon, { dirty: !!(permitRowKey || permitAuthKeys.length > 0), onDiscard: closePermitDrawer }),
-        permitDrawerType === 'concessione' ? (permitReplaceMode ? 'Sostituisci Concessione' : 'Collega Concessione') : 'Collega Autorizzazione'),
+        permitDrawerType === 'autorizzazione'
+          ? 'Collega Autorizzazione'
+          : permitDrawerType === 'contratto'
+            ? (permitReplaceMode ? 'Sostituisci Contratto Privato' : 'Collega Contratto Privato')
+            : (permitReplaceMode ? 'Sostituisci Concessione' : 'Collega Concessione')),
       placement: 'right',
       styles: { wrapper: { width: '50%' }, body: { padding: 24 } },
       closable: false, maskClosable: !(permitRowKey || permitAuthKeys.length > 0), keyboard: !(permitRowKey || permitAuthKeys.length > 0),
@@ -6605,16 +6934,25 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         React.createElement(DiscardButton, { dirty: !!(permitRowKey || permitAuthKeys.length > 0), onDiscard: closePermitDrawer }, 'Annulla'),
         React.createElement(Button, {
           id: 'grav-tour-permit-add-btn',
-          type: ((permitDrawerType === 'concessione' && permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length > 0)) ? 'primary' : 'default',
+          type: (((permitDrawerType === 'concessione' || permitDrawerType === 'contratto') && permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length > 0)) ? 'primary' : 'default',
           icon: React.createElement(PlusOutlined),
-          disabled: (permitDrawerType === 'concessione' && !permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length === 0),
+          disabled: ((permitDrawerType === 'concessione' || permitDrawerType === 'contratto') && !permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length === 0),
           onClick: () => { permitWillOverwrite ? setPermitOverwriteOpen(true) : handleAddPermit(); },
         }, 'Aggiungi'),
       ),
     },
-      permitDrawerType === 'concessione'
-        ? React.createElement(GrantsAccordion, { data: GRANTS_DATA, selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
-        : React.createElement(AuthorizationsList, { data: AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory !== 'Genio Civile'), selectedKeys: permitAuthKeys, onSelectionChange: setPermitAuthKeys }),
+      permitDrawerType === 'autorizzazione'
+        ? React.createElement(AuthorizationsList, { data: AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory !== 'Genio Civile'), selectedKeys: permitAuthKeys, onSelectionChange: setPermitAuthKeys })
+        : React.createElement(GrantsAccordion, {
+            // V2 — Concessione mostra solo gli atti pubblici, Contratto Privato solo quelli
+            // privati (stesso GRANTS_DATA, filtrato per grantType): correzione al modello
+            // 'concessione-solo-pubblica' di inventory-licenses. V1 invariata (nessun filtro).
+            data: permitDrawerType === 'contratto'
+              ? GRANTS_DATA.filter(g => g.grantType === 'Privato')
+              : (isV2 ? GRANTS_DATA.filter(g => g.grantType === 'Pubblico') : GRANTS_DATA),
+            selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey,
+            kindLabel: permitDrawerType === 'contratto' ? 'contratto privato' : 'concessione',
+          }),
     ),
 
     // Modale: la concessione selezionata ha una propria Utenza/Cimasa che sovrascriverebbe
@@ -6937,6 +7275,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 // APP
 // ─────────────────────────────────────────────────────────
 function App() {
+  // Switch UI reale v1/v2 sul form Nuovo Impianto, non solo annotazioni handoff —
+  // eccezione documentata in components/handoff-engine.md. Default e ?handoff=v1
+  // restano sulla UI v1 (in realizzazione, invariata); solo ?handoff=v2 attiva la v2.
+  const isV2 = window.__SYSTEMS_UI_VERSION === 'v2';
+
   // Deep-link da planning: ?sys=SYS-042 → apre direttamente il dettaglio dell'impianto corrispondente
   const _deepLinkImp = (() => {
     const param = new URLSearchParams(location.search).get('sys');
@@ -6948,7 +7291,15 @@ function App() {
   })();
 
   const [page, setPage] = useState(_deepLinkImp ? 'detail' : 'map'); // 'map' | 'detail'
-  const [fullFormOpen,   setFullFormOpen]   = useState(false);
+  // Il drawer Nuovo Impianto resta aperto (sulla stessa sezione) anche dopo un
+  // refresh della pagina — utile durante la revisione: senza, ogni reload della
+  // pagina fa perdere la posizione nel form. Solo V2, sessionStorage (non
+  // sopravvive alla chiusura della tab, si azzera con Annulla/Crea Impianto).
+  const [fullFormOpen, setFullFormOpen] = useState(() => isV2 && sessionStorage.getItem('grav_newimpianto_open') === '1');
+  React.useEffect(() => {
+    if (!isV2) return;
+    try { sessionStorage.setItem('grav_newimpianto_open', fullFormOpen ? '1' : '0'); } catch (e) {}
+  }, [fullFormOpen, isV2]);
   const [prefillData,    setPrefillData]    = useState({});
   const [savedFormData,  setSavedFormData]  = useState(null);
   const [detailImpianto, setDetailImpianto] = useState(_deepLinkImp);
@@ -7583,6 +7934,8 @@ function App() {
 
     React.createElement(NewImpiantoFullDrawer, {
       open: fullFormOpen,
+      isV2,
+      initialSection: isV2 ? (sessionStorage.getItem('grav_newimpianto_section') || 'identita') : undefined,
       onClose: () => setFullFormOpen(false),
       initialValues: prefillData,
       onSave: (data) => {

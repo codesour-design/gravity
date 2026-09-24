@@ -31,6 +31,12 @@ window.GRAVITY_PROTOTYPES = {
     handoff: 'inventory-systems/index--handoff.html',
     nav: { section: 'Inventory', item: 'Systems' },
   },
+  'inventory-licenses': {
+    label: 'Permessi impianti', status: 'in-progress',
+    entry: 'inventory-licenses/index.html',
+    handoff: 'inventory-licenses/index--handoff.html',
+    nav: { section: 'Inventory', item: 'Licenses' },
+  },
   'poi-collections': {
     label: 'Collezioni POI', status: 'approved',
     entry: 'poi-collections/index.html',

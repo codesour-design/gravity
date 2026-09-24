@@ -1,0 +1,2594 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gravity — Permessi</title>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@ant-design/icons@5/dist/index.umd.js"></script>
+  <script src="../_shared/tokens.js"></script>
+  <script>window.GRAVITY_NAV = {
+    section: 'Inventory', item: 'Licenses',
+    logoSrc: '../../brand/Gravity_type.svg',
+    appHref: '../user-profile/index.html',
+  };</script>
+  <script src="../_shared/navbar.js"></script>
+  <script src="../_shared/entity-card.js"></script>
+  <script src="../_shared/section-drawer.js"></script>
+
+  <!-- Handoff loader — attiva il layer handoff (note di design + tour + interfaccia
+       semplificata) SOLO con ?handoff=<versione>. Senza il parametro questo è il
+       prototipo pulito. Le versioni sono file di config: il prototipo resta unico.
+       Il document.write in <head> carica la config in modo sincrono, così le note
+       inline (window.HANDOFF_NOTES) sono disponibili già al primo render.
+
+       ECCEZIONE documentata (vedi components/handoff-engine.md → "Switch UI reale
+       v1/v2 — Permessi"): qui la versione handoff pilota ANCHE un vero switch di UI
+       della lista (window.__PERMESSI_UI_VERSION), non solo le annotazioni. Senza
+       ?handoff, o con ?handoff=v1, resta la UI v1 (approvata, invariata); solo
+       ?handoff=v2 attiva la UI v2 (nuova, components/list-table.md). -->
+  <script>
+    (function () {
+      var CONFIGS  = { v1: './handoff-steps-v1.js', v2: './handoff-steps.js' };
+      var APPROVED = 'v1';
+      window.__PERMESSI_UI_VERSION = APPROVED;
+      var params = new URLSearchParams(location.search);
+      if (!params.has('handoff')) return;
+      var v = (params.get('handoff') || APPROVED).toLowerCase();
+      var cfg = CONFIGS[v] || CONFIGS[APPROVED];
+      window.__PERMESSI_UI_VERSION = CONFIGS[v] ? v : APPROVED;
+      window.__HANDOFF_ACTIVE = true;
+      document.write('<scr' + 'ipt src="' + cfg + '"></scr' + 'ipt>');
+    })();
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      background: #F5F5F5;
+      font-size: 14px;
+      line-height: 1.5714;
+    }
+    .app-shell { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    .lic-content { flex: 1; min-height: 0; overflow: auto; padding: 24px; }
+
+    /* ── UI v2 (solo ?handoff=v2, vedi window.__PERMESSI_UI_VERSION) — scoped sotto
+       .lic-v2 per non toccare in nessun modo la UI v1 (components/list-table.md) ── */
+    .lic-v2 .data-card {
+      background: var(--gravity-bg-container);
+      border-radius: var(--gravity-radius-lg);
+      border: 1px solid var(--gravity-border-secondary);
+      overflow: visible;
+    }
+    .lic-v2 .data-card-head {
+      display: flex; align-items: center; gap: var(--gravity-space-xs);
+      padding: var(--gravity-space-xs) var(--gravity-space-sm);
+    }
+    .lic-v2 .data-card-head-icon { color: var(--gravity-text-secondary); font-size: 16px; display: flex; align-items: center; }
+    .lic-v2 .data-card-head-label { font-size: 12px; font-weight: 500; color: var(--gravity-text); }
+    .lic-v2 .data-card-body { padding: 20px 12px 12px; }
+    .lic-v2 .data-card-value { font-size: 20px; font-weight: 400; color: var(--gravity-text); line-height: 1.3; display: block; }
+    .lic-v2 .ant-table-tbody > tr.ant-table-row:hover > td { background: rgba(62,0,251,0.04) !important; }
+    .lic-v2 .ant-table-thead > tr > th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lic-v2 .ant-table-cell-fix-left,
+    .lic-v2 .ant-table-cell-fix-right { z-index: 2 !important; background: #fff !important; }
+    .lic-v2 .ant-table-thead .ant-table-cell-fix-left,
+    .lic-v2 .ant-table-thead .ant-table-cell-fix-right { z-index: 3 !important; background: #fafafa !important; }
+    .lic-v2 .ant-table-tbody > tr.ant-table-row:hover .ant-table-cell-fix-left,
+    .lic-v2 .ant-table-tbody > tr.ant-table-row:hover .ant-table-cell-fix-right { background: #f7f5ff !important; }
+
+    /* ── Handoff dev bar — riparentata su <body> a fine pagina (script), resa
+       fixed qui, allineata di default alla posizione della campanella. <nav> ha
+       position:sticky + z-index:100: nessun z-index interno può superare un
+       Drawer (z-index:1000) finché lo slot resta suo discendente. */
+    #ghf-nav-slot {
+      position: fixed;
+      top: 16px;
+      right: 102px;
+      z-index: 1051;
+    }
+    /* GravitySectionDrawer (Autorizzazione v2, 90% larghezza): ancora la dev bar al gruppo
+       Annulla/Salva del drawer invece della misura generica sul bordo sinistro (che a 90%
+       lascia troppo poco spazio) — stesso pattern di inventory-systems per
+       NewImpiantoFullDrawer (width 100%). Selettore sulla classe del componente condiviso, non
+       sull'id del pulsante Salva: quell'id è condiviso da tutti i PermitFormDrawer (anche
+       Concessione/Contratto, che restano sul Drawer semplice 640px e non devono attivarlo). */
+    body:has(.grav-section-drawer-nav) #ghf-nav-slot { right: 220px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/javascript">
+window.applyGravityTokens();
+
+const { useState, useMemo, useEffect } = React;
+const {
+  ConfigProvider, App: AntApp, Typography, Button, Table, Tag, Badge, Tabs,
+  Tooltip, Dropdown, Drawer, Modal, Input, Form, Radio, InputNumber,
+  DatePicker, Space, Popconfirm, Row, Col, Select, Card, Statistic,
+  Descriptions, Breadcrumb, Empty, Popover, Alert, Checkbox, Avatar,
+  message,
+} = antd;
+const {
+  PlusOutlined, DownOutlined, SearchOutlined, EllipsisOutlined,
+  EyeOutlined, EditOutlined, DeleteOutlined, BankOutlined,
+  HomeOutlined, SafetyCertificateOutlined, CloseOutlined, SaveOutlined,
+  QuestionCircleOutlined, LogoutOutlined, ArrowLeftOutlined, LinkOutlined,
+  CoffeeOutlined, FileTextOutlined, CheckCircleOutlined, ClockCircleOutlined,
+  EnvironmentOutlined, FileProtectOutlined, ApartmentOutlined, WarningOutlined,
+  ThunderboltOutlined,
+} = icons;
+const { Title } = Typography;
+
+// ── Note di design handoff (marker inline contestuale) ─────────────────────
+// Icona CoffeeOutlined rossa + popover. Renderizzata SOLO quando window.HANDOFF_NOTES
+// è definito (caricato dal loader in <head> con ?handoff=vX) — senza, ritorna null.
+function _ghfRenderNoteBody(body) {
+  const inline = (txt, kp) => {
+    const out = []; let k = 0, last = 0, m;
+    const re = /(\*\*([^*]+)\*\*|==([^=]+)==)/g;
+    while ((m = re.exec(txt))) {
+      if (m.index > last) out.push(txt.slice(last, m.index));
+      if (m[2] != null) out.push(React.createElement('strong', { key: kp+'b'+(k++), style: { color: 'rgba(0,0,0,0.88)' } }, m[2]));
+      else out.push(React.createElement('mark', { key: kp+'h'+(k++), style: { background: '#FFF1E8', color: '#FF4A1C', padding: '0 2px', borderRadius: 2 } }, m[3]));
+      last = m.index + m[0].length;
+    }
+    if (last < txt.length) out.push(txt.slice(last));
+    return out;
+  };
+  const lines = String(body || '').split('\n');
+  const nodes = []; let list = null;
+  lines.forEach((ln, i) => {
+    if (/^- /.test(ln)) { (list = list || []).push(React.createElement('li', { key: 'li'+i, style: { marginBottom: 2 } }, inline(ln.slice(2), 'li'+i))); }
+    else {
+      if (list) { nodes.push(React.createElement('ul', { key: 'ul'+i, style: { margin: '4px 0', paddingLeft: 18 } }, list)); list = null; }
+      if (ln.trim()) nodes.push(React.createElement('div', { key: 'p'+i, style: { marginBottom: 4 } }, inline(ln, 'p'+i)));
+    }
+  });
+  if (list) nodes.push(React.createElement('ul', { key: 'ulE', style: { margin: '4px 0', paddingLeft: 18 } }, list));
+  return nodes;
+}
+function HandoffDesignNote({ id, placement }) {
+  const notes = window.HANDOFF_NOTES;
+  if (!notes) return null;
+  const note = notes.find(n => n.id === id);
+  if (!note) return null;
+  return React.createElement(Popover, {
+    trigger: 'hover', placement: placement || 'right',
+    content: React.createElement('div', { style: { maxWidth: 340 } },
+      React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FF4A1C', marginBottom: 6 } }, note.title || 'Nota di design'),
+      React.createElement('div', { style: { fontSize: 13, lineHeight: 1.55, color: 'rgba(0,0,0,0.65)' } }, _ghfRenderNoteBody(note.body))
+    ),
+  }, React.createElement('span', {
+    style: { display: 'inline-flex', alignItems: 'center', cursor: 'help', color: '#FF4A1C', marginLeft: 6 },
+    onClick: (e) => { e.stopPropagation(); e.preventDefault(); },
+  }, React.createElement(CoffeeOutlined, { style: { fontSize: 14 } })));
+}
+
+// ─────────────────────────────────────────────────────────
+// MOCK DATA
+// ─────────────────────────────────────────────────────────
+const MOCK_CONCESSIONI = [
+  { id: 'conc-001', tipologia: 'Pubblico', enteEmittente: 'Comune di Palermo', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2022-003', numeriUtenze: ['UT-10234', 'UT-10235'], dataStipula: '12/03/2022', dataDecorrenza: '01/04/2022', dataScadenza: '31/12/2027', totaleCanone: 3400.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-PA-2022-004', enteBanditore: 'Comune di Palermo', dataAggiudicazione: '28/02/2022', lotto: 'Lotto 3 — Zona Centro', noteBando: '', ubicazione: 'Via Roma, Palermo', superficieConcessaMq: 45 },
+  { id: 'conc-002', tipologia: 'Privato', enteEmittente: 'Immobiliare San Lorenzo Srl', tipoDocumento: 'Atto Notarile', identificativoDocumento: 'AN-2023-011', numeriUtenze: ['UT-10391'], dataStipula: '05/06/2023', dataDecorrenza: '05/06/2023', dataScadenza: '01/01/2026', totaleCanone: 1250.50, stato: 'Attiva', promemoria: '60 giorni prima della scadenza', giorniPreavviso: 60, statoOverride: null,
+    modalitaAttribuzione: 'Affidamento diretto', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Via Maqueda, Palermo', superficieConcessaMq: 30 },
+  { id: 'conc-003', tipologia: 'Pubblico', enteEmittente: 'Città Metropolitana di Palermo', tipoDocumento: 'Concessione Demaniale', identificativoDocumento: 'CONC-2024-007', numeriUtenze: ['UT-10456', 'UT-10457', 'UT-10458'], dataStipula: '22/04/2024', dataDecorrenza: '01/05/2024', dataScadenza: '15/03/2028', totaleCanone: 5200.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-CM-2024-001', enteBanditore: 'Città Metropolitana di Palermo', dataAggiudicazione: '10/04/2024', lotto: '', noteBando: 'Aggiudicazione con riserva di verifica requisiti.' , ubicazione: 'Viale Lazio, Palermo', superficieConcessaMq: 60 },
+  { id: 'conc-004', tipologia: 'Pubblico', enteEmittente: 'Comune di Catania', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2021-045', numeriUtenze: ['UT-9821'], dataStipula: '10/01/2021', dataDecorrenza: '10/01/2021', dataScadenza: '10/01/2024', totaleCanone: 980.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: null,
+    modalitaAttribuzione: 'Rinnovo di concessione precedente', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Via Etnea, Catania', superficieConcessaMq: 25 },
+  { id: 'conc-005', tipologia: 'Privato', enteEmittente: 'Parco Commerciale Sicilia Spa', tipoDocumento: 'Concessione Onerosa', identificativoDocumento: 'CO-2023-019', numeriUtenze: ['UT-10502', 'UT-10503'], dataStipula: '18/09/2023', dataDecorrenza: '01/10/2023', dataScadenza: '18/09/2026', totaleCanone: 4100.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    modalitaAttribuzione: 'Affidamento diretto', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Viale Regione Siciliana, Palermo', superficieConcessaMq: 40 },
+  { id: 'conc-006', tipologia: 'Pubblico', enteEmittente: 'Comune di Palermo', tipoDocumento: 'Concessione Beni Comunali', identificativoDocumento: 'CONC-2020-088', numeriUtenze: ['UT-8890'], dataStipula: '02/02/2020', dataDecorrenza: '02/02/2020', dataScadenza: '02/02/2024', totaleCanone: 760.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: 'Cessata',
+    modalitaAttribuzione: 'Rinnovo di concessione precedente', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Piazza Politeama, Palermo', superficieConcessaMq: 20 },
+  { id: 'conc-007', tipologia: 'Pubblico', enteEmittente: 'Comune di Messina', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2024-022', numeriUtenze: ['UT-10601'], dataStipula: '14/02/2024', dataDecorrenza: '01/03/2024', dataScadenza: '14/02/2029', totaleCanone: 2150.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-ME-2024-002', enteBanditore: 'Comune di Messina', dataAggiudicazione: '30/01/2024', lotto: 'Lotto 1', noteBando: '', ubicazione: 'Via Garibaldi, Messina', superficieConcessaMq: 35 },
+  { id: 'conc-008', tipologia: 'Privato', enteEmittente: 'Centro Commerciale Le Zagare Srl', tipoDocumento: 'Atto Notarile', identificativoDocumento: 'AN-2022-064', numeriUtenze: ['UT-9944', 'UT-9945'], dataStipula: '30/07/2022', dataDecorrenza: '30/07/2022', dataScadenza: '30/07/2025', totaleCanone: 3050.00, stato: 'Attiva', promemoria: '60 giorni prima della scadenza', giorniPreavviso: 60, statoOverride: null,
+    modalitaAttribuzione: 'Affidamento diretto', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Via Nazionale, Messina', superficieConcessaMq: 28 },
+  { id: 'conc-009', tipologia: 'Pubblico', enteEmittente: 'Comune di Siracusa', tipoDocumento: 'Concessione Demaniale', identificativoDocumento: 'CONC-2019-102', numeriUtenze: ['UT-7765'], dataStipula: '11/11/2019', dataDecorrenza: '01/12/2019', dataScadenza: '11/11/2023', totaleCanone: 690.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: null,
+    modalitaAttribuzione: 'Rinnovo di concessione precedente', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Corso Umberto, Siracusa', superficieConcessaMq: 18 },
+  { id: 'conc-010', tipologia: 'Pubblico', enteEmittente: 'Comune di Palermo', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2025-005', numeriUtenze: ['UT-10788', 'UT-10789', 'UT-10790', 'UT-10791'], dataStipula: '20/01/2025', dataDecorrenza: '20/01/2025', dataScadenza: '20/01/2030', totaleCanone: 6800.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-PA-2024-011', enteBanditore: 'Comune di Palermo', dataAggiudicazione: '12/12/2024', lotto: 'Lotto 5 — Viale Regione Siciliana', noteBando: '', ubicazione: 'Via Notarbartolo, Palermo', superficieConcessaMq: 55 },
+].map(r => ({ ...r, spaziCollegati: [] }));
+
+// v2 — impiantiAutorizzati sostituisce Impianti coperti/Codice Autorizzazione (per
+// cimasa)/Riferimento allegato/Canone per impianto su tutti i record pre-esistenti (nota
+// 'autorizzazione-impianti-tab-dedicata'): un impianto per riga, con codice cimasa e CUP
+// propri. Popolato solo per "Esposizione pubblicitaria" (le altre 6 tipologie restano a
+// lista vuota, coerente col CUP non applicabile a quei tipi). aut-001/aut-006 riusano gli
+// stessi impianti già seedati in seedImpiantoCondiviso (spaziCollegati), per coerenza.
+const MOCK_AUTORIZZAZIONI = [
+  { id: 'aut-001', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Palermo', identificativoDocumento: 'AUT-2024-001', dataStipula: '15/01/2024', dataDecorrenza: '15/01/2024', dataScadenza: '31/12/2025', cup: 620.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attoProvenienzaId: 'conc-001',
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1002', codiceAutorizzazione: 'CIM-1002', cup: 620 }] },
+  { id: 'aut-002', tipologia: 'Genio Civile', tipologiaV2: 'Strutturale / Genio Civile', enteEmittente: 'Genio Civile di Palermo', identificativoDocumento: 'AUT-2023-087', dataStipula: '10/03/2023', dataDecorrenza: '01/04/2023', dataScadenza: '15/03/2024', cup: 890.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: 'In rinnovo',
+    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    impiantiAutorizzati: [] },
+  { id: 'aut-003', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Catania', identificativoDocumento: 'AUT-2024-015', dataStipula: '05/06/2024', dataDecorrenza: '05/06/2024', dataScadenza: '28/02/2027', cup: 1200.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1005', codiceAutorizzazione: 'CIM-3015', cup: 1200 }] },
+  { id: 'aut-004', tipologia: 'Genio Civile', tipologiaV2: 'Strutturale / Genio Civile', enteEmittente: 'Genio Civile di Catania', identificativoDocumento: 'AUT-2022-133', dataStipula: '20/08/2022', dataDecorrenza: '01/09/2022', dataScadenza: '20/08/2025', cup: 340.00, stato: 'Attiva', promemoria: '60 giorni prima della scadenza', giorniPreavviso: 60, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    impiantiAutorizzati: [] },
+  { id: 'aut-005', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Messina', identificativoDocumento: 'AUT-2021-076', dataStipula: '12/11/2021', dataDecorrenza: '12/11/2021', dataScadenza: '28/02/2024', cup: 1580.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: null,
+    includeConcessioneSuoloPubblico: true, attoProvenienzaId: null,
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1006', codiceAutorizzazione: '', cup: 1580 }] },
+  { id: 'aut-006', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Palermo', identificativoDocumento: 'AUT-2025-002', dataStipula: '08/01/2025', dataDecorrenza: '08/01/2025', dataScadenza: '08/01/2028', cup: 210.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attoProvenienzaId: 'contr-001',
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1004', codiceAutorizzazione: '', cup: 180 }, { impiantoId: 'OOH-1011', codiceAutorizzazione: '', cup: 210 }] },
+  { id: 'aut-007', tipologia: 'Provincia/Regione/ANAS', tipologiaV2: 'Nulla osta ente proprietario strada (ANAS | Provincia/Città Metropolitana | Regione)', enteEmittente: 'ANAS S.p.A. — Struttura Territoriale Sicilia', identificativoDocumento: 'AUT-2023-041', dataStipula: '22/04/2023', dataDecorrenza: '01/05/2023', dataScadenza: '31/08/2026', cup: 940.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    impiantiAutorizzati: [] },
+  { id: 'aut-008', tipologia: 'Soprintendenza', tipologiaV2: 'Paesaggistica / Soprintendenza', enteEmittente: 'Soprintendenza Beni Culturali di Siracusa', identificativoDocumento: 'AUT-2020-058', dataStipula: '18/09/2020', dataDecorrenza: '18/09/2020', dataScadenza: '18/09/2024', cup: 480.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    impiantiAutorizzati: [] },
+  { id: 'aut-009', tipologia: 'RFI', tipologiaV2: 'Nulla osta ente proprietario strada (ANAS | Provincia/Città Metropolitana | Regione)', enteEmittente: 'Rete Ferroviaria Italiana S.p.A.', identificativoDocumento: 'AUT-2024-029', dataStipula: '02/02/2024', dataDecorrenza: '01/03/2024', dataScadenza: '02/02/2029', cup: 1670.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    impiantiAutorizzati: [] },
+  { id: 'aut-010', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Catania', identificativoDocumento: 'AUT-2025-009', dataStipula: '14/02/2025', dataDecorrenza: '14/02/2025', dataScadenza: '14/02/2030', cup: 760.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1013', codiceAutorizzazione: '', cup: 760 }] },
+].map(r => ({ ...r, spaziCollegati: [] }));
+
+// v2 — nuova entità sibling di Concessione e Autorizzazione (regime giuridico e ciclo di
+// vita diversi, mai fusa con la Concessione). Le Autorizzazioni collegate sono una VISTA
+// DERIVATA tramite gli impianti in comune (nota 'contratto-vista-derivata'), nessun FK
+// diretto: vedi seedImpiantoCondiviso (contr-001/002) per la relazione dimostrativa, e
+// l'avviso non bloccante nel dettaglio quando manca del tutto (contr-003, contr-004: nessun
+// impianto condiviso con un'Autorizzazione, mostrato quando lo spazio collegato è pubblico).
+const MOCK_CONTRATTI = [
+  { id: 'contr-001', proprietarioLocatore: 'Immobiliare San Lorenzo Srl', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2023-005', canoneLocazioneAnnuo: 2400.00,
+    dataStipula: '05/06/2023', dataDecorrenza: '05/06/2023', dataScadenza: '01/01/2026', foglio: '112', particella: '458', subalterno: '3', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null },
+  { id: 'contr-002', proprietarioLocatore: 'Centro Commerciale Le Zagare Srl', tipoContratto: 'Comodato', identificativoContratto: 'COM-2022-011', canoneLocazioneAnnuo: 0,
+    dataStipula: '30/07/2022', dataDecorrenza: '01/08/2022', dataScadenza: '30/07/2025', foglio: '89', particella: '212', subalterno: '', stato: 'Attiva', promemoria: '60 giorni prima della scadenza', giorniPreavviso: 60, statoOverride: null },
+  { id: 'contr-003', proprietarioLocatore: 'Parco Commerciale Sicilia Spa', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2024-018', canoneLocazioneAnnuo: 3600.00,
+    dataStipula: '18/09/2024', dataDecorrenza: '18/09/2024', dataScadenza: '18/09/2027', foglio: '204', particella: '77', subalterno: '1', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null },
+  { id: 'contr-004', proprietarioLocatore: 'Fondazione Patrimonio Storico Messina', tipoContratto: 'Servitù', identificativoContratto: 'ALT-2021-002', canoneLocazioneAnnuo: 1500.00,
+    dataStipula: '12/11/2021', dataDecorrenza: '01/12/2021', dataScadenza: '28/02/2024', foglio: '31', particella: '540', subalterno: '', stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: 'Revocata/Decaduta' },
+  // v2 — migrati dalle ex Concessioni Privato (nota 'concessione-solo-pubblica'): campi con
+  // corrispondente diretto mappati 1:1 (ente emittente→proprietario, identificativo, date,
+  // canone); Tipo Contratto, Riferimento Catastale e Autorizzazione Comunale collegata NON
+  // avevano un corrispondente nel modello precedente — lasciati vuoti/di default, da
+  // completare a mano (vedi Alert 'grav-contratto-migrata-alert' nel dettaglio e nota
+  // 'migrazione-concessioni-privato').
+  { id: 'contr-005', proprietarioLocatore: 'Immobiliare San Lorenzo Srl', tipoContratto: 'Locazione', identificativoContratto: 'AN-2023-011', canoneLocazioneAnnuo: 1250.50,
+    dataStipula: '05/06/2023', dataDecorrenza: '05/06/2023', dataScadenza: '01/01/2026', foglio: '', particella: '', subalterno: '', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    migrata: true, migratoDa: 'conc-002' },
+  { id: 'contr-006', proprietarioLocatore: 'Parco Commerciale Sicilia Spa', tipoContratto: 'Locazione', identificativoContratto: 'CO-2023-019', canoneLocazioneAnnuo: 4100.00,
+    dataStipula: '18/09/2023', dataDecorrenza: '18/09/2023', dataScadenza: '18/09/2026', foglio: '', particella: '', subalterno: '', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    migrata: true, migratoDa: 'conc-005' },
+  { id: 'contr-007', proprietarioLocatore: 'Centro Commerciale Le Zagare Srl', tipoContratto: 'Locazione', identificativoContratto: 'AN-2022-064', canoneLocazioneAnnuo: 3050.00,
+    dataStipula: '30/07/2022', dataDecorrenza: '30/07/2022', dataScadenza: '30/07/2025', foglio: '', particella: '', subalterno: '', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    migrata: true, migratoDa: 'conc-008' },
+].map(r => ({ ...r, spaziCollegati: [] }));
+
+// ─────────────────────────────────────────────────────────
+// MOCK SPAZI/IMPIANTI — catalogo disponibile per "Connetti Impianti" (Fase 4)
+// Stesso vocabolario di dominio di inventory-systems (MACRO_TIPI_PER_CANALE,
+// FORMATI_PER_TIPO, media owner da filter-drawer.js) — non ne inventa uno nuovo.
+// ─────────────────────────────────────────────────────────
+const OOH_TIPI = ['Cartello', 'Rotor', 'Plancia', 'Palina', 'Palina butterfly', 'Stendardo', 'Insegna', 'Pensilina', 'Cassonetto', 'Palo luce', 'Fioriera', 'Parapedonale', 'Telo', 'Fermata bus'];
+const DOOH_TIPI = ['Alux', 'Billboard', 'Totem'];
+const FORMATI_PER_TIPO_SPAZI = {
+  'Cartello': ['6×3 m', '4×3 m'], 'Rotor': ['4×3 m', '3×2 m'], 'Plancia': ['6×3 m', '3×2 m'],
+  'Palina': ['120×180 cm', '100×140 cm'], 'Palina butterfly': ['120×180 cm'], 'Stendardo': ['80×200 cm'],
+  'Insegna': ['200×100 cm'], 'Pensilina': ['120×180 cm', '80×120 cm'], 'Cassonetto': ['200×140 cm'],
+  'Palo luce': ['70×100 cm'], 'Fioriera': ['120×80 cm'], 'Parapedonale': ['120×80 cm'],
+  'Telo': ['600×300 cm'], 'Fermata bus': ['120×180 cm'],
+  'Alux': ['120×176 cm'], 'Billboard': ['6×3 m', '4×3 m'], 'Totem': ['70×180 cm', '55×120 cm'],
+};
+const TYPE_ICON_NAMES_SPAZI = {
+  Stendardo: 'ColumnHeightOutlined', Plancia: 'AppstoreOutlined', Telo: 'PictureOutlined', Rotor: 'SyncOutlined',
+  Palina: 'PushpinOutlined', 'Palina butterfly': 'BranchesOutlined', Cartello: 'TagOutlined', Insegna: 'ShopOutlined',
+  Pensilina: 'HomeOutlined', Parapedonale: 'CarOutlined', 'Palo luce': 'BulbOutlined', Cassonetto: 'InboxOutlined',
+  Fioriera: 'HeartOutlined', 'Fermata bus': 'CarOutlined', Billboard: 'DesktopOutlined', Alux: 'PlayCircleOutlined', Totem: 'MobileOutlined',
+};
+const PROPRIETARI_OPTS = ['Proprietario', 'IGPDecaux', 'Clear Channel', 'Verticals', 'Geonext', 'Pubbliemme', 'Cemusa', 'Neopolis', 'Mediacom', 'Urbanspot'];
+const VIE_SPAZI = ['Via Roma', 'Via Maqueda', 'Corso Vittorio Emanuele', 'Via Libertà', 'Viale Regione Siciliana', 'Via Notarbartolo', 'Piazza Politeama', 'Via Dante', 'Corso Calatafimi', 'Via Sciuti', 'Via Ruggero Settimo', 'Viale Strasburgo'];
+const CITTA_SPAZI = ['Palermo', 'Catania', 'Messina', 'Siracusa', 'Trapani', 'Marsala'];
+const FORNITORI_ELETTRICI = ['Enel Energia', 'A2A Energia', 'Edison Energia'];
+// v2 — campi trasversali Impianto (§4 del modello target), SOLO su questo mock: non tocca
+// prototype/inventory-systems (anagrafica reale, con la propria nota di design sospesa su
+// "codice cimasa" — vedi components/handoff-engine.md). Qui è dato di visualizzazione, non editabile.
+const STATO_CIMASA_CICLO = ['Presente', 'Presente', 'Presente', 'Da verificare', 'Assente'];
+
+function generaMockSpazi(n) {
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const canale = i % 10 < 7 ? 'OOH' : 'DOOH';
+    const tipi = canale === 'OOH' ? OOH_TIPI : DOOH_TIPI;
+    const tipo = tipi[i % tipi.length];
+    const formati = FORMATI_PER_TIPO_SPAZI[tipo] || ['—'];
+    const formato = formati[i % formati.length];
+    const facce = [1, 2, 1, 2, 3, 1, 2, 4][i % 8];
+    const proprietario = PROPRIETARI_OPTS[i % PROPRIETARI_OPTS.length];
+    const via = VIE_SPAZI[i % VIE_SPAZI.length];
+    const civico = 5 + ((i * 7) % 240);
+    const citta = CITTA_SPAZI[i % CITTA_SPAZI.length];
+    // Illuminato/digitale: DOOH sempre (schermo), OOH solo "Palo luce" (retroilluminato,
+    // stessa convenzione BulbOutlined riservata a questo significato — LAYOUT.md §6.5).
+    const illuminato = canale === 'DOOH' || tipo === 'Palo luce';
+    const statoCimasa = STATO_CIMASA_CICLO[i % STATO_CIMASA_CICLO.length];
+    rows.push({
+      id: `${canale}-${String(1000 + i)}`,
+      canale, tipo, formato, facce, proprietario,
+      indirizzo: `${via} ${civico}, ${citta}`,
+      suolo: i % 2 === 0 ? 'Pubblico' : 'Privato',
+      // v2 — campi trasversali §4 modello target (nota 'impianto-campi-derivati-vs-espliciti'):
+      // digitale coincide con canale==='DOOH' (nessuna terza modalità in questo mock);
+      // superficieMq è indicativa, non calcolata dal formato reale.
+      digitale: canale === 'DOOH',
+      superficieMq: 2 + (i % 12),
+      statoCimasa,
+      codiceCimasa: statoCimasa === 'Presente' ? `CIM-${2000 + i}` : null,
+      utenzaElettrica: illuminato ? { codicePod: `IT001E${String(10000000 + i * 37)}`, fornitore: FORNITORI_ELETTRICI[i % FORNITORI_ELETTRICI.length] } : null,
+      codiceInterno: `INT-${String(i + 1).padStart(4, '0')}`,
+      codiceGestionaleEsterno: i % 3 === 0 ? null : `EXT-${canale}-${String(i + 1).padStart(4, '0')}`,
+    });
+  }
+  return rows;
+}
+const MOCK_SPAZI = generaMockSpazi(64);
+
+// v2 — seed dimostrativo: un impianto condiviso tra un Contratto e un'Autorizzazione, così
+// la vista derivata "Autorizzazioni collegate (tramite impianti)" del Contratto (nota
+// 'contratto-vista-derivata') parte già popolata invece che sempre vuota — la relazione
+// che prima era l'FK diretto autorizzazioneComunaleCollegata (rimosso).
+(function seedImpiantoCondiviso() {
+  const link = (contrId, autId, spazioIdx) => {
+    const spazio = MOCK_SPAZI[spazioIdx];
+    const contr = MOCK_CONTRATTI.find(c => c.id === contrId);
+    const aut = MOCK_AUTORIZZAZIONI.find(a => a.id === autId);
+    if (contr && !contr.spaziCollegati.some(s => s.id === spazio.id)) contr.spaziCollegati.push(spazio);
+    if (aut && !aut.spaziCollegati.some(s => s.id === spazio.id)) aut.spaziCollegati.push(spazio);
+  };
+  link('contr-001', 'aut-001', 2);
+  link('contr-002', 'aut-006', 4);
+})();
+
+// ─────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────
+const fmtEuro = (n) => {
+  const v = Math.round((Number(n) || 0) * 100) / 100;
+  const [int, dec] = v.toFixed(2).split('.');
+  return int.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + dec + ' €';
+};
+// v2 — CUP di un'Autorizzazione è la somma delle righe di Tab 2 (impiantiAutorizzati, nota
+// 'autorizzazione-impianti-tab-dedicata'), non più il campo singolo `cup` (sempre 0 sui
+// record creati in v2) — V1 continua a leggere `cup` direttamente, invariato.
+const cupTotale = (record, isV2) => isV2
+  ? (record.impiantiAutorizzati || []).reduce((s, r) => s + (r.cup || 0), 0)
+  : (record.cup || 0);
+const parseItDate = (s) => {
+  if (!s) return 0;
+  const [d, m, y] = s.split('/').map(Number);
+  return new Date(y, m - 1, d).getTime();
+};
+const STATO_BADGE = { Attiva: 'success', Scaduta: 'error' };
+
+// v2 — base comune: stato esteso a 7 valori (nota 'stato-engine-base-comune'). In istruttoria/
+// Attiva/In scadenza/Scaduta sono CALCOLATI dalle date + giorniPreavviso; Revocata/Decaduta,
+// In rinnovo e Cessata sono impostati MANUALMENTE (override) dall'operatore e prevalgono
+// sempre sul calcolo automatico. V1 non usa questo enum: resta sul campo `stato` a 2 valori
+// (Attiva/Scaduta) e su STATO_BADGE/renderStato sopra, invariati.
+const STATO_OPTS_V2 = ['In istruttoria', 'Attiva', 'In scadenza', 'Scaduta', 'In rinnovo', 'Revocata/Decaduta', 'Cessata'];
+const STATO_MANUALE_OPTS_V2 = ['In rinnovo', 'Revocata/Decaduta', 'Cessata'];
+const STATO_BADGE_V2 = {
+  'In istruttoria': 'default',
+  Attiva: 'success',
+  'In scadenza': 'warning',
+  Scaduta: 'error',
+  'In rinnovo': 'processing',
+  'Revocata/Decaduta': 'error',
+  Cessata: 'default',
+};
+const oggiMezzanotte = () => new Date(new Date().toDateString()).getTime();
+function computeStatoAutomaticoV2(dataDecorrenza, dataScadenza, giorniPreavviso) {
+  const oggiTs = oggiMezzanotte();
+  const decorrenzaTs = dataDecorrenza ? parseItDate(dataDecorrenza) : null;
+  const scadenzaTs = dataScadenza ? parseItDate(dataScadenza) : null;
+  if (decorrenzaTs != null && oggiTs < decorrenzaTs) return 'In istruttoria';
+  if (scadenzaTs != null && oggiTs >= scadenzaTs) return 'Scaduta';
+  if (scadenzaTs != null && giorniPreavviso != null && oggiTs >= scadenzaTs - giorniPreavviso * 86400000) return 'In scadenza';
+  return 'Attiva';
+}
+// Stato effettivo mostrato in UI: l'override manuale, se impostato, prevale sempre.
+function statoEffettivoV2(record) {
+  return record.statoOverride || computeStatoAutomaticoV2(record.dataDecorrenza, record.dataScadenza, record.giorniPreavviso);
+}
+function renderStatoV2(record) {
+  const stato = statoEffettivoV2(record);
+  const manuale = !!record.statoOverride;
+  return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+    React.createElement(Badge, { status: STATO_BADGE_V2[stato] || 'default', text: stato }),
+    manuale && React.createElement(Tooltip, { title: 'Stato impostato manualmente dall\'operatore — non calcolato dalle date.' },
+      React.createElement(EditOutlined, { style: { fontSize: 11, color: 'rgba(0,0,0,0.35)' } })),
+  );
+}
+
+const CONCESSIONE_TIPO_META = {
+  Pubblico: { color: '#3E00FB', icon: BankOutlined },
+  Privato:  { color: '#FF4A1C', icon: HomeOutlined },
+};
+// V1 — enum tipo_autorizzazione originale (solo Comunale/Genio Civile), frozen, invariato.
+// Il nuovo enum a 7 valori vive in AUTORIZZAZIONE_TIPO_META_V2 sotto (nota
+// 'autorizzazione-tipologia-overhaul').
+const AUTORIZZAZIONE_TIPO_META = {
+  Comunale:                 { color: '#3E00FB', icon: BankOutlined },
+  'Genio Civile':           { color: '#FF4A1C', icon: SafetyCertificateOutlined },
+  'Provincia/Regione/ANAS': { color: 'rgba(0,0,0,0.65)', icon: EnvironmentOutlined },
+  Soprintendenza:           { color: 'rgba(0,0,0,0.65)', icon: FileProtectOutlined },
+  RFI:                      { color: 'rgba(0,0,0,0.65)', icon: ApartmentOutlined },
+};
+// v2 — meta del nuovo enum a 7 valori (nota 'autorizzazione-tipologia-overhaul'), keyed su
+// `tipologiaV2` (NON sul vecchio `tipologia`, che resta di sola pertinenza V1/storico — vedi
+// campo parallelo sui record). Solo "Esposizione pubblicitaria" resta colorata come prima
+// (primary, coerente con "Comunale"): le altre 6 restano neutre, non sono uno stato (§6.3).
+const AUTORIZZAZIONE_TIPO_META_V2 = {
+  'Esposizione pubblicitaria (Comunale)': { color: '#3E00FB', icon: BankOutlined },
+  'Nulla osta ente proprietario strada (ANAS | Provincia/Città Metropolitana | Regione)': { color: 'rgba(0,0,0,0.65)', icon: EnvironmentOutlined },
+  'Paesaggistica / Soprintendenza': { color: 'rgba(0,0,0,0.65)', icon: FileProtectOutlined },
+  'Titolo edilizio (SCIA / Permesso di costruire)': { color: 'rgba(0,0,0,0.65)', icon: ApartmentOutlined },
+  'Strutturale / Genio Civile': { color: 'rgba(0,0,0,0.65)', icon: SafetyCertificateOutlined },
+  'Allaccio elettrico / Impianto luminoso': { color: 'rgba(0,0,0,0.65)', icon: ThunderboltOutlined },
+  'Parere luminanza / Inquinamento luminoso (DOOH)': { color: 'rgba(0,0,0,0.65)', icon: EyeOutlined },
+};
+
+function renderTipologia(meta, value) {
+  const m = meta[value] || {};
+  return React.createElement(Tag, {
+    icon: m.icon ? React.createElement(m.icon) : undefined,
+    style: {
+      color: m.color, borderColor: m.color, background: '#fff',
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+    },
+  }, value);
+}
+
+function renderNumeriUtenze(list) {
+  if (!list || !list.length) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—');
+  const visible = list.slice(0, 2);
+  const overflow = list.length - visible.length;
+  return React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
+    visible.map(u => React.createElement(Tag, { key: u, style: { marginInlineEnd: 0 } }, u)),
+    overflow > 0
+      ? React.createElement(Tooltip, { title: list.slice(2).join(', ') },
+          React.createElement(Tag, { style: { marginInlineEnd: 0, cursor: 'default' } }, '+' + overflow))
+      : null,
+  );
+}
+
+function renderStato(v) {
+  return React.createElement(Badge, { status: STATO_BADGE[v] || 'default', text: v });
+}
+
+// v2 — helper e enum del nuovo modello dati (Concessione/Autorizzazione/Contratto Privato).
+const MODALITA_ATTRIBUZIONE_OPTS = ['Bando pubblico', 'Affidamento diretto', 'Rinnovo di concessione precedente']
+  .map(v => ({ value: v, label: v }));
+// v2 — enum tipologia interamente rifatto su richiesta esplicita (nota
+// 'autorizzazione-tipologia-overhaul'): supersede la precedente riduzione a 4 valori e la
+// nota 'autorizzazione-genio-civile-rimossa' — "Genio Civile" rientra come "Strutturale /
+// Genio Civile", una delle 7 categorie complete. Le autorizzazioni NON sono solo quella
+// all'esposizione pubblicitaria: il CUP resta condizionale solo a quel primo valore.
+// v2 — solo "Esposizione pubblicitaria (Comunale)" è sviluppata in questo giro di lavoro
+// (nota 'ente-emittente-filtrato-per-tipo'): le altre 6 categorie restano nell'enum ma
+// disabilitate in Select, con motivo in hover — pattern form-patterns.md §4 (Tooltip sulle
+// opzioni disabilitate), non rimosse dall'elenco per non perdere il modello a 7 categorie.
+const TIPO_AUTORIZZAZIONE_OPTS_V2 = [
+  'Esposizione pubblicitaria (Comunale)',
+  'Nulla osta ente proprietario strada (ANAS | Provincia/Città Metropolitana | Regione)',
+  'Paesaggistica / Soprintendenza',
+  'Titolo edilizio (SCIA / Permesso di costruire)',
+  'Strutturale / Genio Civile',
+  'Allaccio elettrico / Impianto luminoso',
+  'Parere luminanza / Inquinamento luminoso (DOOH)',
+].map(v => (v === 'Esposizione pubblicitaria (Comunale)'
+  ? { value: v, label: v }
+  : { value: v, label: v, disabled: true, disabledReason: 'Non ancora disponibile in questo prototipo — solo Esposizione pubblicitaria (Comunale) è sviluppata in questo giro di lavoro.' }));
+const TIPO_AUTORIZZAZIONE_ESPOSIZIONE = 'Esposizione pubblicitaria (Comunale)';
+const TIPO_CONTRATTO_OPTS = ['Locazione', 'Comodato', 'Diritto di superficie', 'Servitù'].map(v => ({ value: v, label: v }));
+
+// Tag categorico neutro — non è uno stato (§6.3), solo una classificazione: nessun colore inventato.
+function renderTipoContratto(v) {
+  return React.createElement(Tag, null, v);
+}
+function renderFkLabel(list, id, labelKey) {
+  if (!id) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—');
+  const rec = list.find(r => r.id === id);
+  return rec ? rec[labelKey] : id;
+}
+
+// v2 — relazioni derivate tramite gli impianti collegati (nota 'relazioni-derivate-impianti'):
+// nessun FK diretto, si incrociano gli spaziCollegati delle 2 entità.
+function getAutorizzazioniDerivate(spaziCollegati, autorizzazioniList) {
+  const ids = new Set((spaziCollegati || []).map(s => s.id));
+  return (autorizzazioniList || []).filter(a => (a.spaziCollegati || []).some(s => ids.has(s.id)));
+}
+function getConcessioneDerivata(spaziCollegati, concessioniList) {
+  const ids = new Set((spaziCollegati || []).map(s => s.id));
+  return (concessioniList || []).find(c => (c.spaziCollegati || []).some(s => ids.has(s.id))) || null;
+}
+function getContrattoDerivato(spaziCollegati, contrattiList) {
+  const ids = new Set((spaziCollegati || []).map(s => s.id));
+  return (contrattiList || []).find(c => (c.spaziCollegati || []).some(s => ids.has(s.id))) || null;
+}
+
+// Tag canale outline — stessa convenzione delle tag tipo sistema OOH/DOOH in tabella (LAYOUT.md §4)
+function renderCanaleBadge(canale) {
+  const color = canale === 'OOH' ? '#3E00FB' : '#FF4A1C';
+  return React.createElement(Tag, { style: { color, borderColor: color, background: '#fff' } }, canale);
+}
+// Badge numerico pieno — stesso stile del conteggio POI in poi-collections
+function renderFacceBadge(n) {
+  return React.createElement('span', {
+    style: {
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      background: '#3E00FB', color: '#fff', borderRadius: 26, padding: '0 10px', height: 22,
+      fontSize: 12, fontWeight: 600, minWidth: 32,
+    },
+  }, n);
+}
+function renderTipoSpazioBadge(tipo) {
+  const iconName = TYPE_ICON_NAMES_SPAZI[tipo];
+  const IconComp = iconName ? icons[iconName] : null;
+  return React.createElement(Tag, { icon: IconComp ? React.createElement(IconComp) : undefined }, tipo);
+}
+
+// Colonna di ricerca testuale (icona lente) — pattern riusato da poi-collections/planning.
+function makeSearchFilter(dataIndex) {
+  return {
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) =>
+      React.createElement('div', { style: { padding: 8 } },
+        React.createElement(Input, {
+          placeholder: 'Cerca...',
+          value: selectedKeys[0],
+          onChange: e => setSelectedKeys(e.target.value ? [e.target.value] : []),
+          onPressEnter: () => confirm(),
+          style: { marginBottom: 8, display: 'block', width: 200 },
+        }),
+        React.createElement('div', { style: { display: 'flex', gap: 8 } },
+          React.createElement(Button, { type: 'primary', size: 'small', onClick: () => confirm() }, 'Cerca'),
+          React.createElement(Button, { size: 'small', onClick: () => { clearFilters && clearFilters(); confirm(); } }, 'Reset'),
+        )
+      ),
+    filterIcon: filtered => React.createElement(SearchOutlined, { style: { color: filtered ? '#3E00FB' : undefined } }),
+    onFilter: (value, record) => String(record[dataIndex] || '').toLowerCase().includes(String(value).toLowerCase()),
+  };
+}
+
+// Colonna azioni riga (menu ⋮): Popconfirm riservato a pulsanti singoli (LAYOUT.md §6.6) —
+// per le voci di un Dropdown menu Gravity usa Modal.confirm, come già in inventory-systems e
+// poi-collections (un Popconfirm ancorato a un menu item transitorio si chiude prima del click).
+function actionsColumn(entityLabel, onView, onEdit, onDelete) {
+  return {
+    title: '', dataIndex: '_actions', width: 48, fixed: 'right',
+    render: (_, record) => React.createElement(Dropdown, {
+      trigger: ['click'],
+      menu: {
+        items: [
+          { key: 'view', label: 'Visualizza', icon: React.createElement(EyeOutlined) },
+          { key: 'edit', label: 'Modifica', icon: React.createElement(EditOutlined) },
+          { type: 'divider' },
+          { key: 'delete', label: 'Elimina', icon: React.createElement(DeleteOutlined), danger: true },
+        ],
+        onClick: ({ key }) => {
+          if (key === 'view') onView(record);
+          if (key === 'edit') onEdit(record);
+          if (key === 'delete') Modal.confirm({
+            title: `Elimina ${entityLabel}`,
+            content: 'Questa azione è irreversibile. Vuoi procedere con l\'eliminazione?',
+            okText: 'Elimina',
+            okButtonProps: { danger: true },
+            cancelText: 'Annulla',
+            onOk: () => onDelete(record),
+          });
+        },
+      },
+    },
+      React.createElement(Button, {
+        className: 'grav-permit-row-actions',
+        type: 'text', size: 'small',
+        icon: React.createElement(EllipsisOutlined, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)' } }),
+        onClick: e => e.stopPropagation(),
+      }),
+    ),
+  };
+}
+
+// v2 — colonna Stato condivisa dalle 3 tabelle: enum esteso + filtro su stato effettivo
+// (calcolato o override), nota 'stato-engine-base-comune'. V1 invariata (renderStato/stato).
+function statoColumn(isV2) {
+  return isV2
+    ? {
+        title: 'Stato', width: 150,
+        filters: STATO_OPTS_V2.map(v => ({ text: v, value: v })),
+        onFilter: (value, record) => statoEffettivoV2(record) === value,
+        render: (_, record) => renderStatoV2(record),
+      }
+    : {
+        title: 'Stato', dataIndex: 'stato', width: 110,
+        filters: [{ text: 'Attiva', value: 'Attiva' }, { text: 'Scaduta', value: 'Scaduta' }],
+        onFilter: (value, record) => record.stato === value,
+        render: renderStato,
+      };
+}
+
+// ─────────────────────────────────────────────────────────
+// FORM — Nuova Concessione / Nuova Autorizzazione (drawer)
+// ─────────────────────────────────────────────────────────
+
+// Avviso di modifiche non salvate — Popconfirm ancorato al pulsante Annulla/alla X
+// (LAYOUT.md §6.6), pattern riusato identico da inventory-systems.
+const DISCARD_CONFIRM_PROPS = {
+  title: 'Uscire senza salvare le modifiche?',
+  description: 'Le modifiche apportate andranno perse.',
+  icon: null,
+  okText: 'Continua a modificare',
+  cancelText: 'Esci e scarta',
+  okButtonProps: { type: 'default', size: 'middle', icon: React.createElement(EditOutlined) },
+  cancelButtonProps: { danger: true, size: 'middle', icon: React.createElement(LogoutOutlined) },
+};
+function DiscardButton({ dirty, onDiscard, ...btnProps }) {
+  if (!dirty) return React.createElement(Button, { ...btnProps, onClick: onDiscard });
+  return React.createElement(Popconfirm, { ...DISCARD_CONFIRM_PROPS, onCancel: onDiscard },
+    React.createElement(Button, btnProps));
+}
+function DiscardCloseIcon({ dirty, onDiscard }) {
+  const icon = React.createElement(CloseOutlined, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)' } });
+  const btn = (onClick) => React.createElement('button', { type: 'button', className: 'ant-drawer-close', onClick, 'aria-label': 'Close', style: { cursor: 'pointer' } }, icon);
+  if (!dirty) return btn(onDiscard);
+  return React.createElement(Popconfirm, { ...DISCARD_CONFIRM_PROPS, onCancel: onDiscard }, btn());
+}
+
+// v2 — Ente Emittente come select da un'anagrafica mockata, invece di testo libero.
+// Sull'Autorizzazione l'anagrafica è filtrata dal Tipo Autorizzazione (l'ente è categorizzato
+// da quel campo — non ha più senso lasciarlo un elenco unico indipendente): scegliere il tipo
+// vincola quali enti sono selezionabili, coerente col pattern "disabilitato con motivo in
+// hover" di LAYOUT.md §6.2. Sulla Concessione l'elenco resta fisso: nessun campo categorizza
+// più l'ente (tipologia rimossa, nota 'concessione-solo-pubblica') e la Concessione è solo
+// atto pubblico — niente più le società private che ora vivono solo su Contratto Privato.
+const ENTI_COMUNALI = ['Comune di Palermo', 'Comune di Catania', 'Comune di Messina', 'Comune di Siracusa', 'Comune di Trapani', 'Comune di Marsala'];
+// v2 — ANAS/Provincia/Regione E RFI condividono la categoria "Nulla osta ente proprietario
+// strada" del nuovo enum tipologia (nota 'autorizzazione-tipologia-overhaul'): RFI è
+// "proprietario" del sedime ferroviario allo stesso modo di ANAS per le strade extraurbane.
+const ENTI_PROVINCIA_REGIONE_ANAS = [
+  'Città Metropolitana di Palermo', 'Libero Consorzio Comunale di Trapani', 'ANAS S.p.A. — Struttura Territoriale Sicilia',
+  'Rete Ferroviaria Italiana S.p.A.', 'RFI — Direzione Territoriale Produzione Palermo',
+];
+const ENTI_SOPRINTENDENZA = ['Soprintendenza Beni Culturali di Palermo', 'Soprintendenza Beni Culturali di Catania', 'Soprintendenza Beni Culturali di Siracusa'];
+const ENTI_GENIO_CIVILE = ['Genio Civile di Palermo', 'Genio Civile di Catania', 'Genio Civile di Messina', 'Genio Civile di Siracusa'];
+const ENTI_TITOLO_EDILIZIO = ['SUE — Comune di Palermo', 'SUE — Comune di Catania', 'SUE — Comune di Messina'];
+const ENTI_LUMINANZA = ['ARPA Sicilia — Dipartimento di Palermo', 'ARPA Sicilia — Dipartimento di Catania'];
+
+// v2 — enum tipologia interamente rifatto (nota 'autorizzazione-tipologia-overhaul'): chiavi
+// allineate a TIPO_AUTORIZZAZIONE_OPTS_V2. "Allaccio elettrico" riusa FORNITORI_ELETTRICI, la
+// stessa anagrafica già usata per l'utenza elettrica sull'Impianto (§4 campi trasversali).
+const ENTI_PER_TIPO_AUTORIZZAZIONE = {
+  'Esposizione pubblicitaria (Comunale)': ENTI_COMUNALI,
+  'Nulla osta ente proprietario strada (ANAS | Provincia/Città Metropolitana | Regione)': ENTI_PROVINCIA_REGIONE_ANAS,
+  'Paesaggistica / Soprintendenza': ENTI_SOPRINTENDENZA,
+  'Titolo edilizio (SCIA / Permesso di costruire)': ENTI_TITOLO_EDILIZIO,
+  'Strutturale / Genio Civile': ENTI_GENIO_CIVILE,
+  'Allaccio elettrico / Impianto luminoso': FORNITORI_ELETTRICI,
+  'Parere luminanza / Inquinamento luminoso (DOOH)': ENTI_LUMINANZA,
+};
+const toEntiOptions = (list) => list.map(v => ({ value: v, label: v }));
+
+const MOCK_ENTI_EMITTENTI_CONCESSIONE = toEntiOptions([...ENTI_COMUNALI, ...ENTI_PROVINCIA_REGIONE_ANAS]);
+
+// v2 — logo enti nella Select "Ente Emittente" (nota 'ente-emittente-loghi'): favicon del
+// dominio reale via servizio pubblico, fallback ad avatar con iniziali colorate quando il
+// dominio non è disponibile o l'immagine non carica — stesso pattern di ADVERTISER_LOGO/
+// AdvertiserAvatar già in uso in prototype/planning per i loghi inserzionisti.
+const _FAV_ENTE = d => `https://www.google.com/s2/favicons?sz=64&domain=${d}`;
+const ENTE_LOGO = {
+  'Comune di Palermo': { initials: 'PA', bg: '#8B0000', fg: '#fff', url: _FAV_ENTE('comune.palermo.it') },
+  'Comune di Catania': { initials: 'CT', bg: '#B35900', fg: '#fff', url: _FAV_ENTE('comune.catania.it') },
+  'Comune di Messina': { initials: 'ME', bg: '#1D6F42', fg: '#fff', url: _FAV_ENTE('comune.messina.it') },
+  'Comune di Siracusa': { initials: 'SR', bg: '#6E2594', fg: '#fff', url: _FAV_ENTE('comune.siracusa.it') },
+  'Comune di Trapani': { initials: 'TP', bg: '#0B5394', fg: '#fff', url: _FAV_ENTE('comune.trapani.it') },
+  'Comune di Marsala': { initials: 'MS', bg: '#A6180D', fg: '#fff', url: _FAV_ENTE('comune.marsala.tp.it') },
+  'Città Metropolitana di Palermo': { initials: 'CM', bg: '#003366', fg: '#fff', url: _FAV_ENTE('cittametropolitana.pa.it') },
+  'Libero Consorzio Comunale di Trapani': { initials: 'LC', bg: '#4A4A4A', fg: '#fff' },
+  'ANAS S.p.A. — Struttura Territoriale Sicilia': { initials: 'AN', bg: '#004990', fg: '#fff', url: _FAV_ENTE('stradeanas.it') },
+  'Rete Ferroviaria Italiana S.p.A.': { initials: 'RF', bg: '#DA291C', fg: '#fff', url: _FAV_ENTE('rfi.it') },
+  'RFI — Direzione Territoriale Produzione Palermo': { initials: 'RF', bg: '#DA291C', fg: '#fff', url: _FAV_ENTE('rfi.it') },
+  'Soprintendenza Beni Culturali di Palermo': { initials: 'SB', bg: '#795329', fg: '#fff' },
+  'Soprintendenza Beni Culturali di Catania': { initials: 'SB', bg: '#795329', fg: '#fff' },
+  'Soprintendenza Beni Culturali di Siracusa': { initials: 'SB', bg: '#795329', fg: '#fff' },
+  'Genio Civile di Palermo': { initials: 'GC', bg: '#B36B00', fg: '#fff' },
+  'Genio Civile di Catania': { initials: 'GC', bg: '#B36B00', fg: '#fff' },
+  'Genio Civile di Messina': { initials: 'GC', bg: '#B36B00', fg: '#fff' },
+  'Genio Civile di Siracusa': { initials: 'GC', bg: '#B36B00', fg: '#fff' },
+  'SUE — Comune di Palermo': { initials: 'SU', bg: '#2F54EB', fg: '#fff' },
+  'SUE — Comune di Catania': { initials: 'SU', bg: '#2F54EB', fg: '#fff' },
+  'SUE — Comune di Messina': { initials: 'SU', bg: '#2F54EB', fg: '#fff' },
+  'ARPA Sicilia — Dipartimento di Palermo': { initials: 'AR', bg: '#237804', fg: '#fff', url: _FAV_ENTE('arpa.sicilia.it') },
+  'ARPA Sicilia — Dipartimento di Catania': { initials: 'AR', bg: '#237804', fg: '#fff', url: _FAV_ENTE('arpa.sicilia.it') },
+  'Enel Energia': { initials: 'EE', bg: '#0066B3', fg: '#fff', url: _FAV_ENTE('enel.it') },
+  'A2A Energia': { initials: 'A2', bg: '#00A19A', fg: '#fff', url: _FAV_ENTE('a2a.it') },
+  'Edison Energia': { initials: 'ED', bg: '#F0A30A', fg: '#fff', url: _FAV_ENTE('edisonenergia.it') },
+};
+function EnteAvatar({ name, size = 22 }) {
+  const logo = ENTE_LOGO[name] || { initials: (name || '?')[0], bg: '#F0F0F0', fg: 'rgba(0,0,0,0.55)' };
+  const [imgOk, setImgOk] = useState(!!logo.url);
+  if (logo.url && imgOk) {
+    return React.createElement('div', {
+      style: {
+        width: size, height: size, borderRadius: '50%', flexShrink: 0,
+        background: '#fff', border: '1px solid #e8e8e8', overflow: 'hidden',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      },
+    }, React.createElement('img', {
+      src: logo.url,
+      style: { width: '100%', height: '100%', objectFit: 'contain', padding: Math.round(size * 0.12) },
+      onError: () => setImgOk(false),
+    }));
+  }
+  return React.createElement(Avatar, {
+    size, shape: 'circle',
+    style: { background: logo.bg, color: logo.fg, fontWeight: 700, fontSize: size * 0.4, flexShrink: 0 },
+  }, logo.initials);
+}
+// Dropdown ente: avatar + nome. Selezionato (labelRender): stesso avatar accanto al valore
+// scelto, non solo nell'elenco aperto — "il logo dentro la select", non solo nel menu.
+const enteOptionRender = opt => React.createElement(Space, { size: 8 },
+  React.createElement(EnteAvatar, { name: opt.value, size: 20 }), opt.label);
+const enteLabelRender = opt => opt.value
+  ? React.createElement(Space, { size: 8 }, React.createElement(EnteAvatar, { name: opt.value, size: 18 }), opt.label)
+  : opt.label;
+
+const TIPO_DOCUMENTO_CONCESSIONE_OPTS = [
+  'Atto amministrativo', 'Determinazione dirigenziale', 'Delibera', 'Atto notarile', 'Contratto di locazione',
+].map(v => ({ value: v, label: v }));
+// v2 — la Concessione è solo atto di diritto pubblico: "Contratto di locazione" (diritto
+// privato) vive ora esclusivamente su Contratto Privato, vedi nota 'concessione-solo-pubblica'.
+// Valori allineati alla natura reale dell'atto (nota 'concessione-campi-estesi'), non più le
+// categorie astratte di V1 ("Atto amministrativo" ecc., che infatti non coincidevano con i
+// valori già usati nei record storici — Concessione Suolo Pubblico, Demaniale, ...).
+const TIPO_DOCUMENTO_CONCESSIONE_OPTS_V2 = [
+  'Concessione Suolo Pubblico', 'Concessione Demaniale', 'Concessione Beni Comunali', 'Concessione Onerosa',
+].map(v => ({ value: v, label: v }));
+const TIPO_AUTORIZZAZIONE_OPTS = [
+  { value: 'Comunale', label: 'Comunale' },
+  { value: 'Genio Civile', label: 'Genio Civile' },
+];
+const PROMEMORIA_OPTS = [
+  'No Promemoria', '7 giorni prima della scadenza', '15 giorni prima della scadenza',
+  '30 giorni prima della scadenza', '60 giorni prima della scadenza',
+].map(v => ({ value: v, label: v }));
+// v2 — base comune: enum semplificato (nota 'stato-engine-base-comune'). Le soglie
+// alimentano anche il calcolo dello stato "In scadenza" (PROMEMORIA_GIORNI sotto).
+const PROMEMORIA_OPTS_V2 = [
+  'No Promemoria', '90 giorni prima della scadenza', '60 giorni prima della scadenza', '30 giorni prima della scadenza',
+].map(v => ({ value: v, label: v }));
+const PROMEMORIA_GIORNI = {
+  'No Promemoria': null,
+  '90 giorni prima della scadenza': 90,
+  '60 giorni prima della scadenza': 60,
+  '30 giorni prima della scadenza': 30,
+};
+
+function promemoriaField(promemoria, setPromemoria, dataScadenza, options) {
+  const enabled = !!dataScadenza;
+  const select = React.createElement(Select, {
+    value: promemoria, onChange: setPromemoria, options: options || PROMEMORIA_OPTS,
+    style: { width: '100%' }, disabled: !enabled,
+  });
+  return React.createElement(Form.Item, {
+    className: 'grav-permit-promemoria-field',
+    label: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+      'Promemoria',
+      React.createElement(Tooltip, { title: 'Invia una notifica prima della scadenza del permesso.' },
+        React.createElement(QuestionCircleOutlined, { style: { color: 'rgba(0,0,0,0.45)', cursor: 'help' } })),
+    ),
+    style: { marginBottom: 20 },
+  },
+    enabled ? select : React.createElement(Tooltip, { title: 'Imposta prima la Data Scadenza per attivare il promemoria.' },
+      React.createElement('span', { style: { display: 'inline-block', width: '100%' } }, select)),
+  );
+}
+
+// v2 — Data Decorrenza: campo comune alle 3 entità (nota 'data-decorrenza-campo-comune'),
+// distinto dalla Data Stipula (firma dell'atto). Se le due coincidono, il preset "Come Data
+// Stipula" precompila senza dover ridigitare la stessa data.
+function dataDecorrenzaField(value, onChange, dataStipula) {
+  const presets = [{ label: 'Oggi', value: dayjs() }]
+    .concat(dataStipula ? [{ label: 'Come Data Stipula', value: dataStipula }] : []);
+  return React.createElement(Form.Item, {
+    className: 'grav-permit-decorrenza-field',
+    label: tipLabel('Data Decorrenza', 'Da quando il permesso diventa effettivamente valido, spesso diversa dal giorno della firma. Esempio: firmi l\'atto il 10 ma decidi che parta dal mese successivo. Se le due date coincidono, usa il preset "Come Data Stipula" invece di ridigitarla.'),
+    required: true, style: { marginBottom: 20 },
+  },
+    React.createElement(DatePicker, {
+      value, onChange, style: { width: '100%' },
+      format: 'DD/MM/YYYY', placeholder: 'gg/mm/aaaa', presets,
+    }),
+  );
+}
+
+// Sezione ripetibile "Numeri Utenza" — pattern "Account Numbers" di LAYOUT.md §3.2:
+// zero righe è uno stato valido (una Concessione può non avere ancora utenze collegate).
+function UtenzeSection({ utenze, setUtenze }) {
+  const updateRow = (i, patch) => setUtenze(prev => prev.map((u, idx) => idx === i ? { ...u, ...patch } : u));
+  const removeRow = (i) => setUtenze(prev => prev.filter((_, idx) => idx !== i));
+  const addRow = () => setUtenze(prev => [...prev, { numero: '', canone: null }]);
+
+  return React.createElement('div', { className: 'grav-permit-utenze-section', style: { marginBottom: 20 } },
+    React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 12, display: 'flex', alignItems: 'center' } },
+      'Numeri Utenza', React.createElement(HandoffDesignNote, { id: 'numeri-utenza-zero-valido', placement: 'right' })),
+    utenze.map((u, i) => React.createElement('div', { key: i, style: { display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12 } },
+      React.createElement('div', { style: { flex: 1 } },
+        React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 4 } },
+          'Numero Utenza', React.createElement('span', { style: { color: '#FF4D4F' } }, ' *')),
+        React.createElement(Input, {
+          placeholder: 'Es. UT-10234', value: u.numero,
+          onChange: e => updateRow(i, { numero: e.target.value }),
+        }),
+      ),
+      React.createElement('div', { style: { width: 200 } },
+        React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 4 } },
+          'Canone Patrimoniale', React.createElement('span', { style: { color: '#FF4D4F' } }, ' *')),
+        React.createElement(InputNumber, {
+          placeholder: '0,00', value: u.canone, min: 0, style: { width: '100%' },
+          addonAfter: '€/anno', onChange: v => updateRow(i, { canone: v }),
+        }),
+      ),
+      React.createElement(Button, { type: 'link', danger: true, onClick: () => removeRow(i), style: { marginTop: 20 } }, 'Rimuovi'),
+    )),
+    React.createElement(Button, { type: 'dashed', icon: React.createElement(PlusOutlined), onClick: addRow }, 'Aggiungi numero'),
+  );
+}
+
+
+const EMPTY_PERMIT_STATE = {
+  tipoConcessione: null, tipoAutorizzazione: null, enteEmittente: '', partitaIva: '',
+  tipoDocumento: null, idDocumento: '', numeroProtocollo: '', dataStipula: null, dataDecorrenza: null, dataScadenza: null,
+  promemoria: 'No Promemoria', utenze: [], cup: null,
+  // v2 — Concessione: Provenienza + campi estesi (nota 'concessione-campi-estesi')
+  modalitaAttribuzione: null, riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '',
+  ubicazione: '', superficieConcessaMq: null, canoneConcessorio: null,
+  // v2 — Autorizzazione: estensioni. impiantiAutorizzati sostituisce Impianti coperti/Codice
+  // Autorizzazione (per cimasa)/Riferimento allegato/CUP a valore singolo (nota
+  // 'autorizzazione-impianti-tab-dedicata'): un'Autorizzazione copre N impianti, ciascuno
+  // con un proprio codice cimasa e un proprio CUP.
+  includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+  impiantiAutorizzati: [],
+  // v2 — Contratto Privato (autorizzazioneComunaleCollegata rimosso, nota 'contratto-vista-derivata')
+  proprietarioLocatore: '', tipoContratto: null, identificativoContratto: '', canoneLocazioneAnnuo: null,
+  foglio: '', particella: '', subalterno: '', indirizzo: '',
+};
+
+// v2 — label + tip (icona "?" con Tooltip) che spiega la natura del campo, stesso pattern
+// già in uso su "Promemoria" (LAYOUT.md §6.2 — disabilitato/spiegato in hover, non a lato).
+function tipLabel(text, tip) {
+  return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+    text,
+    React.createElement(Tooltip, { title: tip },
+      React.createElement(QuestionCircleOutlined, { style: { color: 'rgba(0,0,0,0.45)', cursor: 'help' } })),
+  );
+}
+
+function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniList, contrattiList, onClose, onSave }) {
+  const [f, setF] = useState(EMPTY_PERMIT_STATE);
+  const set = (key) => (val) => setF(prev => ({ ...prev, [key]: val }));
+
+  // v2 — Autorizzazione: drawer a due tab (nota 'autorizzazione-impianti-tab-dedicata'),
+  // ispirato al Nuovo Impianto di inventory-systems. 'info' = dati generali (ex unico
+  // pannello), 'impianti' = editor a righe per impianto — disabilitata finché il Tipo
+  // Autorizzazione non è scelto (serve a filtrare gli impianti già autorizzati).
+  const [activeTab, setActiveTab] = useState('info');
+
+  useEffect(() => {
+    if (open) {
+      setF(EMPTY_PERMIT_STATE);
+      setActiveTab('info');
+    }
+  }, [open, type]);
+
+  const isConcessione = type === 'concessione';
+  const isAutorizzazione = type === 'autorizzazione';
+  const isContratto = type === 'contratto';
+  const title = isConcessione ? 'Nuova Concessione' : isAutorizzazione ? 'Nuova Autorizzazione' : 'Nuovo Contratto Privato';
+
+  // Cambiare enum di classificazione pulisce i campi condizionali ora irrilevanti, così il
+  // salvataggio non porta con sé dati "fantasma" di una scelta precedente non più visibile.
+  const onModalitaAttribuzioneChange = (v) => setF(prev => ({
+    ...prev, modalitaAttribuzione: v,
+    ...(v !== 'Bando pubblico' ? { riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '' } : {}),
+  }));
+  // v2 — Include concessione suolo pubblico e Atto di provenienza (Concessione/Contratto)
+  // sono due situazioni MUTUALMENTE ESCLUSIVE, non una il figlio dell'altra (nota
+  // 'autorizzazione-atto-provenienza-scollegato'): il check dice che l'atto autorizzativo
+  // include già di per sé una concessione implicita; senza check, l'Autorizzazione è invece
+  // collegata a un atto (Concessione o Contratto Privato) che ha dato il bene poi autorizzato.
+  const onIncludeSuoloChange = (checked) => setF(prev => ({
+    ...prev, includeConcessioneSuoloPubblico: checked,
+    ...(checked ? { attoProvenienzaId: null } : {}),
+  }));
+  // v2 — cambiare Tipo Autorizzazione cambia l'anagrafica enti selezionabile
+  // (ENTI_PER_TIPO_AUTORIZZAZIONE) e l'elenco impianti già autorizzati escluso in Tab 2: righe
+  // scelte per il tipo precedente non sono necessariamente valide per il nuovo, si azzerano.
+  const onTipoAutorizzazioneChange = (v) => setF(prev => ({ ...prev, tipoAutorizzazione: v, enteEmittente: '', impiantiAutorizzati: [] }));
+  // v2 — Tab 2 "Impianti autorizzati": editor a righe, stesso pattern add/update/remove già
+  // in uso altrove nel file (UtenzeSection, ex CanonePerImpiantoDrawer) — array di oggetti in
+  // stato locale, zero righe è uno stato valido (Autorizzazione senza impianti collegati
+  // ancora, coerente con REGOLE DI COERENZA del modello dominio).
+  const updateImpiantoRow = (i, patch) => setF(prev => ({ ...prev, impiantiAutorizzati: prev.impiantiAutorizzati.map((r, idx) => idx === i ? { ...r, ...patch } : r) }));
+  const removeImpiantoRow = (i) => setF(prev => ({ ...prev, impiantiAutorizzati: prev.impiantiAutorizzati.filter((_, idx) => idx !== i) }));
+  const addImpiantoRow = () => setF(prev => ({ ...prev, impiantiAutorizzati: [...prev.impiantiAutorizzati, { impiantoId: null, codiceAutorizzazione: '', cup: null }] }));
+
+  const dirty = f.tipoConcessione != null || f.tipoAutorizzazione != null || !!f.enteEmittente.trim()
+    || !!f.partitaIva.trim() || f.tipoDocumento != null || !!f.idDocumento.trim() || !!f.numeroProtocollo.trim()
+    || !!f.dataStipula || !!f.dataDecorrenza || !!f.dataScadenza || f.promemoria !== 'No Promemoria' || f.utenze.length > 0 || f.cup != null
+    || f.modalitaAttribuzione != null || f.includeConcessioneSuoloPubblico || f.attoProvenienzaId != null
+    || f.impiantiAutorizzati.length > 0
+    || !!f.proprietarioLocatore.trim() || f.tipoContratto != null || !!f.identificativoContratto.trim()
+    || f.canoneLocazioneAnnuo != null || !!f.foglio.trim() || !!f.particella.trim() || !!f.indirizzo.trim()
+    || !!f.ubicazione.trim() || f.superficieConcessaMq != null || f.canoneConcessorio != null;
+
+  const utenzeValid = f.utenze.every(u => u.numero.trim() && u.canone != null && u.canone > 0);
+  // v2 — Tab 2: l'impianto NON è più richiesto per riga (nota 'autorizzazione-impianti-tab-dedicata')
+  // — un'autorizzazione spesso arriva prima che l'impianto sia censito in Inventario · Impianti,
+  // quindi cimasa e/o CUP vanno segnabili comunque. Una riga è valida se ha almeno un campo
+  // compilato (impianto, cimasa o CUP): non è ammessa solo una riga totalmente vuota. Zero righe
+  // resta valido (Autorizzazione senza impianti ancora collegati).
+  const impiantiAutorizzatiValid = f.impiantiAutorizzati.every(r =>
+    !!r.impiantoId || !!r.codiceAutorizzazione.trim() || (r.cup != null && r.cup > 0));
+
+  const provenienzaValid = !isV2 || (
+    !!f.modalitaAttribuzione && (
+      f.modalitaAttribuzione !== 'Bando pubblico'
+      || (!!f.riferimentoBando.trim() && !!f.enteBanditore.trim() && !!f.dataAggiudicazione)
+    )
+  );
+  // v2 — CUP/Concessione suolo pubblico sono condizionali al SOLO tipo "Esposizione
+  // pubblicitaria (Comunale)" (nota 'autorizzazione-tipologia-overhaul'): le altre 6
+  // tipologie di Autorizzazione non hanno CUP. V1 (solo Comunale/Genio Civile, sempre col
+  // CUP) resta invariata.
+  const isEsposizionePubblicitaria = isV2 ? f.tipoAutorizzazione === TIPO_AUTORIZZAZIONE_ESPOSIZIONE : true;
+
+  const canSave = isConcessione
+    ? ((isV2 || !!f.tipoConcessione) && !!f.enteEmittente.trim() && !!f.tipoDocumento && !!f.idDocumento.trim()
+        && !!f.dataStipula && (!isV2 || !!f.dataDecorrenza) && !!f.dataScadenza
+        && (isV2 ? (f.canoneConcessorio != null && f.canoneConcessorio >= 0) : utenzeValid) && provenienzaValid)
+    : isAutorizzazione
+    ? (!!f.tipoAutorizzazione && !!f.enteEmittente.trim() && !!f.numeroProtocollo.trim()
+        && !!f.dataStipula && (!isV2 || !!f.dataDecorrenza) && !!f.dataScadenza
+        && (isV2 ? impiantiAutorizzatiValid : (f.cup != null && f.cup > 0)))
+    : (!!f.proprietarioLocatore.trim() && !!f.tipoContratto && !!f.identificativoContratto.trim()
+        && f.canoneLocazioneAnnuo != null && f.canoneLocazioneAnnuo >= 0 && !!f.dataStipula && !!f.dataDecorrenza && !!f.dataScadenza);
+
+  const handleClose = () => onClose();
+
+  const handleSave = () => {
+    const stato = f.dataScadenza && f.dataScadenza.isBefore(dayjs(), 'day') ? 'Scaduta' : 'Attiva';
+    if (isConcessione) {
+      onSave('concessione', {
+        id: 'conc-' + Date.now(),
+        tipologia: isV2 ? undefined : f.tipoConcessione,
+        enteEmittente: f.enteEmittente.trim(),
+        tipoDocumento: f.tipoDocumento,
+        identificativoDocumento: f.idDocumento.trim(),
+        // v2 — Numeri Utenza vive sull'Impianto ora, vista derivata (nota 'concessione-campi-estesi').
+        numeriUtenze: isV2 ? [] : f.utenze.map(u => u.numero.trim()),
+        dataStipula: f.dataStipula.format('DD/MM/YYYY'),
+        dataDecorrenza: f.dataDecorrenza ? f.dataDecorrenza.format('DD/MM/YYYY') : undefined,
+        dataScadenza: f.dataScadenza.format('DD/MM/YYYY'),
+        totaleCanone: isV2 ? (Number(f.canoneConcessorio) || 0) : f.utenze.reduce((s, u) => s + (Number(u.canone) || 0), 0),
+        stato, promemoria: f.promemoria,
+        giorniPreavviso: PROMEMORIA_GIORNI[f.promemoria] ?? null, statoOverride: null,
+        modalitaAttribuzione: f.modalitaAttribuzione,
+        riferimentoBando: f.riferimentoBando.trim(),
+        enteBanditore: f.enteBanditore.trim(),
+        dataAggiudicazione: f.dataAggiudicazione ? f.dataAggiudicazione.format('DD/MM/YYYY') : null,
+        lotto: f.lotto.trim(),
+        noteBando: f.noteBando.trim(),
+        ubicazione: f.ubicazione.trim(),
+        superficieConcessaMq: f.superficieConcessaMq,
+      });
+    } else if (isAutorizzazione) {
+      onSave('autorizzazione', {
+        id: 'aut-' + Date.now(),
+        // v2 — tipologia (vecchio enum, solo V1) vs tipologiaV2 (nuovo enum a 7 valori, nota
+        // 'autorizzazione-tipologia-overhaul'): campi paralleli, mai lo stesso valore.
+        tipologia: isV2 ? undefined : f.tipoAutorizzazione,
+        tipologiaV2: isV2 ? f.tipoAutorizzazione : undefined,
+        enteEmittente: f.enteEmittente.trim(),
+        identificativoDocumento: f.numeroProtocollo.trim(),
+        dataStipula: f.dataStipula.format('DD/MM/YYYY'),
+        dataDecorrenza: f.dataDecorrenza ? f.dataDecorrenza.format('DD/MM/YYYY') : undefined,
+        dataScadenza: f.dataScadenza.format('DD/MM/YYYY'),
+        // v2 — CUP non è più un valore singolo sull'Autorizzazione: vive per riga in
+        // impiantiAutorizzati (Tab 2, nota 'autorizzazione-impianti-tab-dedicata'). Il campo
+        // `cup` a livello di record resta solo per V1 (form a pannello unico, invariato).
+        cup: isV2 ? 0 : (Number(f.cup) || 0),
+        stato, promemoria: f.promemoria,
+        giorniPreavviso: PROMEMORIA_GIORNI[f.promemoria] ?? null, statoOverride: null,
+        includeConcessioneSuoloPubblico: isEsposizionePubblicitaria && f.includeConcessioneSuoloPubblico,
+        // v2 — attoProvenienzaId è l'opposto di includeConcessioneSuoloPubblico, non un suo
+        // figlio: si salva SOLO quando il check è spento (nota 'autorizzazione-atto-provenienza-scollegato').
+        attoProvenienzaId: isEsposizionePubblicitaria && !f.includeConcessioneSuoloPubblico ? f.attoProvenienzaId : null,
+        // v2 — Tab 2: ogni riga è un impianto con il proprio codice cimasa e il proprio CUP.
+        // spaziCollegati si popola qui stesso dagli impianti scelti in Tab 2, così "Spazi
+        // collegati" nel dettaglio li mostra subito — "Collega Spazi" resta comunque
+        // disponibile dopo il salvataggio per aggiungerne altri senza cimasa/CUP dedicati.
+        impiantiAutorizzati: isV2 ? f.impiantiAutorizzati.map(r => ({ impiantoId: r.impiantoId, codiceAutorizzazione: r.codiceAutorizzazione.trim(), cup: Number(r.cup) || 0 })) : [],
+        spaziCollegati: isV2 ? f.impiantiAutorizzati.map(r => MOCK_SPAZI.find(s => s.id === r.impiantoId)).filter(Boolean) : [],
+      });
+    } else {
+      onSave('contratto', {
+        id: 'contr-' + Date.now(),
+        proprietarioLocatore: f.proprietarioLocatore.trim(),
+        tipoContratto: f.tipoContratto,
+        identificativoContratto: f.identificativoContratto.trim(),
+        canoneLocazioneAnnuo: Number(f.canoneLocazioneAnnuo) || 0,
+        dataStipula: f.dataStipula.format('DD/MM/YYYY'),
+        dataDecorrenza: f.dataDecorrenza ? f.dataDecorrenza.format('DD/MM/YYYY') : undefined,
+        dataScadenza: f.dataScadenza.format('DD/MM/YYYY'),
+        foglio: f.foglio.trim(),
+        particella: f.particella.trim(),
+        subalterno: f.subalterno.trim(),
+        indirizzo: f.indirizzo.trim(),
+        stato, promemoria: f.promemoria,
+        giorniPreavviso: PROMEMORIA_GIORNI[f.promemoria] ?? null, statoOverride: null,
+      });
+    }
+  };
+
+  const datePreset = [{ label: 'Oggi', value: dayjs() }];
+
+  // Solo per l'handoff: Select/DatePicker AntD non rispondono a click sintetici
+  // (serve un click reale del sistema operativo), quindi il tour non può
+  // "compilarli" via JS — esponiamo i setter React direttamente, sempre
+  // aggiornati ad ogni render (nessun array di dipendenze).
+  React.useEffect(() => {
+    if (!open) { delete window.__ghfPermitForm; return; }
+    window.__ghfPermitForm = {
+      fillConcessioneExample: () => setF(prev => ({
+        ...prev,
+        tipoConcessione: prev.tipoConcessione || 'Pubblico',
+        enteEmittente: prev.enteEmittente || 'Comune di Marsala',
+        tipoDocumento: prev.tipoDocumento || (isV2 ? 'Concessione Suolo Pubblico' : 'Delibera'),
+        idDocumento: prev.idDocumento || 'CONC-2026-041',
+        dataStipula: prev.dataStipula || dayjs(),
+        dataDecorrenza: prev.dataDecorrenza || prev.dataStipula || dayjs(),
+        dataScadenza: prev.dataScadenza || dayjs().add(5, 'year'),
+        utenze: prev.utenze.length ? prev.utenze : [{ numero: 'UT-11002', canone: 1450 }],
+        canoneConcessorio: prev.canoneConcessorio != null ? prev.canoneConcessorio : 1450,
+        modalitaAttribuzione: prev.modalitaAttribuzione || 'Affidamento diretto',
+      })),
+      fillAutorizzazioneExample: () => setF(prev => ({
+        ...prev,
+        tipoAutorizzazione: prev.tipoAutorizzazione || (isV2 ? TIPO_AUTORIZZAZIONE_ESPOSIZIONE : 'Comunale'),
+        enteEmittente: prev.enteEmittente || 'Comune di Marsala',
+        numeroProtocollo: prev.numeroProtocollo || 'Prot. 4021/2026',
+        dataStipula: prev.dataStipula || dayjs(),
+        dataDecorrenza: prev.dataDecorrenza || prev.dataStipula || dayjs(),
+        dataScadenza: prev.dataScadenza || dayjs().add(3, 'year'),
+        cup: prev.cup != null ? prev.cup : 540,
+        // v2 — Tab 2: precompila una riga di esempio invece del vecchio CUP singolo.
+        impiantiAutorizzati: isV2 && prev.impiantiAutorizzati.length === 0
+          ? [{ impiantoId: MOCK_SPAZI[0].id, codiceAutorizzazione: 'CIM-3015', cup: 540 }]
+          : prev.impiantiAutorizzati,
+      })),
+      fillContrattoExample: () => setF(prev => ({
+        ...prev,
+        proprietarioLocatore: prev.proprietarioLocatore || 'Immobiliare Esempio Srl',
+        tipoContratto: prev.tipoContratto || 'Locazione',
+        identificativoContratto: prev.identificativoContratto || 'LOC-2026-003',
+        canoneLocazioneAnnuo: prev.canoneLocazioneAnnuo != null ? prev.canoneLocazioneAnnuo : 1800,
+        dataStipula: prev.dataStipula || dayjs(),
+        dataDecorrenza: prev.dataDecorrenza || prev.dataStipula || dayjs(),
+        dataScadenza: prev.dataScadenza || dayjs().add(3, 'year'),
+      })),
+    };
+    return () => { delete window.__ghfPermitForm; };
+  });
+
+  const concessioneOpts = (concessioniList || []).map(c => ({ value: c.id, label: `${c.identificativoDocumento} — ${c.enteEmittente}` }));
+  const autorizzazioneOpts = (autorizzazioniList || []).map(a => ({ value: a.id, label: `${a.identificativoDocumento} — ${a.enteEmittente}` }));
+  // v2 — Atto di provenienza: raggruppa Concessioni e Contratti Privati nello stesso Select
+  // (nota 'autorizzazione-atto-provenienza-scollegato') — il tipo si distingue dal prefisso
+  // dell'id ('conc-'/'contr-'), niente campo separato da tenere sincronizzato.
+  const attoProvenienzaOpts = [
+    { label: 'Concessioni', options: concessioneOpts },
+    { label: 'Contratti Privati', options: (contrattiList || []).map(c => ({ value: c.id, label: `${c.identificativoContratto} — ${c.proprietarioLocatore}` })) },
+  ];
+  // v2 — Ente Emittente: fisso su Concessione (solo pubblica), filtrato dal Tipo Autorizzazione
+  // scelto su Autorizzazione — disabilitato finché il tipo non è selezionato.
+  // v2-only: ENTI_PER_TIPO_AUTORIZZAZIONE è keyed sul nuovo enum tipologia (nota
+  // 'autorizzazione-tipologia-overhaul') — in V1 'Comunale'/'Genio Civile' non sono chiavi
+  // valide lì, quindi il lookup va fatto SOLO isV2 (altrimenti crasha su .map di undefined).
+  const entiEmittenteOptions = isConcessione
+    ? MOCK_ENTI_EMITTENTI_CONCESSIONE
+    : (isV2 && f.tipoAutorizzazione ? toEntiOptions(ENTI_PER_TIPO_AUTORIZZAZIONE[f.tipoAutorizzazione] || []) : []);
+  // v2 — Autorizzazione: senza Tipo Autorizzazione esplicitato, tutti i campi sottostanti
+  // (Ente Emittente in poi) restano nascosti, non solo disabilitati — evita di mostrare dati
+  // (enti, date, promemoria) che non hanno ancora senso senza sapere di che autorizzazione si tratta.
+  const showAutorizzazioneRest = !isV2 || !isAutorizzazione || !!f.tipoAutorizzazione;
+  // v2 — Tab 2 "Impianti autorizzati": esclude dal Select gli impianti già in possesso di
+  // un'Autorizzazione dello stesso Tipo scelto in Tab 1 (nota
+  // 'autorizzazione-impianti-tab-dedicata') — evita di duplicare la stessa autorizzazione
+  // sullo stesso impianto. Ricavato da impiantiAutorizzati (non da spaziCollegati, che è la
+  // vista derivata più generale "Collega Spazi" e non è specifica del Tipo).
+  const impiantiGiaAutorizzatiPerTipo = useMemo(() => new Set(
+    (autorizzazioniList || [])
+      .filter(a => a.tipologiaV2 === f.tipoAutorizzazione)
+      .flatMap(a => (a.impiantiAutorizzati || []).map(r => r.impiantoId))
+  ), [autorizzazioniList, f.tipoAutorizzazione]);
+  const impiantoOptsFor = (currentImpiantoId) => MOCK_SPAZI
+    .filter(s => !impiantiGiaAutorizzatiPerTipo.has(s.id))
+    .filter(s => s.id === currentImpiantoId || !f.impiantiAutorizzati.some(r => r.impiantoId === s.id))
+    .map(s => ({ value: s.id, label: `${s.id} — ${s.indirizzo}` }));
+
+  const drawerTitle = React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+    React.createElement(DiscardCloseIcon, { dirty, onDiscard: handleClose }), title);
+  const drawerExtra = React.createElement(Space, null,
+    React.createElement(DiscardButton, { dirty, onDiscard: handleClose }, 'Annulla'),
+    React.createElement(Button, {
+      id: 'grav-tour-permit-save-btn',
+      type: 'primary', icon: React.createElement(SaveOutlined),
+      disabled: !canSave, onClick: handleSave,
+    }, 'Salva'),
+  );
+
+  // v2 — Autorizzazione: drawer con navigazione verticale a sezioni (LAYOUT.md §3.9, nota
+  // 'autorizzazione-impianti-tab-dedicata') via il componente condiviso GravitySectionDrawer —
+  // non più un AntD <Tabs> orizzontale interno al Drawer semplice: sostituisce con il pattern
+  // "Nuovo Impianto" (inventory-systems), ora estratto in prototype/_shared/section-drawer.js
+  // e riusabile da qualunque drawer Gravity che ne ha bisogno.
+  if (isAutorizzazione && isV2) {
+    return React.createElement(window.GravitySectionDrawer, {
+      open, title: drawerTitle, extra: drawerExtra, dirty, onClose: handleClose, width: '90%',
+      activeKey: activeTab, onActiveKeyChange: setActiveTab,
+      sections: [
+        {
+          key: 'info', label: 'Informazioni', title: 'Informazioni',
+          description: 'Dati generali dell\'atto e, se previsto per il tipo scelto, la sua provenienza.',
+          children: [
+            // v2 — Tipo Autorizzazione separato dal corpo dei campi richiesti per quel tipo
+            // (area propria, sempre visibile): finché non è scelto, "Dati dell'atto" resta
+            // un'area distinta e nascosta, non un elenco di campi che appaiono uno alla volta
+            // dentro la stessa card del selettore.
+            React.createElement(window.GravityFormArea, { key: 'tipo' },
+              React.createElement(Form, { layout: 'vertical', component: 'div' },
+                React.createElement(Form.Item, {
+                  className: 'grav-permit-tipo-field',
+                  label: React.createElement('span', null,
+                    tipLabel('Tipo Autorizzazione', 'Non solo l\'esposizione pubblicitaria: qualunque autorizzazione necessaria per l\'impianto — comunale, viabilità, paesaggistica, edilizia, strutturale, allaccio elettrico, o inquinamento luminoso (DOOH). Il CUP (canone unico patrimoniale) si applica solo a questa categoria: le altre sono già in elenco ma non ancora attive in questo prototipo.'),
+                    React.createElement(HandoffDesignNote, { id: 'ente-emittente-filtrato-per-tipo', placement: 'right' })),
+                  required: true, style: { marginBottom: 0 },
+                },
+                  React.createElement(Select, {
+                    value: f.tipoAutorizzazione, onChange: onTipoAutorizzazioneChange,
+                    options: TIPO_AUTORIZZAZIONE_OPTS_V2, placeholder: 'Seleziona', style: { width: '100%' },
+                    optionRender: opt => opt.data.disabledReason
+                      ? React.createElement(Tooltip, { title: opt.data.disabledReason, placement: 'left' }, opt.label)
+                      : opt.label,
+                  }),
+                ),
+              ),
+            ),
+            showAutorizzazioneRest && React.createElement(window.GravityFormArea, { key: 'dati', title: 'Dati dell\'atto' },
+              React.createElement(Form, { layout: 'vertical', component: 'div' },
+                React.createElement(Form.Item, {
+                  label: React.createElement('span', null,
+                    tipLabel('Ente Emittente', 'L\'elenco è filtrato dal Tipo Autorizzazione scelto sopra: ogni ente competente propone solo le proprie sedi/uffici territoriali.'),
+                    React.createElement(HandoffDesignNote, { id: 'ente-emittente-crud-fornitori', placement: 'right' })),
+                  required: true, style: { marginBottom: 20 },
+                },
+                  React.createElement(Select, {
+                    value: f.enteEmittente || undefined, onChange: set('enteEmittente'),
+                    options: entiEmittenteOptions, placeholder: 'Seleziona ente emittente',
+                    style: { width: '100%' }, showSearch: true, optionFilterProp: 'label',
+                    optionRender: enteOptionRender, labelRender: enteLabelRender,
+                  }),
+                ),
+                React.createElement(Form.Item, {
+                  className: 'grav-permit-protocollo-field',
+                  label: tipLabel('Numero di Protocollo', 'Il numero con cui l\'ente emittente ha registrato l\'atto nel proprio protocollo — usalo per rintracciarlo con l\'ente.'),
+                  required: true, style: { marginBottom: 20 },
+                },
+                  React.createElement(Input, { value: f.numeroProtocollo, onChange: e => set('numeroProtocollo')(e.target.value), placeholder: 'Es. Prot. 12345/2026' }),
+                ),
+                React.createElement(Row, { gutter: 16 },
+                  React.createElement(Col, { span: 8 },
+                    React.createElement(Form.Item, {
+                      label: tipLabel('Data Stipula', 'La data in cui l\'atto è stato firmato dall\'ente emittente — vedi Data Decorrenza per quando diventa effettivo.'),
+                      required: true, style: { marginBottom: 20 },
+                    },
+                      React.createElement(DatePicker, {
+                        value: f.dataStipula, onChange: set('dataStipula'), style: { width: '100%' },
+                        format: 'DD/MM/YYYY', placeholder: 'gg/mm/aaaa', presets: datePreset,
+                      }),
+                    ),
+                  ),
+                  React.createElement(Col, { span: 8 }, dataDecorrenzaField(f.dataDecorrenza, set('dataDecorrenza'), f.dataStipula)),
+                  React.createElement(Col, { span: 8 },
+                    React.createElement(Form.Item, {
+                      label: tipLabel('Data Scadenza', 'Da quando l\'Autorizzazione non è più valida — oltre questa data va rinnovata.'),
+                      required: true, style: { marginBottom: 20 },
+                    },
+                      React.createElement(DatePicker, {
+                        value: f.dataScadenza, onChange: set('dataScadenza'), style: { width: '100%' },
+                        format: 'DD/MM/YYYY', placeholder: 'gg/mm/aaaa', presets: datePreset,
+                        disabledDate: d => f.dataStipula && d.isBefore(f.dataStipula, 'day'),
+                      }),
+                    ),
+                  ),
+                ),
+                promemoriaField(f.promemoria, set('promemoria'), f.dataScadenza, PROMEMORIA_OPTS_V2),
+              ),
+            ),
+            isEsposizionePubblicitaria && React.createElement(window.GravityFormArea, {
+              key: 'provenienza', title: 'Provenienza',
+              description: 'Il diritto di occupare il suolo su cui si trova l\'impianto: incluso in questo stesso atto, oppure ereditato da un atto già registrato a sistema.',
+            },
+              React.createElement(Form, { layout: 'vertical', component: 'div' },
+                React.createElement(Form.Item, { valuePropName: 'checked', style: { marginBottom: 16 } },
+                  React.createElement(Checkbox, { checked: f.includeConcessioneSuoloPubblico, onChange: e => onIncludeSuoloChange(e.target.checked) },
+                    tipLabel('Include automaticamente concessione di suolo pubblico', 'Attiva quando l\'Autorizzazione comprende automaticamente l\'effetto di una concessione di suolo pubblico, senza un atto di Concessione separato — tipico delle autorizzazioni con validità triennale in presenza di occupazione di suolo.')),
+                ),
+                (() => {
+                  const disabled = f.includeConcessioneSuoloPubblico;
+                  const select = React.createElement(Select, {
+                    value: f.attoProvenienzaId, onChange: set('attoProvenienzaId'),
+                    options: attoProvenienzaOpts, placeholder: 'Seleziona', style: { width: '100%' },
+                    showSearch: true, optionFilterProp: 'label', allowClear: true, disabled,
+                  });
+                  return React.createElement(Form.Item, {
+                    label: React.createElement('span', null, tipLabel('Concessione o Contratto di riferimento', 'L\'atto — Concessione o Contratto Privato — che ha dato il bene su cui insiste l\'impianto poi autorizzato.'), ' ',
+                      React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)'),
+                      React.createElement(HandoffDesignNote, { id: 'autorizzazione-atto-provenienza-scollegato', placement: 'right' })),
+                    style: { marginBottom: 0 },
+                  },
+                    disabled
+                      ? React.createElement(Tooltip, { title: 'Non disponibile: l\'Autorizzazione include già automaticamente una concessione di suolo pubblico.' },
+                          React.createElement('span', { style: { display: 'inline-block', width: '100%' } }, select))
+                      : select,
+                  );
+                })(),
+              ),
+            ),
+          ],
+        },
+        {
+          key: 'impianti', label: 'Impianti autorizzati', title: 'Impianti autorizzati',
+          description: [
+            'Ogni impianto coperto da questa Autorizzazione, con il proprio codice cimasa e il proprio CUP. È possibile compilare cimasa e/o CUP anche senza aver ancora collegato l\'impianto: se non esiste in anagrafica, va creato dal pannello ',
+            React.createElement('b', { key: 'imp' }, 'Impianti'),
+            ' dentro ',
+            React.createElement('b', { key: 'inv' }, 'Inventario'),
+            '.',
+          ],
+          disabled: !f.tipoAutorizzazione,
+          // v2 — deprecata la logica "Impianti coperti" (Singolo/Più impianti + Codice
+          // Autorizzazione singolo + allegato/OCR + CUP unico) a favore di un editor a N righe,
+          // una per impianto (nota 'autorizzazione-impianti-tab-dedicata'). Impianti già
+          // autorizzati per lo stesso Tipo sono esclusi dal Select (impiantoOptsFor).
+          children: React.createElement(window.GravityFormArea, { title: 'Elenco impianti', extra:
+            React.createElement(HandoffDesignNote, { id: 'autorizzazione-impianti-tab-dedicata', placement: 'left' }),
+          },
+            React.createElement('div', { className: 'grav-autorizzazione-impianti-tab' },
+              React.createElement(Row, { gutter: 12, style: { marginBottom: 8 } },
+                React.createElement(Col, { span: 9 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } }, 'Impianto')),
+                React.createElement(Col, { span: 7 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } },
+                  tipLabel('Codice Autorizzazione per cimasa', 'Il codice interno che identifica la cimasa (la struttura del cartello) di questo impianto — facoltativo, assegnabile anche in un secondo momento.'))),
+                React.createElement(Col, { span: 5 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } },
+                  tipLabel('CUP', 'Canone Unico Patrimoniale dovuto per questo impianto in questa Autorizzazione — la somma di tutte le righe è il CUP totale mostrato nel dettaglio.'))),
+              ),
+              f.impiantiAutorizzati.length === 0
+                ? React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', marginBottom: 16 } }, 'Nessun impianto collegato.')
+                : f.impiantiAutorizzati.map((r, i) => React.createElement(Row, { key: i, gutter: 12, style: { marginBottom: 12 } },
+                    React.createElement(Col, { span: 9 },
+                      React.createElement(Select, {
+                        value: r.impiantoId, onChange: v => updateImpiantoRow(i, { impiantoId: v }),
+                        options: impiantoOptsFor(r.impiantoId), placeholder: 'Seleziona impianto', style: { width: '100%' },
+                        showSearch: true, optionFilterProp: 'label',
+                      }),
+                    ),
+                    React.createElement(Col, { span: 7 },
+                      React.createElement(Input, { value: r.codiceAutorizzazione, onChange: e => updateImpiantoRow(i, { codiceAutorizzazione: e.target.value }), placeholder: 'Es. CIM-3015' }),
+                    ),
+                    React.createElement(Col, { span: 5 },
+                      React.createElement(InputNumber, { value: r.cup, onChange: v => updateImpiantoRow(i, { cup: v }), min: 0, style: { width: '100%' }, addonAfter: '€/anno', placeholder: '0,00' }),
+                    ),
+                    React.createElement(Col, { span: 3, style: { display: 'flex', alignItems: 'flex-start' } },
+                      React.createElement(Button, { type: 'link', danger: true, onClick: () => removeImpiantoRow(i) }, 'Rimuovi'),
+                    ),
+                  )),
+              React.createElement(Button, { type: 'dashed', icon: React.createElement(PlusOutlined), onClick: addImpiantoRow }, 'Aggiungi impianto'),
+            ),
+          ),
+        },
+      ],
+    });
+  }
+
+  return React.createElement(Drawer, {
+    title: drawerTitle, extra: drawerExtra,
+    placement: 'right', width: 640, destroyOnClose: true,
+    closable: false, maskClosable: !dirty, keyboard: !dirty,
+    onClose: handleClose, open,
+    styles: { body: { padding: 24 } },
+  },
+    isContratto
+      ? React.createElement(Form, { layout: 'vertical', component: 'div' },
+          React.createElement(Row, { className: 'grav-contratto-proprietario-row', gutter: 16 },
+            React.createElement(Col, { span: 16 },
+              React.createElement(Form.Item, {
+                label: tipLabel('Proprietario/Locatore', 'Il soggetto privato proprietario dello spazio, con cui si stipula il contratto — non un ente pubblico.'),
+                required: true, style: { marginBottom: 20 },
+              },
+                React.createElement(Input, { value: f.proprietarioLocatore, onChange: e => set('proprietarioLocatore')(e.target.value), placeholder: 'Es. Immobiliare San Lorenzo Srl' }),
+              ),
+            ),
+            React.createElement(Col, { span: 8 },
+              React.createElement(Form.Item, {
+                label: tipLabel('Tipo Contratto', 'Locazione (affitto), Comodato (uso gratuito) o un altro tipo di accordo privato.'),
+                required: true, style: { marginBottom: 20 },
+              },
+                React.createElement(Select, {
+                  value: f.tipoContratto, onChange: set('tipoContratto'),
+                  options: TIPO_CONTRATTO_OPTS, placeholder: 'Seleziona', style: { width: '100%' },
+                }),
+              ),
+            ),
+          ),
+          React.createElement(Row, { gutter: 16 },
+            React.createElement(Col, { span: 12 },
+              React.createElement(Form.Item, {
+                label: tipLabel('Identificativo Contratto', 'Codice o numero con cui il contratto è identificato internamente.'),
+                required: true, style: { marginBottom: 20 },
+              },
+                React.createElement(Input, { value: f.identificativoContratto, onChange: e => set('identificativoContratto')(e.target.value), placeholder: 'Es. LOC-2026-003' }),
+              ),
+            ),
+            React.createElement(Col, { span: 12 },
+              React.createElement(Form.Item, {
+                label: React.createElement('span', null, tipLabel('Canone Locazione', 'L\'affitto privato dovuto al proprietario — concettualmente distinto dal canone patrimoniale pubblico, che è una tassa.'), ' ',
+                  React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(affitto privato, non canone patrimoniale)')),
+                required: true, style: { marginBottom: 20 },
+              },
+                React.createElement(InputNumber, { value: f.canoneLocazioneAnnuo, onChange: set('canoneLocazioneAnnuo'), min: 0, style: { width: '100%' }, addonAfter: '€/anno', placeholder: '0,00' }),
+              ),
+            ),
+          ),
+          React.createElement(Row, { gutter: 16 },
+            React.createElement(Col, { span: 8 },
+              React.createElement(Form.Item, { label: 'Data Stipula', required: true, style: { marginBottom: 20 } },
+                React.createElement(DatePicker, {
+                  value: f.dataStipula, onChange: set('dataStipula'), style: { width: '100%' },
+                  format: 'DD/MM/YYYY', placeholder: 'gg/mm/aaaa', presets: datePreset,
+                }),
+              ),
+            ),
+            React.createElement(Col, { span: 8 }, dataDecorrenzaField(f.dataDecorrenza, set('dataDecorrenza'), f.dataStipula)),
+            React.createElement(Col, { span: 8 },
+              React.createElement(Form.Item, { label: 'Data Scadenza', required: true, style: { marginBottom: 20 } },
+                React.createElement(DatePicker, {
+                  value: f.dataScadenza, onChange: set('dataScadenza'), style: { width: '100%' },
+                  format: 'DD/MM/YYYY', placeholder: 'gg/mm/aaaa', presets: datePreset,
+                  disabledDate: d => f.dataStipula && d.isBefore(f.dataStipula, 'day'),
+                }),
+              ),
+            ),
+          ),
+
+          promemoriaField(f.promemoria, set('promemoria'), f.dataScadenza, PROMEMORIA_OPTS_V2),
+
+          React.createElement(Form.Item, {
+            label: tipLabel('Indirizzo', 'Ubicazione dello spazio oggetto del contratto.'),
+            style: { marginBottom: 20 },
+          },
+            React.createElement(Input, { value: f.indirizzo, onChange: e => set('indirizzo')(e.target.value), placeholder: 'Es. Via Roma 45, Palermo' }),
+          ),
+
+          React.createElement('div', {
+            className: 'grav-contratto-catastale-section',
+            style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 12, display: 'flex', alignItems: 'center' },
+          }, tipLabel('Riferimento Catastale', 'Coordinate catastali dell\'unità immobiliare — utili anche come riferimento interno che il proprietario può usare per identificare quello spazio.'), ' ',
+            React.createElement('span', { style: { fontWeight: 400, fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
+          React.createElement(Row, { gutter: 16, style: { marginBottom: 4 } },
+            React.createElement(Col, { span: 8 },
+              React.createElement(Form.Item, { label: 'Foglio', style: { marginBottom: 0 } },
+                React.createElement(Input, { value: f.foglio, onChange: e => set('foglio')(e.target.value) }),
+              ),
+            ),
+            React.createElement(Col, { span: 8 },
+              React.createElement(Form.Item, { label: 'Particella', style: { marginBottom: 0 } },
+                React.createElement(Input, { value: f.particella, onChange: e => set('particella')(e.target.value) }),
+              ),
+            ),
+            React.createElement(Col, { span: 8 },
+              React.createElement(Form.Item, { label: 'Subalterno', style: { marginBottom: 0 } },
+                React.createElement(Input, { value: f.subalterno, onChange: e => set('subalterno')(e.target.value) }),
+              ),
+            ),
+          ),
+          React.createElement('div', {
+            className: 'grav-contratto-vista-derivata-hint',
+            style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' },
+          },
+            'Le Autorizzazioni collegate a questo Contratto non si impostano qui: si deducono dagli impianti collegati in comune (vedi "Collega Spazi" nel dettaglio, dopo il salvataggio).',
+            React.createElement(HandoffDesignNote, { id: 'contratto-vista-derivata', placement: 'right' })),
+        )
+      : React.createElement(Form, { layout: 'vertical', component: 'div' },
+      isConcessione
+        ? (!isV2 && React.createElement(Form.Item, { className: 'grav-permit-tipo-field', label: 'Tipo Concessione', required: true, style: { marginBottom: 20 } },
+            React.createElement(Radio.Group, {
+              value: f.tipoConcessione, onChange: e => set('tipoConcessione')(e.target.value),
+              options: [{ value: 'Pubblico', label: 'Pubblico' }, { value: 'Privato', label: 'Privato' }],
+            }),
+          ))
+        : React.createElement(Form.Item, {
+            className: 'grav-permit-tipo-field',
+            label: isV2
+              ? React.createElement('span', null,
+                  tipLabel('Tipo Autorizzazione', 'Non solo l\'esposizione pubblicitaria: qualunque autorizzazione necessaria per l\'impianto — comunale, viabilità, paesaggistica, edilizia, strutturale, allaccio elettrico, o inquinamento luminoso (DOOH). Il CUP si applica solo al primo tipo.'),
+                  React.createElement(HandoffDesignNote, { id: 'ente-emittente-filtrato-per-tipo', placement: 'right' }))
+              : 'Tipo Autorizzazione',
+            required: true, style: { marginBottom: 20 },
+          },
+            React.createElement(Select, {
+              value: f.tipoAutorizzazione, onChange: isV2 ? onTipoAutorizzazioneChange : set('tipoAutorizzazione'),
+              options: isV2 ? TIPO_AUTORIZZAZIONE_OPTS_V2 : TIPO_AUTORIZZAZIONE_OPTS, placeholder: 'Seleziona', style: { width: '100%' },
+              // v2 — opzioni disabilitate con motivo in hover (form-patterns.md §4, nota
+              // 'ente-emittente-filtrato-per-tipo'): le opzioni AntD disabilitate non
+              // bloccano gli eventi mouse, il Tooltip funziona senza hack aggiuntivi.
+              optionRender: isV2 ? (opt => opt.data.disabledReason
+                ? React.createElement(Tooltip, { title: opt.data.disabledReason, placement: 'left' }, opt.label)
+                : opt.label) : undefined,
+            }),
+          ),
+
+      // v2 — Autorizzazione: da qui in poi (Ente Emittente, Numero di Protocollo, date,
+      // Promemoria) tutto resta nascosto finché il Tipo Autorizzazione non è scelto — vedi
+      // showAutorizzazioneRest. Per Concessione/Contratto è sempre true, nessun impatto.
+      showAutorizzazioneRest && React.createElement(Row, { className: 'grav-permit-ente-row', gutter: 16 },
+        React.createElement(Col, { span: isV2 ? 24 : 16 },
+          React.createElement(Form.Item, {
+            label: isV2
+              ? React.createElement('span', null,
+                  isAutorizzazione
+                    ? tipLabel('Ente Emittente', 'L\'elenco è filtrato dal Tipo Autorizzazione scelto sopra: ogni ente competente propone solo le proprie sedi/uffici territoriali.')
+                    : 'Ente Emittente',
+                  React.createElement(HandoffDesignNote, { id: 'ente-emittente-crud-fornitori', placement: 'right' }))
+              : 'Ente Emittente',
+            required: true, style: { marginBottom: 20 },
+          },
+            isV2
+              ? React.createElement(Select, {
+                  value: f.enteEmittente || undefined, onChange: set('enteEmittente'),
+                  options: entiEmittenteOptions, placeholder: 'Seleziona ente emittente',
+                  style: { width: '100%' }, showSearch: true, optionFilterProp: 'label',
+                  optionRender: enteOptionRender, labelRender: enteLabelRender,
+                })
+              : React.createElement(Input, { value: f.enteEmittente, onChange: e => set('enteEmittente')(e.target.value), placeholder: 'Es. Comune di Palermo' }),
+          ),
+        ),
+        !isV2 && React.createElement(Col, { span: 8 },
+          React.createElement(Form.Item, {
+            label: React.createElement('span', null, 'Partita IVA ',
+              React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
+            style: { marginBottom: 20 },
+          },
+            React.createElement(Input, { value: f.partitaIva, onChange: e => set('partitaIva')(e.target.value), placeholder: 'Es. 12345678901' }),
+          ),
+        ),
+      ),
+
+      showAutorizzazioneRest && (isConcessione
+        ? React.createElement(Row, { className: 'grav-permit-doc-row', gutter: 16 },
+            React.createElement(Col, { span: 12 },
+              React.createElement(Form.Item, {
+                label: isV2
+                  ? React.createElement('span', null, 'Tipo Documento', React.createElement(HandoffDesignNote, { id: 'concessione-solo-pubblica', placement: 'right' }))
+                  : 'Tipo Documento',
+                required: true, style: { marginBottom: 20 },
+              },
+                React.createElement(Select, {
+                  value: f.tipoDocumento, onChange: set('tipoDocumento'),
+                  options: isV2 ? TIPO_DOCUMENTO_CONCESSIONE_OPTS_V2 : TIPO_DOCUMENTO_CONCESSIONE_OPTS, placeholder: 'Seleziona', style: { width: '100%' },
+                }),
+              ),
+            ),
+            React.createElement(Col, { span: 12 },
+              React.createElement(Form.Item, { label: 'ID Documento', required: true, style: { marginBottom: 20 } },
+                React.createElement(Input, { value: f.idDocumento, onChange: e => set('idDocumento')(e.target.value), placeholder: 'Es. CONC-2026-014' }),
+              ),
+            ),
+          )
+        : React.createElement(Form.Item, { className: 'grav-permit-protocollo-field', label: 'Numero di Protocollo', required: true, style: { marginBottom: 20 } },
+            React.createElement(Input, { value: f.numeroProtocollo, onChange: e => set('numeroProtocollo')(e.target.value), placeholder: 'Es. Prot. 12345/2026' }),
+          )),
+
+      // v2 — Concessione: campi estesi (nota 'concessione-campi-estesi'). Il canone
+      // concessorio è ora un importo diretto: sostituisce la somma per riga di "Numeri
+      // Utenza" (rimossa in v2, l'utenza vive sull'Impianto — vista derivata dagli spazi
+      // collegati, vedi Spazi collegati nel dettaglio).
+      isConcessione && isV2 && React.createElement(Row, { className: 'grav-concessione-estesi-row', gutter: 16 },
+        React.createElement(Col, { span: 12 },
+          React.createElement(Form.Item, {
+            label: tipLabel('Ubicazione', 'Indirizzo di riferimento dell\'area oggetto della Concessione.'),
+            style: { marginBottom: 20 },
+          },
+            React.createElement(Input, { value: f.ubicazione, onChange: e => set('ubicazione')(e.target.value), placeholder: 'Es. Viale Regione Siciliana, Palermo' }),
+          ),
+        ),
+        React.createElement(Col, { span: 6 },
+          React.createElement(Form.Item, {
+            label: tipLabel('Superficie', 'Superficie dell\'area concessa, in metri quadrati.'),
+            style: { marginBottom: 20 },
+          },
+            React.createElement(InputNumber, { value: f.superficieConcessaMq, onChange: set('superficieConcessaMq'), min: 0, style: { width: '100%' }, addonAfter: 'mq' }),
+          ),
+        ),
+        React.createElement(Col, { span: 6 },
+          React.createElement(Form.Item, {
+            label: tipLabel('Canone Concessorio', 'Importo annuo dovuto per la Concessione — sostituisce la somma per riga di Numeri Utenza (v1).'),
+            required: true, style: { marginBottom: 20 },
+          },
+            React.createElement(InputNumber, { value: f.canoneConcessorio, onChange: set('canoneConcessorio'), min: 0, style: { width: '100%' }, addonAfter: '€/anno', placeholder: '0,00' }),
+          ),
+        ),
+      ),
+
+      isConcessione && isV2 && React.createElement('div', { className: 'grav-concessione-provenienza-section', style: { marginBottom: 20 } },
+        React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 12 } }, 'Provenienza'),
+        React.createElement(Form.Item, {
+          label: tipLabel('Modalità di attribuzione', 'Come la Concessione è stata attribuita: bando pubblico, affidamento diretto senza gara, oppure rinnovo di una concessione già in essere.'),
+          required: true, style: { marginBottom: 16 },
+        },
+          React.createElement(Select, {
+            value: f.modalitaAttribuzione, onChange: onModalitaAttribuzioneChange,
+            options: MODALITA_ATTRIBUZIONE_OPTS, placeholder: 'Seleziona', style: { width: '100%' },
+          }),
+        ),
+        f.modalitaAttribuzione === 'Bando pubblico' && React.createElement(React.Fragment, null,
+          React.createElement(Row, { gutter: 16 },
+            React.createElement(Col, { span: 12 },
+              React.createElement(Form.Item, {
+                label: tipLabel('Riferimento Bando', 'Identificativo o codice della gara pubblica con cui è stata aggiudicata la Concessione.'),
+                required: true, style: { marginBottom: 16 },
+              },
+                React.createElement(Input, { value: f.riferimentoBando, onChange: e => set('riferimentoBando')(e.target.value), placeholder: 'Es. GARA-PA-2026-002' }),
+              ),
+            ),
+            React.createElement(Col, { span: 12 },
+              React.createElement(Form.Item, {
+                label: tipLabel('Ente Banditore', 'L\'ente che ha pubblicato il bando — può essere diverso dall\'Ente Emittente della Concessione.'),
+                required: true, style: { marginBottom: 16 },
+              },
+                React.createElement(Input, { value: f.enteBanditore, onChange: e => set('enteBanditore')(e.target.value) }),
+              ),
+            ),
+          ),
+          React.createElement(Row, { gutter: 16 },
+            React.createElement(Col, { span: 12 },
+              React.createElement(Form.Item, {
+                label: tipLabel('Data Aggiudicazione', 'Data in cui il bando è stato aggiudicato — distinta dalla Data Stipula del contratto.'),
+                required: true, style: { marginBottom: 16 },
+              },
+                React.createElement(DatePicker, { value: f.dataAggiudicazione, onChange: set('dataAggiudicazione'), style: { width: '100%' }, format: 'DD/MM/YYYY', placeholder: 'gg/mm/aaaa' }),
+              ),
+            ),
+            React.createElement(Col, { span: 12 },
+              React.createElement(Form.Item, {
+                label: React.createElement('span', null, tipLabel('Lotto', 'Identifica il pacchetto di postazioni assegnato in gara, se il bando prevedeva una suddivisione in lotti.'), ' ',
+                  React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
+                style: { marginBottom: 16 },
+              },
+                React.createElement(Input, { value: f.lotto, onChange: e => set('lotto')(e.target.value), placeholder: 'Es. Lotto 3 — Zona Centro' }),
+              ),
+            ),
+          ),
+          React.createElement(Form.Item, {
+            label: React.createElement('span', null, tipLabel('Note Bando', 'Annotazioni libere sul procedimento di gara — es. riserve, ricorsi, condizioni particolari.'), ' ',
+              React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
+            style: { marginBottom: 0 },
+          },
+            React.createElement(Input.TextArea, { value: f.noteBando, onChange: e => set('noteBando')(e.target.value), rows: 2 }),
+          ),
+        ),
+      ),
+
+      showAutorizzazioneRest && React.createElement(Row, { gutter: 16 },
+        React.createElement(Col, { span: isV2 ? 8 : 12 },
+          React.createElement(Form.Item, { label: 'Data Stipula', required: true, style: { marginBottom: 20 } },
+            React.createElement(DatePicker, {
+              value: f.dataStipula, onChange: set('dataStipula'), style: { width: '100%' },
+              format: 'DD/MM/YYYY', placeholder: 'gg/mm/aaaa', presets: datePreset,
+            }),
+          ),
+        ),
+        isV2 && React.createElement(Col, { span: 8 }, dataDecorrenzaField(f.dataDecorrenza, set('dataDecorrenza'), f.dataStipula)),
+        React.createElement(Col, { span: isV2 ? 8 : 12 },
+          React.createElement(Form.Item, { label: 'Data Scadenza', required: true, style: { marginBottom: 20 } },
+            React.createElement(DatePicker, {
+              value: f.dataScadenza, onChange: set('dataScadenza'), style: { width: '100%' },
+              format: 'DD/MM/YYYY', placeholder: 'gg/mm/aaaa', presets: datePreset,
+              disabledDate: d => f.dataStipula && d.isBefore(f.dataStipula, 'day'),
+            }),
+          ),
+        ),
+      ),
+
+      showAutorizzazioneRest && promemoriaField(f.promemoria, set('promemoria'), f.dataScadenza, isV2 ? PROMEMORIA_OPTS_V2 : PROMEMORIA_OPTS),
+
+      // v2 — Include automaticamente concessione di suolo pubblico: subito sotto Promemoria.
+      isV2 && isEsposizionePubblicitaria && React.createElement(Form.Item, { valuePropName: 'checked', style: { marginBottom: 16 } },
+        React.createElement(Checkbox, { checked: f.includeConcessioneSuoloPubblico, onChange: e => onIncludeSuoloChange(e.target.checked) },
+          tipLabel('Include automaticamente concessione di suolo pubblico', 'Attiva quando l\'Autorizzazione comprende automaticamente l\'effetto di una concessione di suolo pubblico, senza un atto di Concessione separato — tipico delle autorizzazioni con validità triennale in presenza di occupazione di suolo.')),
+      ),
+      // v2 — Atto di provenienza: SCOLLEGATO dal check "Include automaticamente concessione
+      // di suolo pubblico" (nota 'autorizzazione-atto-provenienza-scollegato') — indicano due
+      // situazioni diverse, non un dettaglio l'uno dell'altro. Il check dice che l'atto
+      // autorizzativo include già di per sé una concessione implicita, quindi SPEGNE la
+      // possibilità di collegare Concessione/Contratto — campo sempre visibile, **disabilitato
+      // con motivo in hover** quando il check è attivo (pattern LAYOUT.md §6.2, già in uso su
+      // Promemoria), non nascosto.
+      isV2 && isEsposizionePubblicitaria && (() => {
+        const disabled = f.includeConcessioneSuoloPubblico;
+        const select = React.createElement(Select, {
+          value: f.attoProvenienzaId, onChange: set('attoProvenienzaId'),
+          options: attoProvenienzaOpts, placeholder: 'Seleziona', style: { width: '100%' },
+          showSearch: true, optionFilterProp: 'label', allowClear: true, disabled,
+        });
+        return React.createElement(Form.Item, {
+          label: React.createElement('span', null, tipLabel('Concessione o Contratto di riferimento', 'L\'atto — Concessione o Contratto Privato — che ha dato il bene su cui insiste l\'impianto poi autorizzato.'), ' ',
+            React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)'),
+            React.createElement(HandoffDesignNote, { id: 'autorizzazione-atto-provenienza-scollegato', placement: 'right' })),
+          style: { marginBottom: 20 },
+        },
+          disabled
+            ? React.createElement(Tooltip, { title: 'Non disponibile: l\'Autorizzazione include già automaticamente una concessione di suolo pubblico.' },
+                React.createElement('span', { style: { display: 'inline-block', width: '100%' } }, select))
+            : select,
+        );
+      })(),
+
+      isConcessione
+        ? (isV2
+            ? React.createElement('div', { className: 'grav-concessione-utenze-derivate-hint', style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } },
+                'I Numeri Utenza non si impostano più qui: vivono sull\'Impianto e compaiono come vista derivata tra gli "Spazi collegati", dopo il salvataggio.',
+                React.createElement(HandoffDesignNote, { id: 'concessione-campi-estesi', placement: 'right' }))
+            : React.createElement(UtenzeSection, { utenze: f.utenze, setUtenze: (updater) => setF(prev => ({ ...prev, utenze: typeof updater === 'function' ? updater(prev.utenze) : updater })) }))
+        : React.createElement(React.Fragment, null,
+            // v2 — questo ramo (Fragment isAutorizzazione) resta raggiungibile SOLO da V1: la
+            // versione v2 dell'Autorizzazione ha il proprio drawer a due tab (vedi il ramo
+            // `isAutorizzazione && isV2` sopra, nota 'autorizzazione-impianti-tab-dedicata') —
+            // qui niente più isV2, il CUP resta il vecchio campo singolo di V1, invariato.
+            React.createElement(Form.Item, {
+              className: 'grav-permit-cup-field',
+              label: React.createElement('span', null, 'CUP — Canone Unico Patrimoniale', React.createElement(HandoffDesignNote, { id: 'cup-canone-unico-patrimoniale', placement: 'right' })),
+              required: true, style: { marginBottom: 0 },
+            },
+              React.createElement(InputNumber, {
+                value: f.cup, onChange: set('cup'), min: 0, style: { width: '100%' }, addonAfter: '€/anno', placeholder: '0,00',
+              }),
+            ),
+          ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// TABELLA — card bianca con header "Totale: N" + Table (pattern inventory-systems)
+// ─────────────────────────────────────────────────────────
+function PermitTable({ dataSource, columns, totalLabel, rowKey, onRowClick, tableClassName }) {
+  const totalWidth = columns.reduce((s, c) => s + (c.width || 160), 0);
+  return React.createElement('div', {
+    className: 'grav-permit-table-card',
+    style: {
+      display: 'flex', flexDirection: 'column',
+      background: '#fff', borderRadius: 8, border: '1px solid #F0F0F0',
+    },
+  },
+    React.createElement('div', {
+      style: {
+        display: 'flex', alignItems: 'center',
+        borderBottom: '1px solid #F0F0F0',
+        padding: '10px 16px',
+      },
+    },
+      React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)' } },
+        React.createElement('span', { style: { fontWeight: 700 } }, 'Totale:'),
+        ' ', dataSource.length, ' ', totalLabel,
+      ),
+    ),
+    React.createElement('div', { style: { padding: 16 } },
+      React.createElement(Table, {
+        className: tableClassName,
+        dataSource,
+        columns,
+        rowKey,
+        size: 'small',
+        scroll: { x: totalWidth },
+        pagination: { position: ['bottomRight'], pageSize: 10, showSizeChanger: false },
+        onRow: onRowClick ? (record) => ({ onClick: () => onRowClick(record), style: { cursor: 'pointer' } }) : undefined,
+      }),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// TABELLA v2 — header card + KPI cards + card tabella (components/list-table.md)
+// Attiva SOLO con window.__PERMESSI_UI_VERSION === 'v2' (?handoff=v2) — eccezione
+// documentata in components/handoff-engine.md, PermitTable (v1) resta invariata.
+// ─────────────────────────────────────────────────────────
+function DataCard({ icon: Icon, label, value, valueExtra }) {
+  return React.createElement('div', { className: 'data-card' },
+    React.createElement('div', { className: 'data-card-head' },
+      React.createElement('span', { className: 'data-card-head-icon' }, React.createElement(Icon, { style: { fontSize: 16 } })),
+      React.createElement('span', { className: 'data-card-head-label' }, label),
+    ),
+    React.createElement('div', { className: 'data-card-body' },
+      React.createElement('span', { className: 'data-card-value' }, value),
+      valueExtra && React.createElement(Typography.Text, { type: 'secondary', style: { fontSize: 12, marginTop: 4, display: 'block' } }, valueExtra),
+    ),
+  );
+}
+
+function PermitTableV2({ dataSource, columns, totalLabel, rowKey, onRowClick, tableClassName, kpis }) {
+  const totalWidth = columns.reduce((s, c) => s + (c.width || 160), 0);
+  return React.createElement(React.Fragment, null,
+    kpis && React.createElement('div', {
+      style: { display: 'grid', gridTemplateColumns: `repeat(${kpis.length}, 1fr)`, gap: 12, marginBottom: 28 },
+    },
+      kpis.map((c, i) => React.createElement(DataCard, { key: i, ...c })),
+    ),
+    React.createElement('div', {
+      className: 'grav-permit-table-card',
+      style: {
+        background: 'var(--gravity-bg-container)',
+        borderRadius: 10,
+        border: '1px solid rgba(0,0,0,0.06)',
+        overflow: 'hidden',
+      },
+    },
+      React.createElement('div', { style: { padding: '16px 20px 4px' } },
+        React.createElement(Typography.Text, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } },
+          `${dataSource.length} ${totalLabel.toLowerCase()}`,
+        ),
+      ),
+      React.createElement('div', { style: { padding: '0 20px 20px' } },
+        React.createElement(Table, {
+          className: tableClassName,
+          dataSource,
+          columns,
+          rowKey,
+          size: 'middle',
+          scroll: { x: totalWidth },
+          style: { borderRadius: 0 },
+          pagination: { position: ['bottomRight'], pageSize: 10, showSizeChanger: false },
+          onRow: onRowClick ? (record) => ({ onClick: () => onRowClick(record), style: { cursor: 'pointer' } }) : undefined,
+        }),
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// DRAWER — Connetti Impianti (Fase 4): selezione multipla spazi da collegare
+// ─────────────────────────────────────────────────────────
+function ConnettiImpiantiDrawer({ open, excludeIds, isV2, naturaSuoloRichiesta, onClose, onConnetti }) {
+  const [selectedKeys, setSelectedKeys] = useState([]);
+
+  useEffect(() => {
+    if (open) setSelectedKeys([]);
+  }, [open]);
+
+  // v2 — un Impianto sta o su suolo Pubblico o su suolo Privato: quindi ha o una Concessione
+  // o un Contratto, mai entrambi (nota 'impianto-suolo-esclusivo-concessione-contratto').
+  // Autorizzazione non ha questo vincolo (naturaSuoloRichiesta null).
+  const disponibili = useMemo(
+    () => MOCK_SPAZI.filter(s => !excludeIds.includes(s.id) && (!naturaSuoloRichiesta || s.suolo === naturaSuoloRichiesta)),
+    [excludeIds, open, naturaSuoloRichiesta],
+  );
+
+  const dirty = selectedKeys.length > 0;
+  const handleClose = () => onClose();
+
+  // Solo per l'handoff: le checkbox native di rowSelection rispondono a .click()
+  // sintetici in modo incostante durante l'automazione del tour — esponiamo un
+  // setter React diretto sulla selezione, sempre aggiornato ad ogni render.
+  React.useEffect(() => {
+    if (!open) { delete window.__ghfConnetti; return; }
+    window.__ghfConnetti = {
+      selectFirstTwo: () => setSelectedKeys(disponibili.slice(0, 2).map(s => s.id)),
+    };
+    return () => { delete window.__ghfConnetti; };
+  });
+
+  const columns = [
+    {
+      title: 'Canale', dataIndex: 'canale', width: 110,
+      filters: [{ text: 'OOH', value: 'OOH' }, { text: 'DOOH', value: 'DOOH' }],
+      onFilter: (v, r) => r.canale === v,
+      render: renderCanaleBadge,
+    },
+    { title: 'Tipo', dataIndex: 'tipo', width: 170, render: renderTipoSpazioBadge },
+    { title: 'Formato', dataIndex: 'formato', width: 130 },
+    { title: 'Facce', dataIndex: 'facce', width: 90, align: 'center', sorter: (a, b) => a.facce - b.facce, render: renderFacceBadge },
+    { title: 'Proprietario', dataIndex: 'proprietario', width: 150 },
+    { title: 'Indirizzo', dataIndex: 'indirizzo', width: 220 },
+    {
+      title: 'Suolo', dataIndex: 'suolo', width: 110,
+      filters: [{ text: 'Pubblico', value: 'Pubblico' }, { text: 'Privato', value: 'Privato' }],
+      onFilter: (v, r) => r.suolo === v,
+    },
+    ...(isV2 ? [{
+      title: 'Cimasa', dataIndex: 'statoCimasa', width: 130,
+      filters: [{ text: 'Presente', value: 'Presente' }, { text: 'Assente', value: 'Assente' }, { text: 'Da verificare', value: 'Da verificare' }],
+      onFilter: (v, r) => r.statoCimasa === v,
+    }, {
+      title: 'Superficie', dataIndex: 'superficieMq', width: 110, align: 'right',
+      sorter: (a, b) => a.superficieMq - b.superficieMq, render: v => `${v} mq`,
+    }, {
+      title: 'Digitale', dataIndex: 'digitale', width: 100,
+      filters: [{ text: 'Sì', value: true }, { text: 'No', value: false }],
+      onFilter: (v, r) => r.digitale === v,
+      render: v => v ? React.createElement(Tag, { color: 'purple' }, 'Sì') : React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, 'No'),
+    }] : []),
+  ];
+
+  return React.createElement(Drawer, {
+    title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+      React.createElement(DiscardCloseIcon, { dirty, onDiscard: handleClose }), 'Connetti Impianti'),
+    placement: 'right', destroyOnClose: true,
+    closable: false, maskClosable: !dirty, keyboard: !dirty,
+    onClose: handleClose, open,
+    styles: { wrapper: { width: '70%' }, body: { padding: 0, display: 'flex', flexDirection: 'column' } },
+    extra: React.createElement(Space, null,
+      React.createElement(DiscardButton, { dirty, onDiscard: handleClose }, 'Annulla'),
+      React.createElement(Button, {
+        id: 'grav-tour-connetti-btn',
+        type: dirty ? 'primary' : 'default', icon: React.createElement(LinkOutlined),
+        disabled: !dirty,
+        onClick: () => onConnetti(disponibili.filter(s => selectedKeys.includes(s.id))),
+      }, 'Connetti'),
+    ),
+  },
+    React.createElement('div', { className: 'grav-connetti-total', style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 24px', borderBottom: '1px solid #F0F0F0' } },
+      React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)' } },
+        React.createElement('span', { style: { fontWeight: 700 } }, 'Totale:'),
+        ' ', disponibili.length, ' impianti disponibili',
+      ),
+      naturaSuoloRichiesta && React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', display: 'inline-flex', alignItems: 'center' } },
+        `Mostrati solo impianti su suolo ${naturaSuoloRichiesta}`,
+        React.createElement(HandoffDesignNote, { id: 'impianto-suolo-esclusivo-concessione-contratto', placement: 'left' })),
+    ),
+    React.createElement('div', { className: 'grav-connetti-table-area', style: { padding: 24, overflow: 'auto' } },
+      React.createElement(Table, {
+        dataSource: disponibili,
+        columns,
+        rowKey: 'id',
+        size: 'small',
+        rowSelection: { selectedRowKeys: selectedKeys, onChange: setSelectedKeys },
+        pagination: { pageSize: 10, showSizeChanger: false },
+        scroll: { x: 980 },
+      }),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// DETTAGLIO PERMESSO (Fase 3 — prerequisito per Collega Spazi)
+// ─────────────────────────────────────────────────────────
+const KIND_LABELS = { concessione: 'Concessione', autorizzazione: 'Autorizzazione', contratto: 'Contratto Privato' };
+
+function PermitDetailPage({ record, kind, isV2, concessioniList, autorizzazioniList, contrattiList, onBack, onEdit, onConnettiSpazi, onScollegaSpazio, onSetStatoOverride }) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const spazi = record.spaziCollegati || [];
+  const isConcessione = kind === 'concessione';
+  const isAutorizzazione = kind === 'autorizzazione';
+  const isContratto = kind === 'contratto';
+
+  // v2 — niente più KPI 'Tipologia' per la Concessione (campo rimosso, nota
+  // 'concessione-solo-pubblica'): 3 card invece di 4, span calcolato di conseguenza.
+  const kpi = isConcessione
+    ? (isV2
+        ? [
+            { title: 'Data Scadenza', value: record.dataScadenza },
+            { title: 'Totale Canone', value: fmtEuro(record.totaleCanone) },
+            { title: 'Superficie', value: record.superficieConcessaMq != null ? `${record.superficieConcessaMq} mq` : '—' },
+          ]
+        : [
+            { title: 'Tipologia', value: record.tipologia },
+            { title: 'Data Scadenza', value: record.dataScadenza },
+            { title: 'Totale Canone', value: fmtEuro(record.totaleCanone) },
+            { title: 'Numeri Utenza', value: record.numeriUtenze.length },
+          ])
+    : isAutorizzazione
+    ? (isV2
+        ? [
+            { title: 'Tipologia', value: record.tipologiaV2 || record.tipologia },
+            { title: 'Data Scadenza', value: record.dataScadenza },
+            // v2 — CUP totale è la somma delle righe di Tab 2 (Impianti autorizzati), non più
+            // un valore singolo sul record (nota 'autorizzazione-impianti-tab-dedicata').
+            { title: 'CUP totale', value: fmtEuro((record.impiantiAutorizzati || []).reduce((s, r) => s + (r.cup || 0), 0)) },
+            { title: 'Impianti autorizzati', value: (record.impiantiAutorizzati || []).length },
+          ]
+        : [
+            { title: 'Tipologia', value: record.tipologia },
+            { title: 'Data Scadenza', value: record.dataScadenza },
+            { title: 'CUP', value: fmtEuro(record.cup) },
+            { title: 'Numero di Protocollo', value: record.identificativoDocumento },
+          ])
+    : [
+        { title: 'Tipo Contratto', value: record.tipoContratto },
+        { title: 'Data Scadenza', value: record.dataScadenza },
+        { title: 'Canone Locazione', value: fmtEuro(record.canoneLocazioneAnnuo) },
+        { title: 'Identificativo Contratto', value: record.identificativoContratto },
+      ];
+
+  const identificativo = isContratto ? record.identificativoContratto : record.identificativoDocumento;
+  // v2 — nota 'contratto-vista-derivata': nessun FK diretto, le Autorizzazioni collegate al
+  // Contratto si deducono dagli impianti in comune (getAutorizzazioniDerivate).
+  const autorizzazioniDerivate = isContratto ? getAutorizzazioniDerivate(spazi, autorizzazioniList) : [];
+  const bridgeMancante = isContratto && autorizzazioniDerivate.length === 0 && spazi.some(s => s.suolo === 'Pubblico');
+
+  return React.createElement('div', null,
+    React.createElement(Breadcrumb, {
+      style: { marginBottom: 16, cursor: 'pointer' },
+      items: [{ title: React.createElement('span', { onClick: onBack }, React.createElement(ArrowLeftOutlined, { style: { marginRight: 6 } }), 'Lista Permessi') }],
+    }),
+
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+        React.createElement(Title, { level: 2, style: { margin: 0 } }, KIND_LABELS[kind]),
+        React.createElement(Tag, null, identificativo),
+      ),
+      React.createElement(Space, { className: 'grav-detail-header-actions' },
+        React.createElement(Button, { id: 'grav-tour-permit-modifica-btn', onClick: () => message.info('Disponibile nelle prossime fasi di questo prototipo.') },
+          'Modifica', React.createElement(HandoffDesignNote, { id: 'permit-modifica-non-sviluppata', placement: 'bottom' })),
+        React.createElement(Button, { id: 'grav-tour-collega-spazi-btn', type: 'primary', icon: React.createElement(LinkOutlined), onClick: () => setDrawerOpen(true) }, 'Collega Spazi'),
+      ),
+    ),
+
+    React.createElement(Descriptions, { size: 'small', column: 3, style: { marginBottom: 20 } },
+      React.createElement(Descriptions.Item, { label: isContratto ? 'Proprietario/Locatore' : 'Ente Emittente' }, isContratto ? record.proprietarioLocatore : record.enteEmittente),
+      // v2 — nota 'concessione-campi-estesi'/'contratto-vista-derivata': campi nuovi, non esistono nel modello V1.
+      isV2 && (isContratto || isConcessione) && React.createElement(Descriptions.Item, { label: isContratto ? 'Indirizzo' : 'Ubicazione' },
+        (isContratto ? record.indirizzo : record.ubicazione) || '—'),
+      React.createElement(Descriptions.Item, { label: 'Data Stipula' }, record.dataStipula),
+      // v2 — nota 'data-decorrenza-campo-comune': campo nuovo, non esiste nel modello V1.
+      isV2 && React.createElement(Descriptions.Item, {
+        label: React.createElement('span', null, 'Data Decorrenza', React.createElement(HandoffDesignNote, { id: 'data-decorrenza-campo-comune', placement: 'right' })),
+      }, record.dataDecorrenza || '—'),
+      // v2 — nota 'stato-engine-base-comune': stato calcolato dalle date, con override
+      // manuale per In rinnovo/Revocata-Decaduta/Cessata — V1 resta su renderStato(stato).
+      isV2
+        ? React.createElement(Descriptions.Item, {
+            label: React.createElement('span', null,
+              tipLabel('Stato', 'In istruttoria/Attiva/In scadenza/Scaduta sono calcolati dalle date. In rinnovo, Revocata/Decaduta e Cessata vanno impostati manualmente e prevalgono sul calcolo.'),
+              React.createElement(HandoffDesignNote, { id: 'stato-engine-base-comune', placement: 'right' })),
+          },
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+              renderStatoV2(record),
+              React.createElement(Select, {
+                size: 'small', style: { width: 170 },
+                value: record.statoOverride || 'auto',
+                options: [{ value: 'auto', label: 'Automatico (da date)' }, ...STATO_MANUALE_OPTS_V2.map(v => ({ value: v, label: v }))],
+                onChange: (v) => onSetStatoOverride(v === 'auto' ? null : v),
+              }),
+            ),
+          )
+        : React.createElement(Descriptions.Item, { label: 'Stato' }, renderStato(record.stato)),
+      // v2 — nota 'promemoria-campo-comune': in V1 questo dato non era mai mostrato nel
+      // dettaglio (solo catturato nel form e mai salvato) — resta così, invariato, in V1.
+      isV2 && React.createElement(Descriptions.Item, {
+        label: React.createElement('span', null, 'Promemoria', React.createElement(HandoffDesignNote, { id: 'promemoria-campo-comune', placement: 'right' })),
+      }, record.promemoria || 'No Promemoria'),
+    ),
+
+    bridgeMancante && React.createElement(Alert, {
+      className: 'grav-contratto-bridge-alert', type: 'warning', showIcon: true, icon: React.createElement(WarningOutlined),
+      style: { marginBottom: 20 },
+      message: 'Nessuna Autorizzazione collegata',
+      description: 'Almeno uno spazio collegato è su suolo pubblico, ma nessuna Autorizzazione risulta collegata tramite gli stessi impianti: verifica se ne serve una.',
+    }),
+
+    isContratto && record.migrata && React.createElement(Alert, {
+      className: 'grav-contratto-migrata-alert', type: 'info', showIcon: true,
+      style: { marginBottom: 20 },
+      message: 'Record migrato da Concessione',
+      description: `Dati riportati da ${record.migratoDa} (Concessione Privato, rimossa dal modello v2). Riferimento Catastale e Tipo Contratto non avevano un corrispondente diretto: verificare e completare a mano.`,
+    }),
+
+    React.createElement(Row, { className: 'grav-detail-kpi-row', gutter: 16, style: { marginBottom: 24 } },
+      kpi.map((k, i) => React.createElement(Col, { span: 24 / kpi.length, key: i },
+        React.createElement(Card, { size: 'small' }, React.createElement(Statistic, { title: k.title, value: k.value })),
+      )),
+    ),
+
+    isV2 && isConcessione && record.modalitaAttribuzione && React.createElement('div', { className: 'grav-detail-provenienza', style: { marginBottom: 24 } },
+      React.createElement(Title, { level: 4, style: { margin: '0 0 12px' } }, 'Provenienza'),
+      React.createElement(Descriptions, { size: 'small', column: 3, bordered: true },
+        React.createElement(Descriptions.Item, { label: 'Modalità di attribuzione' }, record.modalitaAttribuzione),
+        record.modalitaAttribuzione === 'Bando pubblico' && React.createElement(Descriptions.Item, { label: 'Riferimento Bando' }, record.riferimentoBando || '—'),
+        record.modalitaAttribuzione === 'Bando pubblico' && React.createElement(Descriptions.Item, { label: 'Ente Banditore' }, record.enteBanditore || '—'),
+        record.modalitaAttribuzione === 'Bando pubblico' && React.createElement(Descriptions.Item, { label: 'Data Aggiudicazione' }, record.dataAggiudicazione || '—'),
+        record.modalitaAttribuzione === 'Bando pubblico' && record.lotto && React.createElement(Descriptions.Item, { label: 'Lotto' }, record.lotto),
+        record.modalitaAttribuzione === 'Bando pubblico' && record.noteBando && React.createElement(Descriptions.Item, { label: 'Note Bando', span: 3 }, record.noteBando),
+      ),
+    ),
+
+    // v2 — "Concessione suolo pubblico incl." e "Concessione o Contratto di riferimento" sono
+    // mutuamente esclusivi, non l'uno figlio dell'altro (nota
+    // 'autorizzazione-atto-provenienza-scollegato') — entrambi solo per "Esposizione
+    // pubblicitaria" (nota 'autorizzazione-tipologia-overhaul').
+    isV2 && isAutorizzazione && record.tipologiaV2 === TIPO_AUTORIZZAZIONE_ESPOSIZIONE && React.createElement('div', { className: 'grav-detail-copertura', style: { marginBottom: 24 } },
+      React.createElement(Title, { level: 4, style: { margin: '0 0 12px' } }, 'Copertura'),
+      React.createElement(Descriptions, { size: 'small', column: 3, bordered: true },
+        React.createElement(Descriptions.Item, { label: 'Concessione suolo pubblico incl.' }, record.includeConcessioneSuoloPubblico ? 'Sì' : 'No'),
+        !record.includeConcessioneSuoloPubblico && record.attoProvenienzaId && React.createElement(Descriptions.Item, { label: 'Concessione o Contratto di riferimento', span: 2 },
+          record.attoProvenienzaId.startsWith('contr-')
+            ? renderFkLabel(contrattiList || [], record.attoProvenienzaId, 'identificativoContratto')
+            : renderFkLabel(concessioniList || [], record.attoProvenienzaId, 'identificativoDocumento')),
+      ),
+    ),
+
+    // v2 — Impianti autorizzati: sostituisce Impianti coperti/Codice Autorizzazione (per
+    // cimasa) singolo/Riferimento allegato/Canone per impianto (nota
+    // 'autorizzazione-impianti-tab-dedicata') — un impianto per riga, ciascuno col proprio
+    // codice cimasa e il proprio CUP, impostati in Tab 2 alla creazione.
+    isV2 && isAutorizzazione && React.createElement('div', { className: 'grav-detail-impianti-autorizzati', style: { marginBottom: 24 } },
+      React.createElement(Title, { level: 4, style: { margin: '0 0 12px' } },
+        tipLabel('Impianti autorizzati', 'Ogni impianto coperto da questa Autorizzazione, con il proprio codice cimasa e il proprio CUP.'),
+        React.createElement(HandoffDesignNote, { id: 'autorizzazione-impianti-tab-dedicata', placement: 'right' })),
+      (record.impiantiAutorizzati || []).length === 0
+        ? React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, 'Nessuno.')
+        : React.createElement(Table, {
+            size: 'small', pagination: false, rowKey: (r, i) => r.impiantoId || `no-impianto-${i}`,
+            dataSource: record.impiantiAutorizzati,
+            columns: [
+              { title: 'Impianto', dataIndex: 'impiantoId', render: id => id ? renderFkLabel(MOCK_SPAZI, id, 'indirizzo') : React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Da collegare') },
+              { title: 'Codice Autorizzazione (per cimasa)', dataIndex: 'codiceAutorizzazione', render: v => v || '—' },
+              { title: 'CUP', dataIndex: 'cup', align: 'right', render: fmtEuro },
+            ],
+          }),
+    ),
+
+    isContratto && React.createElement('div', { className: 'grav-detail-catastale', style: { marginBottom: 24 } },
+      React.createElement(Title, { level: 4, style: { margin: '0 0 12px' } }, 'Riferimento Catastale'),
+      React.createElement(Descriptions, { size: 'small', column: 3, bordered: true },
+        React.createElement(Descriptions.Item, { label: 'Foglio' }, record.foglio || '—'),
+        React.createElement(Descriptions.Item, { label: 'Particella' }, record.particella || '—'),
+        React.createElement(Descriptions.Item, { label: 'Subalterno' }, record.subalterno || '—'),
+      ),
+    ),
+
+    // v2 — nota 'contratto-vista-derivata': nessun FK, dedotte dagli impianti in comune.
+    isContratto && React.createElement('div', { className: 'grav-detail-autorizzazioni-derivate', style: { marginBottom: 24 } },
+      React.createElement(Title, { level: 4, style: { margin: '0 0 12px' } },
+        tipLabel('Autorizzazioni collegate', 'Dedotte dagli impianti in comune con questo Contratto — nessun collegamento diretto da impostare.'),
+        React.createElement(HandoffDesignNote, { id: 'contratto-vista-derivata', placement: 'right' })),
+      autorizzazioniDerivate.length === 0
+        ? React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, 'Nessuna — nessun impianto di questo Contratto è collegato anche a un\'Autorizzazione.')
+        : React.createElement(Space, { wrap: true }, autorizzazioniDerivate.map(a => React.createElement(Tag, { key: a.id }, `${a.identificativoDocumento} — ${a.enteEmittente}`))),
+    ),
+
+    React.createElement('div', { className: 'grav-detail-spazi-header', style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center' } },
+        React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Spazi collegati'),
+        isV2 && !isContratto && React.createElement(HandoffDesignNote, { id: 'promemoria-aggiorna-cimasa', placement: 'right' }),
+        isV2 && React.createElement(HandoffDesignNote, { id: 'impianto-campi-trasversali-scope', placement: 'right' }),
+        isV2 && React.createElement(HandoffDesignNote, { id: 'impianto-bidirezionale-solo-su-card', placement: 'right' }),
+      ),
+      React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } },
+        'Totale: ', spazi.length, spazi.length === 1 ? ' spazio' : ' spazi'),
+    ),
+
+    React.createElement('div', { className: 'grav-detail-spazi-area' },
+      spazi.length === 0
+        ? React.createElement(Empty, {
+            description: 'Nessuno spazio collegato a questo permesso.',
+            image: Empty.PRESENTED_IMAGE_SIMPLE,
+            style: { padding: '32px 0', background: '#fff', border: '1px solid #F0F0F0', borderRadius: 8 },
+          })
+        : React.createElement(Row, { gutter: [16, 16] },
+            spazi.map(s => React.createElement(Col, { span: 8, key: s.id },
+              React.createElement(window.GravityEntityCard, {
+                title: s.indirizzo,
+                badges: [
+                  { text: s.id, variant: 'default' },
+                  { text: s.canale, variant: s.canale === 'OOH' ? 'ooh' : 'dooh' },
+                ],
+                fields: [
+                  { icon: TYPE_ICON_NAMES_SPAZI[s.tipo], label: 'Tipo:', value: s.tipo },
+                  { icon: 'ExpandOutlined', label: 'Formato:', value: s.formato },
+                  { icon: 'AppstoreOutlined', label: 'Facce:', value: String(s.facce) },
+                  { icon: 'ShopOutlined', label: 'Proprietario:', value: s.proprietario },
+                  ...(isV2 ? [
+                    { icon: 'FileProtectOutlined', label: 'Cimasa:', value: s.codiceCimasa ? `${s.statoCimasa} (${s.codiceCimasa})` : s.statoCimasa },
+                    { icon: 'IdcardOutlined', label: 'Codice interno:', value: s.codiceInterno },
+                    { icon: 'ExpandOutlined', label: 'Superficie:', value: `${s.superficieMq} mq${s.digitale ? ' · Digitale' : ''}` },
+                    ...(s.utenzaElettrica ? [{ icon: 'ThunderboltOutlined', label: 'POD:', value: s.utenzaElettrica.codicePod }] : []),
+                    // v2 — "dalla scheda impianto vedo i suoi permessi" (parziale, sulla
+                    // card invece di una scheda Impianto dedicata — nota
+                    // 'impianto-bidirezionale-solo-su-card'): mostra l'altro lato della
+                    // relazione per QUESTO impianto specifico.
+                    ...(isAutorizzazione
+                      ? (() => {
+                          const conc = getConcessioneDerivata([s], concessioniList);
+                          const contr = getContrattoDerivato([s], contrattiList);
+                          return conc
+                            ? [{ icon: 'BankOutlined', label: 'Concessione:', value: conc.identificativoDocumento }]
+                            : contr
+                            ? [{ icon: 'HomeOutlined', label: 'Contratto:', value: contr.identificativoContratto }]
+                            : [];
+                        })()
+                      : (() => {
+                          const derivate = getAutorizzazioniDerivate([s], autorizzazioniList);
+                          return derivate.length > 0
+                            ? [{ icon: 'SafetyCertificateOutlined', label: 'Autorizzazioni:', value: derivate.map(a => a.identificativoDocumento).join(', ') }]
+                            : [];
+                        })()),
+                  ] : []),
+                ],
+                footer: React.createElement(Button, {
+                  size: 'small', type: 'text', danger: true, icon: React.createElement(DeleteOutlined),
+                  onClick: () => onScollegaSpazio(s.id),
+                }, 'Scollega'),
+              }),
+            )),
+          ),
+    ),
+
+    React.createElement(ConnettiImpiantiDrawer, {
+      open: drawerOpen,
+      excludeIds: spazi.map(s => s.id),
+      isV2,
+      naturaSuoloRichiesta: isV2 ? (isConcessione ? 'Pubblico' : isContratto ? 'Privato' : null) : null,
+      onClose: () => setDrawerOpen(false),
+      onConnetti: (nuoviSpazi) => {
+        onConnettiSpazi(nuoviSpazi);
+        setDrawerOpen(false);
+        message.success(nuoviSpazi.length === 1 ? '1 impianto collegato' : `${nuoviSpazi.length} impianti collegati`);
+      },
+    }),
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// APP
+// ─────────────────────────────────────────────────────────
+function AppRoot() {
+  const [messageApi, contextHolder] = message.useMessage();
+  const [concessioni, setConcessioni] = useState(MOCK_CONCESSIONI);
+  const [autorizzazioni, setAutorizzazioni] = useState(MOCK_AUTORIZZAZIONI);
+  const [contratti, setContratti] = useState(MOCK_CONTRATTI);
+  const [newPermitType, setNewPermitType] = useState(null); // null | 'concessione' | 'autorizzazione' | 'contratto'
+  const [viewState, setViewState] = useState({ page: 'list' }); // { page: 'list' } | { page: 'detail', kind, id }
+
+  // UI v2 (components/list-table.md) SOLO con ?handoff=v2 — eccezione documentata in
+  // components/handoff-engine.md. Default e ?handoff=v1 restano sulla UI v1 (PermitTable,
+  // 2 tab, invariata): il nuovo modello dati (Provenienza, CUP split, Copertura, Contratto
+  // Privato, campi trasversali Impianto) vive SOLO dietro questo switch.
+  const isV2 = window.__PERMESSI_UI_VERSION === 'v2';
+  const TableComponent = isV2 ? PermitTableV2 : PermitTable;
+  // v2 — ordine entità Autorizzazione, Concessione, Contratto Privato, su richiesta
+  // esplicita; v1 resta 'concessioni' invariato.
+  const [activeTab, setActiveTab] = useState(isV2 ? 'autorizzazioni' : 'concessioni');
+
+  // Lookup per kind — evita triplicare ogni funzione (connetti/scollega/elimina/vedi/lista).
+  const listByKind = { concessione: concessioni, autorizzazione: autorizzazioni, contratto: contratti };
+  const setterByKind = { concessione: setConcessioni, autorizzazione: setAutorizzazioni, contratto: setContratti };
+
+  const stubEdit = () => messageApi.info('Disponibile nelle prossime fasi di questo prototipo.');
+  const openDetail = (kind, record) => setViewState({ page: 'detail', kind, id: record.id });
+  const viewConcessione = record => openDetail('concessione', record);
+  const viewAutorizzazione = record => openDetail('autorizzazione', record);
+  const viewContratto = record => openDetail('contratto', record);
+
+  // Solo per l'handoff: esposizione dei setter React per i tour di Sprint Jira —
+  // sempre aggiornati ad ogni render (nessun array di dipendenze), niente guardia
+  // su `open` perché AppRoot resta montato per tutta la sessione.
+  React.useEffect(() => {
+    window.__ghfPermessi = {
+      goToLista: () => setViewState({ page: 'list' }),
+      goToConcessioniTab: () => setActiveTab('concessioni'),
+      goToAutorizzazioniTab: () => setActiveTab('autorizzazioni'),
+      goToContrattiTab: () => setActiveTab('contratti'),
+      openFirstDetail: (kind) => {
+        const list = listByKind[kind];
+        if (list[0]) setViewState({ page: 'detail', kind, id: list[0].id });
+      },
+      openNuovaConcessione: () => setNewPermitType('concessione'),
+      openNuovaAutorizzazione: () => setNewPermitType('autorizzazione'),
+      openNuovoContratto: () => setNewPermitType('contratto'),
+      closeNewPermit: () => setNewPermitType(null),
+    };
+    return () => { delete window.__ghfPermessi; };
+  });
+
+  const connettiSpazi = (kind, id, nuoviSpazi) => {
+    setterByKind[kind](prev => prev.map(r => r.id === id ? { ...r, spaziCollegati: [...r.spaziCollegati, ...nuoviSpazi] } : r));
+  };
+  const scollegaSpazio = (kind, id, spazioId) => {
+    setterByKind[kind](prev => prev.map(r => r.id === id ? { ...r, spaziCollegati: r.spaziCollegati.filter(s => s.id !== spazioId) } : r));
+    messageApi.success('Spazio scollegato');
+  };
+  // v2 — override manuale dello Stato (nota 'stato-engine-base-comune'): null torna al calcolo automatico.
+  const setStatoOverride = (kind, id, nextOverride) => {
+    setterByKind[kind](prev => prev.map(r => r.id === id ? { ...r, statoOverride: nextOverride } : r));
+    messageApi.success(nextOverride ? `Stato impostato manualmente: ${nextOverride}` : 'Stato tornato automatico');
+  };
+
+  const deleteConcessione = (record) => {
+    setConcessioni(prev => prev.filter(c => c.id !== record.id));
+    messageApi.success('Concessione eliminata');
+  };
+  const deleteAutorizzazione = (record) => {
+    setAutorizzazioni(prev => prev.filter(a => a.id !== record.id));
+    messageApi.success('Autorizzazione eliminata');
+  };
+  const deleteContratto = (record) => {
+    setContratti(prev => prev.filter(c => c.id !== record.id));
+    messageApi.success('Contratto Privato eliminato');
+  };
+
+  const concessioniColumns = useMemo(() => {
+    // v1 — colonna Tipologia (Pubblico/Privato) invariata: la Concessione era anche privata
+    // nel modello as-is. v2 la rimuove: la Concessione è solo atto di diritto pubblico (nota
+    // 'concessione-solo-pubblica'), il caso privato vive su Contratto Privato.
+    const tipologiaColV1 = {
+      title: 'Tipologia Concessione', dataIndex: 'tipologia', width: 170,
+      filters: [{ text: 'Pubblico', value: 'Pubblico' }, { text: 'Privato', value: 'Privato' }],
+      onFilter: (value, record) => record.tipologia === value,
+      render: v => renderTipologia(CONCESSIONE_TIPO_META, v),
+    };
+    const base = [
+      { title: 'Ente Emittente', dataIndex: 'enteEmittente', width: 220, ...makeSearchFilter('enteEmittente') },
+      { title: 'Tipo Documento', dataIndex: 'tipoDocumento', width: 200 },
+      { title: 'Identificativo Documento', dataIndex: 'identificativoDocumento', width: 180, ...makeSearchFilter('identificativoDocumento') },
+      { title: 'Numeri Utenze', dataIndex: 'numeriUtenze', width: 200, render: renderNumeriUtenze },
+      { title: 'Data Stipula', dataIndex: 'dataStipula', width: 120, sorter: (a, b) => parseItDate(a.dataStipula) - parseItDate(b.dataStipula) },
+      { title: 'Data Scadenza', dataIndex: 'dataScadenza', width: 130, sorter: (a, b) => parseItDate(a.dataScadenza) - parseItDate(b.dataScadenza) },
+      { title: 'Totale Canone', dataIndex: 'totaleCanone', width: 140, align: 'right', sorter: (a, b) => a.totaleCanone - b.totaleCanone, render: fmtEuro },
+    ];
+    const v2Extra = [
+      { title: 'Data Decorrenza', dataIndex: 'dataDecorrenza', width: 130, sorter: (a, b) => parseItDate(a.dataDecorrenza) - parseItDate(b.dataDecorrenza) },
+      { title: 'Modalità Attribuzione', dataIndex: 'modalitaAttribuzione', width: 200,
+        filters: MODALITA_ATTRIBUZIONE_OPTS, onFilter: (v, r) => r.modalitaAttribuzione === v },
+    ];
+    const tail = [
+      statoColumn(isV2),
+      actionsColumn('concessione', viewConcessione, stubEdit, deleteConcessione),
+    ];
+    return isV2 ? [...base, ...v2Extra, ...tail] : [tipologiaColV1, ...base, ...tail];
+  }, [isV2]);
+
+  const autorizzazioniColumns = useMemo(() => {
+    const base = [
+      // v2 — legge tipologiaV2 + META_V2 (nota 'autorizzazione-tipologia-overhaul'); V1 resta
+      // su tipologia + META originale, invariati.
+      isV2 ? {
+        title: 'Tipologia Autorizzazione', width: 240,
+        filters: TIPO_AUTORIZZAZIONE_OPTS_V2.map(o => ({ text: o.label, value: o.value })),
+        onFilter: (value, record) => record.tipologiaV2 === value,
+        render: (_, record) => renderTipologia(AUTORIZZAZIONE_TIPO_META_V2, record.tipologiaV2),
+      } : {
+        title: 'Tipologia Autorizzazione', dataIndex: 'tipologia', width: 190,
+        filters: TIPO_AUTORIZZAZIONE_OPTS.map(o => ({ text: o.label, value: o.value })),
+        onFilter: (value, record) => record.tipologia === value,
+        render: v => renderTipologia(AUTORIZZAZIONE_TIPO_META, v),
+      },
+      { title: 'Ente Emittente', dataIndex: 'enteEmittente', width: 220, ...makeSearchFilter('enteEmittente') },
+      { title: 'Identificativo Documento', dataIndex: 'identificativoDocumento', width: 180, ...makeSearchFilter('identificativoDocumento') },
+      { title: 'Data Stipula', dataIndex: 'dataStipula', width: 120, sorter: (a, b) => parseItDate(a.dataStipula) - parseItDate(b.dataStipula) },
+      { title: 'Data Scadenza', dataIndex: 'dataScadenza', width: 130, sorter: (a, b) => parseItDate(a.dataScadenza) - parseItDate(b.dataScadenza) },
+      // v2 — CUP condizionale al tipo "Esposizione pubblicitaria": '—' per le altre 6 (nota
+      // 'autorizzazione-tipologia-overhaul'). V1 mostra sempre l'importo, invariato. In v2 il
+      // valore è la somma delle righe di Tab 2 (nota 'autorizzazione-impianti-tab-dedicata'),
+      // non più il campo singolo `cup` (sempre 0 sui record creati in v2).
+      { title: 'CUP (€)', dataIndex: 'cup', width: 130, align: 'right',
+        sorter: (a, b) => cupTotale(a, isV2) - cupTotale(b, isV2),
+        render: (v, r) => (!isV2 || r.tipologiaV2 === TIPO_AUTORIZZAZIONE_ESPOSIZIONE) ? fmtEuro(cupTotale(r, isV2)) : React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—') },
+    ];
+    const v2Extra = [
+      { title: 'Data Decorrenza', dataIndex: 'dataDecorrenza', width: 130, sorter: (a, b) => parseItDate(a.dataDecorrenza) - parseItDate(b.dataDecorrenza) },
+      { title: 'Impianti Autorizzati', dataIndex: 'impiantiAutorizzati', width: 160, align: 'right',
+        sorter: (a, b) => (a.impiantiAutorizzati || []).length - (b.impiantiAutorizzati || []).length,
+        render: v => (v || []).length },
+    ];
+    const tail = [
+      statoColumn(isV2),
+      actionsColumn('autorizzazione', viewAutorizzazione, stubEdit, deleteAutorizzazione),
+    ];
+    return isV2 ? [...base, ...v2Extra, ...tail] : [...base, ...tail];
+  }, [isV2]);
+
+  // v2 — nuova entità, nessun equivalente v1.
+  const contrattiColumns = useMemo(() => ([
+    { title: 'Tipo Contratto', dataIndex: 'tipoContratto', width: 140, render: renderTipoContratto,
+      filters: TIPO_CONTRATTO_OPTS, onFilter: (v, r) => r.tipoContratto === v },
+    { title: 'Proprietario/Locatore', dataIndex: 'proprietarioLocatore', width: 220, ...makeSearchFilter('proprietarioLocatore') },
+    { title: 'Identificativo Contratto', dataIndex: 'identificativoContratto', width: 200, ...makeSearchFilter('identificativoContratto'),
+      render: (v, r) => React.createElement('span', null, v,
+        r.migrata && React.createElement(Tooltip, { title: `Migrato da Concessione ${r.migratoDa} — verifica manuale consigliata` },
+          React.createElement(Tag, { color: 'gold', style: { marginInlineStart: 6 } }, 'Migrata')),
+        r.migrata && React.createElement(HandoffDesignNote, { id: 'migrazione-concessioni-privato', placement: 'right' })) },
+    { title: 'Data Stipula', dataIndex: 'dataStipula', width: 120, sorter: (a, b) => parseItDate(a.dataStipula) - parseItDate(b.dataStipula) },
+    { title: 'Data Decorrenza', dataIndex: 'dataDecorrenza', width: 130, sorter: (a, b) => parseItDate(a.dataDecorrenza) - parseItDate(b.dataDecorrenza) },
+    { title: 'Data Scadenza', dataIndex: 'dataScadenza', width: 130, sorter: (a, b) => parseItDate(a.dataScadenza) - parseItDate(b.dataScadenza) },
+    { title: 'Canone Locazione (€)', dataIndex: 'canoneLocazioneAnnuo', width: 160, align: 'right', sorter: (a, b) => a.canoneLocazioneAnnuo - b.canoneLocazioneAnnuo, render: fmtEuro },
+    { title: 'Autorizzazioni collegate', width: 220, render: (_, r) => {
+        const derivate = getAutorizzazioniDerivate(r.spaziCollegati, autorizzazioni);
+        return derivate.length === 0
+          ? React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—')
+          : derivate.map(a => a.identificativoDocumento).join(', ');
+      } },
+    statoColumn(true),
+    actionsColumn('contratto', viewContratto, stubEdit, deleteContratto),
+  ]), [autorizzazioni]);
+
+  const handleSaveNewPermit = (kind, record) => {
+    if (kind === 'concessione') {
+      setConcessioni(prev => [record, ...prev]);
+      messageApi.success('Concessione creata');
+    } else if (kind === 'autorizzazione') {
+      setAutorizzazioni(prev => [record, ...prev]);
+      messageApi.success('Autorizzazione creata');
+    } else {
+      setContratti(prev => [record, ...prev]);
+      messageApi.success('Contratto Privato creato');
+    }
+    setNewPermitType(null);
+  };
+
+  // v2 — la Concessione è solo atto di diritto pubblico (nota 'concessione-solo-pubblica'):
+  // i record storici con tipologia 'Privato' restano nello stato condiviso (v1 li mostra
+  // invariati) ma sono filtrati dalla vista Concessioni v2 — la loro controparte vive già,
+  // migrata, su Contratti Privati (vedi MOCK_CONTRATTI, record con `migrata: true`).
+  const concessioniVisibili = isV2 ? concessioni.filter(c => c.tipologia !== 'Privato') : concessioni;
+
+  const concessioniKpis = useMemo(() => {
+    if (!isV2) return null;
+    const attive = concessioniVisibili.filter(c => c.stato === 'Attiva');
+    const scadute = concessioniVisibili.filter(c => c.stato === 'Scaduta');
+    return [
+      { icon: FileTextOutlined, label: 'Totale concessioni', value: concessioniVisibili.length },
+      {
+        icon: CheckCircleOutlined, label: 'Attive', value: attive.length,
+        valueExtra: `${fmtEuro(attive.reduce((s, c) => s + c.totaleCanone, 0))} canone/anno`,
+      },
+      { icon: ClockCircleOutlined, label: 'Scadute', value: scadute.length },
+    ];
+  }, [isV2, concessioniVisibili]);
+
+  const autorizzazioniKpis = useMemo(() => {
+    if (!isV2) return null;
+    const attive = autorizzazioni.filter(a => a.stato === 'Attiva');
+    const scadute = autorizzazioni.filter(a => a.stato === 'Scaduta');
+    return [
+      { icon: FileTextOutlined, label: 'Totale autorizzazioni', value: autorizzazioni.length },
+      {
+        icon: CheckCircleOutlined, label: 'Attive', value: attive.length,
+        valueExtra: `${fmtEuro(attive.reduce((s, a) => s + a.cup, 0))} CUP/anno`,
+      },
+      { icon: ClockCircleOutlined, label: 'Scadute', value: scadute.length },
+    ];
+  }, [isV2, autorizzazioni]);
+
+  const contrattiKpis = useMemo(() => {
+    if (!isV2) return null;
+    const attivi = contratti.filter(c => c.stato === 'Attiva');
+    const scaduti = contratti.filter(c => c.stato === 'Scaduta');
+    return [
+      { icon: FileTextOutlined, label: 'Totale contratti', value: contratti.length },
+      {
+        icon: CheckCircleOutlined, label: 'Attivi', value: attivi.length,
+        valueExtra: `${fmtEuro(attivi.reduce((s, c) => s + c.canoneLocazioneAnnuo, 0))} canone/anno`,
+      },
+      { icon: ClockCircleOutlined, label: 'Scaduti', value: scaduti.length },
+    ];
+  }, [isV2, contratti]);
+
+  // v2 — card KPI rimosse temporaneamente su richiesta esplicita (sostituite dal box
+  // esplicativo sotto l'intestazione, entityGlossaryBox): *Kpis restano calcolate ma non
+  // passate a TableComponent, così la reintroduzione è solo riaggiungere la prop `kpis`.
+  const concessioniTab = {
+    key: 'concessioni', label: 'Concessioni',
+    children: React.createElement(TableComponent, {
+      dataSource: concessioniVisibili, columns: concessioniColumns,
+      totalLabel: concessioniVisibili.length === 1 ? 'Concessione' : 'Concessioni', rowKey: 'id',
+      onRowClick: viewConcessione, tableClassName: 'grav-concessioni-table',
+    }),
+  };
+  const autorizzazioniTab = {
+    key: 'autorizzazioni', label: 'Autorizzazioni',
+    children: React.createElement(TableComponent, {
+      dataSource: autorizzazioni, columns: autorizzazioniColumns,
+      totalLabel: autorizzazioni.length === 1 ? 'Autorizzazione' : 'Autorizzazioni', rowKey: 'id',
+      onRowClick: viewAutorizzazione, tableClassName: 'grav-autorizzazioni-table',
+    }),
+  };
+  // v2 — ordine Autorizzazione, Concessione, Contratto Privato, su richiesta esplicita;
+  // v1 resta Concessioni, Autorizzazioni, invariato.
+  const tabItems = [
+    ...(isV2 ? [autorizzazioniTab, concessioniTab] : [concessioniTab, autorizzazioniTab]),
+    ...(isV2 ? [{
+      key: 'contratti', label: 'Contratti Privati',
+      children: React.createElement(TableComponent, {
+        dataSource: contratti, columns: contrattiColumns,
+        totalLabel: contratti.length === 1 ? 'Contratto' : 'Contratti', rowKey: 'id',
+        onRowClick: viewContratto, tableClassName: 'grav-contratti-table',
+      }),
+    }] : []),
+  ];
+
+  const currentRecord = viewState.page === 'detail'
+    ? (listByKind[viewState.kind] || []).find(r => r.id === viewState.id)
+    : null;
+
+  const newPermitMenu = {
+    trigger: ['click'],
+    menu: {
+      // v2 — ordine Autorizzazione, Concessione, Contratto Privato, su richiesta esplicita;
+      // v1 resta Concessione, Autorizzazione, invariato.
+      items: isV2
+        ? [
+            { key: 'autorizzazione', label: 'Nuova Autorizzazione' },
+            { key: 'concessione', label: 'Nuova Concessione' },
+            { key: 'contratto', label: 'Nuovo Contratto Privato' },
+          ]
+        : [
+            { key: 'concessione', label: 'Nuova Concessione' },
+            { key: 'autorizzazione', label: 'Nuova Autorizzazione' },
+          ],
+      onClick: ({ key }) => setNewPermitType(key),
+    },
+  };
+
+  const listHeader = isV2
+    ? React.createElement('div', {
+        style: {
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'var(--gravity-bg-container)', borderRadius: 8, padding: '16px 20px',
+          border: '1px solid rgba(0,0,0,0.06)', marginBottom: 20,
+        },
+      },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center' } },
+          React.createElement(Title, { level: 3, style: { margin: 0, lineHeight: '32px' } }, 'Lista Permessi'),
+        ),
+        React.createElement(Dropdown, newPermitMenu,
+          React.createElement(Button, { id: 'grav-tour-new-permit-btn', type: 'primary', icon: React.createElement(PlusOutlined) },
+            'Nuovo Permesso ', React.createElement(DownOutlined),
+          ),
+        ),
+      )
+    : React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center' } },
+          React.createElement(Title, { level: 2, style: { margin: 0 } }, 'Lista Permessi'),
+          React.createElement(HandoffDesignNote, { id: 'prototipo-a-posteriori', placement: 'right' }),
+        ),
+        React.createElement(Dropdown, newPermitMenu,
+          React.createElement(Button, { id: 'grav-tour-new-permit-btn', type: 'primary', size: 'large' },
+            'Nuovo Permesso ', React.createElement(DownOutlined),
+          ),
+        ),
+      );
+
+  // v2 — box esplicativo sotto l'intestazione: definisce le 3 entità (Autorizzazione,
+  // Concessione, Contratto Privato ora hanno regime giuridico diverso, nota
+  // 'concessione-solo-pubblica') prima che l'utente scelga quale creare/consulti la lista.
+  // Layout a 3 colonne (stesso ordine Autorizzazione/Concessione/Contratto Privato di
+  // tutta la UI v2) invece di righe impilate: sfrutta la larghezza del viewport desktop
+  // e riduce l'altezza del banner a 2 righe di testo invece di 4.
+  const GLOSSARY_ENTRIES = [
+    { term: 'Autorizzazione', def: 'Atto amministrativo che abilita l\'installazione su un\'area soggetta a un vincolo specifico (comunale, viabilità extraurbana, paesaggistico-culturale, area ferroviaria, genio civile); comporta un CUP.' },
+    { term: 'Concessione', def: 'Atto di diritto pubblico con cui un ente pubblico concede l\'uso di un bene demaniale o patrimoniale indisponibile (es. suolo pubblico); mai con un privato.' },
+    { term: 'Contratto Privato', def: 'Accordo di diritto privato (locazione, comodato o altro) per l\'uso di uno spazio di proprietà privata; non è un atto amministrativo.' },
+  ];
+  const entityGlossaryBox = isV2 && React.createElement(Alert, {
+    className: 'grav-permit-entity-glossary', type: 'info', showIcon: false, closable: true,
+    // Neutro, senza icona: sfondo bianco + stroke tratteggiato (colorBorder di tokens.js)
+    // invece del fill viola/grigio — un box più discreto, non un vero avviso di stato.
+    style: { marginBottom: 20, padding: '14px 16px', background: '#fff', border: '1px dashed #D9D9D9' },
+    message: React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.85)' } },
+      'Cosa si intende per Autorizzazione, Concessione e Contratto Privato?'),
+    description: React.createElement('div', { style: { display: 'flex', gap: 24, marginTop: 8 } },
+      GLOSSARY_ENTRIES.map((e, i) => React.createElement('div', {
+        key: e.term,
+        style: {
+          flex: 1, minWidth: 0,
+          borderLeft: i > 0 ? '1px solid rgba(0,0,0,0.1)' : 'none',
+          paddingLeft: i > 0 ? 24 : 0,
+        },
+      },
+        React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'rgba(0,0,0,0.85)', marginBottom: 3 } }, e.term),
+        React.createElement('div', { style: { fontSize: 12.5, color: 'rgba(0,0,0,0.55)', lineHeight: 1.6 } }, e.def),
+      )),
+    ),
+  });
+
+  const listView = React.createElement(React.Fragment, null,
+    listHeader,
+    entityGlossaryBox,
+    React.createElement(Tabs, { type: 'line', items: tabItems, activeKey: activeTab, onChange: setActiveTab }),
+  );
+
+  const detailView = currentRecord && React.createElement(PermitDetailPage, {
+    record: currentRecord,
+    kind: viewState.kind,
+    isV2,
+    concessioniList: concessioni,
+    autorizzazioniList: autorizzazioni,
+    contrattiList: contratti,
+    onBack: () => setViewState({ page: 'list' }),
+    onConnettiSpazi: (nuoviSpazi) => connettiSpazi(viewState.kind, viewState.id, nuoviSpazi),
+    onScollegaSpazio: (spazioId) => scollegaSpazio(viewState.kind, viewState.id, spazioId),
+    onSetStatoOverride: (nextOverride) => setStatoOverride(viewState.kind, viewState.id, nextOverride),
+  });
+
+  return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
+    React.createElement(AntApp, null,
+      contextHolder,
+      React.createElement('div', { className: 'app-shell' },
+        React.createElement(window.GravityNavbar, null),
+        React.createElement('div', { className: isV2 ? 'lic-content lic-v2' : 'lic-content' },
+          viewState.page === 'detail' && currentRecord ? detailView : listView,
+        ),
+      ),
+
+      React.createElement(PermitFormDrawer, {
+        open: !!newPermitType, type: newPermitType, isV2,
+        concessioniList: concessioni, autorizzazioniList: autorizzazioni, contrattiList: contratti,
+        onClose: () => setNewPermitType(null),
+        onSave: handleSaveNewPermit,
+      }),
+    ),
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(AppRoot));
+</script>
+<!-- Motore handoff — caricato solo se il loader in <head> ha attivato il layer. -->
+<script>
+  if (window.__HANDOFF_ACTIVE) document.write('<scr' + 'ipt src="../_shared/handoff.js"></scr' + 'ipt>');
+</script>
+<script>
+  // Riparenta lo slot della dev bar su <body>: dentro <nav> (position:sticky,
+  // z-index:100) resta intrappolato nel suo stacking context e nessun z-index
+  // interno può superare i Drawer del prototipo (z-index:1000). Attivo solo in
+  // modalità handoff (vedi loader in <head>). Pattern identico a inventory-systems.
+  if (window.__HANDOFF_ACTIVE) {
+    setInterval(function () {
+      var slot = document.getElementById('ghf-nav-slot');
+      if (!slot) return;
+      if (slot.parentElement !== document.body) document.body.appendChild(slot);
+      // GravitySectionDrawer (Autorizzazione v2): lascia vincere la regola CSS
+      // body:has(.grav-section-drawer-nav) invece della misura generica sul bordo
+      // sinistro — stesso pattern di inventory-systems per il suo drawer full-screen.
+      if (document.querySelector('.grav-section-drawer-nav')) {
+        slot.style.right = '';
+        return;
+      }
+      var openDrawer = document.querySelector('.ant-drawer-open .ant-drawer-content');
+      if (openDrawer) {
+        var left = openDrawer.getBoundingClientRect().left;
+        var desired = window.innerWidth - left + 16;
+        var maxRight = window.innerWidth - slot.getBoundingClientRect().width - 8;
+        slot.style.right = Math.min(desired, maxRight) + 'px';
+      } else {
+        slot.style.right = '';
+      }
+    }, 300);
+  }
+</script>
+</body>
+</html>

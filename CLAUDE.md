@@ -51,7 +51,8 @@ prototype/
     _template.html · tokens.js        punto di partenza + tema
     registry.js                       stato e link di ogni prototipo (fonte di verità)
     navbar.js · filter-drawer.js ·    componenti JS condivisi
-    map-popover.js · map-interactions.js · handoff.js
+    map-popover.js · map-interactions.js · handoff.js ·
+    section-drawer.js · form-helpers.js · entity-card.js
     assets/                           marker, icone tipologie, foto, geojson
   <nome-prototipo>/                  una cartella piatta per prototipo (planning, negotiations, …)
 components/          specifiche .md dei componenti (fonte di verità HTML + Figma)
@@ -72,7 +73,7 @@ profondità dentro un singolo prototipo** e questo CLAUDE.md padre fa da hub. No
 |----------|----------------------------------------|
 | @prototype/ | serve capire come un altro prototipo ha già risolto lo stesso pattern (riuso, coerenza cross-prototipo) prima di inventarne uno nuovo |
 | @prototype/<nome-prototipo>/ | è la cartella su cui si sta intervenendo: libertà piena su `index.html`, note `*.md`, `handoff-steps.js` di **quel** prototipo |
-| @prototype/_shared/ (navbar.js · filter-drawer.js · map-popover.js · map-interactions.js · handoff.js · registry.js · tokens.js) | si costruisce/modifica un elemento UI condiviso: leggi il sorgente JS per usarne l'API reale invece di ricostruirlo (accoppia sempre col relativo `components/*.md`) |
+| @prototype/_shared/ (navbar.js · filter-drawer.js · map-popover.js · map-interactions.js · section-drawer.js · handoff.js · registry.js · tokens.js) | si costruisce/modifica un elemento UI condiviso: leggi il sorgente JS per usarne l'API reale invece di ricostruirlo (accoppia sempre col relativo `components/*.md`) |
 | @prototype/_shared/assets/ | un prototipo deve puntare a marker, `systemstype-icons`, `system-photos` o geojson (`palermo-zones.geojson`): sfoglia per trovare il file esatto e il path |
 | @components/ | prima di costruire **qualsiasi** elemento UI o in fase di trasposizione Figma: leggi la spec del componente (fonte di verità HTML+Figma) e la mappa props→varianti |
 | @docs/ | serve contesto di processo, standard UI/UX, spec di modulo, o materiale di prodotto/ricerca — naviga la sottocartella pertinente (`modules/`, `product/`, `research/`) |
@@ -87,6 +88,8 @@ profondità dentro un singolo prototipo** e questo CLAUDE.md padre fa da hub. No
 | Spec del modulo Commercial (Negotiations, Wizard, Quote…) | `docs/modules/commercial.md` | lavorando su quel modulo |
 | Mappatura props React → varianti Figma (tutti i componenti AntD) | `components/react-figma-map.md` | in fase di trasposizione su Figma |
 | Form in Modal/Drawer (spacing, facoltativi, dati ereditati, Alert…) | `components/form-patterns.md` | ogni nuovo form in Modal o Drawer |
+| Drawer con navigazione verticale a sezioni (`GravitySectionDrawer`, `GravityFormArea`) | `components/section-drawer.md` | form con troppi campi per un pannello Drawer semplice (LAYOUT.md §3.9) |
+| Schermata lista con tabella (card container, KPI cards, colori testo cella, header, hover) | `components/list-table.md` | ogni nuova/modificata schermata lista con tabella |
 | Navbar condivisa (`GravityNavbar`, sezioni × ruolo) | `components/navbar.md` | ogni prototipo con navbar |
 | Drawer filtri avanzati (`GravityFilterDrawer`) | `components/filter-drawer.md` | moduli con filtri |
 | Popover su marker mappa (`GravityMapPopover`) | `components/map-popover.md` | prototipi con mappa |

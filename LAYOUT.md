@@ -190,6 +190,12 @@ Total: xxx items
 - Badge stato: `<Badge status="success" text="Active">` / `<Badge status="error" text="Expired">`
 - Azioni riga: `<Button type="text" icon={<MoreOutlined />}>` (tre puntini)
 
+> **Struttura canonica aggiornata** (Planning, Negotiations): la lista non è quasi mai solo
+> `[Titolo] + [Tabs] + [Tabella]` — è sempre **header card → KPI cards row → tabella dentro una
+> card propria** (`borderRadius: 10`, conteggio totale in alto o nel footer di paginazione).
+> Per struttura esatta, colori testo cella, altezze, header e stato hover → **`components/list-table.md`**,
+> fonte di verità per qualsiasi nuova schermata lista con tabella.
+
 ---
 
 ### 3.2 List + Right Drawer (lista + form laterale)
@@ -324,6 +330,45 @@ inizio modale e navigazione Cancel/Next/Finish in footer.
 
 ---
 
+### 3.9 Drawer con navigazione verticale a sezioni
+
+Variante del Drawer di creazione/modifica (§3.2) per form con **troppi campi per un pannello
+unico**: invece di un lungo scroll, una sidebar verticale a sinistra elenca le sezioni, l'area di
+contenuto a destra scorre su sfondo grigio con i campi raggruppati in "aree" (card bianche).
+Estratto da "Nuovo Impianto" (`prototype/inventory-systems`, `NewImpiantoFullDrawer`) e
+componentizzato in `prototype/_shared/section-drawer.js` — **usare questo componente condiviso,
+non ricostruire il pattern inline per-prototipo**.
+
+```
+┌──────────────┬──────────────────────────────────────────────┐
+│  Sezioni     │  ░░░░░░░░░░░░░░░░ sfondo grigio ░░░░░░░░░░░░  │
+│  ─────────   │  ░░  Titolo sezione                       ░░  │
+│  ▸ Sezione A │  ░░  Descrizione sezione                  ░░  │
+│    Sezione B │  ░░  ┌────────────────────────────────┐  ░░  │
+│    Sezione C │  ░░  │ Titolo area      [azione extra] │  ░░  │
+│              │  ░░  │ Descrizione area                │  ░░  │
+│              │  ░░  │  [campo] [campo]   ← griglia    │  ░░  │
+│              │  ░░  └────────────────────────────────┘  ░░  │
+│              │  ░░  ┌────────────────────────────────┐  ░░  │
+│              │  ░░  │ Altra area…                     │  ░░  │
+└──────────────┴──────────────────────────────────────────────┘
+```
+
+- **Quando usarlo:** il form ha 3+ gruppi di campi concettualmente distinti (es. dati generali /
+  dati tecnici / struttura) che renderebbero un pannello unico troppo lungo da scorrere — non per
+  form brevi a campo singolo o due, che restano il Drawer semplice di §3.2.
+- **Larghezza Drawer:** 90% della viewport (`styles.wrapper.width`, stesso pattern di
+  `ConnettiImpiantiDrawer`), non i 640px standard dei drawer semplici: la sidebar consuma spazio
+  orizzontale, serve più respiro per il contenuto.
+- **Componenti condivisi:** `GravitySectionDrawer` (shell: Drawer + nav verticale + area
+  scrollabile) e `GravityFormArea` (card bianca con titolo/descrizione opzionali, per raggruppare
+  campi correlati dentro una sezione) — API e dettagli in **`components/section-drawer.md`**.
+- **Stato sezione disabilitata:** se una sezione dipende da un campo non ancora compilato in
+  un'altra (es. serve prima scegliere un tipo), la si passa `disabled: true` — non cliccabile, resta
+  visibile in elenco con testo attenuato (coerente con LAYOUT.md §6.2, non nascosta).
+
+---
+
 > Per la corrispondenza di ciascun pattern con il nome del frame Figma → **Parte 2, §11**.
 
 ---
@@ -341,9 +386,10 @@ inizio modale e navigazione Cancel/Next/Finish in footer.
 | Badge Active | verde `#52C41A` | `colorSuccess` |
 | Badge Expired | rosso `#FF4A1C` | `colorError` |
 | Table header bg | `#FAFAFA` | `colorFillQuaternary` |
-| Tag tipo sistema OOH | `#3E00FB` (outline) | `colorPrimary` |
-| Tag tipo sistema DOOH | `#FF4A1C` (outline) | `colorError` |
+| Tag "Canale" OOH in tabella | preset AntD `color="green"` (`#389E0D` su `#F6FFED`) | — |
+| Tag "Canale" DOOH in tabella | preset AntD `color="magenta"` (`#C41D7F` su `#FFF0F6`) | — |
 | KPI card border | `#F0F0F0` | `colorBorderSecondary` |
+| Bordo card bianca su sfondo grigio (aree in drawer sezionati, §3.9) | `#E8E8E8` | — (più scuro di `colorBorderSecondary`: su sfondo `colorBgLayout` un bordo `#F0F0F0` è più chiaro dello sfondo circostante, quindi invisibile — serve un grigio leggermente più scuro per restare percepibile) |
 
 ---
 
@@ -421,7 +467,7 @@ colori strutturali/di chrome dell'interfaccia vedi invece §4):
 | In Manutenzione | `#FA8C16` (orange-6) | Inventory — stato amministrativo |
 | Inizializzato | `#FAAD14` (gold-6) | Inventory — stato amministrativo |
 | Rimosso | `rgba(0,0,0,0.45)` | Inventory — stato amministrativo |
-| Canale OOH / DOOH | `#52C41A` / `#EB2F96` | chip e filtri (in tabella anche outline `#3E00FB` / `#FF4A1C`, vedi §4) |
+| Canale OOH / DOOH | `#52C41A` / `#EB2F96` | chip e filtri (in tabella invece preset AntD verde/magenta, vedi §4 e `components/list-table.md` §7) |
 
 ### 6.4 Accessibilità e contrasto
 
@@ -605,6 +651,7 @@ Corrispondenza tra i pattern di layout della Parte 1 (§3) e il nome del frame F
 | §3.6 Detail + Connect Systems | `[Entity] Detail / Connect Systems` |
 | §3.7 Public/Guest View | `[Modulo]: [Screen]` — frame a parte, fuori dallo schema App Shell |
 | §3.8 Modal Wizard | `[Modulo]/Wizard/[Nome]` (un frame per step) |
+| §3.9 Drawer con navigazione verticale a sezioni | `[Modulo] List/[ActionName]/[NomeSezione]` (un frame per sezione attiva) |
 
 ---
 
