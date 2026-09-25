@@ -109,9 +109,102 @@ Card bianca che raggruppa campi correlati dentro una sezione — una sezione pu�
 
 ## Esempio reale
 
-`prototype/inventory-licenses` — drawer "Nuova Autorizzazione" (v2): due sezioni, "Informazioni"
-(dati generali dell'atto) e "Impianti autorizzati" (editor a righe, disabilitata finché il Tipo
-Autorizzazione non è scelto in "Informazioni").
+`prototype/inventory-licenses` — i tre drawer di creazione Permesso in v2 usano tutti questo
+pattern, per un'esperienza di creazione coerente tra i tipi (note
+'concessione-contratto-drawer-a-sezioni' e 'concessione-contratto-impianti-collegati'): la
+sezione con l'elenco a righe degli impianti è sempre la terza, in tutti e tre i tipi — ma il
+suo **nome è specifico per tipo**, non più il generico "Impianti collegati" identico ovunque:
+un'etichetta come "Cimasa e CUP" comunica da subito cosa si autorizza in quella sezione, prima
+ancora di aprirla, invece di farlo scoprire solo dopo (stessa logica di "Documentazione viva" —
+il nome scelto in un primo giro può rivelarsi non abbastanza esplicito e va corretto).
+- **Nuova Autorizzazione**: "Informazioni" (dati generali dell'atto), "Origine" (diritto sul
+  suolo — incluso nell'atto o ereditato da un altro, disabilitata se il Tipo non è Esposizione
+  pubblicitaria) e **"Cimasa e CUP"** (elenco a righe, disabilitata finché il Tipo non è
+  scelto in "Informazioni").
+- **Nuova Concessione**: "Informazioni" (dati dell'atto + area concessa), "Origine" (modalità
+  di attribuzione) e **"Canone Patrimoniale"** (numero utenza e canone patrimoniale per
+  impianto) — nessuna sezione disabilitata.
+- **Nuovo Contratto Privato**: "Informazioni" (dati del contratto), "Riferimento Catastale"
+  (facoltativo) e **"Canone Locazione"** (numero utenza e canone di locazione per impianto) —
+  nessuna sezione disabilitata.
+
+Concessione V1 e Autorizzazione V1 restano invece sul Drawer semplice a 640px (LAYOUT.md §3.2):
+solo la v2 usa `GravitySectionDrawer` per questi tre form.
+
+## Sotto-pattern: elenco collegato con ricerca via drawer (non ancora un componente condiviso)
+
+Le sezioni "Cimasa e CUP"/"Canone Patrimoniale"/"Canone Locazione" (le tre sopra) e "Origine" (solo Autorizzazione, campo
+"Concessione o Contratto di riferimento") condividono un sotto-pattern per collegare
+un'altra entità quando una `Select` semplice non basta a trovarla — caso reale quando le
+opzioni sono migliaia con nomi simili (nota 'permessi-collegamento-drawer-card'). **Non è
+ancora estratto in `prototype/_shared/`**: vive per ora duplicato in
+`prototype/inventory-licenses/index.html`, con varianti concettualmente identiche anche in
+`prototype/inventory-systems` (Moduli) e nel "Collega Spazi" di questo stesso file — un
+candidato naturale per una futura estrazione, segnalato ma non ancora deciso.
+
+- **Stato vuoto**: illustrazione tenue (`link-entity-astronaut.png`, stesso asset del pattern
+  "Nuovo Impianto") + testo + le azioni disponibili, impilate verticalmente e centrate
+  (`Space direction="vertical" align="center"`).
+- **Collegamento multiplo (impianti)**: un drawer di ricerca (640px, `rootClassName`
+  dedicato per nascondere la dev bar handoff — vedi sotto) con `Input` di ricerca + elenco
+  selezionabile a checkbox, pre-selezionato con quanto già collegato. Il risultato **non è
+  una griglia di card**: resta un elenco a righe (una per elemento), perché a scala reale
+  (20.000+ impianti) una card fitta di informazioni per ciascuna riga è meno leggibile di una
+  riga compatta, e perché il drawer già risolve la ricerca — le righe non devono più farlo.
+- **Collegamento singolo (atto di provenienza)**: stesso drawer, ma selezione a scelta unica
+  (`Radio` invece di `Checkbox`) — il risultato è una singola `GravityEntityCard` (coerente
+  con le card di "Spazi collegati"), non una riga: con un solo elemento possibile, la card è
+  più leggibile di una riga isolata.
+- **Riga (collegamento multiplo)**: `Row`/`Col` a 4 colonne (9/7/5/3, `gutter: 16`), una riga
+  per elemento con `marginBottom: 20` tra una riga e l'altra — più ariosa del `gutter: 16` /
+  `marginBottom: 12` della sola intestazione colonne, per dare respiro a un elenco che può
+  avere più righe di un form normale. La prima colonna è **sola lettura** (l'elemento si
+  sceglie nel drawer, non più con una `Select` per riga): icona tipologia (asset custom
+  `systemstype-icons` via `GravityMap.systypeIconSrc(tipo, canale)` — LAYOUT.md §6.5 — fallback
+  `TagOutlined` se il tipo non ha un'icona custom) + identificativo + indirizzo troncato
+  (`text-overflow: ellipsis`). Le colonne successive restano `Input`/`InputNumber` editabili
+  inline, come nell'editor a righe che questo pattern sostituisce.
+- **Riconoscimento in hover**: quando l'identità sola-lettura non basta a distinguere elementi
+  simili (stesso tipo, indirizzi vicini), un'icona Ⓘ esplicita (`InfoCircleOutlined`, non
+  l'intero blocco identità — LAYOUT.md §6.2, va scoperta non capitata per caso) apre un
+  `Popover` in hover con 3-4 campi reali (icona + label + valore, stesso stile delle
+  `GravityEntityCard`) — mai una foto segnaposto: se l'asset non è una vera foto per elemento
+  (es. `FOTO_IMPIANTO`, assegnazione pseudo-casuale per id usata altrove nel repo), è
+  fuorviante invece che utile al riconoscimento.
+- **Elemento non ancora esistente in anagrafica**: un'azione secondaria e diretta — "Aggiungi
+  senza impianto" (`Button type="link"`), non dentro al drawer di ricerca — aggiunge subito una
+  riga con un `Tag` di stato ("Da censire") al posto dell'identità, con gli stessi campi
+  editabili delle altre righe. Va tenuta fuori dal drawer: è un caso d'uso a sé, non una
+  sottovoce della ricerca, e nasconderla in fondo a un elenco di centinaia di risultati la
+  rende difficile da trovare.
+- **Risolvere una riga "Da censire"**: quando l'impianto viene poi censito in Inventario, la
+  riga resta comunque **collegabile a posteriori** — un'azione "Seleziona impianto" accanto al
+  `Tag` di stato riapre lo stesso drawer di ricerca, ma in modalità a scelta singola (`Radio`
+  invece di `Checkbox`, nessuna preselezione, candidati filtrati per escludere gli impianti già
+  collegati in un'altra riga). Confermando, quella riga specifica passa da sola-lettura-assente a
+  identità reale, **senza perdere** i campi già compilati (cimasa/CUP o numero utenza/canone):
+  non si crea una riga nuova e non si cancella quella vecchia, si aggiorna la stessa riga.
+- **Pulsanti "Collega…"**: sempre **size default** (mai `size: 'small'`) — sono l'azione
+  primaria della sezione, non un'azione minore accessoria. Solo quando l'elenco non è vuoto
+  compaiono anche nell'header del box, accanto al titolo.
+- **Contatore nel titolo del box**: stesso `countBadge` del drawer "Nuovo Impianto"
+  (`inventory-systems`) — pillola piena `colorPrimary` (`#3E00FB`) con numero bianco (`#fff`),
+  18×18px, `borderRadius: 9`, **accanto al titolo**, non tra le azioni:
+  ```js
+  const countBadge = (n) => React.createElement('span', {
+    style: {
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
+      background: window.GRAVITY_THEME.token.colorPrimary, color: '#fff',
+      fontSize: 12, fontWeight: 700, lineHeight: 1,
+    },
+  }, n);
+  ```
+- **Dev bar handoff nei drawer piccoli**: a 640px non c'è spazio per riposizionarla come per
+  il `GravitySectionDrawer` a 90% (§ sotto) — va nascosta del tutto finché il drawer piccolo è
+  aperto: `rootClassName` dedicato sul `Drawer` + `body:has(.<classe>.ant-drawer-open)
+  #ghf-nav-slot { display: none !important; }` (`!important` necessario: lo script della dev
+  bar imposta `display` come stile inline, che altrimenti vince sempre sulla regola CSS).
 
 ## Dev bar handoff — ancoraggio al gruppo Annulla/Salva
 

@@ -238,16 +238,26 @@ Variante della lista dove il pannello sinistro mostra un'entità secondaria (es.
 Schermata dedicata a una singola entità. Struttura:
 
 ```
-← [Breadcrumb: Authorizations list]
-
-[Entity Title]  [Tag: Document ID]          [Edit] [Connect Systems ▾]
-#0101  Issuing Authority: [value]  Signing Date: [value]  State: ● Active
-─────────────────────────────────────────────────────────────────────────
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ← Lista Autorizzazioni                                                   │
+│ Entity Title | Nome Entità  [Tag: Document ID]      [Edit] [Connect ▾]  │
+│ Issuing Authority: [value] · Signing Date: [value] · State: ● Active    │
+└─────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
 │ Auth Type    │ │ Expiration   │ │ Duration     │ │ CUP          │
 │ Comunale     │ │ 21/01/2031   │ │ 5 years      │ │ 960 €/year   │
 └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
+
+┌──────────────────────────┐ ┌──────────────────────────┐   ← card laterali
+│ LABEL SEZIONE (icona)     │ │ LABEL SEZIONE (icona)     │     (0, 1 o 2 box,
+│ dettagli secondari...     │ │ dettagli secondari...     │     auto-fit)
+└──────────────────────────┘ └──────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────┐
+│ LABEL SEZIONE (icona)                                                   │  ← card principale
+│ tabella/contenuto denso a piena larghezza...                           │    (0 o 1, opzionale)
+└───────────────────────────────────────────────────────────────────────┘
 
 Connected Systems
 Total: 4 systems  [Filter by channel ▾]  [Filter by system type ▾]
@@ -257,12 +267,27 @@ Total: 4 systems  [Filter by channel ▾]  [Filter by system type ▾]
 └────────────────┘ └────────────────┘ └────────────────┘ └────────────────┘
 ```
 
-**Componenti Ant Design:**
-- `<Breadcrumb>` con freccia sinistra — navigazione back
-- `<Typography.Title level={2}>` + `<Tag>` per l'identificativo
-- Metadata bar: `<Descriptions layout="horizontal" size="small" bordered={false}>`
-- KPI cards: `<Row gutter={16}><Col span={6}>` con `<Card>` + `<Statistic>`
-- Sezione sistemi: titolo + filtri `<Select size="small">` + grid di card
+**Componenti:**
+- Header: componente condiviso `window.GravityPageHeader` (`prototype/_shared/page-header.js`) —
+  card unica con back link, titolo (+ `entityName`/`Tag` opzionali), riga metadati inline e
+  azioni. Sostituisce il pattern storico `<Breadcrumb>` + `<Title>`/`<Tag>` + `<Descriptions>`
+  sullo sfondo pagina — spec completa in `components/page-header.md`.
+- KPI cards: `DataCard` (icona + label + valore), lo stesso componente delle KPI di lista
+  (`components/list-table.md` §3) — non `<Card>`+`<Statistic>` di Ant Design.
+- **Card laterali** (opzionali): dettagli secondari specifici dell'entità, uno o due box
+  affiancati (`display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(320px,1fr))'`),
+  ciascuno un box bianco con label maiuscola+icona (classi `.info-card`/`.info-card-label`, vedi
+  `prototype/negotiations/index.html` o `prototype/inventory-licenses/index.html`) — usali per
+  informazioni che non giustificano una sezione a piena larghezza (es. provenienza, riferimenti
+  secondari).
+- **Card principale** (opzionale): un solo box a piena larghezza per l'informazione più densa
+  del record (tipicamente una tabella) — stesso stile `.info-card` delle card laterali.
+- Sezione entità collegate ("Connected Systems"/"Spazi collegati"): titolo + filtri
+  `<Select size="small">` + grid di `GravityEntityCard` (`prototype/_shared/entity-card.js`),
+  sempre in fondo alla pagina — spec completa in `components/entity-card.md`.
+
+> Card laterali e card principale sono un pattern compositivo, non un obbligo: una Detail View
+> senza dettagli secondari da isolare può avere solo header + KPI + sezione entità collegate.
 
 ---
 

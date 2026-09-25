@@ -22,6 +22,7 @@
     };
   </script>
   <script src="../_shared/navbar.js"></script>
+  <script src="../_shared/page-header.js"></script>
 
   <!-- Handoff loader — attiva il layer handoff (note di design + tour + interfaccia
        semplificata) SOLO con ?handoff=<versione>. Senza il parametro questo è il
@@ -473,71 +474,9 @@ function MiniCalendar({ start, end }) {
   );
 }
 
-// ── GravityPageHeader — riuso del componente di negotiations ─────────────────
-function GravityPageHeader({ backLabel, onBack, title, entityName, tag, meta, actions }) {
-  meta    = meta    || [];
-  actions = actions || [];
-
-  const metaItems = meta.flatMap((item, i) => {
-    const parts = [];
-    if (i > 0) parts.push(
-      React.createElement('span', { key: `sep${i}`, style: { color: 'var(--gravity-text-disabled)', margin: '0 2px' } }, '·')
-    );
-    parts.push(
-      React.createElement('div', { key: `m${i}`, style: { display: 'inline-flex', alignItems: 'center', gap: 5 } },
-        React.createElement('span', { style: { fontSize: 13, color: 'var(--gravity-text-tertiary)' } }, `${item.label}:`),
-        typeof item.value === 'string'
-          ? React.createElement('span', { style: { fontSize: 13, color: 'var(--gravity-text)' } }, item.value)
-          : item.value
-      )
-    );
-    return parts;
-  });
-
-  return React.createElement('div', {
-    style: {
-      background: 'var(--gravity-bg-container)',
-      borderRadius: 'var(--gravity-radius-lg)',
-      padding: '16px 20px',
-      border: '1px solid var(--gravity-split)',
-      marginBottom: 20,
-    },
-  },
-    onBack && React.createElement(Button, {
-      type: 'link',
-      icon: React.createElement(ArrowLeftOutlined),
-      onClick: onBack,
-      style: { padding: 0, marginBottom: 8, fontSize: 13, color: 'var(--gravity-primary)', height: 'auto', display: 'block' },
-    }, backLabel || 'Indietro'),
-
-    React.createElement('div', {
-      style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
-    },
-      React.createElement('div', { style: { minWidth: 0, flex: 1 } },
-        React.createElement('div', {
-          style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: metaItems.length ? 6 : 0 },
-        },
-          React.createElement(Title, { level: 4, style: { margin: 0 } }, title),
-          entityName && React.createElement(React.Fragment, null,
-            React.createElement('span', {
-              style: { color: 'var(--gravity-text-disabled)', fontWeight: 200, fontSize: 22, lineHeight: 1 },
-            }, '|'),
-            React.createElement('span', {
-              style: { fontSize: 15, color: 'var(--gravity-text-secondary)', fontWeight: 400 },
-            }, entityName)
-          ),
-          tag
-        ),
-        metaItems.length > 0 && React.createElement('div', {
-          style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 8px' },
-        }, ...metaItems)
-      ),
-      actions.length > 0 && React.createElement('div', {
-        style: { display: 'flex', gap: 8, flexShrink: 0, alignItems: 'flex-start', paddingTop: 2 },
-      }, ...actions)
-    )
-  );
-}
+// GravityPageHeader — ora componente condiviso, vedi prototype/_shared/page-header.js
+// e components/page-header.md (era duplicato identico qui e in negotiations).
+const GravityPageHeader = window.GravityPageHeader;
 
 // ── Dati mock — Campagna DOOH in erogazione ───────────────────────────────────
 // Una campagna nasce dall'unione di due cose distinte: gli spazi (impianti) già
