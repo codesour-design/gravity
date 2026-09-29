@@ -7285,7 +7285,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       sections: _sections,
     }),
 
-    // Permits drawer — stessa UX del dettaglio impianto
+    // Permits drawer — intestazione EntityPickerDrawer + accordion originale
     React.createElement(Drawer, {
       title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
         React.createElement(DiscardCloseIcon, { dirty: !!permitRowKey, onDiscard: closePermitDrawer }),
@@ -7309,15 +7309,31 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         }, 'Aggiungi'),
       ),
     },
-      permitDrawerType === 'autorizzazione'
-        ? React.createElement(AutorizzazioniEsposizioneList, { data: AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory === 'Esposizione pubblicitaria (Comunale)' && a.status === 'Attiva'), selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
-        : permitDrawerType === 'contratto'
-          ? React.createElement(ContrattiList, { data: CONTRATTI_DATA.filter(c => c.status === 'Attiva'), selectedKey: permitRowKey, onRowSelect: setPermitRowKey })
-          : React.createElement(GrantsAccordion, {
-              data: GRANTS_DATA.filter(g => g.status === 'Attiva'),
-              selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey,
-              kindLabel: 'concessione',
-            }),
+      React.createElement(React.Fragment, null,
+        React.createElement('div', { style: { marginBottom: 20 } },
+          React.createElement(Typography.Title, { level: 4, style: { margin: '0 0 2px' } },
+            permitDrawerType === 'autorizzazione'
+              ? "Trova l'autorizzazione da collegare"
+              : permitDrawerType === 'contratto'
+                ? 'Trova il contratto privato da collegare'
+                : 'Trova la concessione da collegare'),
+          React.createElement(Typography.Text, { type: 'secondary' },
+            permitDrawerType === 'autorizzazione'
+              ? "Seleziona l'atto e il codice cimasa da associare all'impianto. Vengono mostrate solo le autorizzazioni di esposizione pubblicitaria attive."
+              : permitDrawerType === 'contratto'
+                ? 'Cerca per proprietario/locatore, identificativo o tipo. Vengono mostrati solo i contratti attivi.'
+                : "Seleziona la concessione e il numero utenza da associare all'impianto. Vengono mostrate solo le concessioni attive."),
+        ),
+        permitDrawerType === 'autorizzazione'
+          ? React.createElement(AutorizzazioniEsposizioneList, { data: AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory === 'Esposizione pubblicitaria (Comunale)' && a.status === 'Attiva'), selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
+          : permitDrawerType === 'contratto'
+            ? React.createElement(ContrattiList, { data: CONTRATTI_DATA.filter(c => c.status === 'Attiva'), selectedKey: permitRowKey, onRowSelect: setPermitRowKey })
+            : React.createElement(GrantsAccordion, {
+                data: GRANTS_DATA.filter(g => g.status === 'Attiva'),
+                selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey,
+                kindLabel: 'concessione',
+              }),
+      ),
     ),
 
     // Modale: la concessione selezionata ha una propria Utenza/Cimasa che sovrascriverebbe
