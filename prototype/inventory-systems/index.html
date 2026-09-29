@@ -22,6 +22,7 @@
   <script src="../_shared/navbar.js"></script>
   <script src="../_shared/filter-drawer.js"></script>
   <script src="../_shared/form-helpers.js"></script>
+  <script src="../_shared/entity-card.js"></script>
 
   <!-- Handoff loader — attiva il layer handoff (note di design + tour + interfaccia
        semplificata) SOLO con ?handoff=<versione>. Senza il parametro questo è il
@@ -2375,6 +2376,7 @@ function DiscardCloseIcon({ dirty, onDiscard }) {
   return React.createElement(Popconfirm, { ...DISCARD_CONFIRM_PROPS, onCancel: onDiscard }, btn());
 }
 
+// V2 — solo concessioni su suolo pubblico; i privati sono ora Contratto Privato (CONTRATTI_DATA)
 const GRANTS_DATA = [
   { key: '1', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 74322 del 15/04/2004', issuingAuthority: 'Comune di Catania', registrationNumber: '47294664857', totalPropertyTax: '1.000,00 €', issueDate: '10/12/2021', expirationDate: '10/12/2031', status: 'Attiva', isActive: true, bando: 'Bando CT 14/2021', lotto: 'Lotto 3', aggiudicazione: '02/12/2021', utilities: [
     { utilityNumber: 'DB45PL', propertyTax: '1.050,60 €', connectedTo: ['PalinaButterfly_10LaMatla', '+20'], cimasaCode: 'P5847', expirationDate: '10/12/2031' },
@@ -2392,17 +2394,9 @@ const GRANTS_DATA = [
     { utilityNumber: 'UT-007-2024', propertyTax: '1.500,00 €', cimasaCode: 'P8901' },
     { utilityNumber: 'UT-008-2024', propertyTax: '1.000,00 €', connectedTo: ['ImplantoCT_01'], cimasaCode: 'P8902' },
   ]},
-  { key: '5', grantType: 'Privato', documentType: 'Delibera', documentId: 'N. 74322 del 15/04/2004', issuingAuthority: 'Condominio "Alba"', registrationNumber: '47294664857', totalPropertyTax: '5.200,00 €', status: 'Scaduta', isActive: false, utilities: [
-    { utilityNumber: 'UT-009-2024', propertyTax: '5.200,00 €', cimasaCode: 'Non specificata' },
-  ]},
   { key: '6', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 74322 del 15/04/2004', issuingAuthority: 'Comune di Siracusa', registrationNumber: '', totalPropertyTax: '6.300,00 €', status: 'Attiva', isActive: true, utilities: [
     { utilityNumber: 'UT-010-2024', propertyTax: '3.000,00 €', cimasaCode: 'P9245' },
     { utilityNumber: 'UT-011-2024', propertyTax: '3.300,00 €', cimasaCode: 'P9246' },
-  ]},
-  { key: '7', grantType: 'Privato', documentType: 'Delibera', documentId: 'N. 74322 del 15/04/2004', issuingAuthority: 'Condominio "Nenni"', registrationNumber: '57295473958', totalPropertyTax: '7.800,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-012-2024', propertyTax: '2.600,00 €', cimasaCode: 'P1023' },
-    { utilityNumber: 'UT-013-2024', propertyTax: '2.600,00 €', cimasaCode: 'Non specificata' },
-    { utilityNumber: 'UT-014-2024', propertyTax: '2.600,00 €', cimasaCode: 'P1025' },
   ]},
   { key: '8', grantType: 'Pubblico', documentType: 'Determinazione Dirigenziale', documentId: 'Det. 74322 del 15/04/2004', issuingAuthority: 'Comune di Enna', registrationNumber: '47294664857', totalPropertyTax: '8.900,00 €', status: 'Attiva', isActive: true, utilities: [
     { utilityNumber: 'UT-015-2024', propertyTax: '4.000,00 €', cimasaCode: 'P2134' },
@@ -2411,11 +2405,6 @@ const GRANTS_DATA = [
   { key: '9', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 74322 del 15/04/2004', issuingAuthority: 'Comune di Ragusa', registrationNumber: '47294664857', totalPropertyTax: '9.999,99 €', status: 'Attiva', isActive: true, utilities: [
     { utilityNumber: 'UT-017-2024', propertyTax: '9.999,99 €', cimasaCode: 'Non specificata' },
   ]},
-  { key: '10', grantType: 'Privato', documentType: 'Contratto di Locazione', documentId: 'N. 74322 del 15/04/2004', issuingAuthority: 'Mauro Pezzati', registrationNumber: '47385377483', totalPropertyTax: '10.500,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-018-2024', propertyTax: '5.000,00 €', cimasaCode: 'P3456' },
-    { utilityNumber: 'UT-019-2024', propertyTax: '3.500,00 €', cimasaCode: 'P3457' },
-    { utilityNumber: 'UT-020-2024', propertyTax: '2.000,00 €', cimasaCode: 'Non specificata' },
-  ]},
   { key: '11', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 82145 del 22/08/2005', issuingAuthority: 'Comune di Palermo', registrationNumber: '48395738274', totalPropertyTax: '11.250,00 €', status: 'Attiva', isActive: true, utilities: [
     { utilityNumber: 'UT-021-2024', propertyTax: '6.000,00 €', cimasaCode: 'P4567' },
     { utilityNumber: 'UT-022-2024', propertyTax: '5.250,00 €', cimasaCode: 'P4568' },
@@ -2423,9 +2412,6 @@ const GRANTS_DATA = [
   { key: '12', grantType: 'Pubblico', documentType: 'Determinazione Dirigenziale', documentId: 'Det. 93847 del 10/11/2006', issuingAuthority: 'Comune di Caltanissetta', registrationNumber: '49284738294', totalPropertyTax: '12.400,00 €', status: 'Scaduta', isActive: false, utilities: [
     { utilityNumber: 'UT-023-2024', propertyTax: '7.200,00 €', cimasaCode: 'Non specificata' },
     { utilityNumber: 'UT-024-2024', propertyTax: '5.200,00 €', cimasaCode: 'P5678' },
-  ]},
-  { key: '13', grantType: 'Privato', documentType: 'Delibera', documentId: 'N. 38475 del 18/03/2007', issuingAuthority: 'Condominio "Sole"', registrationNumber: '50293847562', totalPropertyTax: '13.600,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-025-2024', propertyTax: '13.600,00 €', cimasaCode: 'P6789' },
   ]},
   { key: '14', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 47583 del 05/06/2008', issuingAuthority: 'Comune di Marsala', registrationNumber: '51384756294', totalPropertyTax: '14.750,00 €', status: 'Attiva', isActive: true, utilities: [
     { utilityNumber: 'UT-026-2024', propertyTax: '8.000,00 €', cimasaCode: 'Non specificata' },
@@ -2436,10 +2422,6 @@ const GRANTS_DATA = [
     { utilityNumber: 'UT-029-2024', propertyTax: '9.500,00 €', cimasaCode: 'P8912' },
     { utilityNumber: 'UT-030-2024', propertyTax: '6.400,00 €', cimasaCode: 'Non specificata' },
   ]},
-  { key: '16', grantType: 'Privato', documentType: 'Contratto di Locazione', documentId: 'N. 74829 del 20/12/2010', issuingAuthority: 'Rossi Immobiliare S.r.l.', registrationNumber: '53584736291', totalPropertyTax: '16.500,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-031-2024', propertyTax: '8.500,00 €', cimasaCode: 'P9123' },
-    { utilityNumber: 'UT-032-2024', propertyTax: '8.000,00 €', cimasaCode: 'P9124' },
-  ]},
   { key: '17', grantType: 'Pubblico', documentType: 'Determinazione Dirigenziale', documentId: 'Det. 58392 del 07/04/2011', issuingAuthority: 'Comune di Alcamo', registrationNumber: '54673829102', totalPropertyTax: '17.800,00 €', status: 'Attiva', isActive: true, utilities: [
     { utilityNumber: 'UT-033-2024', propertyTax: '10.000,00 €', cimasaCode: 'P1234' },
     { utilityNumber: 'UT-034-2024', propertyTax: '4.800,00 €', cimasaCode: 'Non specificata' },
@@ -2448,9 +2430,6 @@ const GRANTS_DATA = [
   { key: '18', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 69384 del 16/07/2012', issuingAuthority: 'Comune di Vittoria', registrationNumber: '55748392014', totalPropertyTax: '18.900,00 €', status: 'Attiva', isActive: true, utilities: [
     { utilityNumber: 'UT-036-2024', propertyTax: '11.000,00 €', cimasaCode: 'P2345' },
     { utilityNumber: 'UT-037-2024', propertyTax: '7.900,00 €', cimasaCode: 'P2346' },
-  ]},
-  { key: '19', grantType: 'Privato', documentType: 'Delibera', documentId: 'N. 81234 del 25/10/2013', issuingAuthority: 'Condominio "Mare"', registrationNumber: '56839201475', totalPropertyTax: '19.500,00 €', status: 'Scaduta', isActive: false, utilities: [
-    { utilityNumber: 'UT-038-2024', propertyTax: '19.500,00 €', cimasaCode: 'Non specificata' },
   ]},
   { key: '20', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 92847 del 08/01/2014', issuingAuthority: 'Comune di Bagheria', registrationNumber: '57920384756', totalPropertyTax: '20.750,00 €', status: 'Attiva', isActive: true, utilities: [
     { utilityNumber: 'UT-039-2024', propertyTax: '12.000,00 €', cimasaCode: 'P3456' },
@@ -2461,10 +2440,6 @@ const GRANTS_DATA = [
     { utilityNumber: 'UT-042-2024', propertyTax: '5.400,00 €', cimasaCode: 'P4568' },
     { utilityNumber: 'UT-043-2024', propertyTax: '3.000,00 €', cimasaCode: 'Non specificata' },
   ]},
-  { key: '22', grantType: 'Privato', documentType: 'Contratto di Locazione', documentId: 'N. 64829 del 28/08/2016', issuingAuthority: 'Bianchi Giuseppe', registrationNumber: '59284756301', totalPropertyTax: '22.500,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-044-2024', propertyTax: '15.000,00 €', cimasaCode: 'P5678' },
-    { utilityNumber: 'UT-045-2024', propertyTax: '7.500,00 €', cimasaCode: 'P5679' },
-  ]},
   { key: '23', grantType: 'Pubblico', documentType: 'Atto Notarile', documentId: 'N. 85764 del 11/11/2017', issuingAuthority: 'Comune di Acireale', registrationNumber: '60395847261', totalPropertyTax: '23.800,00 €', status: 'Attiva', isActive: true, utilities: [
     { utilityNumber: 'UT-046-2024', propertyTax: '14.000,00 €', cimasaCode: 'Non specificata' },
     { utilityNumber: 'UT-047-2024', propertyTax: '9.800,00 €', cimasaCode: 'P6789' },
@@ -2474,9 +2449,18 @@ const GRANTS_DATA = [
     { utilityNumber: 'UT-049-2024', propertyTax: '5.950,00 €', cimasaCode: 'P7891' },
     { utilityNumber: 'UT-050-2024', propertyTax: '3.000,00 €', cimasaCode: 'Non specificata' },
   ]},
-  { key: '25', grantType: 'Privato', documentType: 'Delibera', documentId: 'N. 78453 del 05/06/2019', issuingAuthority: 'Condominio "Giardino"', registrationNumber: '62594837561', totalPropertyTax: '25.600,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-051-2024', propertyTax: '25.600,00 €', cimasaCode: 'P8901' },
-  ]},
+];
+
+// V2 — Contratti Privati (Locazione/Comodato/Servitù): entità separata da GRANTS_DATA
+const CONTRATTI_DATA = [
+  { key: 'c1', proprietarioLocatore: 'Condominio "Alba"', tipoContratto: 'Comodato', identificativoContratto: 'COM-2004-001', canoneLocazione: '5.200,00 €', foglio: '45', particella: '112', subalterno: '1', dataStipula: '15/04/2004', dataScadenza: null, status: 'Scaduta', isActive: false },
+  { key: 'c2', proprietarioLocatore: 'Condominio "Nenni"', tipoContratto: 'Comodato', identificativoContratto: 'COM-2004-002', canoneLocazione: '7.800,00 €', foglio: '89', particella: '203', subalterno: '2', dataStipula: '15/04/2004', dataScadenza: '15/04/2034', status: 'Attiva', isActive: true },
+  { key: 'c3', proprietarioLocatore: 'Mauro Pezzati', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2004-003', canoneLocazione: '10.500,00 €', foglio: '115', particella: '388', subalterno: '', dataStipula: '15/04/2004', dataScadenza: '15/04/2030', status: 'Attiva', isActive: true },
+  { key: 'c4', proprietarioLocatore: 'Condominio "Sole"', tipoContratto: 'Comodato', identificativoContratto: 'COM-2007-004', canoneLocazione: '13.600,00 €', foglio: '187', particella: '74', subalterno: '1', dataStipula: '18/03/2007', dataScadenza: '18/03/2027', status: 'Attiva', isActive: true },
+  { key: 'c5', proprietarioLocatore: 'Rossi Immobiliare S.r.l.', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2010-005', canoneLocazione: '16.500,00 €', foglio: '203', particella: '447', subalterno: '2', dataStipula: '20/12/2010', dataScadenza: '20/12/2030', status: 'Attiva', isActive: true },
+  { key: 'c6', proprietarioLocatore: 'Condominio "Mare"', tipoContratto: 'Servitù', identificativoContratto: 'SRV-2013-006', canoneLocazione: '19.500,00 €', foglio: '92', particella: '231', subalterno: '', dataStipula: '25/10/2013', dataScadenza: '25/10/2023', status: 'Scaduta', isActive: false },
+  { key: 'c7', proprietarioLocatore: 'Bianchi Giuseppe', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2016-007', canoneLocazione: '22.500,00 €', foglio: '301', particella: '62', subalterno: '', dataStipula: '28/08/2016', dataScadenza: '28/08/2031', status: 'Attiva', isActive: true },
+  { key: 'c8', proprietarioLocatore: 'Condominio "Giardino"', tipoContratto: 'Comodato', identificativoContratto: 'COM-2019-008', canoneLocazione: '25.600,00 €', foglio: '412', particella: '89', subalterno: '3', dataStipula: '05/06/2019', dataScadenza: '05/06/2034', status: 'Attiva', isActive: true },
 ];
 
 // Dati di progetto trasportati dalla pratica Genio Civile, cumulativi per fase:
@@ -2488,30 +2472,66 @@ const GC_PROGETTO_REDAZIONE = { progetto: '1305', progettista: 'Studio Tecnico R
 const GC_PROGETTO_DEPOSITO  = { ...GC_PROGETTO_REDAZIONE, ddl: 'Ing. Paolo Greco', collaudatore: 'Ing. Sergio Lombardo', laboratorio: 'LabStrutture Palermo' };
 const GC_PROGETTO_COLLAUDO  = { ...GC_PROGETTO_DEPOSITO, dataCollaudo: '02/09/2022' };
 
+// V2 — enum a 7 tipologie (da inventory-licenses v2)
 const AUTHORIZATIONS_DATA = [
-  { key: '1', authorizationCategory: 'Autorizzazione esposizione (art. 23 CdS)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 23456/2023', stipulationDate: '15/01/2023', expirationDate: '30/06/2025', cup: 'J39D23000450001', status: 'Attiva', isActive: true },
-  { key: '2', authorizationCategory: 'Autorizzazione paesaggistica', issuingAuthority: 'Soprintendenza Belle Arti', protocolNumber: 'Prot. 34567/2022', stipulationDate: '10/03/2022', expirationDate: '15/03/2024', cup: 'J38C22001230001', status: 'Scaduta', isActive: false },
-  { key: '3', authorizationCategory: 'Autorizzazione Comunale', issuingAuthority: 'Comando Provinciale VVF Palermo', protocolNumber: 'Prot. 45678/2023', stipulationDate: '05/06/2023', expirationDate: '20/09/2025', cup: 'J37D23000890002', status: 'Attiva', isActive: true },
-  { key: '4', authorizationCategory: 'Autorizzazione Comunale', issuingAuthority: 'ARPA Sicilia', protocolNumber: 'Prot. 56789/2023', stipulationDate: '20/08/2023', expirationDate: '31/12/2027', cup: 'J36D23001120003', status: 'Attiva', isActive: true },
-  { key: '5', authorizationCategory: 'Autorizzazione Comunale', issuingAuthority: 'E-Distribuzione', protocolNumber: 'Prot. 67890/2022', stipulationDate: '12/11/2022', expirationDate: '28/02/2025', cup: 'J35C22000780004', status: 'Attiva', isActive: true },
-  { key: '6', authorizationCategory: 'Autorizzazione Comunale', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 78901/2021', stipulationDate: '18/09/2021', expirationDate: '10/01/2024', cup: 'J35C21000340004', status: 'Scaduta', isActive: false },
-  { key: '7', authorizationCategory: 'Autorizzazione Comunale', issuingAuthority: 'Città Metropolitana di Palermo', protocolNumber: 'Prot. 89012/2023', stipulationDate: '22/04/2023', expirationDate: '31/08/2026', cup: 'J34D23000670005', status: 'Attiva', isActive: true },
-  { key: '8', authorizationCategory: 'Autorizzazione Comunale', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 01234/2024', stipulationDate: '08/01/2024', expirationDate: '15/05/2024', cup: 'J33C24000120007', status: 'Scaduta', isActive: false },
-  // Genio Civile — pratica strutturale in zona sismica (artt. 93/94 DPR 380/2001): si deposita il
-  // progetto strutturale prima dei lavori e a fine lavori si deposita il collaudo statico.
+  { key: '1',  authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 23456/2023', stipulationDate: '15/01/2023', expirationDate: '30/06/2025', codiciAutorizzazione: ['E-PA-2023-001', 'E-PA-2023-002'], status: 'Attiva', isActive: true },
+  { key: '2',  authorizationCategory: 'Paesaggistica / Soprintendenza', issuingAuthority: 'Soprintendenza Belle Arti e Paesaggio di Palermo', protocolNumber: 'Prot. 34567/2022', stipulationDate: '10/03/2022', expirationDate: '15/03/2024', cup: 'J38C22001230001', status: 'Scaduta', isActive: false },
+  { key: '3',  authorizationCategory: 'Titolo edilizio (SCIA / Permesso di costruire)', issuingAuthority: 'Comando Provinciale VVF Palermo', protocolNumber: 'Prot. 45678/2023', stipulationDate: '05/06/2023', expirationDate: '20/09/2025', cup: 'J37D23000890002', status: 'Attiva', isActive: true },
+  { key: '4',  authorizationCategory: 'Parere luminanza / Inquinamento luminoso (DOOH)', issuingAuthority: 'ARPA Sicilia', protocolNumber: 'Prot. 56789/2023', stipulationDate: '20/08/2023', expirationDate: '31/12/2027', cup: 'J36D23001120003', status: 'In scadenza', isActive: true },
+  { key: '5',  authorizationCategory: 'Allaccio elettrico / Impianto luminoso', issuingAuthority: 'E-Distribuzione S.p.A.', protocolNumber: 'Prot. 67890/2022', stipulationDate: '12/11/2022', expirationDate: '28/02/2025', cup: 'J35C22000780004', status: 'In rinnovo', isActive: true },
+  { key: '6',  authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 78901/2021', stipulationDate: '18/09/2021', expirationDate: '10/01/2024', codiciAutorizzazione: ['E-PA-2021-006'], status: 'Scaduta', isActive: false },
+  { key: '7',  authorizationCategory: 'Nulla osta ente proprietario strada (ANAS | Provincia/Città Metropolitana | Regione)', issuingAuthority: 'Città Metropolitana di Palermo', protocolNumber: 'Prot. 89012/2023', stipulationDate: '22/04/2023', expirationDate: '31/08/2026', cup: 'J34D23000670005', status: 'Attiva', isActive: true },
+  { key: '8',  authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 01234/2024', stipulationDate: '08/01/2024', expirationDate: '15/05/2024', codiciAutorizzazione: ['E-PA-2024-008', 'E-PA-2024-009', 'E-PA-2024-010'], status: 'Cessata', isActive: false },
+  // Strutturale / Genio Civile — pratica in zona sismica (artt. 93/94 DPR 380/2001).
   // Non scade: il ciclo di vita è Da presentare → Presentata → Collaudata.
-  { key: '9',  authorizationCategory: 'Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Pratica GC 102/2026', status: 'Da presentare', isActive: false, progettoDati: GC_PROGETTO_REDAZIONE },
-  { key: '10', authorizationCategory: 'Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Prot. 11223/2023', depositDate: '30/05/2023', cup: 'J33D23000920006', status: 'Presentata', isActive: true, progettoDati: GC_PROGETTO_DEPOSITO },
-  { key: '11', authorizationCategory: 'Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Prot. 09871/2021', depositDate: '14/03/2021', collaudoDate: '02/09/2022', status: 'Collaudata', isActive: true, progettoDati: GC_PROGETTO_COLLAUDO },
+  { key: '9',  authorizationCategory: 'Strutturale / Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Pratica GC 102/2026', status: 'Da presentare', isActive: false, progettoDati: GC_PROGETTO_REDAZIONE },
+  { key: '10', authorizationCategory: 'Strutturale / Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Prot. 11223/2023', depositDate: '30/05/2023', cup: 'J33D23000920006', status: 'Presentata', isActive: true, progettoDati: GC_PROGETTO_DEPOSITO },
+  { key: '11', authorizationCategory: 'Strutturale / Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Prot. 09871/2021', depositDate: '14/03/2021', collaudoDate: '02/09/2022', status: 'Collaudata', isActive: true, progettoDati: GC_PROGETTO_COLLAUDO },
+  { key: '12', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 45012/2024', stipulationDate: '10/03/2024', expirationDate: '09/03/2027', codiciAutorizzazione: ['E-PA-2024-012'], status: 'Attiva', isActive: true },
+  { key: '13', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 56123/2023', stipulationDate: '15/06/2023', expirationDate: '30/06/2025', codiciAutorizzazione: ['E-PA-2023-013', 'E-PA-2023-014'], status: 'In scadenza', isActive: true },
+  { key: '14', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 67234/2022', stipulationDate: '01/09/2022', expirationDate: '31/08/2025', codiciAutorizzazione: ['E-PA-2022-015'], status: 'In rinnovo', isActive: true },
+  { key: '15', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 78345/2025', stipulationDate: '20/01/2025', expirationDate: '19/01/2028', codiciAutorizzazione: ['E-PA-2025-016', 'E-PA-2025-017'], status: 'Attiva', isActive: true },
+  { key: '16', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 89456/2024', stipulationDate: '05/07/2024', expirationDate: '04/07/2027', codiciAutorizzazione: ['E-PA-2024-018'], status: 'Attiva', isActive: true },
+  { key: '17', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 90567/2023', stipulationDate: '12/11/2023', expirationDate: '30/06/2025', codiciAutorizzazione: ['E-PA-2023-019'], status: 'In scadenza', isActive: true },
 ];
 
-// Colori di stato dei permessi: pratiche Genio Civile + fallback attivo/inattivo
-const PERMIT_STATE_COLORS = { 'Da presentare': '#FAAD14', 'Presentata': '#1677FF', 'Collaudata': '#52c41a' };
-const permitDotColor = (state, isActive) => PERMIT_STATE_COLORS[state] || (isActive ? '#52c41a' : '#d9d9d9');
-// Tipo concessione: suolo pubblico vs privato
-const grantTypeTagStyle = (tipo) => tipo === 'Pubblico'
-  ? { color: '#1677FF', backgroundColor: '#E6F4FF', border: '1px solid #91CAFF' }
-  : { color: '#FA8C16', backgroundColor: '#FFF7E6', border: '1px solid #FFD591' };
+// Catalogo oneri economici: costi ricorrenti/continuativi per mantenimento ed esercizio impianto.
+// Tipologie: CUP (canone occupazione suolo pubblico), utenza elettrica, connettività (DOOH),
+// polizza assicurativa RC, contratto manutenzione.
+const ONERI_DATA = [
+  // ── Canone Unico Patrimoniale ──
+  { key: 'oe1', tipo: 'Canone Unico Patrimoniale (CUP)', enteForn: 'Comune di Palermo', riferimento: 'Det. 45678/2023', importo: '1.200,00', periodicita: 'Annuale', dataInizio: '01/01/2023', dataScadenza: '31/12/2023', status: 'Scaduta', isActive: false },
+  { key: 'oe2', tipo: 'Canone Unico Patrimoniale (CUP)', enteForn: 'Comune di Palermo', riferimento: 'Det. 67890/2024', importo: '1.350,00', periodicita: 'Annuale', dataInizio: '01/01/2024', dataScadenza: '31/12/2024', status: 'In rinnovo', isActive: true },
+  // ── Utenza elettrica ──
+  { key: 'oe3', tipo: 'Utenza elettrica', enteForn: 'E-Distribuzione S.p.A.', riferimento: 'POD IT001E12345678', importo: '42,00', periodicita: 'Mensile', dataInizio: '15/03/2021', dataScadenza: null, status: 'Attiva', isActive: true },
+  { key: 'oe4', tipo: 'Utenza elettrica', enteForn: 'Enel Energia S.p.A.', riferimento: 'POD IT001E98765432', importo: '38,50', periodicita: 'Mensile', dataInizio: '20/06/2019', dataScadenza: null, status: 'Attiva', isActive: true },
+  // ── Connettività ──
+  { key: 'oe5', tipo: 'Connettività', enteForn: 'Vodafone Italia S.p.A.', riferimento: 'SIM 348 123 4567 · Contr. VF-2022-PA-0891', importo: '29,90', periodicita: 'Mensile', dataInizio: '10/06/2022', dataScadenza: null, status: 'Attiva', isActive: true },
+  { key: 'oe6', tipo: 'Connettività', enteForn: 'TIM S.p.A.', riferimento: 'SIM 393 876 5432 · Contr. TIM-2021-PA-0445', importo: '24,90', periodicita: 'Mensile', dataInizio: '05/03/2021', dataScadenza: '04/03/2024', status: 'Scaduta', isActive: false },
+  // ── Polizza assicurativa RC ──
+  { key: 'oe7', tipo: 'Polizza assicurativa RC', enteForn: 'Generali Italia S.p.A.', riferimento: 'Polizza n. 7823441', importo: '380,00', periodicita: 'Annuale', dataInizio: '01/04/2024', dataScadenza: '31/03/2025', status: 'Attiva', isActive: true },
+  { key: 'oe8', tipo: 'Polizza assicurativa RC', enteForn: 'UnipolSai Assicurazioni', riferimento: 'Polizza n. 4411882', importo: '290,00', periodicita: 'Annuale', dataInizio: '15/07/2023', dataScadenza: '14/07/2024', status: 'Scaduta', isActive: false },
+  // ── Contratto manutenzione ──
+  { key: 'oe9',  tipo: 'Contratto manutenzione', enteForn: 'Tecno Service S.r.l.', riferimento: 'Contr. TS-2024-012', importo: '240,00', periodicita: 'Semestrale', dataInizio: '01/02/2024', dataScadenza: '31/01/2026', status: 'Attiva', isActive: true },
+  { key: 'oe10', tipo: 'Contratto manutenzione', enteForn: 'Impianti Sud S.r.l.', riferimento: 'Contr. IS-2022-031', importo: '180,00', periodicita: 'Semestrale', dataInizio: '10/05/2022', dataScadenza: '09/05/2024', status: 'Scaduta', isActive: false },
+];
+
+// Codici autorizzazione già collegati ad altri impianti esistenti.
+// Mappa codice → etichetta dell'impianto che lo usa già.
+const CODICI_LINKED = {
+  'E-PA-2023-002': 'OOH-012 · Via Maqueda, 148',
+  'E-PA-2024-009': 'OOH-031 · Via Roma, 310',
+  'E-PA-2023-014': 'OOH-058 · Piazza Politeama',
+  'E-PA-2025-017': 'OOH-074 · Via della Libertà, 35',
+};
+
+// V2 — 7 stati standard + stati ciclo di vita Genio Civile (Box 2)
+const PERMIT_STATE_COLORS = {
+  'In istruttoria': '#D9D9D9', 'Attiva': '#52C41A', 'In scadenza': '#FAAD14',
+  'Scaduta': '#FF4D4F', 'In rinnovo': '#1677FF', 'Cessata': '#D9D9D9',
+  'Da presentare': '#FAAD14', 'Presentata': '#1677FF', 'Collaudata': '#52C41A',
+};
+const permitDotColor = (state, isActive) => PERMIT_STATE_COLORS[state] || (isActive ? '#52C41A' : '#D9D9D9');
 
 // SCIA — autocertificazioni (art. 19, L. 241/1990): efficaci dalla data di presentazione,
 // l'ente ha un termine per il controllo successivo (30 gg per il SUE, 60 gg per il SUAP)
@@ -2719,7 +2739,7 @@ function FormPermitCard({ permitType, title, docId, tipo, ente, scadenza, presen
   // La SCIA non scade: presentazione + termine di verifica. Genio Civile: deposito + collaudo.
   const cols = permitType === 'autocertificazione'
     ? { ente: 'Ente destinatario', presentata: 'Presentata il', last: ['Termine verifica', scadenza] }
-    : title === 'Genio Civile'
+    : title === 'Strutturale / Genio Civile'
     ? { ente: 'Ente competente', presentata: 'Data deposito', last: ['Data collaudo', collaudata] }
     : { ente: 'Ente emittente', presentata: 'Presentata il', last: ['Scadenza', scadenza] };
   const lastVal = cols.last[1];
@@ -2882,7 +2902,6 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect, kindLabel = 'conce
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, marginBottom: 8 } },
             React.createElement('span', { style: { fontWeight: 500 } }, grant.documentType),
             React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 13, padding: '2px 8px' } }, grant.documentId),
-            grant.grantType ? React.createElement(Tag, { style: { margin: 0, fontSize: 13, padding: '2px 8px', ...grantTypeTagStyle(grant.grantType) } }, grant.grantType) : null,
           ),
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 24, fontSize: 13 } },
             React.createElement('span', null, React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Ente Emittente: '), grant.issuingAuthority),
@@ -2943,14 +2962,229 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect, kindLabel = 'conce
   );
 }
 
+// V2 — selezione singola di un contratto privato (Locazione/Comodato/Servitù)
+function ContrattiList({ data, selectedKey, onRowSelect }) {
+  const [searchText, setSearchText] = useState('');
+
+  const filtered = !searchText ? data : data.filter(c => {
+    const s = searchText.toLowerCase();
+    return c.proprietarioLocatore.toLowerCase().includes(s)
+      || c.identificativoContratto.toLowerCase().includes(s)
+      || c.tipoContratto.toLowerCase().includes(s);
+  });
+
+  return React.createElement('div', null,
+    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
+      "Seleziona il contratto privato da collegare all'impianto"),
+    React.createElement(Input, { placeholder: 'Cerca contratto privato...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => setSearchText(e.target.value), style: { marginBottom: 16 }, allowClear: true }),
+    React.createElement('div', { style: { border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' } },
+      filtered.length > 0
+        ? filtered.map((ct, idx) => {
+            const isSel = selectedKey === ct.key;
+            return React.createElement('div', {
+              key: ct.key,
+              style: { padding: 16, borderBottom: idx < filtered.length - 1 ? '1px solid #f0f0f0' : 'none', backgroundColor: isSel ? '#f9f7ff' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, transition: 'background-color 0.2s' },
+              onClick: () => onRowSelect(isSel ? null : ct.key),
+            },
+              React.createElement('div', { style: { flex: 1 } },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, marginBottom: 8 } },
+                  React.createElement('span', { style: { fontWeight: 500 } }, ct.proprietarioLocatore),
+                  React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 13, padding: '2px 8px' } }, ct.tipoContratto),
+                  React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
+                    React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: permitDotColor(ct.status, ct.isActive) } }),
+                    ct.status,
+                  ),
+                ),
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 24, fontSize: 12, color: 'rgba(0,0,0,0.45)', flexWrap: 'wrap' } },
+                  React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+                    React.createElement('span', null, 'Contratto:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, ct.identificativoContratto)),
+                  React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+                    React.createElement('span', null, 'Canone:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, ct.canoneLocazione + ' / anno')),
+                  ct.foglio ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+                    React.createElement('span', null, 'Fg./Part.:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, ct.foglio + '/' + ct.particella + (ct.subalterno ? '/' + ct.subalterno : ''))) : null,
+                  ct.dataStipula ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+                    React.createElement('span', null, 'Stipula:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, ct.dataStipula)) : null,
+                  ct.dataScadenza ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+                    React.createElement('span', null, 'Scadenza:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, ct.dataScadenza)) : null,
+                ),
+              ),
+              React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', paddingTop: 2 } },
+                React.createElement(Radio, { checked: isSel, onChange: e => { e.stopPropagation(); onRowSelect(isSel ? null : ct.key); } }),
+              ),
+            );
+          })
+        : React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Nessun contratto privato disponibile'),
+    ),
+  );
+}
+
+// Pannello selezione oneri economici: lista piatta con filtro tipo, selezione multipla.
+const ONERE_TIPO_ICONS = {
+  'Canone Unico Patrimoniale (CUP)': 'BankOutlined',
+  'Utenza elettrica': 'ThunderboltOutlined',
+  'Connettività': 'WifiOutlined',
+  'Polizza assicurativa RC': 'SafetyOutlined',
+  'Contratto manutenzione': 'ToolOutlined',
+};
+const onereStatusBadgeVariant = s => ({ 'Attiva': 'success', 'In rinnovo': 'blue', 'Scaduta': 'error', 'In scadenza': 'warning' }[s] || 'default');
+function OneriCatalogList({ data, selectedKeys, onSelectionChange }) {
+  const [searchText, setSearchText] = useState('');
+  const [filterTipo, setFilterTipo] = useState(null);
+
+  const tipoOpts = [...new Set(data.map(o => o.tipo))].map(t => ({ value: t, label: t }));
+  const filtered = data.filter(o => {
+    const s = searchText.toLowerCase();
+    const matchSearch = !s || o.tipo.toLowerCase().includes(s) || o.enteForn.toLowerCase().includes(s) || o.riferimento.toLowerCase().includes(s);
+    const matchTipo = !filterTipo || o.tipo === filterTipo;
+    return matchSearch && matchTipo;
+  });
+
+  const toggle = key => {
+    const next = selectedKeys.includes(key) ? selectedKeys.filter(k => k !== key) : [...selectedKeys, key];
+    onSelectionChange(next);
+  };
+
+  return React.createElement('div', null,
+    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
+      'Seleziona uno o più oneri da collegare all\'impianto: canone occupazione suolo, utenza, connettività, polizza o manutenzione.'),
+    React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 16 } },
+      React.createElement(Input, { placeholder: 'Cerca per tipo, ente o riferimento...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => setSearchText(e.target.value), allowClear: true, style: { flex: 1 } }),
+      React.createElement(Select, { placeholder: 'Tipo', options: tipoOpts, value: filterTipo, onChange: setFilterTipo, allowClear: true, style: { width: 260 } }),
+    ),
+    React.createElement('div', { style: { border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' } },
+      filtered.length > 0
+        ? filtered.map((onere, idx) => {
+            const isSel = selectedKeys.includes(onere.key);
+            const Icon = icons[ONERE_TIPO_ICONS[onere.tipo]] || icons['TagOutlined'];
+            return React.createElement('div', {
+              key: onere.key,
+              style: { padding: 16, borderBottom: idx < filtered.length - 1 ? '1px solid #f0f0f0' : 'none', backgroundColor: isSel ? '#f9f7ff' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, transition: 'background-color 0.2s' },
+              onClick: () => toggle(onere.key),
+            },
+              React.createElement('div', { style: { flex: 1 } },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, marginBottom: 6 } },
+                  React.createElement(Icon, { style: { fontSize: 14, color: 'rgba(0,0,0,0.45)' } }),
+                  React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)' } }, onere.tipo),
+                  React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
+                    React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', backgroundColor: permitDotColor(onere.status, onere.isActive) } }),
+                    onere.status,
+                  ),
+                ),
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, fontSize: 12, color: 'rgba(0,0,0,0.45)', flexWrap: 'wrap' } },
+                  React.createElement('span', { style: { display: 'flex', gap: 5 } }, React.createElement('span', null, 'Ente/Fornitore:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, onere.enteForn)),
+                  React.createElement('span', { style: { display: 'flex', gap: 5 } }, React.createElement('span', null, 'Rif.:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, onere.riferimento)),
+                  React.createElement('span', { style: { display: 'flex', gap: 5 } }, React.createElement('span', null, 'Importo:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)', fontWeight: 500 } }, onere.importo + ' €'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, '/ ' + onere.periodicita.toLowerCase())),
+                  onere.dataScadenza ? React.createElement('span', { style: { display: 'flex', gap: 5 } }, React.createElement('span', null, 'Scadenza:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, onere.dataScadenza)) : null,
+                ),
+              ),
+              React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', paddingTop: 2 } },
+                React.createElement(Checkbox, { checked: isSel, onChange: e => { e.stopPropagation(); toggle(onere.key); } }),
+              ),
+            );
+          })
+        : React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Nessun onere trovato'),
+    ),
+  );
+}
+
+// Drawer autorizzazione: Esposizione pubblicitaria (Comunale) → accordion con codici aut.
+// Chiave di selezione: 'authKey|codice' — consente selezione a livello di singolo codice
+// anche quando l'atto autorizza più impianti (più codici sullo stesso protocollo).
+function AutorizzazioniEsposizioneList({ data, selectedRowKey, onRowSelect }) {
+  const [searchText, setSearchText] = useState('');
+  const [activeKeys, setActiveKeys] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
+
+  const filtered = data.filter(a => {
+    if (a.status === 'Scaduta') return false;
+    if (!searchText) return true;
+    const s = searchText.toLowerCase();
+    const codesMatch = (a.codiciAutorizzazione || []).some(c => c.toLowerCase().includes(s));
+    return a.issuingAuthority.toLowerCase().includes(s) || a.protocolNumber.toLowerCase().includes(s) || codesMatch;
+  });
+
+  const esposizioni = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const collapseItems = esposizioni.map(auth => {
+    // isSel = true se uno qualsiasi dei codici di questo atto è il selezionato corrente
+    const isSel = !!(selectedRowKey && selectedRowKey.startsWith(auth.key + '|'));
+    const codici = auth.codiciAutorizzazione || [];
+    return {
+      key: auth.key,
+      label: React.createElement('div', { style: { width: '100%' } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, marginBottom: 6 } },
+          React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)' } }, auth.authorizationCategory),
+          React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 12, padding: '1px 7px' } }, auth.protocolNumber),
+          isSel ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: window.GRAVITY_THEME.token.colorPrimary, fontWeight: 500, marginLeft: 'auto' } },
+            React.createElement(CheckCircleFilled, { style: { fontSize: 14 } }), 'Selezionata') : null,
+        ),
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, fontSize: 12, color: 'rgba(0,0,0,0.45)', flexWrap: 'wrap' } },
+          React.createElement('span', { style: { display: 'flex', gap: 5 } }, React.createElement('span', null, 'Ente:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, auth.issuingAuthority)),
+          auth.expirationDate ? React.createElement('span', { style: { display: 'flex', gap: 5 } }, React.createElement('span', null, 'Scadenza:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, auth.expirationDate)) : null,
+          React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5 } },
+            React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', backgroundColor: permitDotColor(auth.status, auth.isActive) } }),
+            auth.status,
+          ),
+        ),
+      ),
+      children: React.createElement('div', { style: { padding: '4px 0' } },
+        React.createElement('div', { style: { border: '1px solid #e8e8e8', borderRadius: 6, overflow: 'hidden' } },
+          React.createElement('div', { style: { padding: '6px 14px', fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.45)', backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0' } }, 'Codice Autorizzazione'),
+          codici.length > 0
+            ? codici.map((codice, idx) => {
+                const rowKey = auth.key + '|' + codice;
+                const isRowSel = selectedRowKey === rowKey;
+                const linkedTo = CODICI_LINKED[codice];
+                const isLinked = !!linkedTo;
+                return React.createElement('div', {
+                  key: codice,
+                  style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 14px', borderTop: idx > 0 ? '1px solid #f5f5f5' : 'none', backgroundColor: isLinked ? '#fafafa' : isRowSel ? '#f9f7ff' : 'transparent', cursor: isLinked ? 'not-allowed' : 'pointer', transition: 'background-color 0.2s' },
+                  onClick: isLinked ? undefined : () => onRowSelect(isRowSel ? null : rowKey),
+                },
+                  React.createElement('span', { style: { fontSize: 13, color: isLinked ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.85)', flex: 1 } }, codice),
+                  isLinked
+                    ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } },
+                        React.createElement(LinkOutlined, { style: { fontSize: 11 } }),
+                        'In uso · ' + linkedTo,
+                      )
+                    : React.createElement(Radio, { checked: isRowSel, onChange: e => { e.stopPropagation(); onRowSelect(isRowSel ? null : rowKey); } }),
+                );
+              })
+            : React.createElement('div', { style: { padding: '10px 14px', fontSize: 13, color: '#bfbfbf' } }, 'N/D'),
+        ),
+      ),
+    };
+  });
+
+  return React.createElement('div', null,
+    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
+      "Seleziona l'autorizzazione di esposizione pubblicitaria da collegare all'impianto"),
+    React.createElement(Input, { placeholder: 'Cerca per ente o protocollo...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: 16 }, allowClear: true }),
+    esposizioni.length > 0 ? React.createElement(Collapse, {
+      items: collapseItems,
+      activeKey: activeKeys,
+      onChange: setActiveKeys,
+      style: { backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 6 },
+    }) : React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: 'rgba(0,0,0,0.45)', fontSize: 13, border: '1px solid #d9d9d9', borderRadius: 6 } }, 'Nessuna autorizzazione disponibile'),
+    filtered.length > pageSize ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', paddingTop: 16 } },
+      React.createElement(Pagination, { current: currentPage, total: filtered.length, pageSize, onChange: p => { setCurrentPage(p); setActiveKeys([]); }, size: 'small', showSizeChanger: false }),
+    ) : null,
+  );
+}
+
 function AuthorizationsList({ data, selectedKeys, onSelectionChange }) {
   const [searchText, setSearchText] = useState('');
   const [showOnlySelected, setShowOnlySelected] = useState(false);
+  const [filterTipo, setFilterTipo] = useState(null);
+
+  const tipoOpts = [...new Set(data.map(a => a.authorizationCategory))].map(t => ({ value: t, label: t }));
 
   const filtered = data.filter(a => {
     const s = searchText.toLowerCase();
     const matchSearch = !searchText || a.authorizationCategory.toLowerCase().includes(s) || a.issuingAuthority.toLowerCase().includes(s) || a.protocolNumber.toLowerCase().includes(s) || (a.expirationDate && a.expirationDate.toLowerCase().includes(s));
-    return matchSearch && (!showOnlySelected || selectedKeys.includes(a.key));
+    const matchTipo = !filterTipo || a.authorizationCategory === filterTipo;
+    return matchSearch && matchTipo && (!showOnlySelected || selectedKeys.includes(a.key));
   });
 
   const handleToggle = key => {
@@ -2960,7 +3194,10 @@ function AuthorizationsList({ data, selectedKeys, onSelectionChange }) {
 
   return React.createElement('div', null,
     React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', gap: 6 } }, "Seleziona tutte le autorizzazioni da collegare a questo impianto", React.createElement(HandoffDesignNote, { id: 'iter-autorizzazioni-paginazione', placement: 'bottom' })),
-    React.createElement(Input, { placeholder: 'Cerca autorizzazione', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => setSearchText(e.target.value), style: { marginBottom: 16 }, allowClear: true }),
+    React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 16 } },
+      React.createElement(Input, { placeholder: 'Cerca autorizzazione', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => setSearchText(e.target.value), style: { flex: 1 }, allowClear: true }),
+      React.createElement(Select, { placeholder: 'Filtra per tipologia', allowClear: true, style: { width: 280 }, options: tipoOpts, value: filterTipo, onChange: v => { setFilterTipo(v); }, popupMatchSelectWidth: false }),
+    ),
     React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 } },
       React.createElement('div', { style: { fontSize: 14 } }, React.createElement('span', { style: { fontWeight: 600 } }, 'Totale:'), ' ' + filtered.length),
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
@@ -4467,8 +4704,8 @@ function ImpiantoDetailV2({ imp, onBack }) {
       ),
     },
       permitDrawerType === 'concessione'
-        ? React.createElement(GrantsAccordion, { data: GRANTS_DATA, selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
-        : React.createElement(AuthorizationsList, { data: AUTHORIZATIONS_DATA, selectedKeys: permitAuthKeys, onSelectionChange: setPermitAuthKeys }),
+        ? React.createElement(GrantsAccordion, { data: GRANTS_DATA.filter(g => g.status === 'Attiva'), selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
+        : React.createElement(AuthorizationsList, { data: AUTHORIZATIONS_DATA.filter(a => a.status === 'Attiva'), selectedKeys: permitAuthKeys, onSelectionChange: setPermitAuthKeys }),
     ),
 
     // Modale "Scarica modulo" Genio Civile — scelta del modello regionale (stessa del form)
@@ -5457,6 +5694,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [permitRowKey,      setPermitRowKey]      = useState(null);
   const [permitAuthKeys,    setPermitAuthKeys]    = useState([]);
   const [permitSciaManual,  setPermitSciaManual]  = useState({}); // { urbanistica: {protocollo, presentata, ...} } — campi SCIA compilati inline nello Step "Titolo a installare"
+  // ── Oneri economici ─────────────────────────────────────────
+  const [addedOneri,       setAddedOneri]       = useState([]);
+  const [onereDrawerOpen,  setOnereDrawerOpen]  = useState(false);
+  const [onereKeys,        setOnereKeys]        = useState([]);
 
   // ── Moduli (impianti collegati) ──────────────────────────────
   // Un impianto è "compatibile" se ha stesso canale, stessa tipologia, stesso formato
@@ -5552,6 +5793,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const SECTIONS = [
     { id: 'identita',        label: 'Anagrafica e ubicazione' },
     { id: 'dati-amministrativi',   label: 'Iter autorizzativo' },
+    { id: 'oneri-economici',       label: 'Oneri economici' },
     { id: 'caratteristiche', label: 'Dati tecnici' },
     { id: 'struttura',       label: isV2 ? 'Struttura' : 'Cespiti e dispositivi' },
     { id: 'affissione',      label: 'Squadre' },
@@ -5820,20 +6062,36 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   const handleAddPermit = () => {
     if (permitDrawerType === 'autorizzazione') {
-      if (!permitAuthKeys.length) { antdMsg.warning("Seleziona almeno un'autorizzazione"); return; }
-      const newPerms = permitAuthKeys.map(k => {
-        const a = AUTHORIZATIONS_DATA.find(x => x.key === k);
-        return a ? { id: k, permitType: 'autorizzazione', title: a.authorizationCategory, docId: a.protocolNumber, ente: a.issuingAuthority, scadenza: a.expirationDate, presentata: a.depositDate || a.stipulationDate, collaudata: a.collaudoDate, state: a.status, isActive: a.isActive } : null;
-      }).filter(Boolean);
-      setAddedPermits(prev => [...prev.filter(p => !newPerms.some(n => n.id === p.id)), ...newPerms]);
-      setSelAutorizzazioni(prev => [...new Set([...prev, ...permitAuthKeys])]);
+      if (!permitRowKey) { antdMsg.warning("Seleziona un'autorizzazione e un codice"); return; }
+      // permitRowKey = 'authKey|codice' — separa le due parti
+      const sepIdx = permitRowKey.indexOf('|');
+      const authKey = sepIdx >= 0 ? permitRowKey.slice(0, sepIdx) : permitRowKey;
+      const selectedCodice = sepIdx >= 0 ? permitRowKey.slice(sepIdx + 1) : null;
+      const a = AUTHORIZATIONS_DATA.find(x => x.key === authKey);
+      if (!a) return;
+      const docId = selectedCodice || a.protocolNumber;
+      const np = { id: permitRowKey, permitType: 'autorizzazione', title: a.authorizationCategory, docId, ente: a.issuingAuthority, scadenza: a.expirationDate, presentata: a.depositDate || a.stipulationDate, collaudata: a.collaudoDate, state: a.status, isActive: a.isActive };
+      setAddedPermits(prev => [...prev.filter(p => p.permitType !== 'autorizzazione'), np]);
+      setSelAutorizzazioni([authKey]);
       closePermitDrawer();
-      antdMsg.success(newPerms.length + (newPerms.length > 1 ? ' autorizzazioni aggiunte' : ' autorizzazione aggiunta'));
+      antdMsg.success('Autorizzazione aggiunta');
       return;
     }
-    // Concessione e Contratto Privato condividono la stessa selezione a singola utenza —
-    // mutuamente esclusivi (nota 'impianto-suolo-esclusivo-concessione-contratto'): un
-    // impianto ha o l'una o l'altro, mai entrambi, coerente con inventory-licenses.
+    // V2 — Contratto Privato: entità separata (CONTRATTI_DATA), selezione a singolo record,
+    // nessuna utenza/cimasa da ereditare (sono concetti del suolo pubblico).
+    if (permitDrawerType === 'contratto') {
+      if (!permitRowKey) { antdMsg.warning('Seleziona un contratto privato'); return; }
+      const ct = CONTRATTI_DATA.find(c => c.key === permitRowKey);
+      if (!ct) return;
+      const np = { id: ct.key, permitType: 'contratto', title: ct.tipoContratto, docId: ct.identificativoContratto, tipo: 'Privato', ente: ct.proprietarioLocatore, scadenza: ct.dataScadenza, presentata: ct.dataStipula, state: ct.status, isActive: ct.isActive };
+      setAddedPermits(prev => [...prev.filter(p => p.permitType !== 'concessione' && p.permitType !== 'contratto'), np]);
+      setSelContratti([ct.key]);
+      closePermitDrawer();
+      antdMsg.success(permitReplaceMode ? 'Contratto Privato sostituito' : 'Contratto Privato aggiunto');
+      return;
+    }
+    // Concessione: selezione tramite utenza — mutuamente esclusiva col contratto
+    // (nota 'impianto-suolo-esclusivo-concessione-contratto')
     if (!permitRowKey) { antdMsg.warning("Seleziona un'utenza"); return; }
     let sg = null, su = null;
     for (const g of GRANTS_DATA) {
@@ -5841,16 +6099,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       if (u) { sg = g; su = u; break; }
     }
     if (!sg) return;
-    const isContratto = permitDrawerType === 'contratto';
-    const np = { id: permitRowKey, permitType: isContratto ? 'contratto' : 'concessione', title: sg.documentType, docId: sg.documentId, tipo: sg.grantType, ente: sg.issuingAuthority, scadenza: su.expirationDate || sg.expirationDate, presentata: sg.issueDate, state: sg.status || 'Attiva', isActive: sg.isActive !== false, bando: sg.bando, lotto: sg.lotto, aggiudicazione: sg.aggiudicazione };
+    const np = { id: permitRowKey, permitType: 'concessione', title: sg.documentType, docId: sg.documentId, tipo: sg.grantType, ente: sg.issuingAuthority, scadenza: su.expirationDate || sg.expirationDate, presentata: sg.issueDate, state: sg.status || 'Attiva', isActive: sg.isActive !== false, bando: sg.bando, lotto: sg.lotto, aggiudicazione: sg.aggiudicazione };
     setAddedPermits(prev => [...prev.filter(p => p.permitType !== 'concessione' && p.permitType !== 'contratto'), np]);
-    if (isContratto) setSelContratti([sg.key]); else setSelConcessioni([sg.key]);
+    setSelConcessioni([sg.key]);
     setUtenza(su.utilityNumber);
     if (su.cimasaCode && su.cimasaCode !== 'Non specificata') setCimasa(su.cimasaCode);
     closePermitDrawer();
-    antdMsg.success(permitReplaceMode
-      ? (isContratto ? 'Contratto Privato sostituito' : 'Concessione sostituita')
-      : (isContratto ? 'Contratto Privato aggiunto' : 'Concessione aggiunta'));
+    antdMsg.success(permitReplaceMode ? 'Concessione sostituita' : 'Concessione aggiunta');
   };
 
   const handleRemovePermit = (id) => {
@@ -5869,7 +6124,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   // che possiede a sua volta entrambi i dati: collegandolo, handleAddPermit le sovrascrive in
   // silenzio (righe sopra) — qui calcoliamo solo SE succederebbe, l'avviso è sul pulsante "Aggiungi".
   const permitSelectedUtility = React.useMemo(() => {
-    if (!(permitDrawerType === 'concessione' || permitDrawerType === 'contratto') || !permitRowKey) return null;
+    if (permitDrawerType !== 'concessione' || !permitRowKey) return null;
     for (const g of GRANTS_DATA) {
       const u = g.utilities.find(u => g.key + '-' + u.utilityNumber === permitRowKey);
       if (u) return u;
@@ -5891,7 +6146,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   // ── Permessi raggruppati per stadio dell'iter autorizzativo ──
   // Step 1: concessioni + contratti privati + autorizzazioni (escluse le pratiche Genio Civile, che hanno un box dedicato)
-  const permessiConcAut     = addedPermits.filter(p => p.permitType === 'concessione' || p.permitType === 'contratto' || (p.permitType === 'autorizzazione' && p.title !== 'Genio Civile'));
+  const permessiConcAut     = addedPermits.filter(p => p.permitType === 'concessione' || p.permitType === 'contratto' || (p.permitType === 'autorizzazione' && p.title !== 'Strutturale / Genio Civile'));
 
   // ── Cimasa: valori ereditati dal collegamento reale (non da mock) —
   // Ente emittente + Codice Autorizzazione dalla prima Autorizzazione collegata,
@@ -5958,7 +6213,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         setUtenza(v => v || 'UT-MANUALE-01');
         setCimasa(v => v || 'CIM-MANUALE-01');
       },
-      selectSomeAuthorizations: () => { setPermitAuthKeys(AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory !== 'Genio Civile').slice(0, 3).map(a => a.key)); },
+      selectSomeAuthorizations: () => { const first = AUTHORIZATIONS_DATA.find(a => a.authorizationCategory === 'Esposizione pubblicitaria (Comunale)'); if (first && first.codiciAutorizzazione && first.codiciAutorizzazione.length > 0) setPermitRowKey(first.key + '|' + first.codiciAutorizzazione[0]); },
       fillSuoloExample: () => {
         setTipoSuolo(v => v || 'Pubblico');
         setCatSuolo(v => v || 'Urbano');
@@ -6698,7 +6953,37 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           ),
         ),
 
-        // ── 3. Caratteristiche
+        // ── 3. Oneri economici
+        sec('oneri-economici', 'Oneri economici', 'Costi ricorrenti e continuativi per il mantenimento e l\'esercizio dell\'impianto: canone suolo pubblico, utenze, connettività, polizza RC e contratti di manutenzione.',
+          boxX('Oneri collegati', 'Collega gli oneri economici sostenuti per questo impianto. Ogni onere è identificato da tipo, ente/fornitore, importo e periodicità.',
+            addedOneri.length > 0
+              ? React.createElement(Button, { size: 'small', icon: React.createElement(PlusOutlined), onClick: () => { setOnereKeys([]); setOnereDrawerOpen(true); } }, 'Aggiungi onere')
+              : null,
+            addedOneri.length > 0
+              ? React.createElement('div', { style: { background: '#FAFAFA', margin: '-20px -24px -24px', padding: '20px 24px 24px' } },
+                  React.createElement(Row, { gutter: [16, 16] },
+                    addedOneri.map(o =>
+                      React.createElement(Col, { key: o.id, span: 8 },
+                        React.createElement(window.GravityEntityCard, {
+                          title: o.tipo,
+                          badge: { text: o.status, variant: onereStatusBadgeVariant(o.status) },
+                          fields: [
+                            { icon: 'BankOutlined',        label: 'Ente/Fornitore:', value: o.enteForn },
+                            { icon: 'EuroCircleOutlined',   label: 'Importo:',        value: o.importo + ' € / ' + o.periodicita.toLowerCase() },
+                            { icon: 'FileTextOutlined',     label: 'Rif.:',           value: o.riferimento },
+                            ...(o.dataScadenza ? [{ icon: 'CalendarOutlined', label: 'Scadenza:', value: o.dataScadenza }] : []),
+                          ],
+                          footer: React.createElement(Button, { type: 'link', danger: true, size: 'small', onClick: () => setAddedOneri(prev => prev.filter(x => x.id !== o.id)) }, 'Scollega'),
+                        })
+                      )
+                    )
+                  )
+                )
+              : gravityEmpty({ image: LINK_ENTITY_ASTRONAUT_SRC, title: 'Nessun onere collegato', description: 'Collega canoni, utenze, polizze e contratti di manutenzione sostenuti per questo impianto.', children: React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: () => { setOnereKeys([]); setOnereDrawerOpen(true); } }, 'Aggiungi onere') }),
+          ),
+        ),
+
+        // ── 4. Caratteristiche
         sec('caratteristiche', 'Dati tecnici', 'Specifiche fisiche del pannello espositivo: dimensioni, esposizione, illuminazione e facce.',
           box('Caratteristiche fisiche', 'Inserisci misure e ingombro dell\'impianto, esposizione del sito e area espositiva.',
             g4(
@@ -6987,7 +7272,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     // Permits drawer — stessa UX del dettaglio impianto
     React.createElement(Drawer, {
       title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-        React.createElement(DiscardCloseIcon, { dirty: !!(permitRowKey || permitAuthKeys.length > 0), onDiscard: closePermitDrawer }),
+        React.createElement(DiscardCloseIcon, { dirty: !!permitRowKey, onDiscard: closePermitDrawer }),
         permitDrawerType === 'autorizzazione'
           ? 'Collega Autorizzazione'
           : permitDrawerType === 'contratto'
@@ -6995,31 +7280,28 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             : (permitReplaceMode ? 'Sostituisci Concessione' : 'Collega Concessione')),
       placement: 'right',
       styles: { wrapper: { width: '50%' }, body: { padding: 24 } },
-      closable: false, maskClosable: !(permitRowKey || permitAuthKeys.length > 0), keyboard: !(permitRowKey || permitAuthKeys.length > 0),
+      closable: false, maskClosable: !permitRowKey, keyboard: !permitRowKey,
       onClose: closePermitDrawer, open: permitDrawerOpen,
       extra: React.createElement(Space, null,
-        React.createElement(DiscardButton, { dirty: !!(permitRowKey || permitAuthKeys.length > 0), onDiscard: closePermitDrawer }, 'Annulla'),
+        React.createElement(DiscardButton, { dirty: !!permitRowKey, onDiscard: closePermitDrawer }, 'Annulla'),
         React.createElement(Button, {
           id: 'grav-tour-permit-add-btn',
-          type: (((permitDrawerType === 'concessione' || permitDrawerType === 'contratto') && permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length > 0)) ? 'primary' : 'default',
+          type: permitRowKey ? 'primary' : 'default',
           icon: React.createElement(PlusOutlined),
-          disabled: ((permitDrawerType === 'concessione' || permitDrawerType === 'contratto') && !permitRowKey) || (permitDrawerType === 'autorizzazione' && permitAuthKeys.length === 0),
+          disabled: !permitRowKey,
           onClick: () => { permitWillOverwrite ? setPermitOverwriteOpen(true) : handleAddPermit(); },
         }, 'Aggiungi'),
       ),
     },
       permitDrawerType === 'autorizzazione'
-        ? React.createElement(AuthorizationsList, { data: AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory !== 'Genio Civile'), selectedKeys: permitAuthKeys, onSelectionChange: setPermitAuthKeys })
-        : React.createElement(GrantsAccordion, {
-            // V2 — Concessione mostra solo gli atti pubblici, Contratto Privato solo quelli
-            // privati (stesso GRANTS_DATA, filtrato per grantType): correzione al modello
-            // 'concessione-solo-pubblica' di inventory-licenses. V1 invariata (nessun filtro).
-            data: permitDrawerType === 'contratto'
-              ? GRANTS_DATA.filter(g => g.grantType === 'Privato')
-              : (isV2 ? GRANTS_DATA.filter(g => g.grantType === 'Pubblico') : GRANTS_DATA),
-            selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey,
-            kindLabel: permitDrawerType === 'contratto' ? 'contratto privato' : 'concessione',
-          }),
+        ? React.createElement(AutorizzazioniEsposizioneList, { data: AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory === 'Esposizione pubblicitaria (Comunale)' && a.status === 'Attiva'), selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
+        : permitDrawerType === 'contratto'
+          ? React.createElement(ContrattiList, { data: CONTRATTI_DATA.filter(c => c.status === 'Attiva'), selectedKey: permitRowKey, onRowSelect: setPermitRowKey })
+          : React.createElement(GrantsAccordion, {
+              data: GRANTS_DATA.filter(g => g.status === 'Attiva'),
+              selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey,
+              kindLabel: 'concessione',
+            }),
     ),
 
     // Modale: la concessione selezionata ha una propria Utenza/Cimasa che sovrascriverebbe
@@ -7211,6 +7493,35 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             description: 'Seleziona un tipo per vedere i campi da compilare',
             image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '16px 0', margin: '8px 0' },
           }),
+    ),
+
+    // Drawer oneri economici — selezione multipla dal catalogo
+    React.createElement(Drawer, {
+      title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+        React.createElement(DiscardCloseIcon, { dirty: onereKeys.length > 0, onDiscard: () => { setOnereKeys([]); setOnereDrawerOpen(false); } }), 'Aggiungi oneri economici'),
+      placement: 'right', width: 640,
+      styles: { body: { padding: 24 } },
+      closable: false, maskClosable: onereKeys.length === 0, keyboard: onereKeys.length === 0,
+      onClose: () => { setOnereKeys([]); setOnereDrawerOpen(false); }, open: onereDrawerOpen,
+      extra: React.createElement(Space, null,
+        React.createElement(DiscardButton, { dirty: onereKeys.length > 0, onDiscard: () => { setOnereKeys([]); setOnereDrawerOpen(false); } }, 'Annulla'),
+        React.createElement(Button, {
+          type: onereKeys.length > 0 ? 'primary' : 'default',
+          disabled: onereKeys.length === 0,
+          onClick: () => {
+            const nuovi = onereKeys.map(k => ONERI_DATA.find(x => x.key === k)).filter(Boolean).map(o => ({ id: o.key, tipo: o.tipo, enteForn: o.enteForn, riferimento: o.riferimento, importo: o.importo, periodicita: o.periodicita, dataInizio: o.dataInizio, dataScadenza: o.dataScadenza, status: o.status, isActive: o.isActive }));
+            setAddedOneri(prev => {
+              const esistenti = new Set(prev.map(x => x.id));
+              return [...prev, ...nuovi.filter(n => !esistenti.has(n.id))];
+            });
+            setOnereKeys([]);
+            setOnereDrawerOpen(false);
+            antdMsg.success(nuovi.length === 1 ? 'Onere economico aggiunto' : nuovi.length + ' oneri economici aggiunti');
+          },
+        }, onereKeys.length > 0 ? 'Aggiungi (' + onereKeys.length + ')' : 'Aggiungi'),
+      ),
+    },
+      React.createElement(OneriCatalogList, { data: ONERI_DATA, selectedKeys: onereKeys, onSelectionChange: setOnereKeys }),
     ),
 
     // Drawer collegamento moduli — seleziona impianti esistenti da collegare
