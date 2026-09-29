@@ -114,7 +114,7 @@
     ensureStyles();
     const {
       open, title, extra, dirty, onClose, width = '90%', navLabel = 'Sezioni',
-      sections, activeKey, onActiveKeyChange,
+      sections, activeKey, onActiveKeyChange, rootClassName,
     } = props;
     const active = sections.find(s => s.key === activeKey) || sections[0];
 
@@ -128,7 +128,7 @@
     return React.createElement(antd.Drawer, {
       title, extra, placement: 'right', destroyOnClose: true,
       closable: false, maskClosable: !dirty, keyboard: !dirty,
-      onClose, open,
+      onClose, open, rootClassName,
       styles: { body: { padding: 0 }, wrapper: { width } },
     },
       React.createElement('div', { className: 'grav-section-drawer-body' },

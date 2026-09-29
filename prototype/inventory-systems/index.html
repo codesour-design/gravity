@@ -23,6 +23,7 @@
   <script src="../_shared/filter-drawer.js"></script>
   <script src="../_shared/form-helpers.js"></script>
   <script src="../_shared/entity-card.js"></script>
+  <script src="../_shared/section-drawer.js"></script>
 
   <!-- Handoff loader — attiva il layer handoff (note di design + tour + interfaccia
        semplificata) SOLO con ?handoff=<versione>. Senza il parametro questo è il
@@ -6380,30 +6381,19 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   // Section wrapper — mostra solo la sezione attiva
   const sec = (id, title, description, ...children) =>
-    activeSection !== id ? null :
-    React.createElement('div', null,
-      React.createElement('div', { style: { marginBottom: 28 } },
-        React.createElement('div', { style: { fontSize: 20, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 6, letterSpacing: '-0.01em' } }, title),
-        React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, description),
-      ),
-      ...children,
-    );
+    _sections.push({
+      key: id,
+      label: _navLabel(id, title,
+        id === 'struttura' ? React.createElement(HandoffDesignNote, { id: 'struttura-fuori-sprint-coming-soon', placement: 'right' }) :
+        id === 'commerciale' ? React.createElement(HandoffDesignNote, { id: 'commerciale-fuori-sprint-coming-soon', placement: 'right' }) : null),
+      title, description,
+      disabled: disabledSections.includes(id),
+      children: children.length === 1 ? children[0] : React.createElement(React.Fragment, null, ...children),
+    });
 
-  // Box sottosezione con titolo e descrizione — stile settings card.
-  // boxX accetta anche un nodo `extra` (es. un bottone) allineato a destra nell'header.
+  // box / boxX — shim su GravityFormArea (section-drawer.js)
   const boxX = (title, description, extra, ...children) =>
-    React.createElement('div', { style: { background: '#fff', border: '1px solid #E8E8E8', borderRadius: 8, overflow: 'hidden', marginBottom: 16 } },
-      React.createElement('div', { style: { padding: '20px 24px 18px', borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 } },
-        React.createElement('div', null,
-          React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 4 } }, title),
-          React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, description),
-        ),
-        extra ? React.createElement('div', { style: { flexShrink: 0 } }, extra) : null,
-      ),
-      React.createElement('div', { style: { padding: '20px 24px 24px' } },
-        ...children,
-      ),
-    );
+    React.createElement(window.GravityFormArea, { title, description, extra }, ...children);
   const box = (title, description, ...children) => boxX(title, description, null, ...children);
   // Pallino contatore accanto al titolo di boxX: sfondo primary, numero bianco
   const countBadge = (n) => React.createElement('span', {
@@ -6414,10 +6404,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     },
   }, n);
 
-  // Grid helpers
-  const g2 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-2' }, ...f);
-  const g3 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-3' }, ...f);
-  const g4 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-4' }, ...f);
+  // Grid helpers — Row/Col AntD (LAYOUT.md §2.1), sostituiscono .ni-grid CSS
+  const g2 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 12 }, c)));
+  const g3 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 8 }, c)));
+  const g4 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 6 }, c)));
   // Sotto-intestazione dentro un box (per raggruppare più sottosezioni in un'unica card).
   // `extra`: nodo opzionale allineato a destra sulla stessa riga del titolo
   // (es. uno switch che riguarda l'intera sottosezione sottostante).
@@ -6644,84 +6634,20 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     })
   );
 
-  return React.createElement(Drawer, {
-    open: open,
-    onClose: onClose,
-    placement: 'right',
-    width: '100%',
-    rootClassName: isV2 ? 'grav-main-drawer sys-v2' : 'grav-main-drawer',
-    closable: false, maskClosable: !dirty, keyboard: !dirty,
-    destroyOnClose: true,
-    title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-      React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }),
-      canAddSubItems ? 'Modifica Impianto' : 'Nuovo Impianto'),
-    footer: null,
-    extra: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-      React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
-      // Un solo pulsante: il click chiede sempre, tramite Popconfirm ancorato a sé
-      // stesso (stesso linguaggio Gravity di DiscardButton, LAYOUT.md §6.6), se
-      // restare nel form (primario, onConfirm → doSaveStay) o uscire (onCancel →
-      // doSaveAndExit) — vedi HANDOFF_NOTES impianto-salvato-prima-subentita.
-      React.createElement(Popconfirm, {
-        title: canAddSubItems ? 'Salvare le modifiche?' : 'Creare l\'impianto?',
-        description: 'Puoi continuare a modificare il form o uscire.',
-        icon: null,
-        okText: canAddSubItems ? 'Continua e Salva' : 'Continua e Crea',
-        cancelText: canAddSubItems ? 'Esci e Salva' : 'Esci e Crea',
-        onConfirm: handleSaveStay,
-        onCancel: handleSaveAndExit,
-        placement: 'bottomRight',
-        align: { offset: [-16, 8] },
-        overlayInnerStyle: { padding: '16px 20px' },
-        okButtonProps: { size: 'middle', icon: React.createElement(SaveOutlined), style: { background: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess, color: window.GRAVITY_THEME.token.colorTextLightSolid } },
-        cancelButtonProps: { size: 'middle', icon: React.createElement(SaveOutlined), style: { color: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess } },
-      },
-        React.createElement(Button, {
-          id: 'grav-tour-form-save',
-          type: 'primary',
-          icon: React.createElement(SaveOutlined),
-          // Oltre ai campi obbligatori, serve una modifica non ancora salvata:
-          // dopo "Crea/Salva e continua" formSnapshotRef si riallinea (doSaveStay)
-          // e il pulsante si spegne finché non arriva una modifica successiva.
-          disabled: !canSave || !dirty,
-          style: (!canSave || !dirty) ? undefined : { background: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess, color: window.GRAVITY_THEME.token.colorTextLightSolid },
-        }, canAddSubItems ? 'Salva impianto' : 'Crea Impianto'),
-      ),
+  // Costruzione sezioni per GravitySectionDrawer — eseguite qui (prima del return)
+  // per popolare _sections prima di passarle al componente.
+  const _sections = [];
+  const _navLabel = (id, text, hdNote) => React.createElement(React.Fragment, null,
+    React.createElement('span', { style: { whiteSpace: 'nowrap' } }, text,
+      hasRequired[id] ? React.createElement('span', { style: { color: '#FF4D4F', fontSize: 13, lineHeight: 1 } }, ' *') : null,
+      hdNote || null,
     ),
-    styles: { body: { padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' } },
-  },
-
-    React.createElement('div', { className: 'create-body' },
-
-      React.createElement('nav', { id: 'grav-tour-form-nav', className: 'create-nav' },
-        React.createElement('div', { className: 'create-nav-label' }, 'Sezioni',
-          React.createElement(HandoffDesignNote, { id: 'sezioni-facoltative', placement: 'right' })),
-        SECTIONS.filter(({ id }) => !disabledSections.includes(id)).map(({ id, label }) => {
-          const isActive = activeSection === id;
-          return React.createElement('div', {
-            key: id,
-            'data-section': id,
-            className: 'create-nav-item' + (isActive ? ' active' : ''),
-            onClick: () => setActiveSection(id),
-            style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
-          },
-            React.createElement('span', { style: { whiteSpace: 'nowrap' } },
-              label,
-              hasRequired[id] && React.createElement('span', {
-                style: { color: '#FF4D4F', fontSize: 13, lineHeight: 1 },
-              }, ' *'),
-              id === 'struttura' && React.createElement(HandoffDesignNote, { id: 'struttura-fuori-sprint-coming-soon', placement: 'right' }),
-              id === 'commerciale' && React.createElement(HandoffDesignNote, { id: 'commerciale-fuori-sprint-coming-soon', placement: 'right' }),
-            ),
-            sectionDirty[id] && React.createElement(Tooltip, { title: 'Modifiche non salvate in questa sezione' },
-              React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', lineHeight: 0, flexShrink: 0 } },
-                React.createElement('span', { style: { width: 5, height: 5, borderRadius: '50%', background: window.GRAVITY_THEME.token.colorPrimary, display: 'block' } }))),
-          );
-        }),
-      ),
-
-      React.createElement('div', { className: 'create-scroll' },
-        React.createElement('div', { id: 'grav-tour-form-required', className: 'create-content' },
+    sectionDirty[id] ? React.createElement(Tooltip, { title: 'Modifiche non salvate in questa sezione' },
+      React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', lineHeight: 0, flexShrink: 0 } },
+        React.createElement('span', { style: { width: 5, height: 5, borderRadius: '50%', background: window.GRAVITY_THEME.token.colorPrimary, display: 'block' } })
+      )
+    ) : null,
+  );
 
         // ── 1. Identità
         sec('identita', 'Anagrafica e ubicazione', 'Dati identificativi e posizione geografica dell\'impianto.',
@@ -7263,11 +7189,50 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                 : lockedEmpty("Crea l'impianto per collegare i moduli", moduliAddBtn),
             ),
           ),
-        ),
+        )
 
-        ) // create-content
-      ) // create-scroll
-    ), // create-body
+  const _titleEl = React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+    React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }),
+    canAddSubItems ? 'Modifica Impianto' : 'Nuovo Impianto');
+
+  const _extraEl = React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+    React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
+    // Un solo pulsante: il click chiede sempre, tramite Popconfirm ancorato a sé
+    // stesso (stesso linguaggio Gravity di DiscardButton, LAYOUT.md §6.6), se
+    // restare nel form (primario, onConfirm → doSaveStay) o uscire (onCancel →
+    // doSaveAndExit) — vedi HANDOFF_NOTES impianto-salvato-prima-subentita.
+    React.createElement(Popconfirm, {
+      title: canAddSubItems ? 'Salvare le modifiche?' : 'Creare l\'impianto?',
+      description: 'Puoi continuare a modificare il form o uscire.',
+      icon: null,
+      okText: canAddSubItems ? 'Continua e Salva' : 'Continua e Crea',
+      cancelText: canAddSubItems ? 'Esci e Salva' : 'Esci e Crea',
+      onConfirm: handleSaveStay,
+      onCancel: handleSaveAndExit,
+      placement: 'bottomRight',
+      align: { offset: [-16, 8] },
+      overlayInnerStyle: { padding: '16px 20px' },
+      okButtonProps: { size: 'middle', icon: React.createElement(SaveOutlined), style: { background: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess, color: window.GRAVITY_THEME.token.colorTextLightSolid } },
+      cancelButtonProps: { size: 'middle', icon: React.createElement(SaveOutlined), style: { color: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess } },
+    },
+      React.createElement(Button, {
+        id: 'grav-tour-form-save',
+        type: 'primary', icon: React.createElement(SaveOutlined),
+        disabled: !canSave || !dirty,
+        style: (!canSave || !dirty) ? undefined : { background: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess, color: window.GRAVITY_THEME.token.colorTextLightSolid },
+      }, canAddSubItems ? 'Salva impianto' : 'Crea Impianto'),
+    ),
+  );
+
+  return React.createElement(React.Fragment, null,
+    React.createElement(window.GravitySectionDrawer, {
+      open, dirty, onClose,
+      rootClassName: isV2 ? 'grav-main-drawer sys-v2' : 'grav-main-drawer',
+      width: '100%',
+      activeKey: activeSection, onActiveKeyChange: setActiveSection,
+      title: _titleEl, extra: _extraEl,
+      sections: _sections,
+    }),
 
     // Permits drawer — stessa UX del dettaglio impianto
     React.createElement(Drawer, {
