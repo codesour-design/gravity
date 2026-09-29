@@ -4667,8 +4667,8 @@ function ImpiantoDetailV2({ imp, onBack }) {
       ),
     },
       permitDrawerType === 'concessione'
-        ? React.createElement(GrantsAccordion, { data: GRANTS_DATA, selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
-        : React.createElement(AuthorizationsList, { data: AUTHORIZATIONS_DATA, selectedKeys: permitAuthKeys, onSelectionChange: setPermitAuthKeys }),
+        ? React.createElement(GrantsAccordion, { data: GRANTS_DATA.filter(g => g.status === 'Attiva'), selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
+        : React.createElement(AuthorizationsList, { data: AUTHORIZATIONS_DATA.filter(a => a.status === 'Attiva'), selectedKeys: permitAuthKeys, onSelectionChange: setPermitAuthKeys }),
     ),
 
     // Modale "Scarica modulo" Genio Civile — scelta del modello regionale (stessa del form)
@@ -7170,11 +7170,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       ),
     },
       permitDrawerType === 'autorizzazione'
-        ? React.createElement(AutorizzazioniEsposizioneList, { data: AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory === 'Esposizione pubblicitaria (Comunale)'), selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
+        ? React.createElement(AutorizzazioniEsposizioneList, { data: AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory === 'Esposizione pubblicitaria (Comunale)' && a.status === 'Attiva'), selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
         : permitDrawerType === 'contratto'
-          ? React.createElement(ContrattiList, { data: CONTRATTI_DATA, selectedKey: permitRowKey, onRowSelect: setPermitRowKey })
+          ? React.createElement(ContrattiList, { data: CONTRATTI_DATA.filter(c => c.status === 'Attiva'), selectedKey: permitRowKey, onRowSelect: setPermitRowKey })
           : React.createElement(GrantsAccordion, {
-              data: GRANTS_DATA,
+              data: GRANTS_DATA.filter(g => g.status === 'Attiva'),
               selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey,
               kindLabel: 'concessione',
             }),
