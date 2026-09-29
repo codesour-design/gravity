@@ -38,4 +38,9 @@ window.HANDOFF_NOTES = [
     title: 'Foto di copertina — campo reale, scelta qui invece di calcolata per id',
     body: '**Correzione**: la foto mostrata per un impianto (qui, nel popover mappa, e in `planning`/`inventory-licenses`) era calcolata a tempo di rendering da `FOTO_IMPIANTO[parseInt(id)... % length]` — mai realmente scelta da nessuno, quindi scorrelata dall\'impianto vero.\n- Nuovo campo **`fotoCopertina`** sul record, impostabile qui in "Anagrafica e ubicazione" con un semplice picker a miniature sul pool `FOTO_IMPIANTO` condiviso — non un vero upload (nessun backend in questo prototipo)\n- Facoltativo: senza una scelta l\'impianto resta senza foto, non ne mostra una a caso\n- Backfill deterministico sui record mock esistenti (stessa distribuzione visiva di prima, ora però un valore reale e modificabile)\n- `window.GravityEntityCard` (`_shared/entity-card.js`) supporta ora `image.src` per una foto reale — usato dal drawer "Seleziona impianto" di `inventory-licenses`\n- ==Non ancora esteso==: `prototype/planning` ed `entity-v3.html` restano sul vecchio calcolo per id, fuori scope per questa sessione',
   },
+  {
+    id: 'oneri-fornitori-crud',
+    title: 'Oneri economici: enti e fornitori dal CRUD Fornitori',
+    body: 'Ogni impianto ha **cinque aree fisse** (CUP, utenza elettrica, connettività, polizza RC, contratto manutenzione), una per tipo di onere.\nIl campo **Ente / Fornitore / Compagnia** è una **select con ricerca** che attinge all\'anagrafica del **CRUD Fornitori** della platform — non è più testo libero.\n- La lista è **filtrata per tipo di onere** (es. solo gestori di energia per l\'utenza elettrica, solo compagnie per la polizza) tramite la categoria del fornitore\n- ==Mock==: qui la lista è un elenco statico (`FORNITORI_ONERI`); il CRUD Fornitori non è ancora prototipato\n- **Importo** è l\'ultimo campo dell\'area, a fine lettura: è il dato più rilevante; le due date stanno sulla stessa riga',
+  },
 ];

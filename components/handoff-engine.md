@@ -152,6 +152,20 @@ restano in fondo al proprio gruppo, nell'ordine di inserimento in `HANDOFF_TOURS
   Sulle entry con `empty: true` (le aree, vedi tabella sopra) il tooltip lascia il posto a un
   empty state interno con l'illustrazione `coming-soon-astronaut` al posto del contenuto reale.
 
+## Dev bar e drawer
+
+Regola centrale in `handoff.js` (`NavControls`, polling 250ms sui `.ant-drawer.ant-drawer-open`):
+
+| Situazione | Dev bar |
+|------------|---------|
+| Nessun drawer aperto | posizione nativa in navbar (accanto alla campanella) |
+| Un solo drawer, di primo livello, full screen o ≥ 90% viewport | visibile, `position: fixed` su `<body>` (`z-index: 1051`), a sinistra di `.ant-drawer-extra` |
+| Drawer stretto (< 90%) oppure secondo livello in poi | nascosta (`display: none !important`) |
+
+I prototipi non ridefiniscono questa logica (niente `body:has(...) #ghf-nav-slot` né script di
+misura per-prototipo): al più mantengono la regola base `#ghf-nav-slot { position: fixed; top: 16px;
+right: 102px; z-index: 1051 }` se riparentano lo slot su `<body>`.
+
 ## Riferimenti implementativi
 
 - Motore: `prototype/_shared/handoff.js` (schema globali in testa al file)

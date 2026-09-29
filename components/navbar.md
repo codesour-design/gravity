@@ -126,7 +126,7 @@ evento custom `gravity:role-change` (non lo storage event, che non arriva nella 
 | Inventory Manager | Overview, Inventory |
 | Operation Manager | Overview, Inventory, Commercial, Delivery |
 | Planner | Overview, Inventory, Delivery |
-| Sales | Overview (implicita), Commercial, Delivery |
+| Sales | Overview (implicita), Inventory (solo **Systems**, vista commerciale), Commercial, Delivery |
 
 - Ruolo **senza accesso** alla sezione della pagina corrente: navbar visibile, contenuto
   sostituito da `Empty` "Il ruolo **{ruolo}** non ha accesso a questa sezione" — mai redirect o

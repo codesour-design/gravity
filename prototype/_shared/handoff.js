@@ -1396,6 +1396,51 @@
       return function () { clearInterval(id); };
     }, []);
 
+    // Dev bar e drawer: la dev bar compare SOLO dentro i drawer di primo livello a
+    // schermo intero o largo ≥ 90% (agganciata a sinistra del gruppo azioni dell'header,
+    // `.ant-drawer-extra`); nei drawer stretti e dal secondo livello in poi è nascosta,
+    // perché si sovrapporrebbe all'header. Senza drawer aperti non tocca nulla (posizione
+    // nativa in navbar, o quella data dal prototipo). Regola centrale: i prototipi non
+    // devono più avere CSS/JS propri per la dev bar nei drawer.
+    useEffect(function () {
+      var touched = false;
+      function release(slot) {
+        if (!touched) return;
+        touched = false;
+        ['display', 'position', 'top', 'right', 'z-index'].forEach(function (p) { slot.style.removeProperty(p); });
+        slot.style.display = 'inline-flex';
+        var home = slot.__ghfHome;
+        if (home && home.parent && home.parent.isConnected && slot.parentNode === document.body) {
+          home.parent.insertBefore(slot, home.next && home.next.parentNode === home.parent ? home.next : null);
+        }
+      }
+      function tick() {
+        var slot = document.getElementById('ghf-nav-slot');
+        if (!slot) return;
+        var drawers = document.querySelectorAll('.ant-drawer.ant-drawer-open');
+        if (!drawers.length) { release(slot); return; }
+        var wrap = drawers[0].querySelector('.ant-drawer-content-wrapper');
+        var wide = wrap && wrap.getBoundingClientRect().width >= window.innerWidth * 0.88;
+        if (drawers.length > 1 || !wide) {
+          if (!touched) { slot.__ghfHome = { parent: slot.parentNode, next: slot.nextSibling }; touched = true; }
+          slot.style.setProperty('display', 'none', 'important');
+          return;
+        }
+        if (!touched) { slot.__ghfHome = { parent: slot.parentNode, next: slot.nextSibling }; touched = true; }
+        if (slot.parentNode !== document.body) document.body.appendChild(slot);
+        slot.style.setProperty('display', 'inline-flex');
+        slot.style.setProperty('position', 'fixed');
+        slot.style.setProperty('top', '16px');
+        slot.style.setProperty('z-index', '1051');
+        var extra = drawers[0].querySelector('.ant-drawer-extra');
+        var edge = extra ? extra.getBoundingClientRect().left : window.innerWidth - 272;
+        var maxRight = window.innerWidth - slot.getBoundingClientRect().width - 8;
+        slot.style.setProperty('right', Math.min(window.innerWidth - edge + 16, maxRight) + 'px');
+      }
+      var id = setInterval(tick, 250);
+      return function () { clearInterval(id); };
+    }, []);
+
     // MutationObserver: rileva cambio schermata
     useEffect(function () {
       if (!SCREENS) return;

@@ -264,36 +264,23 @@ candidato naturale per una futura estrazione, segnalato ma non ancora deciso.
     },
   }, n);
   ```
-- **Dev bar handoff nei drawer piccoli**: a 640px non c'è spazio per riposizionarla come per
-  il `GravitySectionDrawer` a 90% (§ sotto) — va nascosta del tutto finché il drawer piccolo è
-  aperto: `rootClassName` dedicato sul `Drawer` + `body:has(.<classe>.ant-drawer-open)
-  #ghf-nav-slot { display: none !important; }` (`!important` necessario: lo script della dev
-  bar imposta `display` come stile inline, che altrimenti vince sempre sulla regola CSS).
+- **Dev bar handoff nei drawer piccoli**: nascosta automaticamente dal motore (nessun CSS
+  per-prototipo) — regola completa nella sezione qui sotto.
 
-## Dev bar handoff — ancoraggio al gruppo Annulla/Salva
+## Dev bar handoff — regola nei drawer
 
-`GravitySectionDrawer` non gestisce la dev bar handoff (`#ghf-nav-slot`): è wiring a livello di
-pagina, non del componente. Alla larghezza di questo pattern (70–90%, LAYOUT.md §3.9), la misura
-generica dello script di riposizionamento (bordo sinistro del Drawer) lascia poco margine — ogni
-prototipo che usa `GravitySectionDrawer` deve aggiungere la stessa coppia CSS+JS già presente per
-`NewImpiantoFullDrawer` (inventory-systems) e per il drawer Autorizzazione (inventory-licenses),
-adattata al proprio selettore:
+La dev bar handoff (`#ghf-nav-slot`) è gestita **centralmente da `prototype/_shared/handoff.js`**:
+il drawer non deve fare nulla e i prototipi **non** devono avere CSS/JS propri per spostarla.
 
-```css
-/* nel <style> di testa, accanto alla regola base di #ghf-nav-slot */
-body:has(.grav-section-drawer-nav) #ghf-nav-slot { right: <px calcolato>; }
-```
-```js
-// nello script di riposizionamento, prima della misura generica sul bordo sinistro
-if (document.querySelector('.grav-section-drawer-nav')) {
-  slot.style.right = '';   // lascia vincere la regola CSS sopra
-  return;
-}
-```
+- Drawer di **primo livello** a schermo intero o largo **≥ 90%** viewport (es.
+  `GravitySectionDrawer`): la dev bar resta visibile, riparentata su `<body>` (fuori dallo
+  stacking context della navbar) e agganciata a sinistra del gruppo azioni dell'header
+  (`.ant-drawer-extra`, es. Annulla/Salva).
+- Drawer **stretti** (< 90%, es. 640px) e drawer **di secondo livello in poi** (più di un drawer
+  aperto): dev bar **nascosta** finché sono aperti, perché si sovrapporrebbe all'header.
+- Nessun drawer aperto: posizione nativa (navbar, accanto alla campanella).
 
-Il valore px va calibrato a occhio nel browser (misurare lo spazio tra il bordo destro della dev
-bar e il pulsante "Annulla" del drawer, senza sovrapporsi) — non c'è una formula, dipende dalla
-larghezza del drawer e dal testo dei pulsanti in `extra`.
+Dettagli e motivazione in `components/handoff-engine.md` → "Dev bar e drawer".
 
 ## Trasposizione Figma
 

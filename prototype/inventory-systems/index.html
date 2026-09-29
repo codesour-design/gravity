@@ -153,15 +153,6 @@
       background: var(--gravity-primary, #3E00FB); color: #fff;
       font-size: 10px; font-weight: 700; padding: 0 5px; line-height: 1;
     }
-    .ss-bar-cerca {
-      display: flex; align-items: center; gap: 6px; padding: 0 20px;
-      background: none; color: rgba(0,0,0,0.88);
-      font-size: 13px; font-weight: 600;
-      cursor: pointer; border: none; flex-shrink: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
-      transition: background 0.15s;
-    }
-    .ss-bar-cerca:hover { background: rgba(0,0,0,0.04); }
     .ss-tag-input-area {
       display: flex; align-items: center; flex-wrap: nowrap; gap: 6px;
       padding: 0 14px; height: 100%;
@@ -532,21 +523,13 @@
        z-index interno può superare il Drawer (z-index:1000) finché lo slot
        resta suo discendente — va riparentato su <body> (script a fine pagina)
        e reso fixed qui, allineato di default alla posizione della campanella.
-       Quando il drawer è aperto lo spostiamo sopra il suo header, allineato al
-       gruppo Annulla/Crea Impianto, così resta sempre raggiungibile. */
+       Nei drawer la posizione è gestita dal motore (handoff.js). */
     #ghf-nav-slot {
       position: fixed;
       top: 16px;
       right: 102px;
       z-index: 1051;
     }
-    body:has(#grav-tour-form-save) #ghf-nav-slot {
-      right: 272px;
-    }
-    /* Qualsiasi altro drawer (Aggiungi cespite, Concessioni, Squadre, Facce, Moduli, ecc.):
-       le larghezze vanno da ~420px a oltre metà schermo, troppo diverse per un valore
-       fisso — lo script a fine pagina misura il bordo sinistro reale del drawer aperto
-       e imposta `right` inline di conseguenza (vince in cascata su questa regola). */
   </style>
 </head>
 <body>
@@ -1012,9 +995,17 @@ const IMP_NOMI = {
   'I069': 'Piazza Indipendenza',
   'I086': 'Lungomare Mondello',
 };
+// Alias commerciale (mock): nome con cui l'impianto si propone sul mercato
+const IMP_ALIAS = {
+  'I001': 'Maqueda Gold', 'I004': 'Fermata Roma Centro', 'I009': 'Lincoln Station',
+  'I021': 'Vetrina Politeama', 'I022': 'Teatro Massimo Premium', 'I031': 'Libertà Prima',
+  'I035': 'Libertà Pensilina', 'I039': 'Croci Gateway', 'I062': 'Marina Waterfront',
+  'I086': 'Mondello Summer', 'I007': 'Pretoria Special',
+};
 IMPIANTI.forEach((imp, i) => {
   imp.code = `${imp.canale}-${String(i + 1).padStart(3, '0')}`;
   if (IMP_NOMI[imp.id]) imp.nome = IMP_NOMI[imp.id];
+  if (IMP_ALIAS[imp.id]) imp.alias = IMP_ALIAS[imp.id];
   // Assegna formato solo se non già dichiarato nel dato (preserva i sibling di modulo)
   const validFmts = TIPO_FORMATI[imp.tipo] || [];
   if (validFmts.length > 0 && !imp.formato) imp.formato = validFmts[i % validFmts.length];
@@ -1121,6 +1112,7 @@ const SUGG_CONFIG = {
   corso:    { label: 'Corso',     bg: '#F6FFED', color: '#389E0D' },
   viale:    { label: 'Viale',     bg: '#F6FFED', color: '#389E0D' },
   piazza:   { label: 'Piazza',    bg: '#FFF0F6', color: '#EB2F96' },
+  impianto: { label: 'Impianto', bg: '#F0EEFF', color: window.GRAVITY_THEME.token.colorPrimary },
   area:     { label: 'Area',      bg: '#F5F5F5', color: '#8C8C8C' },
 };
 
@@ -1151,11 +1143,11 @@ const SUGG_GROUPS = [
   { key: ['via','corso','viale','piazza','area'], label: 'Strade e Aree' },
 ];
 
-function getSuggestions(query) {
+function getSuggestions(query, source) {
   if (!query || query.trim().length < 2) return [];
   const q = normalizeText(query.trim());
   const buckets = { city: [], province: [], zona: [], street: [] };
-  LOCATION_SUGG.forEach(item => {
+  (source || LOCATION_SUGG).forEach(item => {
     const searchIn = normalizeText(item.text + ' ' + item.detail);
     if (!searchIn.includes(q) && !q.split(' ').every(w => searchIn.includes(w))) return;
     const bucket = ['via','corso','viale','piazza','area'].includes(item.type) ? 'street' : item.type;
@@ -1231,6 +1223,19 @@ const STATO_AMM_CONFIG = {
 };
 
 
+// Stato commerciale (vista Sales): il dato `imp.stato` ha etichette italiane, le chiavi
+// sono quelle di GravityFilterDrawer (`statoSpazi`) e i colori seguono LAYOUT.md §6.3.
+const STATO_COMM_CONFIG = {
+  'Disponibile': { key: 'Available', label: 'Disponibile', dot: '#52C41A', bg: '#F6FFED', file: 'available' },
+  'In Opzione':  { key: 'In Option', label: 'In Opzione',  dot: '#EB2F96', bg: '#FFF0F6', file: 'inOption'  },
+  'Riservato':   { key: 'Reserved',  label: 'Riservato',   dot: '#1677FF', bg: '#E6F4FF', file: 'reserved'  },
+};
+const STATI_COMM = Object.values(STATO_COMM_CONFIG);
+const STATO_COMM_KEY_TO_LABEL = Object.fromEntries(STATI_COMM.map(s => [s.key, s.label]));
+// Ai Sales si mostra solo il commercializzabile: impianti Attivi con uno stato commerciale.
+// (Inizializzati, in manutenzione e rimossi non si vendono → fuori da mappa, lista e conteggi.)
+const isSellable = (imp) => imp.stato_amm === 'Attivo' && !!STATO_COMM_CONFIG[imp.stato];
+
 const MAP_STYLES = [
   { elementType: 'geometry',            stylers: [{ color: '#f5f5f5' }] },
   { elementType: 'labels.icon',         stylers: [{ visibility: 'off' }] },
@@ -1250,7 +1255,19 @@ const MAP_STYLES = [
 // Rendering marker/cluster forniti dal modulo condiviso GravityMap
 // (makeMarkerIcon, makeClusterSvg, getMarkerSize, clusterColor, markerSrc).
 
-function LeafletMap({ impianti, highlightedId, selectedIds, filteredIds, onSelect, onMarkerClick, cardImp, onCardClose, onDetail, flyToTarget }) {
+// Dimensione marker singolo per zoom (più grande del default condiviso: sul parco impianti i marker
+// isolati a zoom medio-bassi risultavano troppo piccoli). Usata anche per l'ancoraggio del popover.
+function markerSizeForZoom(zoom) {
+  const z = Math.min(Math.max(Math.round(zoom || 10), 0), 16);
+  if (z <= 11) return [18, 27];
+  if (z === 12) return [20, 30];
+  if (z === 13) return [24, 36];
+  if (z === 14) return [28, 42];
+  if (z === 15) return [34, 51];
+  return [40, 60];
+}
+
+function LeafletMap({ commercial, impianti, highlightedId, selectedIds, filteredIds, onSelect, onMarkerClick, cardImp, onCardClose, onDetail, flyToTarget }) {
   const TIPO_ICON_MAP = {
     'Pensilina': ShopOutlined, 'Cartello': TagOutlined, 'Palina': GatewayOutlined, 'Fermata bus': CarOutlined,
     'Cassonetto': DeleteOutlined, 'Palo luce': BulbOutlined, 'Speciale OOH': ThunderboltOutlined, 'Speciale DOOH': ThunderboltOutlined, 'Palina butterfly': GatewayOutlined,
@@ -1278,15 +1295,14 @@ function LeafletMap({ impianti, highlightedId, selectedIds, filteredIds, onSelec
     const lat = entry ? entry.imp.lat : imp.lat;
     const lng = entry ? entry.imp.lng : imp.lng;
     const pt = map.latLngToContainerPoint(L.latLng(lat, lng));
-    const [, baseH] = GravityMap.getMarkerSize(map.getZoom());
+    const [, baseH] = markerSizeForZoom(map.getZoom());
     const markerH = Math.round(baseH * 1.4);
     setCardPx({ x: Math.floor(pt.x), markerY: Math.floor(pt.y), markerH, zoom: map.getZoom() });
   }, []);
 
   const makeLeafletIcon = (src, zoom, flags) => {
     const f = flags || {};
-    const sizes = [[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[10,15],[12,18],[16,24],[20,30],[26,38],[32,47]];
-    let [w, h] = sizes[Math.min(Math.max(Math.round(zoom || 10), 0), 16)];
+    let [w, h] = markerSizeForZoom(zoom);
     if (f.isFocused)      { w = Math.round(w * 1.4);  h = Math.round(h * 1.4); }
     else if (f.isHovered) { w = Math.round(w * 1.12); h = Math.round(h * 1.12); }
     const dimOpacity = (f.hasFocus && !f.isFocused && !f.isSelected) ? 0.2 : 1;
@@ -1309,7 +1325,11 @@ function LeafletMap({ impianti, highlightedId, selectedIds, filteredIds, onSelec
   // Inventory non ha selezione visiva (decisione Fase 0): isSelected sempre false.
   // Il dimming è gestito da applyDim via setOpacity → hasFocus resta false qui.
   const markerSrcFor = (imp) => GravityMap.markerSrc(
-    imp.tipo, (STATO_AMM_CONFIG[imp.stato_amm] || STATO_AMM_CONFIG['Attivo']).file, imp.canale);
+    imp.tipo,
+    commercial
+      ? (STATO_COMM_CONFIG[imp.stato] || STATO_COMM_CONFIG['Disponibile']).file
+      : (STATO_AMM_CONFIG[imp.stato_amm] || STATO_AMM_CONFIG['Attivo']).file,
+    imp.canale);
   const flagsFor = (id) => ({
     isHovered:  id === hoveredMarkerIdRef.current,
     isFocused:  id === highlightedIdRef.current,
@@ -1424,7 +1444,10 @@ function LeafletMap({ impianti, highlightedId, selectedIds, filteredIds, onSelec
   // ── Preload SVG marker (path corretto via modulo) ─────
   useEffect(() => {
     const srcs = new Set();
-    impianti.forEach(imp => srcs.add(markerSrcFor(imp)));
+    impianti.forEach(imp => {
+      srcs.add(markerSrcFor(imp));
+      if (commercial) STATI_COMM.forEach(st => srcs.add(GravityMap.markerSrc(imp.tipo, st.file, imp.canale)));
+    });
     GravityMap.preloadAll([...srcs]).then(() => {
       if (refreshAllIconsRef.current) refreshAllIconsRef.current();
     });
@@ -1464,7 +1487,12 @@ function LeafletMap({ impianti, highlightedId, selectedIds, filteredIds, onSelec
       markersRef.current[imp.id] = { marker, imp };
     });
 
-    map.on('zoomend', () => { if (applyClusteringRef.current) applyClusteringRef.current(); });
+    // A ogni zoom le icone vanno rigenerate: la dimensione dipende dallo zoom, altrimenti i marker
+    // restano alla taglia precedente finché un hover non ne ricrea l'icona.
+    map.on('zoomend', () => {
+      if (refreshAllIconsRef.current) refreshAllIconsRef.current();
+      if (applyClusteringRef.current) applyClusteringRef.current();
+    });
     map.on('move', recalcCardPx);
 
     if (applyClusteringRef.current) applyClusteringRef.current();
@@ -1479,6 +1507,11 @@ function LeafletMap({ impianti, highlightedId, selectedIds, filteredIds, onSelec
     impianti.forEach(imp => {
       const entry = markersRef.current[imp.id];
       if (!entry) return;
+      if (entry.imp.stato !== imp.stato) {
+        entry.imp = { ...entry.imp, stato: imp.stato };
+        entry.marker.setIcon(iconFor(entry.imp));
+        changed = true;
+      }
       const curr = entry.marker.getLatLng();
       if (!curr ||
           Math.abs(curr.lat - imp.lat) > 0.000005 ||
@@ -1630,7 +1663,9 @@ function LeafletMap({ impianti, highlightedId, selectedIds, filteredIds, onSelec
             React.createElement('div', { style: { height: 1, background: '#f0f0f0', flexShrink: 0 } }),
             React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 7 } },
               rowEl(ExpandOutlined, 'Formato', cardImp.formato || '—'),
-              rowEl(ThunderboltOutlined, 'Stato', entityStateDot(cardImp.stato_amm || 'Attivo', statoAmmCfg.dot)),
+              commercial
+                ? rowEl(ThunderboltOutlined, 'Stato', entityStateDot(cardImp.stato, (STATO_COMM_CONFIG[cardImp.stato] || STATO_COMM_CONFIG['Disponibile']).dot))
+                : rowEl(ThunderboltOutlined, 'Stato', entityStateDot(cardImp.stato_amm || 'Attivo', statoAmmCfg.dot)),
             ),
           ),
         ),
@@ -1658,7 +1693,7 @@ function LeafletMap({ impianti, highlightedId, selectedIds, filteredIds, onSelec
 // ─────────────────────────────────────────────────────────
 // MAP INFOBOX (overlay bottom-left)
 // ─────────────────────────────────────────────────────────
-function MapInfobox({ total, filteredImpianti }) {
+function MapInfobox({ total, filteredImpianti, commercial, statoCounts, activeStati, onToggleStato }) {
   // Colori allineati al drawer filtri avanzati (token base Ant Design)
   const STATI_AMM = [
     { label: 'Attivo',          color: '#1677FF',        bg: '#E6F4FF' },
@@ -1676,6 +1711,17 @@ function MapInfobox({ total, filteredImpianti }) {
     }, {});
   }, [filteredImpianti]);
 
+  // Vista Sales: le righe sono stati commerciali e fanno da filtro rapido. I conteggi
+  // ignorano il filtro stato (statoCounts), altrimenti selezionandone uno gli altri
+  // andrebbero a 0 e non si potrebbe più passare da uno all'altro.
+  const rows = commercial
+    ? STATI_COMM.map(s => ({ label: s.label, color: s.dot, count: (statoCounts || {})[s.label] || 0, filterKey: s.key }))
+    : [...STATI_AMM].sort((a, b) => {
+        if (a.label === 'Rimosso') return 1;
+        if (b.label === 'Rimosso') return -1;
+        return (statiAmmCount[b.label] || 0) - (statiAmmCount[a.label] || 0);
+      }).map(({ label, color }) => ({ label, color, count: statiAmmCount[label] || 0 }));
+
   return React.createElement('div', { className: 'ss-map-infobox' },
 
     // ── Header: count ──────────────────────────────────────
@@ -1688,22 +1734,32 @@ function MapInfobox({ total, filteredImpianti }) {
       )
     ),
 
-    // ── Status amministrativi ──────────────────────────────
+    // ── Status amministrativi / stati commerciali ──────────
     React.createElement('div', { style: { padding: '8px 16px 12px', display: 'flex', flexDirection: 'column', gap: 6 } },
-      [...STATI_AMM].sort((a, b) => {
-        if (a.label === 'Rimosso') return 1;
-        if (b.label === 'Rimosso') return -1;
-        return (statiAmmCount[b.label] || 0) - (statiAmmCount[a.label] || 0);
-      }).map(({ label, color }) =>
-        React.createElement('div', {
+      rows.map(({ label, color, count, filterKey }) => {
+        const clickable = commercial && !!onToggleStato;
+        const active = clickable && (activeStati || []).includes(filterKey);
+        return React.createElement('div', {
           key: label,
-          style: { display: 'flex', alignItems: 'center', gap: 8 },
+          role: clickable ? 'button' : undefined,
+          tabIndex: clickable ? 0 : undefined,
+          'aria-pressed': clickable ? active : undefined,
+          title: clickable ? (active ? 'Rimuovi filtro ' + label : 'Filtra: ' + label) : undefined,
+          onClick: clickable ? () => onToggleStato(filterKey) : undefined,
+          onKeyDown: clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleStato(filterKey); } } : undefined,
+          style: {
+            display: 'flex', alignItems: 'center', gap: 8,
+            ...(clickable ? {
+              cursor: 'pointer', margin: '0 -8px', padding: '2px 8px', borderRadius: 4,
+              background: active ? '#F0EAFF' : 'transparent',
+            } : {}),
+          },
         },
-          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)', minWidth: 20 } }, statiAmmCount[label] || 0),
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)', minWidth: 20 } }, count),
           React.createElement('span', { style: { width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' } }),
-          React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, label),
-        )
-      )
+          React.createElement('span', { style: { fontSize: 13, color: active ? window.GRAVITY_THEME.token.colorPrimary : 'rgba(0,0,0,0.65)', fontWeight: active ? 500 : 400 } }, label),
+        );
+      })
     ),
   );
 }
@@ -2088,10 +2144,21 @@ const ALL_COLUMNS = {
     },
   };
 
-function ListView({ impianti, viewMode, setViewMode, onDetail, newlyCreatedId }) {
-  const [visibleCols, setVisibleCols] = useState(DEFAULT_COLS);
+function ListView({ impianti, viewMode, setViewMode, onDetail, newlyCreatedId, commercial }) {
+  // Vista Sales: niente colonne amministrative/fornitore, "Stato" è lo stato commerciale, nessuna azione di riga.
+  const columnGroups = commercial
+    ? COLUMN_GROUPS.filter(g => g.group !== 'Amministrativi').map(g => ({ ...g, items: g.items.filter(i => i.key !== 'fornitore') }))
+    : COLUMN_GROUPS;
+  const [visibleCols, setVisibleCols] = useState(commercial ? DEFAULT_COLS.filter(k => k !== 'fornitore') : DEFAULT_COLS);
+  const statoColumn = commercial ? {
+    title: 'Stato commerciale', dataIndex: 'stato', width: 160,
+    render: (_, r) => {
+      const cfg = STATO_COMM_CONFIG[r.stato];
+      return cfg ? React.createElement(Badge, { color: cfg.dot, text: cfg.label }) : dash();
+    },
+  } : ALL_COLUMNS['stato'];
 
-  const cascaderOptions = COLUMN_GROUPS.map(g => ({
+  const cascaderOptions = columnGroups.map(g => ({
     label: g.group,
     value: g.group,
     children: g.items.map(item => ({ label: item.title, value: item.key })),
@@ -2102,7 +2169,7 @@ function ListView({ impianti, viewMode, setViewMode, onDetail, newlyCreatedId })
   };
 
   const cascaderValue = visibleCols.map(k => {
-    const g = COLUMN_GROUPS.find(g => g.items.some(i => i.key === k));
+    const g = columnGroups.find(g => g.items.some(i => i.key === k));
     return g ? [g.group, k] : null;
   }).filter(Boolean);
 
@@ -2112,8 +2179,8 @@ function ListView({ impianti, viewMode, setViewMode, onDetail, newlyCreatedId })
       .map(k => ({ key: k, ...ALL_COLUMNS[k], ...(FIXED_LEFT.has(k) ? { fixed: 'left' } : {}) }))
       .filter(Boolean),
     ...(visibleCols.includes('prezzo_totale') ? [{ key: 'prezzo_totale', fixed: 'right', ...ALL_COLUMNS['prezzo_totale'] }] : []),
-    { key: 'stato', fixed: 'right', ...ALL_COLUMNS['stato'] },
-    {
+    { key: 'stato', fixed: 'right', ...statoColumn },
+    ...(commercial ? [] : [{
       key: '_actions', dataIndex: '_actions', title: '', width: 48, fixed: 'right',
       render: (_, record) => React.createElement(Dropdown, {
         menu: { items: [
@@ -2136,7 +2203,7 @@ function ListView({ impianti, viewMode, setViewMode, onDetail, newlyCreatedId })
           style: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
         }),
       ),
-    },
+    }]),
   ];
   const totalWidth = columns.reduce((s, c) => s + (c.width || 200), 0);
 
@@ -2493,27 +2560,6 @@ const AUTHORIZATIONS_DATA = [
   { key: '15', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 78345/2025', stipulationDate: '20/01/2025', expirationDate: '19/01/2028', codiciAutorizzazione: ['E-PA-2025-016', 'E-PA-2025-017'], status: 'Attiva', isActive: true },
   { key: '16', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 89456/2024', stipulationDate: '05/07/2024', expirationDate: '04/07/2027', codiciAutorizzazione: ['E-PA-2024-018'], status: 'Attiva', isActive: true },
   { key: '17', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 90567/2023', stipulationDate: '12/11/2023', expirationDate: '30/06/2025', codiciAutorizzazione: ['E-PA-2023-019'], status: 'In scadenza', isActive: true },
-];
-
-// Catalogo oneri economici: costi ricorrenti/continuativi per mantenimento ed esercizio impianto.
-// Tipologie: CUP (canone occupazione suolo pubblico), utenza elettrica, connettività (DOOH),
-// polizza assicurativa RC, contratto manutenzione.
-const ONERI_DATA = [
-  // ── Canone Unico Patrimoniale ──
-  { key: 'oe1', tipo: 'Canone Unico Patrimoniale (CUP)', enteForn: 'Comune di Palermo', riferimento: 'Det. 45678/2023', importo: '1.200,00', periodicita: 'Annuale', dataInizio: '01/01/2023', dataScadenza: '31/12/2023', status: 'Scaduta', isActive: false },
-  { key: 'oe2', tipo: 'Canone Unico Patrimoniale (CUP)', enteForn: 'Comune di Palermo', riferimento: 'Det. 67890/2024', importo: '1.350,00', periodicita: 'Annuale', dataInizio: '01/01/2024', dataScadenza: '31/12/2024', status: 'In rinnovo', isActive: true },
-  // ── Utenza elettrica ──
-  { key: 'oe3', tipo: 'Utenza elettrica', enteForn: 'E-Distribuzione S.p.A.', riferimento: 'POD IT001E12345678', importo: '42,00', periodicita: 'Mensile', dataInizio: '15/03/2021', dataScadenza: null, status: 'Attiva', isActive: true },
-  { key: 'oe4', tipo: 'Utenza elettrica', enteForn: 'Enel Energia S.p.A.', riferimento: 'POD IT001E98765432', importo: '38,50', periodicita: 'Mensile', dataInizio: '20/06/2019', dataScadenza: null, status: 'Attiva', isActive: true },
-  // ── Connettività ──
-  { key: 'oe5', tipo: 'Connettività', enteForn: 'Vodafone Italia S.p.A.', riferimento: 'SIM 348 123 4567 · Contr. VF-2022-PA-0891', importo: '29,90', periodicita: 'Mensile', dataInizio: '10/06/2022', dataScadenza: null, status: 'Attiva', isActive: true },
-  { key: 'oe6', tipo: 'Connettività', enteForn: 'TIM S.p.A.', riferimento: 'SIM 393 876 5432 · Contr. TIM-2021-PA-0445', importo: '24,90', periodicita: 'Mensile', dataInizio: '05/03/2021', dataScadenza: '04/03/2024', status: 'Scaduta', isActive: false },
-  // ── Polizza assicurativa RC ──
-  { key: 'oe7', tipo: 'Polizza assicurativa RC', enteForn: 'Generali Italia S.p.A.', riferimento: 'Polizza n. 7823441', importo: '380,00', periodicita: 'Annuale', dataInizio: '01/04/2024', dataScadenza: '31/03/2025', status: 'Attiva', isActive: true },
-  { key: 'oe8', tipo: 'Polizza assicurativa RC', enteForn: 'UnipolSai Assicurazioni', riferimento: 'Polizza n. 4411882', importo: '290,00', periodicita: 'Annuale', dataInizio: '15/07/2023', dataScadenza: '14/07/2024', status: 'Scaduta', isActive: false },
-  // ── Contratto manutenzione ──
-  { key: 'oe9',  tipo: 'Contratto manutenzione', enteForn: 'Tecno Service S.r.l.', riferimento: 'Contr. TS-2024-012', importo: '240,00', periodicita: 'Semestrale', dataInizio: '01/02/2024', dataScadenza: '31/01/2026', status: 'Attiva', isActive: true },
-  { key: 'oe10', tipo: 'Contratto manutenzione', enteForn: 'Impianti Sud S.r.l.', riferimento: 'Contr. IS-2022-031', importo: '180,00', periodicita: 'Semestrale', dataInizio: '10/05/2022', dataScadenza: '09/05/2024', status: 'Scaduta', isActive: false },
 ];
 
 // Codici autorizzazione già collegati ad altri impianti esistenti.
@@ -3018,74 +3064,27 @@ function ContrattiList({ data, selectedKey, onRowSelect }) {
   );
 }
 
-// Pannello selezione oneri economici: lista piatta con filtro tipo, selezione multipla.
-const ONERE_TIPO_ICONS = {
-  'Canone Unico Patrimoniale (CUP)': 'BankOutlined',
-  'Utenza elettrica': 'ThunderboltOutlined',
-  'Connettività': 'WifiOutlined',
-  'Polizza assicurativa RC': 'SafetyOutlined',
-  'Contratto manutenzione': 'ToolOutlined',
-};
-const onereStatusBadgeVariant = s => ({ 'Attiva': 'success', 'In rinnovo': 'blue', 'Scaduta': 'error', 'In scadenza': 'warning' }[s] || 'default');
-function OneriCatalogList({ data, selectedKeys, onSelectionChange }) {
-  const [searchText, setSearchText] = useState('');
-  const [filterTipo, setFilterTipo] = useState(null);
-
-  const tipoOpts = [...new Set(data.map(o => o.tipo))].map(t => ({ value: t, label: t }));
-  const filtered = data.filter(o => {
-    const s = searchText.toLowerCase();
-    const matchSearch = !s || o.tipo.toLowerCase().includes(s) || o.enteForn.toLowerCase().includes(s) || o.riferimento.toLowerCase().includes(s);
-    const matchTipo = !filterTipo || o.tipo === filterTipo;
-    return matchSearch && matchTipo;
-  });
-
-  const toggle = key => {
-    const next = selectedKeys.includes(key) ? selectedKeys.filter(k => k !== key) : [...selectedKeys, key];
-    onSelectionChange(next);
-  };
-
-  return React.createElement('div', null,
-    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
-      'Seleziona uno o più oneri da collegare all\'impianto: canone occupazione suolo, utenza, connettività, polizza o manutenzione.'),
-    React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 16 } },
-      React.createElement(Input, { placeholder: 'Cerca per tipo, ente o riferimento...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => setSearchText(e.target.value), allowClear: true, style: { flex: 1 } }),
-      React.createElement(Select, { placeholder: 'Tipo', options: tipoOpts, value: filterTipo, onChange: setFilterTipo, allowClear: true, style: { width: 260 } }),
-    ),
-    React.createElement('div', { style: { border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' } },
-      filtered.length > 0
-        ? filtered.map((onere, idx) => {
-            const isSel = selectedKeys.includes(onere.key);
-            const Icon = icons[ONERE_TIPO_ICONS[onere.tipo]] || icons['TagOutlined'];
-            return React.createElement('div', {
-              key: onere.key,
-              style: { padding: 16, borderBottom: idx < filtered.length - 1 ? '1px solid #f0f0f0' : 'none', backgroundColor: isSel ? '#f9f7ff' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, transition: 'background-color 0.2s' },
-              onClick: () => toggle(onere.key),
-            },
-              React.createElement('div', { style: { flex: 1 } },
-                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, marginBottom: 6 } },
-                  React.createElement(Icon, { style: { fontSize: 14, color: 'rgba(0,0,0,0.45)' } }),
-                  React.createElement('span', { style: { fontWeight: 500, color: 'rgba(0,0,0,0.85)' } }, onere.tipo),
-                  React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
-                    React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', backgroundColor: permitDotColor(onere.status, onere.isActive) } }),
-                    onere.status,
-                  ),
-                ),
-                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, fontSize: 12, color: 'rgba(0,0,0,0.45)', flexWrap: 'wrap' } },
-                  React.createElement('span', { style: { display: 'flex', gap: 5 } }, React.createElement('span', null, 'Ente/Fornitore:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, onere.enteForn)),
-                  React.createElement('span', { style: { display: 'flex', gap: 5 } }, React.createElement('span', null, 'Rif.:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, onere.riferimento)),
-                  React.createElement('span', { style: { display: 'flex', gap: 5 } }, React.createElement('span', null, 'Importo:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)', fontWeight: 500 } }, onere.importo + ' €'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, '/ ' + onere.periodicita.toLowerCase())),
-                  onere.dataScadenza ? React.createElement('span', { style: { display: 'flex', gap: 5 } }, React.createElement('span', null, 'Scadenza:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, onere.dataScadenza)) : null,
-                ),
-              ),
-              React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', paddingTop: 2 } },
-                React.createElement(Checkbox, { checked: isSel, onChange: e => { e.stopPropagation(); toggle(onere.key); } }),
-              ),
-            );
-          })
-        : React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Nessun onere trovato'),
-    ),
-  );
-}
+// Onere economico: form inline nella sezione "Oneri economici" del drawer Nuovo/Modifica impianto.
+const ONERE_TYPES = [
+  { id: 'cup',         title: 'Canone Unico Patrimoniale (CUP)', description: 'Canone per l\'occupazione del suolo pubblico da parte dell\'impianto.', enteLabel: 'Ente', cat: 'ente', rifLabel: 'Riferimento atto', rifPh: 'Es. Det. 67890/2024' },
+  { id: 'elettrica',   title: 'Utenza elettrica',                description: 'Fornitura di energia elettrica dell\'impianto.', enteLabel: 'Fornitore', cat: 'energia', rifLabel: 'POD', rifPh: 'Es. IT001E12345678', noScadenza: true },
+  { id: 'connettivita', title: 'Connettività',                   description: 'Connessione dati per la gestione da remoto (DOOH).', enteLabel: 'Fornitore', cat: 'telco', rifLabel: 'SIM / Contratto', rifPh: 'Es. SIM 348 123 4567 · VF-2022-PA-0891' },
+  { id: 'polizza',     title: 'Polizza assicurativa RC',         description: 'Copertura di responsabilità civile verso terzi.', enteLabel: 'Compagnia', cat: 'assicurazione', rifLabel: 'N. polizza', rifPh: 'Es. 7823441' },
+  { id: 'manutenzione', title: 'Contratto manutenzione',         description: 'Interventi periodici di manutenzione ordinaria.', enteLabel: 'Fornitore', cat: 'manutenzione', rifLabel: 'N. contratto', rifPh: 'Es. TS-2024-012' },
+];
+// Anagrafica enti/fornitori degli oneri — anagrafica gestita nel CRUD Fornitori della platform,
+// qui solo lookup (stesso approccio di FORNITORI_OPTS). `cat` filtra i fornitori per tipo di onere.
+const FORNITORI_ONERI = [
+  { cat: 'ente', label: 'Comune di Palermo' }, { cat: 'ente', label: 'Città Metropolitana di Palermo' },
+  { cat: 'energia', label: 'E-Distribuzione S.p.A.' }, { cat: 'energia', label: 'Enel Energia S.p.A.' }, { cat: 'energia', label: 'A2A Energia S.p.A.' },
+  { cat: 'telco', label: 'Vodafone Italia S.p.A.' }, { cat: 'telco', label: 'TIM S.p.A.' }, { cat: 'telco', label: 'WindTre S.p.A.' },
+  { cat: 'assicurazione', label: 'Generali Italia S.p.A.' }, { cat: 'assicurazione', label: 'UnipolSai Assicurazioni' }, { cat: 'assicurazione', label: 'AXA Assicurazioni' },
+  { cat: 'manutenzione', label: 'Tecno Service S.r.l.' }, { cat: 'manutenzione', label: 'Impianti Sud S.r.l.' },
+];
+const ONERE_PERIODICITA = ['Mensile', 'Trimestrale', 'Semestrale', 'Annuale'];
+const EMPTY_ONERE = { enteForn: '', riferimento: '', importo: null, periodicita: null, dataInizio: null, dataScadenza: null };
+// Un impianto ha sempre un onere per ciascun tipo: stato = { [tipo.id]: campi }.
+const makeOneri = src => Object.fromEntries(ONERE_TYPES.map(t => [t.id, { ...EMPTY_ONERE, ...((src && src[t.id]) || {}) }]));
 
 // Drawer autorizzazione: Esposizione pubblicitaria (Comunale) → accordion con codici aut.
 // Chiave di selezione: 'authKey|codice' — consente selezione a livello di singolo codice
@@ -5032,6 +5031,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setLat(v.lat || '');
     setLng(v.lng || '');
     setZn(v.zona || '');
+    setOneri(makeOneri(v.oneri));
     // Helper: coerce date (stringa DD/MM/YYYY o dayjs) → dayjs|null; importo it ("1.500,00") → number
     const toDay = (x) => (x == null || x === '') ? null : (x && x.format ? x : dayjs(x, 'DD/MM/YYYY'));
     const toNum = (x) => (x == null || x === '') ? null : (typeof x === 'number' ? x : (parseFloat(String(x).replace(/\./g, '').replace(',', '.')) || null));
@@ -5093,7 +5093,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setTimeout(() => setFormato(v.formato || null), 0);
     // Snapshot per il check "modifiche non salvate" su Annulla/X — stessi valori assegnati sopra
     formSnapshotRef.current = {
-      canale: v.canale || null, nome: v.nome || '', tipologia: v.tipologia || null, stato: v.stato || null, formato: v.formato || null,
+      canale: v.canale || null, nome: v.nome || '', tipologia: v.tipologia || null, stato: v.stato || 'Inizializzato', formato: v.formato || null,
       via: v.via || '', civico: v.civico || '', cap: v.cap || '', citta: v.citta || '', provincia: v.provincia || '', regione: v.regione || '', nazione: v.nazione || '', lat: v.lat || '', lng: v.lng || '', zn: v.zona || '', note: v.note || '',
       tipoSuolo: v.tipoSuolo || null, catSuolo: v.catSuolo || null, utenza: v.utenza || '',
       largImp: v.largImp ?? v.larghezza ?? '', altImp: v.altImp ?? v.altezza ?? '', profImp: v.profImp ?? v.profondita ?? '', altTerra: v.altTerra || '', tipoAltezza: v.tipoAltezza || null, riparato: v.riparato ?? v.copertura ?? null,
@@ -5121,6 +5121,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       selConcessioni: Array.isArray(v.concessioni) ? v.concessioni : [], selAutorizzazioni: Array.isArray(v.autorizzazioni) ? v.autorizzazioni : [],
       selContratti: Array.isArray(v.contrattiPrivati) ? v.contrattiPrivati : [],
       permitSciaManual: v.scia && typeof v.scia === 'object' ? v.scia : {},
+      oneri: makeOneri(v.oneri),
     };
   }, [open]);
 
@@ -5695,9 +5696,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [permitAuthKeys,    setPermitAuthKeys]    = useState([]);
   const [permitSciaManual,  setPermitSciaManual]  = useState({}); // { urbanistica: {protocollo, presentata, ...} } — campi SCIA compilati inline nello Step "Titolo a installare"
   // ── Oneri economici ─────────────────────────────────────────
-  const [addedOneri,       setAddedOneri]       = useState([]);
-  const [onereDrawerOpen,  setOnereDrawerOpen]  = useState(false);
-  const [onereKeys,        setOnereKeys]        = useState([]);
+  const [oneri, setOneri] = useState(() => makeOneri(iv.oneri));
+  const [oneriGran, setOneriGran] = useState('Annuale');
+  const setOnereField = (id, k, v) => setOneri(prev => ({ ...prev, [id]: { ...prev[id], [k]: v } }));
 
   // ── Moduli (impianti collegati) ──────────────────────────────
   // Un impianto è "compatibile" se ha stesso canale, stessa tipologia, stesso formato
@@ -5979,7 +5980,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     progettista, ddl, rsc, collaudatore, laboratorio, geologo,
     assets,
     concessioni: selConcessioni, autorizzazioni: selAutorizzazioni, contrattiPrivati: selContratti, permessi: addedPermits,
-    scia: permitSciaManual,
+    scia: permitSciaManual, oneri,
   });
 
   // Mock "Scarica": genera il modello regionale Genio Civile precompilato con i dati del box.
@@ -6356,7 +6357,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     cimasaLogo, cimasaLogoBg, cimasaExtra, cimasaInheritPermessi, cimasaEnteManual, cimasaEnteVisible, cimasaAutManual, cimasaAutVisible, cimasaUteManual, cimasaUteVisible,
     affissioni, manutenzioni,
     genioCivileStato, progetto, progDittaCA, progDataFine, dataCollaudo, calcestruzzo, acciaioCarp, acciaioArm, tecnicheGc, progettista, ddl, rsc, collaudatore, laboratorio, geologo,
-    selConcessioni, selAutorizzazioni, selContratti, permitSciaManual,
+    selConcessioni, selAutorizzazioni, selContratti, permitSciaManual, oneri,
   });
   const isDirty = () => JSON.stringify(buildDirtySnapshot()) !== JSON.stringify(formSnapshotRef.current);
   const dirty = isDirty();
@@ -6368,11 +6369,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     'dati-amministrativi': ['tipoSuolo', 'catSuolo', 'utenza', 'cimasa', 'genioCivileStato', 'progetto', 'progDittaCA', 'progDataFine', 'dataCollaudo', 'calcestruzzo', 'acciaioCarp', 'acciaioArm', 'tecnicheGc', 'progettista', 'ddl', 'rsc', 'collaudatore', 'laboratorio', 'geologo', 'selConcessioni', 'selAutorizzazioni', 'selContratti', 'permitSciaManual'],
     caratteristiche: ['largImp', 'altImp', 'profImp', 'altTerra', 'tipoAltezza', 'riparato', 'facce'],
     struttura: ['assets', 'cimasaLogo', 'cimasaLogoBg', 'cimasaExtra', 'cimasaInheritPermessi', 'cimasaEnteManual', 'cimasaEnteVisible', 'cimasaAutManual', 'cimasaAutVisible', 'cimasaUteManual', 'cimasaUteVisible'],
+    'oneri-economici': ['oneri'],
     affissione: ['affissioni', 'manutenzioni'],
     commerciale: ['aliasImpianto', 'circuiti', 'qualita', 'moduliCollegati', 'vendita', 'prezzoNetto', 'prezzoLordo', 'aliquotaIva', 'scontoModuli', 'scontoModuliPct'],
   };
   const dirtySnapshot = buildDirtySnapshot();
   const savedSnapshot = formSnapshotRef.current || {};
+  const onereDirty = (id, k) => JSON.stringify(dirtySnapshot.oneri[id][k] ?? null) !== JSON.stringify((((savedSnapshot.oneri || {})[id]) || EMPTY_ONERE)[k] ?? null);
   const sectionDirty = {};
   SECTIONS.forEach(({ id }) => {
     sectionDirty[id] = (SECTION_FIELDS[id] || []).some(k => JSON.stringify(dirtySnapshot[k]) !== JSON.stringify(savedSnapshot[k]));
@@ -6954,33 +6957,53 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         ),
 
         // ── 3. Oneri economici
-        sec('oneri-economici', 'Oneri economici', 'Costi ricorrenti e continuativi per il mantenimento e l\'esercizio dell\'impianto: canone suolo pubblico, utenze, connettività, polizza RC e contratti di manutenzione.',
-          boxX('Oneri collegati', 'Collega gli oneri economici sostenuti per questo impianto. Ogni onere è identificato da tipo, ente/fornitore, importo e periodicità.',
-            addedOneri.length > 0
-              ? React.createElement(Button, { size: 'small', icon: React.createElement(PlusOutlined), onClick: () => { setOnereKeys([]); setOnereDrawerOpen(true); } }, 'Aggiungi onere')
-              : null,
-            addedOneri.length > 0
-              ? React.createElement('div', { style: { background: '#FAFAFA', margin: '-20px -24px -24px', padding: '20px 24px 24px' } },
-                  React.createElement(Row, { gutter: [16, 16] },
-                    addedOneri.map(o =>
-                      React.createElement(Col, { key: o.id, span: 8 },
-                        React.createElement(window.GravityEntityCard, {
-                          title: o.tipo,
-                          badge: { text: o.status, variant: onereStatusBadgeVariant(o.status) },
-                          fields: [
-                            { icon: 'BankOutlined',        label: 'Ente/Fornitore:', value: o.enteForn },
-                            { icon: 'EuroCircleOutlined',   label: 'Importo:',        value: o.importo + ' € / ' + o.periodicita.toLowerCase() },
-                            { icon: 'FileTextOutlined',     label: 'Rif.:',           value: o.riferimento },
-                            ...(o.dataScadenza ? [{ icon: 'CalendarOutlined', label: 'Scadenza:', value: o.dataScadenza }] : []),
-                          ],
-                          footer: React.createElement(Button, { type: 'link', danger: true, size: 'small', onClick: () => setAddedOneri(prev => prev.filter(x => x.id !== o.id)) }, 'Scollega'),
-                        })
-                      )
-                    )
-                  )
-                )
-              : gravityEmpty({ image: LINK_ENTITY_ASTRONAUT_SRC, title: 'Nessun onere collegato', description: 'Collega canoni, utenze, polizze e contratti di manutenzione sostenuti per questo impianto.', children: React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: () => { setOnereKeys([]); setOnereDrawerOpen(true); } }, 'Aggiungi onere') }),
-          ),
+        sec('oneri-economici', 'Oneri economici', React.createElement(React.Fragment, null, 'Costi ricorrenti e continuativi per il mantenimento e l\'esercizio dell\'impianto: canone suolo pubblico, utenze, connettività, polizza RC e contratti di manutenzione.', React.createElement(HandoffDesignNote, { id: 'oneri-fornitori-crud', placement: 'right' })),
+          ...ONERE_TYPES.map(t => {
+            const o = oneri[t.id];
+            const f = (k, v) => setOnereField(t.id, k, v);
+            const fornitoriOpts = FORNITORI_ONERI.filter(x => x.cat === t.cat).map(x => ({ value: x.label, label: x.label }));
+            return box(t.title, t.description,
+              g3(
+                cs(t.enteLabel, false, sel(o.enteForn || undefined, v => f('enteForn', v || ''), fornitoriOpts, 'Seleziona ' + t.enteLabel.toLowerCase(), { showSearch: true }), onereDirty(t.id, 'enteForn')),
+                cs(t.rifLabel, false, inp(o.riferimento, v => f('riferimento', v), t.rifPh), onereDirty(t.id, 'riferimento')),
+                cs('Periodicità pagamento', false, sel(o.periodicita, v => f('periodicita', v), ONERE_PERIODICITA.map(x => ({ value: x, label: x }))), onereDirty(t.id, 'periodicita')),
+              ),
+              g3(
+                cs('Data inizio', false, dp(o.dataInizio, v => f('dataInizio', v)), onereDirty(t.id, 'dataInizio')),
+                t.noScadenza ? React.createElement('div') : cs('Data scadenza', false, dp(o.dataScadenza, v => f('dataScadenza', v)), onereDirty(t.id, 'dataScadenza')),
+              ),
+              g3(
+                cs('Importo', false, num(o.importo, v => f('importo', v), { min: 0, precision: 2, addonAfter: '€' }), onereDirty(t.id, 'importo')),
+                React.createElement('div'),
+                React.createElement('div'),
+              ),
+            );
+          }),
+          // ── Totale oneri dell'impianto — normalizzato su base annuale o mensile
+          (() => {
+            const perYear = { Mensile: 12, Trimestrale: 4, Semestrale: 2, Annuale: 1 };
+            const div = oneriGran === 'Mensile' ? 12 : 1;
+            const eur = n => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+            const rows = ONERE_TYPES.map(t => {
+              const o = oneri[t.id];
+              const ok = o.importo != null && o.periodicita;
+              return { t, ok, missing: o.importo != null && !o.periodicita, val: ok ? o.importo * perYear[o.periodicita] / div : 0 };
+            });
+            const total = rows.reduce((a, r) => a + r.val, 0);
+            const missing = rows.filter(r => r.missing).length;
+            return boxX('Totale oneri', 'Somma degli oneri dell\'impianto, riportati alla stessa base temporale in base alla periodicità di ciascuno.',
+              React.createElement(Segmented, { size: 'small', value: oneriGran, onChange: setOneriGran, options: ['Annuale', 'Mensile'] }),
+              React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 } },
+                React.createElement('span', { style: { fontSize: 24, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, eur(total)),
+                React.createElement('span', { style: { fontSize: 14, color: 'rgba(0,0,0,0.45)' } }, oneriGran === 'Mensile' ? '/ mese' : '/ anno'),
+              ),
+              rows.map(r => React.createElement('div', { key: r.t.id, style: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid #F0F0F0', fontSize: 14 } },
+                React.createElement('span', { style: { color: 'rgba(0,0,0,0.65)' } }, r.t.title),
+                React.createElement('span', { style: { color: r.ok ? 'rgba(0,0,0,0.88)' : 'rgba(0,0,0,0.45)', fontWeight: r.ok ? 500 : 400 } }, r.ok ? eur(r.val) : '—'),
+              )),
+              missing > 0 ? React.createElement('div', { style: { marginTop: 12, fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, (missing === 1 ? '1 onere escluso dal totale' : missing + ' oneri esclusi dal totale') + ': manca la periodicità di pagamento.') : null,
+            );
+          })(),
         ),
 
         // ── 4. Caratteristiche
@@ -7495,35 +7518,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           }),
     ),
 
-    // Drawer oneri economici — selezione multipla dal catalogo
-    React.createElement(Drawer, {
-      title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-        React.createElement(DiscardCloseIcon, { dirty: onereKeys.length > 0, onDiscard: () => { setOnereKeys([]); setOnereDrawerOpen(false); } }), 'Aggiungi oneri economici'),
-      placement: 'right', width: 640,
-      styles: { body: { padding: 24 } },
-      closable: false, maskClosable: onereKeys.length === 0, keyboard: onereKeys.length === 0,
-      onClose: () => { setOnereKeys([]); setOnereDrawerOpen(false); }, open: onereDrawerOpen,
-      extra: React.createElement(Space, null,
-        React.createElement(DiscardButton, { dirty: onereKeys.length > 0, onDiscard: () => { setOnereKeys([]); setOnereDrawerOpen(false); } }, 'Annulla'),
-        React.createElement(Button, {
-          type: onereKeys.length > 0 ? 'primary' : 'default',
-          disabled: onereKeys.length === 0,
-          onClick: () => {
-            const nuovi = onereKeys.map(k => ONERI_DATA.find(x => x.key === k)).filter(Boolean).map(o => ({ id: o.key, tipo: o.tipo, enteForn: o.enteForn, riferimento: o.riferimento, importo: o.importo, periodicita: o.periodicita, dataInizio: o.dataInizio, dataScadenza: o.dataScadenza, status: o.status, isActive: o.isActive }));
-            setAddedOneri(prev => {
-              const esistenti = new Set(prev.map(x => x.id));
-              return [...prev, ...nuovi.filter(n => !esistenti.has(n.id))];
-            });
-            setOnereKeys([]);
-            setOnereDrawerOpen(false);
-            antdMsg.success(nuovi.length === 1 ? 'Onere economico aggiunto' : nuovi.length + ' oneri economici aggiunti');
-          },
-        }, onereKeys.length > 0 ? 'Aggiungi (' + onereKeys.length + ')' : 'Aggiungi'),
-      ),
-    },
-      React.createElement(OneriCatalogList, { data: ONERI_DATA, selectedKeys: onereKeys, onSelectionChange: setOnereKeys }),
-    ),
-
     // Drawer collegamento moduli — seleziona impianti esistenti da collegare
     React.createElement(Drawer, {
       title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
@@ -7668,6 +7662,21 @@ function App() {
     return IMPIANTI.find(i => i.id === targetId) || null;
   })();
 
+  // Ruolo globale (navbar / dev bar handoff): Sales vede la versione commerciale del parco.
+  const [role, setRole] = useState(() => localStorage.getItem('gravity_proto_role') || 'Tenant Admin');
+  useEffect(() => {
+    const onRole = (e) => { if (e.detail) setRole(e.detail); };
+    window.addEventListener('gravity:role-change', onRole);
+    return () => window.removeEventListener('gravity:role-change', onRole);
+  }, []);
+  // Tipo di mappa per ruolo: Sales e Planner solo commerciale, Inventory Manager solo amministrativa,
+  // Tenant Admin e Operation Manager scelgono con lo switch (default amministrativa).
+  const canSwitchMap = role === 'Tenant Admin' || role === 'Operation Manager';
+  const [mapType, setMapType] = useState('admin'); // 'admin' | 'commercial'
+  const isComm = canSwitchMap ? mapType === 'commercial' : (role === 'Sales' || role === 'Planner');
+  // Periodo di consultazione della vista commerciale: default ultimi 14 giorni (oggi incluso)
+  const [dateRange, setDateRange] = useState(() => [dayjs().subtract(13, 'day').startOf('day'), dayjs().startOf('day')]);
+
   const [page, setPage] = useState(_deepLinkImp ? 'detail' : 'map'); // 'map' | 'detail'
   // Il drawer Nuovo Impianto resta aperto (sulla stessa sezione) anche dopo un
   // refresh della pagina — utile durante la revisione: senza, ogni reload della
@@ -7691,6 +7700,7 @@ function App() {
   // ── Ricerca zona ──────────────────────────────────────
   const [searchQuery,    setSearchQuery]    = useState('');
   const [appliedZone,    setAppliedZone]    = useState(null);   // filtro attivo
+  const [appliedName,    setAppliedName]    = useState(null);   // filtro per nome/alias impianto
   const [showSugg,       setShowSugg]       = useState(false);
   const [flyToTarget,    setFlyToTarget]    = useState(null);
   const inputRef = useRef(null);
@@ -7840,10 +7850,24 @@ function App() {
     return () => { cancelled = true; };
   }, []);
 
+  // Spazi visibili nel contesto del ruolo: per Sales solo il commercializzabile
+  // Mock: per periodi che iniziano dopo oggi, opzioni e riserve in scadenza tornano disponibili
+  // (deterministico per impianto/data). Un periodo che include oggi mostra lo stato attuale.
+  const rangeStartKey = dateRange[0].format('YYYY-MM-DD');
+  const baseImpianti = useMemo(() => {
+    if (!isComm) return geocodedImpianti;
+    const daysAhead = dateRange[0].diff(dayjs().startOf('day'), 'day');
+    return geocodedImpianti.filter(isSellable).map(imp => {
+      if (daysAhead <= 0 || imp.stato === 'Disponibile') return imp;
+      const h = (parseInt(String(imp.id).replace(/\D/g, ''), 10) || 0) + daysAhead;
+      return h % 3 === 0 ? { ...imp, stato: 'Disponibile' } : imp;
+    });
+  }, [geocodedImpianti, isComm, rangeStartKey]);
+
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   const FILTERS_EMPTY = {
-    statiAmm: [], canale: [], suolo: [], mediaOwner: [],
+    statiAmm: [], statoSpazi: [], canale: [], suolo: [], mediaOwner: [],
     tipologia: [], formato: [], illuminazione: [], numeroFacce: [],
   };
 
@@ -7851,6 +7875,15 @@ function App() {
   const [draftFilters, setDraftFilters] = useState({ ...FILTERS_EMPTY });
   // Applied — effettivamente usati per filtrare
   const [appliedFilters, setAppliedFilters] = useState({ ...FILTERS_EMPTY });
+
+  // Cambio ruolo = cambio contesto (stati amministrativi ↔ commerciali): niente filtri orfani.
+  useEffect(() => {
+    setDraftFilters({ ...FILTERS_EMPTY });
+    setAppliedFilters({ ...FILTERS_EMPTY });
+    setCardImp(null);
+    setHighlightedId(null);
+  }, [isComm]);
+  useEffect(() => { setCardImp(null); setHighlightedId(null); }, [rangeStartKey]);
 
   const setDraft = useCallback((key, value) => {
     setDraftFilters(prev => ({
@@ -7875,7 +7908,30 @@ function App() {
   }, [appliedFilters]);
 
   // Suggerimenti raggruppati per tipo
-  const suggestions = useMemo(() => getSuggestions(searchQuery), [searchQuery]);
+  // Sales: i suggerimenti di zona riportano quanti spazi vendibili ci sono e quanti disponibili
+  const locationSugg = useMemo(() => !isComm ? LOCATION_SUGG : LOCATION_SUGG.map(item => {
+    if (item.type !== 'zona') return item;
+    const inZona = baseImpianti.filter(i => i.zona === item.text);
+    const disp = inZona.filter(i => i.stato === 'Disponibile').length;
+    return { ...item, detail: `Zona · Palermo, PA · ${inZona.length} impianti · ${disp} disponibili` };
+  }), [isComm, baseImpianti]);
+  // Ricerca per nome o alias: un suggerimento per ogni campo che combacia (max 4), in cima alla lista
+  const suggestions = useMemo(() => {
+    const groups = getSuggestions(searchQuery, locationSugg);
+    const q = searchQuery.trim();
+    if (q.length < 2) return groups;
+    const items = [];
+    baseImpianti.forEach(imp => {
+      if (items.length >= 4) return;
+      const where = [imp.indirizzo, imp.zona].filter(Boolean).join(' · ');
+      const base = { type: 'impianto', lat: imp.lat, lng: imp.lng, zoom: 16 };
+      if (imp.nome && matchesSearch(imp.nome, q)) items.push({ ...base, text: imp.nome, detail: `Nome · ${where}` });
+      if (imp.alias && matchesSearch(imp.alias, q) && items.length < 4) items.push({ ...base, text: imp.alias, detail: `Alias${imp.nome ? ' di ' + imp.nome : ''} · ${where}` });
+    });
+    return items.length ? [{ key: 'impianto', label: 'Impianti', items }, ...groups] : groups;
+  }, [searchQuery, locationSugg, baseImpianti]);
+
+
 
   // Suggerimenti indirizzo reali (geocoding Photon/OSM) per la ricerca mappa
   const [addrSugg, setAddrSugg] = useState([]);
@@ -7889,6 +7945,13 @@ function App() {
 
   // Applica la ricerca zona: aggiorna filtro + naviga la mappa
   const applyZoneSearch = useCallback((query, target) => {
+    if (target && target.type === 'impianto') {
+      setAppliedName(target.text);
+      setSearchQuery('');
+      setShowSugg(false);
+      setFlyToTarget({ lat: target.lat, lng: target.lng, zoom: target.zoom, _ts: Date.now() });
+      return;
+    }
     const q = (query || searchQuery).trim();
     if (!q) { setAppliedZone(null); return; }
     setAppliedZone(q);
@@ -7901,7 +7964,7 @@ function App() {
         setFlyToTarget({ lat: 38.1155, lng: 13.3615, zoom: 12, _ts: Date.now() });
       } else {
         const isZona = ZONE.some(z => normalizeText(z) === normalizeText(q));
-        const matching = geocodedImpianti.filter(i =>
+        const matching = baseImpianti.filter(i =>
           isZona ? matchesSearch(i.zona, q) : matchesSearch(i.indirizzo, q)
         );
         if (matching.length > 0) {
@@ -7912,7 +7975,21 @@ function App() {
         }
       }
     }
-  }, [searchQuery]);
+  }, [searchQuery, baseImpianti]);
+
+  // La ricerca passa sempre dai suggerimenti: Invio sceglie il primo della lista (stato → zone/strade → indirizzi)
+  const selectFirstSuggestion = useCallback(() => {
+    if (suggestions.length > 0) {
+      const s0 = suggestions[0].items[0];
+      setSearchQuery(s0.text); applyZoneSearch(s0.text, s0);
+      return;
+    }
+    if (addrSugg.length > 0) {
+      const a0 = addrSugg[0];
+      setSearchQuery(a0.display); setShowSugg(false);
+      setFlyToTarget({ lat: a0.lat, lng: a0.lng, zoom: 16, _ts: Date.now() });
+    }
+  }, [suggestions, addrSugg, applyZoneSearch]);
 
   const clearZoneSearch = useCallback(() => {
     setAppliedZone(null);
@@ -7920,40 +7997,63 @@ function App() {
     setShowSugg(false);
   }, []);
 
-  const filteredImpianti = useMemo(() => {
-    const f = appliedFilters;
-    return geocodedImpianti.filter(imp => {
-      if (f.statiAmm.length > 0 && !f.statiAmm.includes(imp.stato_amm)) return false;
-      if (f.canale.length > 0 && !f.canale.includes(imp.canale)) return false;
-      if (f.suolo.length > 0 && !f.suolo.includes(imp.suolo)) return false;
-      if (f.mediaOwner.length > 0 && !f.mediaOwner.includes(imp.media_owner)) return false;
-      if (f.tipologia.length > 0 && !f.tipologia.includes(imp.tipo)) return false;
-      if (f.formato.length > 0 && !f.formato.includes(imp.formato)) return false;
-      if (f.illuminazione.length > 0) {
-        // Il dato è booleano: tra gli illuminati, 1 su 3 (per id) è retroilluminato
-        const retro = imp.illuminato && parseInt(imp.id.slice(1), 10) % 3 === 0;
-        const k = !imp.illuminato ? 'Non illuminate' : retro ? 'Retroilluminate' : 'Illuminate';
-        if (!f.illuminazione.includes(k)) return false;
-      }
-      if (f.numeroFacce.length > 0 && !f.numeroFacce.includes(window.gravityFaceCountKey(imp.faces))) return false;
-      // ── Filtro zona search ──
-      if (appliedZone) {
-        const q = appliedZone;
-        const isCity    = matchesSearch('Palermo Provincia', q) || normalizeText(q) === 'pa';
-        const isZona    = ZONE.some(z => normalizeText(z) === normalizeText(q));
-        if (!isCity) {
-          if (isZona) {
-            // Zona/quartiere: filtra per zona
-            if (!matchesSearch(imp.zona, q)) return false;
-          } else {
-            // Via specifica: filtra SOLO per indirizzo
-            if (!matchesSearch(imp.indirizzo, q)) return false;
-          }
+  const passesFilters = useCallback((imp, f) => {
+    if ((f.statoSpazi || []).length > 0 && !f.statoSpazi.some(k => STATO_COMM_KEY_TO_LABEL[k] === imp.stato)) return false;
+    if (f.statiAmm.length > 0 && !f.statiAmm.includes(imp.stato_amm)) return false;
+    if (f.canale.length > 0 && !f.canale.includes(imp.canale)) return false;
+    if (f.suolo.length > 0 && !f.suolo.includes(imp.suolo)) return false;
+    if (f.mediaOwner.length > 0 && !f.mediaOwner.includes(imp.media_owner)) return false;
+    if (f.tipologia.length > 0 && !f.tipologia.includes(imp.tipo)) return false;
+    if (f.formato.length > 0 && !f.formato.includes(imp.formato)) return false;
+    if (f.illuminazione.length > 0) {
+      // Il dato è booleano: tra gli illuminati, 1 su 3 (per id) è retroilluminato
+      const retro = imp.illuminato && parseInt(imp.id.slice(1), 10) % 3 === 0;
+      const k = !imp.illuminato ? 'Non illuminate' : retro ? 'Retroilluminate' : 'Illuminate';
+      if (!f.illuminazione.includes(k)) return false;
+    }
+    if (f.numeroFacce.length > 0 && !f.numeroFacce.includes(window.gravityFaceCountKey(imp.faces))) return false;
+    // ── Filtro nome / alias impianto ──
+    if (appliedName && !(matchesSearch(imp.nome || '', appliedName) || matchesSearch(imp.alias || '', appliedName))) return false;
+    // ── Filtro zona search ──
+    if (appliedZone) {
+      const q = appliedZone;
+      const isCity    = matchesSearch('Palermo Provincia', q) || normalizeText(q) === 'pa';
+      const isZona    = ZONE.some(z => normalizeText(z) === normalizeText(q));
+      if (!isCity) {
+        if (isZona) {
+          // Zona/quartiere: filtra per zona
+          if (!matchesSearch(imp.zona, q)) return false;
+        } else {
+          // Via specifica: filtra SOLO per indirizzo
+          if (!matchesSearch(imp.indirizzo, q)) return false;
         }
       }
-      return true;
+    }
+    return true;
+  }, [appliedZone, appliedName]);
+
+  const filteredImpianti = useMemo(
+    () => baseImpianti.filter(imp => passesFilters(imp, appliedFilters)),
+    [baseImpianti, appliedFilters, passesFilters]);
+
+  // Conteggi per stato commerciale: rispettano tutti i filtri e la tab canale TRANNE il filtro stato
+  const statoCounts = useMemo(() => {
+    const f = { ...appliedFilters, statoSpazi: [] };
+    const out = {};
+    baseImpianti.forEach(imp => {
+      if (!passesFilters(imp, f)) return;
+      if (activeTab === 'ooh'  && imp.canale !== 'OOH')  return;
+      if (activeTab === 'dooh' && imp.canale !== 'DOOH') return;
+      out[imp.stato] = (out[imp.stato] || 0) + 1;
     });
-  }, [geocodedImpianti, appliedFilters, appliedZone]);
+    return out;
+  }, [baseImpianti, appliedFilters, passesFilters, activeTab]);
+
+  const toggleStatoFilter = useCallback((key) => {
+    const flip = (prev) => ({ ...prev, statoSpazi: prev.statoSpazi.includes(key) ? prev.statoSpazi.filter(k => k !== key) : [...prev.statoSpazi, key] });
+    setAppliedFilters(flip);
+    setDraftFilters(flip);
+  }, []);
 
   const tabCounts = useMemo(() => ({
     tutti: filteredImpianti.length,
@@ -7972,7 +8072,7 @@ function App() {
   const activeFilterCount = useMemo(() => {
     const f = appliedFilters;
     return [
-      f.statiAmm.length > 0, f.canale.length > 0, f.suolo.length > 0,
+      f.statiAmm.length > 0, f.statoSpazi.length > 0, f.canale.length > 0, f.suolo.length > 0,
       f.mediaOwner.length > 0, f.tipologia.length > 0, f.formato.length > 0,
       f.illuminazione.length > 0, f.numeroFacce.length > 0,
     ].filter(Boolean).length;
@@ -8000,6 +8100,7 @@ function App() {
     const chips = [];
     const LABEL_MAP = {
       statiAmm:  v => v,
+      statoSpazi: v => STATO_COMM_KEY_TO_LABEL[v] || v,
       canale:    v => v,
       suolo:     v => `Suolo ${v}`,
       mediaOwner:v => v,
@@ -8008,10 +8109,11 @@ function App() {
       illuminazione: v => v === 'Illuminate' ? 'Illuminato' : v === 'Retroilluminate' ? 'Retroilluminato' : 'Non illuminato',
       numeroFacce: v => v === '1' ? '1 faccia' : `${v} facce`,
     };
-    ['statiAmm','canale','suolo','mediaOwner','tipologia','formato','illuminazione','numeroFacce'].forEach(key => {
+    ['statiAmm','statoSpazi','canale','suolo','mediaOwner','tipologia','formato','illuminazione','numeroFacce'].forEach(key => {
       (f[key] || []).forEach(v => {
         chips.push({ key: `${key}:${v}`, label: LABEL_MAP[key](v), onRemove: () => removeApplied(key, v),
-          icon: key === 'tipologia' ? GravityMap.systypeIconSrc(v) : null });
+          icon: key === 'tipologia' ? GravityMap.systypeIconSrc(v) : null,
+          dot: key === 'statoSpazi' ? (STATI_COMM.find(x => x.key === v) || {}).dot : null });
       });
     });
     return chips;
@@ -8085,8 +8187,18 @@ function App() {
           React.createElement('div', { style: { display: 'flex', alignItems: 'center' } },
 
           // Titolo — sinistra (flex:1 per bilanciare)
-          React.createElement('div', { style: { flex: 1 } },
+          React.createElement('div', { style: { flex: 1, display: 'flex', alignItems: 'center' } },
             React.createElement('span', { className: 'grav-parco-title', style: { fontSize: 22, fontWeight: 700, color: 'rgba(0,0,0,0.88)', letterSpacing: '-0.3px' } }, 'Parco Impianti'),
+            canSwitchMap && React.createElement('span', { style: { width: 1, height: 20, background: '#E8E8E8', margin: '0 14px 0 16px', flexShrink: 0 } }),
+            canSwitchMap && React.createElement(Segmented, {
+              id: 'grav-tour-map-type',
+              value: mapType,
+              onChange: setMapType,
+              options: [
+                { value: 'admin',      icon: React.createElement(icons.SafetyCertificateOutlined || AppstoreOutlined), label: 'Amministrativo' },
+                { value: 'commercial', icon: React.createElement(TagsOutlined), label: 'Commerciale' },
+              ],
+            }),
           ),
 
           // Search bar — centro (unified bar)
@@ -8108,11 +8220,19 @@ function App() {
                       onMouseDown: e => { e.preventDefault(); clearZoneSearch(); },
                     }, '×')
                   ),
+                  appliedName && React.createElement('span', { className: 'ss-input-tag' },
+                    React.createElement(TagOutlined, { style: { fontSize: 11, opacity: 0.5 } }),
+                    ' ', appliedName,
+                    React.createElement('span', {
+                      className: 'ss-input-tag-x',
+                      onMouseDown: e => { e.preventDefault(); setAppliedName(null); },
+                    }, '×')
+                  ),
                   React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.3)', fontSize: 14, flexShrink: 0 } }),
                   React.createElement('input', {
                     ref: inputRef,
                     className: 'ss-tag-real-input',
-                    placeholder: appliedZone ? 'Aggiungi zona…' : 'Cerca via, quartiere, città, provincia…',
+                    placeholder: (appliedZone || appliedName) ? 'Aggiungi zona…' : 'Cerca via, quartiere, nome o alias…',
                     value: searchQuery,
                     onChange: e => {
                       setSearchQuery(e.target.value);
@@ -8122,8 +8242,8 @@ function App() {
                     onFocus: () => { if (searchQuery.length >= 2) setShowSugg(true); },
                     onBlur: () => setTimeout(() => setShowSugg(false), 180),
                     onKeyDown: e => {
-                      if (e.key === 'Enter') applyZoneSearch();
-                      if (e.key === 'Backspace' && !searchQuery && appliedZone) clearZoneSearch();
+                      if (e.key === 'Enter') selectFirstSuggestion();
+                      if (e.key === 'Backspace' && !searchQuery) { if (appliedName) setAppliedName(null); else if (appliedZone) clearZoneSearch(); }
                     },
                   })
                 )
@@ -8139,17 +8259,6 @@ function App() {
                 React.createElement(SlidersOutlined, { style: { fontSize: 14 } }),
                 'Filtri avanzati',
                 activeFilterCount > 0 && React.createElement('span', { className: 'ss-bar-count' }, activeFilterCount),
-              ),
-
-              React.createElement('div', { className: 'ss-bar-sep' }),
-
-              // Cerca (default)
-              React.createElement('button', {
-                className: 'ss-bar-cerca',
-                onClick: () => applyZoneSearch(),
-              },
-                React.createElement(SearchOutlined, { style: { fontSize: 14 } }),
-                'Cerca',
               ),
 
             ), // ss-unified-bar
@@ -8209,8 +8318,21 @@ function App() {
           ), // ss-searchbar-wrap
 
           // CTA — destra (flex:1 per bilanciare, allineato a destra)
-          React.createElement('div', { style: { flex: 1, display: 'flex', justifyContent: 'flex-end' } },
-            React.createElement(Space, null,
+          React.createElement('div', { style: { flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' } },
+            isComm && React.createElement(DatePicker.RangePicker, {
+              id: 'grav-tour-date-range',
+              value: dateRange,
+              onChange: (v) => { if (v && v[0] && v[1]) setDateRange([v[0].startOf('day'), v[1].startOf('day')]); },
+              format: 'DD/MM/YYYY',
+              allowClear: false,
+              style: { width: 290 },
+              presets: [
+                { label: 'Ultimi 14 giorni', value: [dayjs().subtract(13, 'day'), dayjs()] },
+                { label: 'Prossimi 14 giorni', value: [dayjs(), dayjs().add(13, 'day')] },
+                { label: 'Prossimi 30 giorni', value: [dayjs(), dayjs().add(29, 'day')] },
+              ],
+            }),
+            !isComm && React.createElement(Space, null,
               React.createElement(Dropdown, {
                 menu: {
                   items: [
@@ -8241,6 +8363,7 @@ function App() {
           activeFilterChips.length > 0 && React.createElement('div', { className: 'ss-active-filters' },
             activeFilterChips.map(chip =>
               React.createElement('span', { key: chip.key, className: 'ss-filter-chip' },
+                chip.dot && React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: chip.dot, display: 'inline-block', flexShrink: 0, marginRight: 6 } }),
                 chip.icon && React.createElement('img', { src: chip.icon, style: { width: 12, height: 12, marginRight: 4, verticalAlign: 'middle', display: 'inline-block', flexShrink: 0 } }),
                 chip.label,
                 React.createElement('span', {
@@ -8260,7 +8383,9 @@ function App() {
         ? React.createElement('div', { className: 'ooh-map-area' },
 
             React.createElement(LeafletMap, {
-              impianti:         geocodedImpianti,
+              key:              isComm ? 'comm' : 'adm',
+              commercial:       isComm,
+              impianti:         baseImpianti,
               highlightedId,
               selectedIds,
               filteredIds,
@@ -8276,6 +8401,10 @@ function App() {
             !cardImp && React.createElement(MapInfobox, {
               total:             tabFilteredImpianti.length,
               filteredImpianti:  tabFilteredImpianti,
+              commercial:        isComm,
+              statoCounts,
+              activeStati:       appliedFilters.statoSpazi,
+              onToggleStato:     toggleStatoFilter,
             }),
 
             // View toggle — floating top-right
@@ -8294,7 +8423,7 @@ function App() {
               })
             ),
           )
-        : React.createElement(ListView, { impianti: tabFilteredImpianti, viewMode, setViewMode, newlyCreatedId, onDetail: (imp) => { setDetailImpianto(imp); setSavedFormData(null); setPage('detail'); } })
+        : React.createElement(ListView, { key: isComm ? 'comm' : 'adm', commercial: isComm, impianti: tabFilteredImpianti, viewMode, setViewMode, newlyCreatedId, onDetail: (imp) => { setDetailImpianto(imp); setSavedFormData(null); setPage('detail'); } })
     ),
 
     // ── Drawer: Filtri (componente condiviso GravityFilterDrawer) ──
@@ -8304,7 +8433,9 @@ function App() {
       onApply: applyFilters,
       onReset: resetFilters,
       activeCount: activeFilterCount,
-      sections: ['statiAmm', 'canale', 'suolo', 'mediaOwner', 'tipologia', 'numeroFacce', 'illuminazione', 'formato'],
+      sections: isComm
+        ? ['statoSpazi', 'tipologia', 'numeroFacce', 'illuminazione', 'formato']
+        : ['statiAmm', 'canale', 'suolo', 'mediaOwner', 'tipologia', 'numeroFacce', 'illuminazione', 'formato'],
       values: draftFilters,
       onChange: setDraft,
       options: { allTypes: MACRO_TIPI, typeFormats: TIPO_FORMATI, allFormats: ALL_TIPO_FORMATI },
@@ -8339,6 +8470,7 @@ function App() {
             suolo: data.tipoSuolo || null,
             media_owner: data.proprietario || null,
             nome: data.nome || null,
+            alias: data.aliasImpianto || null,
             code: 'PA-N' + String(Date.now()).slice(-4),
             _formData: data,
           };
@@ -8380,27 +8512,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       if (!slot) return;
       if (slot.parentElement !== document.body) {
         document.body.appendChild(slot);
-      }
-      // Drawer generico aperto (Aggiungi cespite, Concessioni, Squadre, Facce, Moduli...):
-      // il drawer "Nuovo/Modifica Impianto" ha già il suo posizionamento via CSS
-      // (body:has(#grav-tour-form-save)); per tutti gli altri le larghezze variano troppo
-      // (da ~420px a oltre metà schermo) per un valore fisso in CSS — misuriamo il bordo
-      // sinistro reale del drawer aperto e agganciamo la dev bar appena prima.
-      if (document.getElementById('grav-tour-form-save')) {
-        slot.style.right = '';
-        return;
-      }
-      var openDrawer = document.querySelector('.ant-drawer-open .ant-drawer-content');
-      if (openDrawer) {
-        var left = openDrawer.getBoundingClientRect().left;
-        var desired = window.innerWidth - left + 16;
-        // Drawer larghi (es. width:'70%' di Aggiungi Concessione/Autorizzazione) possono
-        // lasciare meno spazio a sinistra della larghezza della dev bar stessa: non farla
-        // uscire dal viewport, al massimo si appoggia al bordo sinistro.
-        var maxRight = window.innerWidth - slot.getBoundingClientRect().width - 8;
-        slot.style.right = Math.min(desired, maxRight) + 'px';
-      } else {
-        slot.style.right = '';
       }
     }, 300);
   }
