@@ -56,7 +56,13 @@
     'Inventory Manager': ['Overview', 'Inventory'],
     'Operation Manager': ['Overview', 'Inventory', 'Commercial', 'Delivery'],
     'Planner':           ['Overview', 'Inventory', 'Delivery'],
-    'Sales':             ['Commercial', 'Delivery'],
+    'Sales':             ['Inventory', 'Commercial', 'Delivery'],
+  };
+
+  // Voci ristrette per ruolo dentro una sezione (default: tutte le voci di NAV).
+  // Sales vede l'Inventory solo come consultazione commerciale del parco impianti.
+  var ROLE_ITEMS = {
+    'Sales': { Inventory: ['Systems'] },
   };
 
   // Voci di navigazione (Figma node 3261-3147). I link ai prototipi non sono
@@ -323,7 +329,10 @@
       return {
         key: sec,
         label: SECTION_LABEL[sec] || sec,
-        children: conf.items.map(function (item) {
+        children: conf.items.filter(function (item) {
+          var allowed = (ROLE_ITEMS[cur] || {})[sec];
+          return !allowed || allowed.indexOf(item) !== -1;
+        }).map(function (item) {
           var link   = cfgLinks[item] !== undefined ? cfgLinks[item] : regLinks[sec + '/' + item];
           // "Per te" punta sempre alla pagina profilo (percorso relativo per-pagina via appHref)
           if (item === 'Per te') link = appHref;

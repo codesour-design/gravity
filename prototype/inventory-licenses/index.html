@@ -108,20 +108,8 @@
       right: 102px;
       z-index: 1051;
     }
-    /* GravitySectionDrawer (Autorizzazione v2, 90% larghezza): ancora la dev bar al gruppo
-       Annulla/Salva del drawer invece della misura generica sul bordo sinistro (che a 90%
-       lascia troppo poco spazio) — stesso pattern di inventory-systems per
-       NewImpiantoFullDrawer (width 100%). Selettore sulla classe del componente condiviso, non
-       sull'id del pulsante Salva: quell'id è condiviso da tutti i PermitFormDrawer (anche
-       Concessione/Contratto, che restano sul Drawer semplice 640px e non devono attivarlo). */
-    body:has(.grav-section-drawer-nav) #ghf-nav-slot { right: 220px; }
-    /* Drawer piccoli di collegamento ("Collega impianti"/"Collega permesso", 640px,
-       nota 'permessi-collegamento-drawer-card'): a quella larghezza la dev bar si sovrappone
-       all'header del drawer invece di trovare spazio a fianco — niente ancoraggio possibile
-       come per il GravitySectionDrawer a 90%, quindi la si nasconde finché il drawer è aperto. */
-    /* !important necessario: lo script della dev bar (handoff.js) imposta display:inline-flex
-       come stile inline alla creazione dello slot, che altrimenti vince sempre sulla regola qui. */
-    body:has(.grav-permit-link-drawer.ant-drawer-open) #ghf-nav-slot { display: none !important; }
+    /* Posizione della dev bar dentro/fuori dai drawer: gestita dal motore (handoff.js,
+       components/handoff-engine.md) — nessuna regola per-prototipo. */
   </style>
 </head>
 <body>
@@ -3535,22 +3523,6 @@ root.render(React.createElement(AppRoot));
       var slot = document.getElementById('ghf-nav-slot');
       if (!slot) return;
       if (slot.parentElement !== document.body) document.body.appendChild(slot);
-      // GravitySectionDrawer (Autorizzazione v2): lascia vincere la regola CSS
-      // body:has(.grav-section-drawer-nav) invece della misura generica sul bordo
-      // sinistro — stesso pattern di inventory-systems per il suo drawer full-screen.
-      if (document.querySelector('.grav-section-drawer-nav')) {
-        slot.style.right = '';
-        return;
-      }
-      var openDrawer = document.querySelector('.ant-drawer-open .ant-drawer-content');
-      if (openDrawer) {
-        var left = openDrawer.getBoundingClientRect().left;
-        var desired = window.innerWidth - left + 16;
-        var maxRight = window.innerWidth - slot.getBoundingClientRect().width - 8;
-        slot.style.right = Math.min(desired, maxRight) + 'px';
-      } else {
-        slot.style.right = '';
-      }
     }, 300);
   }
 </script>
