@@ -11,8 +11,14 @@
  *   title       : string — titolo principale nell'header
  *   badge       : { text, variant, icon? }  (opzionale — badge singolo nell'header)
  *   badges      : [{ text, variant, icon? }]  (opzionale — badge multipli, alternativo a badge)
- *   showMenu    : boolean — mostra ⋮ kebab nell'header  (default false)
- *   image       : { id, placeholder, aspectRatio, heightPx }  (opzionale)
+ *   showMenu    : boolean — mostra un ⋮ puramente decorativo nell'header, senza azioni
+ *                   (default false) — usare `menu` per un kebab funzionante
+ *   menu        : [{ key, label, icon, danger, onClick }]  (opzionale)
+ *                   azioni nell'header via kebab ⋮ cliccabile (Ant Design Dropdown):
+ *                   icon è il nome di un'icona AntD (es. 'DeleteOutlined'). Se presente
+ *                   e non vuoto ha priorità su `showMenu`.
+ *   image       : { id, src, placeholder, aspectRatio, heightPx }  (opzionale)
+ *                   src: URL di una foto reale — ha sempre priorità su image-slot/placeholder
  *   bodyBadges  : [{ text, variant, icon? }]  (opzionale — badge nella sezione Informations)
  *   address     : { primary, secondary }  (opzionale — 2 righe di testo dopo bodyBadges)
  *   fields      : [{ icon, label, value, valueStyle, valueNode }]
@@ -38,9 +44,12 @@
 
   if (global.GravityEntityCard) return;
 
-  var React  = global.React;
-  var icons  = global.icons || {};
-  var h      = React.createElement;
+  var React    = global.React;
+  var icons    = global.icons || {};
+  var antd     = global.antd || {};
+  var Dropdown = antd.Dropdown;
+  var Button   = antd.Button;
+  var h        = React.createElement;
 
   // ── Badge variants ────────────────────────────────────────────────────────
   var BADGE_VARIANTS = {
@@ -90,12 +99,18 @@
   // ── Image area ────────────────────────────────────────────────────────────
   function ImageArea(props) {
     var id          = props.id;
+    var src         = props.src;
     var placeholder = props.placeholder || 'Immagine';
     var heightPx    = props.heightPx || 160;
 
     var sizeStyle = props.aspectRatio && !props.heightPx
       ? { width: '100%', aspectRatio: props.aspectRatio }
       : { width: '100%', height: heightPx + 'px' };
+
+    // Foto reale: sempre prioritaria su image-slot/placeholder quando presente.
+    if (src) {
+      return h('img', { src: src, style: Object.assign({ objectFit: 'cover' }, sizeStyle) });
+    }
 
     if (typeof global.customElements !== 'undefined' && global.customElements.get('image-slot')) {
       return h('image-slot', Object.assign({ id: id, placeholder: placeholder, shape: 'rect' }, { style: Object.assign({ display: 'block', overflow: 'hidden' }, sizeStyle) }));
@@ -150,6 +165,7 @@
       '.gec-header-title-row{display:flex;flex:1;gap:8px;align-items:center;min-width:0;overflow:hidden}',
       '.gec-title{font-size:16px;font-weight:600;line-height:24px;color:rgba(0,0,0,0.88);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:1;min-width:0}',
       '.gec-menu{font-size:16px;color:rgba(0,0,0,0.45);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px}',
+      '.gec-menu-btn{flex-shrink:0}',
       '.gec-menu:hover{background:rgba(0,0,0,0.04);color:rgba(0,0,0,0.65)}',
       /* Informations — vertical */
       '.gec-informations{display:flex;flex-direction:column;gap:12px;padding:12px;width:100%;box-sizing:border-box;flex:1}',
@@ -183,6 +199,7 @@
     var badge        = props.badge;
     var badges       = props.badges;
     var showMenu     = props.showMenu    || false;
+    var menu         = props.menu;
     var image        = props.image;
     var bodyBadges   = props.bodyBadges  || [];
     var address      = props.address;
@@ -202,6 +219,35 @@
 
     // ── Header ──
     var EllipsisIcon = icons.EllipsisOutlined;
+    var hasMenu = menu && menu.length > 0;
+    var headerRight = hasMenu
+      ? h(Dropdown, {
+          trigger: ['click'],
+          menu: {
+            items: menu.map(function (m) {
+              var ItemIcon = m.icon ? icons[m.icon] : null;
+              return {
+                key: m.key,
+                label: m.label,
+                danger: m.danger,
+                icon: ItemIcon ? h(ItemIcon) : undefined,
+                onClick: m.onClick,
+              };
+            }),
+          },
+        },
+          h(Button, {
+            type: 'text',
+            size: 'small',
+            className: 'gec-menu-btn',
+            onClick: function (e) { e.stopPropagation(); },
+            icon: EllipsisIcon ? h(EllipsisIcon, { style: { fontSize: '16px', color: 'rgba(0,0,0,0.45)' } }) : '⋮',
+          })
+        )
+      : (showMenu
+          ? h('div', { className: 'gec-menu' }, EllipsisIcon ? h(EllipsisIcon) : h('span', null, '⋮'))
+          : null);
+
     var header = h('div', { className: 'gec-header' },
       h('div', { className: 'gec-header-title-row' },
         h('span', { className: 'gec-title' }, title),
@@ -209,17 +255,14 @@
           return h(Badge, { key: i, text: b.text, variant: b.variant, icon: b.icon });
         })
       ),
-      showMenu
-        ? h('div', { className: 'gec-menu' },
-            EllipsisIcon ? h(EllipsisIcon) : h('span', null, '⋮')
-          )
-        : null
+      headerRight
     );
 
     // ── Image ──
     var imageEl = image
       ? h(ImageArea, {
           id:          image.id,
+          src:         image.src,
           placeholder: image.placeholder,
           aspectRatio: image.aspectRatio,
           heightPx:    image.heightPx,
@@ -275,7 +318,7 @@
       bodySection = h('div', { className: 'gec-informations--h' },
         image
           ? h('div', { className: 'gec-img-col' },
-              h(ImageArea, { id: image.id, placeholder: image.placeholder, aspectRatio: '16/9' })
+              h(ImageArea, { id: image.id, src: image.src, placeholder: image.placeholder, aspectRatio: '16/9' })
             )
           : null,
         hasBodyContent ? infoContent : null

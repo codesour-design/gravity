@@ -33,6 +33,8 @@ window.GRAVITY_NAV = { section: 'Inventory', item: 'Systems' };
 React.createElement(window.GravityNavbar, null)
 ```
 
+Se `section`/`item` mancano, la navbar ricava la voce attiva dal registro (`nav` del prototipo la cui cartella coincide con l'URL corrente, valido per demo e handoff). La sezione corrente è evidenziata in primary (`#3E00FB`, underline) e la voce nel dropdown ha sfondo `#F0EAFF`.
+
 `window.GRAVITY_NAV` accetta anche: `logoSrc`, `appHref` (destinazione del logo e di "Per te")
 e `links` (override dei link delle singole voci menu). **Dal 2026-07-02 gli override di path non
 servono più nei casi standard**: `navbar.js` deriva la base dei link dalla propria posizione

@@ -1,12 +1,12 @@
 # Entity Card — card condivisa per entità collegate
 
-> Fonte di verità per qualunque **card che rappresenta un'entità** in una griglia o in un punto di
-> collegamento singolo (`LAYOUT.md` §3.4 "Connected Systems"/"Spazi collegati", §3.9 collegamento
-> singolo). Ogni prototipo che mostra entità come card — non come riga di tabella — DEVE usare il
-> componente condiviso `prototype/_shared/entity-card.js` (`window.GravityEntityCard`). Non
-> ricostruire la card per-prototipo: è già lo stesso shape (header/badge + immagine opzionale +
-> campi icona-label-valore + footer opzionale) riusato identico tra Inventory Licenses
-> ("Spazi collegati", "Atto di provenienza") e i pattern di collegamento di `section-drawer.md`.
+> Fonte di verità per qualunque **card che rappresenta un'entità** in una griglia di collegamento
+> (`LAYOUT.md` §3.4 "Connected Systems"/"Spazi collegati", §3.9 sezione "Diritto sul Suolo"). Ogni
+> prototipo che mostra entità come card — non come riga di tabella — DEVE usare il componente
+> condiviso `prototype/_shared/entity-card.js` (`window.GravityEntityCard`). Non ricostruire la
+> card per-prototipo: è già lo stesso shape (header/badge + immagine opzionale + campi
+> icona-label-valore + footer opzionale) riusato identico tra Inventory Licenses ("Spazi
+> collegati", "Atti di provenienza") e i pattern di collegamento di `section-drawer.md`.
 
 ---
 
@@ -41,11 +41,12 @@ Nessun wrapper esterno richiesto: il componente include già il proprio contenit
 | `title` | `string` | titolo principale nell'header |
 | `badge` | `{ text, variant }` | opzionale — badge singolo |
 | `badges` | `[{ text, variant }]` | opzionale — badge multipli, alternativo a `badge` |
-| `showMenu` | `boolean` | mostra ⋮ kebab nell'header (default `false`) |
-| `image` | `{ id, placeholder, aspectRatio, heightPx }` | opzionale — `id`: chiave univoca per image-slot · `placeholder`: testo dell'empty state · `aspectRatio`: es. `'16/9'` (default) · `heightPx`: alternativa numerica per altezza fissa |
+| `showMenu` | `boolean` | mostra un ⋮ puramente decorativo nell'header, senza azioni (default `false`) — per un kebab funzionante usare `menu` sotto |
+| `menu` | `[{ key, label, icon, danger, onClick }]` | opzionale — azioni nell'header via kebab ⋮ cliccabile (Ant Design `Dropdown`); `icon` è il nome di un'icona AntD (es. `'DeleteOutlined'`); se presente e non vuoto ha priorità su `showMenu` |
+| `image` | `{ id, src, placeholder, aspectRatio, heightPx }` | opzionale — `src`: URL di una foto reale, sempre prioritaria su image-slot/placeholder quando presente (es. la foto di copertina di un impianto — nota `impianto-foto-copertina-non-pseudo-casuale`) · `id`: chiave univoca per image-slot (nessun effetto se `src` è presente) · `placeholder`: testo dell'empty state quando non c'è né `src` né image-slot · `aspectRatio`: es. `'16/9'` (default) · `heightPx`: alternativa numerica per altezza fissa |
 | `fields` | `[{ icon, label, value, valueStyle, valueNode }]` | corpo della card, una riga per campo — vedi sotto |
 | `bodyColumns` | `1 \| 2` | default `1`; `2` per corpo a griglia quando i campi sono molti |
-| `footer` | `React node` | opzionale — contenuto in fondo alla card (tipicamente un'azione, es. "Scollega") |
+| `footer` | `React node` | opzionale — testo di chiusura (es. "Scade il ...") oppure un'azione di interfaccia abilitata dall'entità (es. "Richiedi pianificazione") — mai un'azione CRUD/di relazione sull'entità stessa, quella va in `menu` — vedi "Header `menu` vs. footer" sotto |
 | `style` / `className` | — | aggiuntivi sul wrapper esterno |
 
 Ogni voce di `fields`:
@@ -72,10 +73,10 @@ Ogni voce di `fields`:
 | Elemento | Valore |
 |---|---|
 | Contenitore | `border-radius: 8px`, `border: 1px solid #F0F0F0`, sfondo bianco, `overflow: hidden` |
-| Header | `padding: 14px 16px`, `border-bottom: 1px solid #F5F5F5`; titolo `16px/600`, badge affiancati con `flex-wrap` |
+| Header | `padding: 14px 16px`, `border-bottom: 1px solid #F5F5F5`; titolo `16px/600`, badge affiancati con `flex-wrap`; kebab ⋮ a destra quando `menu` è presente (Ant Design `Dropdown`, stesso trattamento di un `Button type="text" icon={<MoreOutlined/>}`) |
 | Immagine (`image`) | opzionale, subito sotto l'header, `width: 100%` all'`aspectRatio`/`heightPx` indicato — usa `<image-slot>` se il custom element è caricato, altrimenti un placeholder coerente (icona `PictureOutlined` attenuata + testo) |
 | Corpo (`fields`) | `padding: 14px 16px`; una riga per campo (`bodyColumns: 1`, gap verticale 9px) o griglia 2 colonne (`bodyColumns: 2`, `column-gap: 16px`); ogni riga: icona 14px attenuata + label `600`/`rgba(0,0,0,0.88)` + valore `400`/`rgba(0,0,0,0.65)`, tutto a `12px` |
-| Footer | opzionale, `padding: 11px 16px`, `border-top: 1px solid #F5F5F5`, sfondo `#FCFCFD` leggermente distinto dal corpo — per un'azione contestuale alla card (link, non pulsante pieno) |
+| Footer | opzionale, `padding: 11px 16px`, `border-top: 1px solid #F5F5F5`, sfondo `#FCFCFD` leggermente distinto dal corpo — contenuto variabile: solo testo di chiusura (es. "Scade il ..."), oppure un'azione (vedi "Header `menu` vs. footer: quale azione dove" sotto) |
 
 ### Badge — variant → colore
 
@@ -90,23 +91,68 @@ Ogni voce di `fields`:
 
 ---
 
-## Pattern d'uso: singola card vs. griglia
+## Header `menu` vs. footer: quale azione dove
 
-Lo stesso componente copre due casi d'uso distinti (dettaglio in `components/section-drawer.md`
+Le due sezioni ospitano azioni di natura diversa, mai la stessa azione in entrambe:
+
+- **Kebab `menu` dell'header** — azioni che agiscono sull'entità o sulla sua relazione con
+  chi la mostra: CRUD e collegamento/scollegamento (`Scollega`, `Elimina`, `Duplica`,
+  `Sostituisci`, `Visualizza`...). Sempre lì, mai nel footer — coerente con la card di
+  `prototype/inventory-systems` (form "Nuovo Impianto" → Iter autorizzativo), da cui questo
+  trattamento è stato ripreso.
+- **Footer** — non un'azione sull'entità-card in sé, ma un'azione più ampia dell'interfaccia che
+  quell'entità **abilita**: tipicamente un `Button` (anche `type="primary"` se è l'azione
+  principale del contesto) per un'azione di business legata al record, non alla sua gestione
+  come record collegato. Esempio concettuale: una card Campagna da cui si può "Richiedi
+  pianificazione" (permesso `request_planning`, `docs/product/role-matrix.md`) — non è un'azione
+  CRUD sulla Campagna, è un'azione che quella Campagna rende disponibile. Il footer resta
+  variabile: solo testo (`footer: 'Scade il 12/03/2027'`) quando non c'è nessuna azione di
+  questo tipo da offrire.
+
+---
+
+## Pattern d'uso: griglia a scala reale vs. griglia a manciata
+
+Lo stesso componente copre due varianti della stessa idea — collegamento multiplo mostrato come
+griglia di card, mai come Select a valore singolo (dettaglio in `components/section-drawer.md`
 → "Sotto-pattern: elenco collegato con ricerca via drawer"):
 
-- **Collegamento singolo** (es. atto di provenienza di un Permesso): un solo `GravityEntityCard`,
-  non una riga — con un solo elemento possibile la card è più leggibile di una riga isolata.
-  Footer con l'azione di scollegamento (`Button type="link" danger`).
-- **Collegamento multiplo in griglia** (es. "Spazi collegati"/"Connected Systems",
+- **Griglia a scala reale, colonne fisse** (es. "Spazi collegati"/"Connected Systems",
   `LAYOUT.md` §3.4): `<Row gutter={[16, 16]}>` con un `<Col span={8}>` per card (3 per riga) —
   badge per identificativo + canale, campi per gli attributi dell'entità, eventuali campi
   aggiuntivi editabili nel footer quando la card rappresenta anche una relazione con dati propri
   (es. codice/CUP per-impianto).
-- **Non usarla** per liste a scala reale (migliaia di righe) dove la ricerca è già risolta da un
-  drawer dedicato: in quel caso resta un elenco a righe compatto, non una griglia di card (vedi
-  `components/section-drawer.md`) — la card è per un numero di elementi che sta comodamente a
-  schermo (una manciata, non centinaia).
+- **Griglia a manciata, fill per larghezza** (es. "Concessioni o Contratti di riferimento" di
+  un'Autorizzazione, `LAYOUT.md` §3.9 "Diritto sul Suolo"): `display: grid;
+  gridTemplateColumns: repeat(auto-fit, minmax(320px, 1fr))` — stesso pattern già in uso per le
+  "Card laterali" del Detail View (§3.4) — invece delle colonne fisse a 3 della griglia a scala
+  reale: l'elemento tipico è 0, 1 o 2 atti collegati, quindi le card **si allargano per
+  riempire la riga** (1 card = piena larghezza, 2 card = metà ciascuna) invece di restare a
+  larghezza fissa con spazio vuoto accanto. Azione di scollegamento **per singola card** nel
+  kebab `menu` dell'header (es. `{ key: 'scollega', label: 'Scollega', icon: 'DeleteOutlined',
+  danger: true, onClick }`), non nel footer (vedi sezione sopra).
+- **Non usarla senza filtri+paginazione** per liste a scala reale (migliaia di righe): il
+  **risultato** del collegamento (l'elenco di ciò che è già stato scelto, mostrato nel box dopo
+  la chiusura del drawer) resta un elenco a righe compatto, non una griglia di card (vedi
+  `components/section-drawer.md`) — lì la card è per un numero di elementi che sta comodamente a
+  schermo (una manciata, non centinaia). Il **drawer di ricerca** stesso può invece mostrare i
+  candidati come griglia di card anche a scala reale, ma solo se accompagnata da filtri (es.
+  Canale/Tipologia) oltre alla ricerca testuale e da una paginazione della griglia (mai uno
+  scroll infinito di centinaia di card) — pattern usato nel drawer "Seleziona impianto" di
+  `prototype/inventory-licenses/index.html` per aiutare a riconoscere l'impianto giusto (foto di
+  copertina reale in `image.src`) tra un parco che può contare migliaia di record.
+
+### Pulsante "Collega" e stato vuoto
+
+Regola trasversale a ogni box (`GravityFormArea`) che ospita una griglia di card collegate via
+drawer (entrambe le varianti sopra, quando il box ammette aggiunte): il pulsante che apre il
+drawer di collegamento **vive nello stato vuoto finché non c'è nulla da mostrare**, poi **si
+sposta nell'header del box** (`extra` di `GravityFormArea`, allineato a destra del titolo) non
+appena il primo elemento è collegato — mai un pulsante sotto la griglia. Motivo: un box vuoto non
+ha ancora un header con contenuto da bilanciare, quindi l'azione resta nell'unico posto con
+peso visivo (l'illustrazione centrale, `gravLinkEmpty`); un box pieno ha già un header con
+titolo, ed è lì che vive convenzionalmente ogni azione di sezione (stesso posto di
+`impiantiAddManualBtn` sulle sezioni "Impianti"/"Cimasa" di questo stesso form).
 
 ---
 
@@ -115,5 +161,11 @@ Lo stesso componente copre due casi d'uso distinti (dettaglio in `components/sec
 - `prototype/inventory-licenses/index.html` → `PermitDetailPage`, sezione "Spazi collegati":
   griglia `GravityEntityCard` (3 colonne, `Row gutter={[16,16]}`), campi variabili per v1/v2 e
   per tipo record, footer con `Popover` di riconoscimento in hover.
-- `prototype/inventory-licenses/index.html` → campo "Concessione o Contratto di riferimento":
-  singola `GravityEntityCard` per il collegamento 1:1 all'atto di provenienza.
+- `prototype/inventory-licenses/index.html` → sezione "Diritto sul Suolo" dell'Autorizzazione,
+  box "Concessioni o Contratti di riferimento" (drawer "Origine" del form e Detail View
+  "Copertura"): griglia `GravityEntityCard` a fill per larghezza (0-N atti collegati, `grid`
+  `auto-fit minmax`) per il collegamento multiplo agli atti di provenienza, con `menu` (kebab
+  "Scollega") per card, campi Ente/Proprietario/Data Stipula/Stato, e pulsante "Collega
+  permesso" (stessa etichetta nell'empty state e nell'`extra` del box una volta popolato, non
+  varia con lo stato) — riferimento anche per l'uso di `menu` e per il pattern "pulsante
+  nell'header dopo l'empty state" sopra.

@@ -94,6 +94,17 @@
     return map;
   }
 
+  // Voce attiva ricavata dal registro in base alla cartella della pagina corrente
+  // (demo e handoff condividono la cartella): fallback quando la pagina non
+  // dichiara section/item in window.GRAVITY_NAV, così la navbar segna sempre dove ci si trova.
+  function detectActiveNav() {
+    var reg = window.GRAVITY_PROTOTYPES || {};
+    var parts = location.pathname.split('/');
+    var folder = parts[parts.length - 2];
+    var p = reg[folder];
+    return (p && p.nav) ? p.nav : null;
+  }
+
   // Nota: lo stato del prototipo (approved / in-progress) NON è più un chip nella
   // navbar — vive dentro il dropdown del selettore versioni nel dev-bar handoff
   // (VersionBadge in handoff.js), che lo legge dallo stesso window.GRAVITY_PROTOTYPES.
@@ -158,6 +169,12 @@
     '.gv-nav-menu.ant-menu-horizontal>.ant-menu-item::after,',
     '.gv-nav-menu.ant-menu-horizontal>.ant-menu-submenu::after{bottom:0!important;border-bottom-width:2px!important;}',
     '.gv-nav-menu.ant-menu-horizontal>.ant-menu-overflow{height:64px;}',
+    // Sezione corrente: colore primary + underline (anche nei popup dei sottomenu, voce attiva in primary)
+    '.gv-nav-menu.ant-menu-horizontal>.ant-menu-submenu-selected,',
+    '.gv-nav-menu.ant-menu-horizontal>.ant-menu-submenu-selected>.ant-menu-submenu-title{color:#3E00FB!important;}',
+    '.gv-nav-menu.ant-menu-horizontal>.ant-menu-submenu-selected::after{border-bottom-color:#3E00FB!important;}',
+    '.ant-menu-submenu-popup .ant-menu-item-selected{color:#3E00FB!important;background:#F0EAFF!important;}',
+    '.ant-menu-submenu-popup .ant-menu-item-selected a{color:#3E00FB!important;font-weight:500;}',
   ].join('');
   document.head.appendChild(_style);
 
@@ -245,8 +262,9 @@
 
   function GravityNavbar() {
     var cfg           = window.GRAVITY_NAV || {};
-    var activeSection = cfg.section  || null;
-    var activeItem    = cfg.item     || null;
+    var detected      = (!cfg.section || !cfg.item) ? detectActiveNav() : null;
+    var activeSection = cfg.section  || (detected && detected.section) || null;
+    var activeItem    = cfg.item     || (detected && detected.item)    || null;
     var logoSrc       = cfg.logoSrc  || (PROTO + '../brand/Gravity_type.svg');
     var appHref       = cfg.appHref  || (PROTO + 'user-profile/index.html');
     var cfgLinks      = cfg.links    || {};
