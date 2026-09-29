@@ -39,7 +39,7 @@ React.createElement(GravitySectionDrawer, {
 
 - `sections[].label` → testo nella sidebar. `sections[].title`/`description` → intestazione
   dentro l'area di contenuto (facoltativi: se assenti, la sezione non mostra header, solo
-  `children`). `sections[].disabled` → voce non cliccabile, testo attenuato, resta in elenco
+  `children`). `sections[].disabledReason` → motivo del blocco, mostrato in tooltip in hover sulla voce disabilitata (stesso principio di LAYOUT.md §6.2: mai testo statico). `sections[].disabled` → voce non cliccabile, testo attenuato, resta in elenco
   (LAYOUT.md §6.2 — disabilitato non nascosto).
 - Solo la sezione con `key === activeKey` viene renderizzata nel pannello di contenuto (le altre
   non montano — stesso comportamento del `sec()` locale di `NewImpiantoFullDrawer`).
@@ -54,6 +54,47 @@ React.createElement(GravityFormArea, {
 
 Card bianca che raggruppa campi correlati dentro una sezione — una sezione può contenere più
 `GravityFormArea` in sequenza (`marginBottom` già incluso tra una e l'altra).
+
+## Tracciamento modifiche (pallino viola + stroke sul campo)
+
+Sistema unico per mostrare cosa è stato modificato e non ancora salvato, nato in "Nuovo
+Impianto" (`inventory-systems`) e ora condiviso dai drawer sezionati (Autorizzazione,
+Concessione, Contratto Privato).
+
+| Livello | Segnale | Come |
+|---------|---------|------|
+| Campo | stroke `colorPrimary` (`#3E00FB`) sul controllo | `window.GravityModified(modificato, controllo)` — avvolge in `.input-modified` (Input, InputNumber, Select, DatePicker) |
+| Sezione | pallino pieno primary 5px a destra della voce di menu, tooltip "Modifiche non salvate in questa sezione" | `sections[].dirty: true` |
+| Drawer | `dirty` del drawer (conferma di uscita, vedi LAYOUT.md §6.6) | invariato |
+
+Regole:
+- **Base di confronto**: in creazione è lo stato vuoto iniziale (ogni campo compilato è "da
+  salvare"); in modifica è l'ultimo salvataggio. Il confronto è per valore (`JSON.stringify`), non
+  per evento: tornare al valore originale spegne il segnale.
+- **Il segnale sparisce al salvataggio** (nuova base = stato salvato), non alla chiusura della
+  sezione.
+- **Sezione dirty = almeno un suo campo modificato**: si dichiara la lista delle chiavi per
+  sezione (es. `SECTION_FIELDS` in Nuovo Impianto, `sectionMod([...])` nei permessi).
+- **Righe di elenco** (Impianti collegati): la sezione è dirty se esiste una riga non-seed; il
+  singolo campo di riga è modificato se non vuoto.
+- **Checkbox e valori derivati** non hanno stroke (non c'è un bordo da colorare): segnalano la
+  modifica solo tramite il pallino di sezione.
+- **Sezione disabilitata** non mostra pallino.
+- Il colore è sempre e solo il primary (mai un colore dedicato al "modificato"), coerente con
+  LAYOUT.md §6.2 (attivo/selezionato = primary).
+
+Esempio:
+
+```js
+const isMod = k => JSON.stringify(f[k]) !== JSON.stringify(EMPTY[k]);
+const mod = (k, control) => window.GravityModified(isMod(k), control);
+
+sections: [{
+  key: 'info', label: 'Dati dell\'Atto',
+  dirty: ['enteEmittente', 'dataStipula'].some(isMod),
+  children: [ /* ... */ mod('enteEmittente', React.createElement(Select, { value: f.enteEmittente, ... })) ],
+}]
+```
 
 ## Struttura visiva
 
@@ -121,12 +162,14 @@ il nome scelto in un primo giro può rivelarsi non abbastanza esplicito e va cor
   (incluso nell'atto o ereditato da un altro, disabilitata se il Tipo non è Esposizione
   pubblicitaria) e **"Cimasa e CUP"** (elenco a righe, disabilitata finché il Tipo non è
   scelto in "Dati dell'Atto").
-- **Nuova Concessione**: "Dati dell'Atto" (dati dell'atto + area concessa), "Modalità di
-  Attribuzione" (bando pubblico, affidamento diretto o rinnovo) e **"Canone Patrimoniale"**
-  (numero utenza e canone patrimoniale per impianto) — nessuna sezione disabilitata.
+- **Nuova Concessione**: "Dati dell'Atto" (dati dell'atto, area concessa e modalità di
+  attribuzione: bando pubblico, affidamento diretto o rinnovo) e **"Impianti collegati"**
+  (numero utenza per impianto) — "Impianti collegati" disabilitata finché il Tipo Documento non
+  è scelto (area del tipo sempre visibile).
 - **Nuovo Contratto Privato**: "Dati del Contratto" (dati del contratto), "Riferimento
-  Catastale" (facoltativo) e **"Canone Locazione"** (numero utenza e canone di locazione per
-  impianto) — nessuna sezione disabilitata.
+  Catastale" (facoltativo) e **"Impianti collegati"** (numero utenza per
+  impianto) — "Impianti collegati" disabilitata finché il Tipo Contratto non è scelto (area del
+  tipo sempre visibile); "Riferimento Catastale" è facoltativo e sempre raggiungibile.
 
 > Nota: "Diritto sul Suolo" e "Modalità di Attribuzione" erano entrambe etichettate "Origine"
 > (a sua volta rinominata da "Provenienza") finché non si è notato che, pur trattando entrambe
@@ -139,7 +182,7 @@ solo la v2 usa `GravitySectionDrawer` per questi tre form.
 
 ## Sotto-pattern: elenco collegato con ricerca via drawer (non ancora un componente condiviso)
 
-Le sezioni "Cimasa e CUP"/"Canone Patrimoniale"/"Canone Locazione" (le tre sopra) e "Diritto sul
+Le sezioni "Impianti collegati" (le tre sopra) e "Diritto sul
 Suolo" (solo Autorizzazione, campo "Concessioni o Contratti di riferimento") condividono un
 sotto-pattern per collegare
 un'altra entità quando una `Select` semplice non basta a trovarla — caso reale quando le

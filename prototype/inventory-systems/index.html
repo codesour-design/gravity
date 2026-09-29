@@ -614,7 +614,7 @@ const {
   CalendarOutlined, SyncOutlined, AimOutlined, EuroCircleOutlined, BankOutlined, FormatPainterOutlined,
   UploadOutlined, LockOutlined, UnlockOutlined, CarOutlined, LinkOutlined,
   BulbFilled, GatewayOutlined, QuestionCircleOutlined, DownloadOutlined, GlobalOutlined,
-  ShopOutlined, BorderOutlined, FlagOutlined, BlockOutlined, LogoutOutlined,
+  ShopOutlined, BorderOutlined, FlagOutlined, BlockOutlined, LogoutOutlined, AppstoreAddOutlined, LoadingOutlined,
 } = icons;
 
 // Empty state custom Gravity (pattern Figma "Empty": illustrazione + titolo +
@@ -2320,6 +2320,29 @@ async function fetchAddrSuggestions(q) {
   } catch { return []; }
 }
 
+// Geocodifica inversa (stesso provider di fetchAddrSuggestions): coordinate → campi indirizzo.
+// Usata quando si trascina il pin nella mini-mappa del form impianto.
+async function fetchReverseAddress(lat, lng) {
+  try {
+    const url = `https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}&lang=default&limit=1`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return null;
+    const f = ((await res.json()).features || [])[0];
+    if (!f) return null;
+    const p = f.properties;
+    return {
+      via: p.street || p.name || '',
+      civico: p.housenumber || '',
+      cap: p.postcode || '',
+      citta: p.city || p.town || p.village || '',
+      provincia: p.county || '',
+      regione: p.state || '',
+      nazione: p.country || '',
+      zona: p.district || p.locality || '',
+    };
+  } catch { return null; }
+}
+
 // ─────────────────────────────────────────────────────────
 // IMPIANTO DETAIL PAGE
 // ─────────────────────────────────────────────────────────
@@ -3362,13 +3385,13 @@ function FaceDrawer({ open, onClose, onSubmit, editInitial, plantLat, plantLng }
   const dirty = isDirty();
   return React.createElement(Drawer, {
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-      React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }), editId ? 'Modifica Faccia' : 'Aggiungi Faccia'),
+      React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }), editId ? 'Modifica Faccia' : 'Crea Faccia'),
     placement: 'right', width: 720, styles: { body: { padding: 24 } },
     closable: false, maskClosable: !dirty, keyboard: !dirty,
     onClose: onClose, open: open, destroyOnClose: true,
     extra: React.createElement(Space, null,
       React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
-      React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), disabled: !fcTipo, onClick: save }, editId ? 'Salva' : 'Aggiungi')),
+      React.createElement(Button, { type: 'primary', icon: React.createElement(AppstoreAddOutlined), disabled: !fcTipo, onClick: save }, editId ? 'Salva' : 'Crea')),
   },
     cs('Tipo faccia', false,
       React.createElement(Radio.Group, { optionType: 'button', value: fcTipo, onChange: e => setFcTipo(e.target.value),
@@ -3453,7 +3476,7 @@ function AssetDrawer({ open, onClose, onSubmit, editInitial, category }) {
       case 'segmented':control = React.createElement(Segmented, { block: true, value: val || f.default, onChange: set, options: f.opts }); break;
       default:         control = inp(val || '', set, f.ph || '—');
     }
-    return acModified.has(f.key) ? React.createElement('div', { className: 'input-modified' }, control) : control;
+    return React.createElement('div', { className: acModified.has(f.key) ? 'input-modified' : undefined }, control);
   };
   const renderAssetFields = (tipo) => {
     const def = getAssetType(tipo);
@@ -3479,13 +3502,13 @@ function AssetDrawer({ open, onClose, onSubmit, editInitial, category }) {
   return React.createElement(Drawer, {
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
       React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }),
-      (editId ? 'Modifica ' : 'Aggiungi ') + (category === 'Dispositivo' ? 'dispositivo' : 'cespite')),
+      (editId ? 'Modifica ' : 'Crea ') + (category === 'Dispositivo' ? 'dispositivo' : 'cespite')),
     placement: 'right', width: 600, styles: { body: { padding: 24 } },
     closable: false, maskClosable: !dirty, keyboard: !dirty,
     onClose: onClose, open: open, destroyOnClose: true,
     extra: React.createElement(Space, null,
       React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
-      React.createElement(Button, { type: 'primary', icon: React.createElement(editId ? SaveOutlined : PlusOutlined), disabled: !acTipo || (!!editId && acModified.size === 0), onClick: save }, editId ? 'Salva' : 'Aggiungi')),
+      React.createElement(Button, { type: 'primary', icon: React.createElement(editId ? SaveOutlined : AppstoreAddOutlined), disabled: !acTipo || (!!editId && acModified.size === 0), onClick: save }, editId ? 'Salva' : 'Crea')),
   },
     cs(category === 'Dispositivo' ? 'Tipo dispositivo' : 'Tipo cespite', false,
       React.createElement(Select, { value: acTipo, onChange: setAcTipo, options: ASSET_TIPO_OPTS_BY_CAT[category] || [], style: { width: '100%' }, placeholder: 'Seleziona il tipo di ' + (category === 'Dispositivo' ? 'dispositivo' : 'cespite'), showSearch: true, optionFilterProp: 'label', allowClear: true })),
@@ -4196,7 +4219,7 @@ function ImpiantoDetailV2({ imp, onBack }) {
             onEdit: () => openEditFace(fc),
             onRemove: () => removeFace(fc.id),
           })))),
-        React.createElement(Button, { size: 'small', icon: React.createElement(PlusOutlined), onClick: openNewFace }, 'Aggiungi')),
+        React.createElement(Button, { size: 'small', icon: React.createElement(AppstoreAddOutlined), onClick: openNewFace }, 'Crea')),
     );
     if (active === 'cespiti') {
       const assetDirty = (arr) => !!assetDraft && arr.some(a => JSON.stringify(assetDraft[a.id]) !== JSON.stringify(a.vals || {}));
@@ -4213,12 +4236,12 @@ function ImpiantoDetailV2({ imp, onBack }) {
         card('cespiti-c', 'Cespiti', cespiti.length + ' cespiti', false,
           React.createElement(AssetAccordion, { list: cespiti, editing: assetEditGroup === 'C', drafts: assetDraft, onDraftChange: onAssetDraftChange }),
           React.createElement(Space, null,
-            React.createElement(Button, { size: 'small', icon: React.createElement(PlusOutlined), onClick: () => openNewAsset('Cespite') }, 'Aggiungi'),
+            React.createElement(Button, { size: 'small', icon: React.createElement(AppstoreAddOutlined), onClick: () => openNewAsset('Cespite') }, 'Crea'),
             assetExtra('C', cespiti))),
         card('cespiti-d', 'Dispositivi', dispositivi.length + ' dispositivi', false,
           React.createElement(AssetAccordion, { list: dispositivi, editing: assetEditGroup === 'D', drafts: assetDraft, onDraftChange: onAssetDraftChange }),
           React.createElement(Space, null,
-            React.createElement(Button, { size: 'small', icon: React.createElement(PlusOutlined), onClick: () => openNewAsset('Dispositivo') }, 'Aggiungi'),
+            React.createElement(Button, { size: 'small', icon: React.createElement(AppstoreAddOutlined), onClick: () => openNewAsset('Dispositivo') }, 'Crea'),
             assetExtra('D', dispositivi))));
     }
     const squadEntityCard = (s, rows, onRemove) => React.createElement(EntityCard, {
@@ -4876,6 +4899,68 @@ const SQUADRE_AFF_OPTS = SQUADRE_AFF.map(s => ({ value: s.nome, label: s.codice 
 const TIPO_AFFISSIONE_OPTS = ['Prebagnato','Adesivo','Telo'].map(v=>({value:v,label:v}));
 const TIPO_AMM_OPTS        = ['Lineare','Degress','A quote costanti'].map(v=>({value:v,label:v}));
 
+// Mini-mappa del form impianto: mostra il pin alla posizione lat/lng inserita e lo rende
+// trascinabile per affinare la posizione esatta (onChange riceve le nuove coordinate).
+// Marker e tile dal modulo condiviso GravityMap / stesso basemap di LeafletMap.
+function ImpiantoLocationMap({ lat, lng, tipologia, canale, stato, onChange }) {
+  const boxRef = useRef(null);
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const la = parseFloat(String(lat).replace(',', '.'));
+  const ln = parseFloat(String(lng).replace(',', '.'));
+  const valid = Number.isFinite(la) && Number.isFinite(ln) && Math.abs(la) <= 90 && Math.abs(ln) <= 180;
+  const src = GravityMap.markerSrc(tipologia || 'Pensilina',
+    (STATO_AMM_CONFIG[stato] || STATO_AMM_CONFIG['Inizializzato']).file, canale);
+  const iconFor = () => GravityMap.makeMarkerIcon({ src, zoom: 15, flags: { isFocused: true } });
+
+  useEffect(() => {
+    const map = L.map(boxRef.current, { center: [38.1155, 13.3615], zoom: 13, zoomControl: true, attributionControl: false });
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16 }).addTo(map);
+    mapRef.current = map;
+    // Il form vive in un Drawer che si anima all'apertura: ricalcola la misura quando il box si stabilizza.
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(boxRef.current);
+    return () => { ro.disconnect(); map.remove(); mapRef.current = null; markerRef.current = null; };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!valid) { if (markerRef.current) { markerRef.current.remove(); markerRef.current = null; } return; }
+    let cancelled = false;
+    GravityMap.preloadAll([src]).then(() => {
+      if (cancelled || !mapRef.current) return;
+      if (!markerRef.current) {
+        const m = L.marker([la, ln], { icon: iconFor(), draggable: true, autoPan: true }).addTo(map);
+        m.on('dragend', () => {
+          const p = m.getLatLng();
+          onChangeRef.current(p.lat.toFixed(6), p.lng.toFixed(6));
+        });
+        markerRef.current = m;
+        map.setView([la, ln], Math.max(map.getZoom(), 16));
+      } else {
+        markerRef.current.setIcon(iconFor());
+        const cur = markerRef.current.getLatLng();
+        if (Math.abs(cur.lat - la) > 1e-7 || Math.abs(cur.lng - ln) > 1e-7) {
+          markerRef.current.setLatLng([la, ln]);
+          map.panTo([la, ln]);
+        }
+      }
+    });
+    return () => { cancelled = true; };
+  }, [valid, la, ln, src]);
+
+  return React.createElement('div', { style: { position: 'relative', marginTop: 4 } },
+    React.createElement('div', { ref: boxRef, style: { height: 280, borderRadius: 8, overflow: 'hidden', border: '1px solid #E8E8E8', background: '#f5f5f5' } }),
+    !valid && React.createElement('div', { style: { position: 'absolute', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: 'rgba(245,245,245,0.72)', color: 'rgba(0,0,0,0.45)', fontSize: 13, textAlign: 'center', padding: 24, pointerEvents: 'none' } },
+      'Inserisci l\'indirizzo o le coordinate per vedere il pin dell\'impianto sulla mappa.'),
+    valid && React.createElement('div', { style: { marginTop: 6, fontSize: 12, color: 'rgba(0,0,0,0.45)' } },
+      'Trascina il pin per indicare la posizione esatta: latitudine e longitudine si aggiornano in automatico.'),
+  );
+}
+
 function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, editMode = false, initialSection, isV2 = false }) {
   const iv = initialValues;
   // ── Identità
@@ -4931,6 +5016,12 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setTipologia(v.tipologia || null);
     setStato(v.stato || null);
     setFotoCopertina(v.fotoCopertina || null);
+    // Mock: in modifica la galleria "Foto dell'impianto" parte già compilata (nessun backend);
+    // in creazione riparte vuota, così le foto di un record non finiscono in un altro.
+    setFileList(editMode ? FOTO_IMPIANTO.slice(0, 4).map((src, i) => ({
+      uid: 'mock-foto-' + i, name: src.split('/').pop(), status: 'done', url: src, thumbUrl: src,
+    })) : []);
+    setCoverPhoto(null);
     setVia(v.via || '');
     setCivico(v.civico || '');
     setCap(v.cap || '');
@@ -5179,7 +5270,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     }]);
     antdMsg.success('Faccia posteriore creata e collegata (speculare)');
   };
-  const faceAddBtn = lockedTip(React.createElement(Button, { icon: React.createElement(canAddSubItems ? PlusOutlined : LockOutlined), disabled: !canAddSubItems, onClick: openNewFace }, 'Aggiungi Faccia'));
+  const faceAddBtn = lockedTip(React.createElement(Button, { icon: React.createElement(canAddSubItems ? AppstoreAddOutlined : LockOutlined), disabled: !canAddSubItems, onClick: openNewFace }, 'Crea faccia'));
   // Cambiare canale/tipologia/formato non invalida solo le facce (nessuna correlazione
   // tipo↔slot col nuovo tipo) ma anche le misure fisiche già inserite, pensate per il
   // pannello precedente: l'utente sceglie se mantenerle comunque o azzerarle.
@@ -5426,8 +5517,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const removeAsset = (id) => { setAssets(prev => prev.filter(a => a.id !== id)); antdMsg.success('Elemento rimosso'); };
   const cespiti     = assets.filter(a => { const d = getAssetType(a.tipo); return d && d.category === 'Cespite'; });
   const dispositivi = assets.filter(a => { const d = getAssetType(a.tipo); return d && d.category === 'Dispositivo'; });
-  const cespiteAddBtn    = lockedTip(React.createElement(Button, { id: 'grav-tour-add-cespite-btn', icon: React.createElement(canAddSubItems ? PlusOutlined : LockOutlined), disabled: !canAddSubItems, onClick: () => openNewAsset('Cespite') }, 'Aggiungi cespite'));
-  const dispositivoAddBtn = lockedTip(React.createElement(Button, { id: 'grav-tour-add-dispositivo-btn', icon: React.createElement(canAddSubItems ? PlusOutlined : LockOutlined), disabled: !canAddSubItems, onClick: () => openNewAsset('Dispositivo') }, 'Aggiungi dispositivo'));
+  const cespiteAddBtn    = lockedTip(React.createElement(Button, { id: 'grav-tour-add-cespite-btn', icon: React.createElement(canAddSubItems ? AppstoreAddOutlined : LockOutlined), disabled: !canAddSubItems, onClick: () => openNewAsset('Cespite') }, 'Crea cespite'));
+  const dispositivoAddBtn = lockedTip(React.createElement(Button, { id: 'grav-tour-add-dispositivo-btn', icon: React.createElement(canAddSubItems ? AppstoreAddOutlined : LockOutlined), disabled: !canAddSubItems, onClick: () => openNewAsset('Dispositivo') }, 'Crea dispositivo'));
 
   // ── Commerciale
   const [aliasImpianto,  setAliasImpianto]  = useState('');
@@ -5943,6 +6034,19 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     }
   };
 
+  // Pin trascinato: coordinate subito, poi allinea tutti i campi indirizzo dalla geocodifica inversa.
+  const [geoLoading, setGeoLoading] = useState(false);
+  const geoSpin = geoLoading ? { suffix: React.createElement(LoadingOutlined, { spin: true, style: { color: window.GRAVITY_THEME.token.colorPrimary } }), readOnly: true } : {};
+  const handlePinMoved = async (la, ln) => {
+    setLat(la); setLng(ln); setAddrSuggs([]);
+    setGeoLoading(true);
+    const a = await fetchReverseAddress(la, ln);
+    setGeoLoading(false);
+    if (!a) { antdMsg.warning('Coordinate aggiornate, ma non ho trovato un indirizzo per questa posizione.'); return; }
+    setVia(a.via); setCivico(a.civico); setCap(a.cap); setCitta(a.citta);
+    setProvincia(a.provincia); setRegione(a.regione); setNazione(a.nazione); setZn(a.zona);
+  };
+
   // Nome impianto autogenerato: "OOH-101" — non editabile, il nome custom vive altrove.
   // Progressivo simulato in locale (conteggio impianti esistenti con lo stesso canale +1):
   // in produzione la disambiguazione va garantita dal backend su tutti gli impianti esistenti.
@@ -6163,7 +6267,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           { key: 'concessione',   label: 'Collega Concessione',   disabled: hasConcessione, onClick: openConcessioneDrawer },
           { key: 'autorizzazione', label: 'Collega Autorizzazione', onClick: openAutorizzazioneDrawer },
         ] },
-  }, React.createElement(Button, { icon: React.createElement(PlusOutlined) }, 'Collega permesso'));
+  }, React.createElement(Button, { icon: React.createElement(LinkOutlined) }, 'Collega permesso'));
 
   // Upload del documento di progetto (Genio Civile): carica e, come mock, estrae i dati nei campi
   // vuoti — handler nominato per poterlo riusare sia sul bottone sia sul documentDragger.
@@ -6231,7 +6335,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const { cs: csBase, num, sel, inp, dp, tagsInput, gapRow } = window.GravityFormHelpers;
   const cs = (label, required, children, dirty) => {
     const modified = typeof dirty === 'boolean' ? dirty : !!dirty && JSON.stringify(dirtySnapshot[dirty]) !== JSON.stringify(savedSnapshot[dirty]);
-    return csBase(label, required, modified ? React.createElement('div', { className: 'input-modified' }, children) : children);
+    return csBase(label, required, React.createElement('div', { className: modified ? 'input-modified' : undefined }, children));
   };
 
   // Campi required per sezione — usati per il nav indicator
@@ -6489,9 +6593,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       case 'segmented':control = React.createElement(Segmented, { block: true, value: val || f.default, onChange: set, options: f.opts }); break;
       default:         control = inp(val || '', set, f.ph || '—');
     }
-    return acModified.has(f.key)
-      ? React.createElement('div', { className: 'input-modified' }, control)
-      : control;
+    return React.createElement('div', { className: acModified.has(f.key) ? 'input-modified' : undefined }, control);
   };
   // Impagina i campi del tipo: campi "full" su riga intera, gli altri a coppie (g2)
   const renderAssetFields = (tipo) => {
@@ -6538,6 +6640,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       prefix: React.createElement(EnvironmentOutlined, { style: { color: 'rgba(0,0,0,0.3)' } }),
       placeholder: 'Es. Via Maqueda, Palermo…',
       status: showErrors && !via.trim() ? 'error' : undefined,
+      ...geoSpin,
     })
   );
 
@@ -6690,44 +6793,29 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                 { className: 'grav-field-stato', status: showErrors && !stato ? 'error' : undefined }), 'stato'),
             ),
           ),
-          box(React.createElement('span', null, 'Foto di copertina',
-              React.createElement(HandoffDesignNote, { id: 'impianto-foto-copertina-non-pseudo-casuale', placement: 'right' })),
-            'Scegli l\'immagine che rappresenta l\'impianto nelle card e nei popover mappa. Facoltativa: senza una scelta, l\'impianto resta senza foto invece di mostrarne una a caso.',
-            React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap' } },
-              FOTO_IMPIANTO.map((src, i) => React.createElement('div', {
-                key: i,
-                onClick: () => setFotoCopertina(fotoCopertina === src ? null : src),
-                style: {
-                  width: 96, height: 64, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
-                  border: fotoCopertina === src ? `2px solid ${window.GRAVITY_THEME.token.colorPrimary}` : '2px solid transparent',
-                  boxShadow: fotoCopertina === src ? 'none' : '0 0 0 1px #F0F0F0',
-                },
-              },
-                React.createElement('img', { src, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
-              )),
-            ),
-          ),
           box('Indirizzo e coordinate', 'Cerca l\'indirizzo nel campo Via: gli altri campi, comprese le coordinate, si compilano in automatico.',
             React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 12 } },
               cs('Via', true, viaAutocomplete, 'via'),
-              cs('N. civico', false, inp(civico, setCivico, 'Es. 148'), 'civico'),
+              cs('N. civico', false, inp(civico, setCivico, 'Es. 148', geoSpin), 'civico'),
             ),
             React.createElement('div', { style: { margin: '-6px 0 16px', fontSize: 12, color: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-start', gap: 6 } },
               React.createElement(icons.InfoCircleOutlined, { style: { fontSize: 12, marginTop: 2, flexShrink: 0 } }),
               React.createElement('span', null, 'Latitudine e longitudine sono obbligatorie per posizionare l\'impianto in mappa: includi il numero civico nella ricerca per farle compilare in automatico.'),
             ),
             g4(
-              cs('CAP',      false, inp(cap,      setCap,      'Es. 90133'), 'cap'),
-              cs('Città',    true,  inp(citta,    setCitta,    'Es. Palermo', { className: 'grav-field-citta', status: showErrors && !citta.trim() ? 'error' : undefined }), 'citta'),
-              cs('Provincia',false, inp(provincia, setProvincia, 'Es. PA'), 'provincia'),
-              cs('Regione',  false, inp(regione,  setRegione,  'Es. Sicilia'), 'regione'),
+              cs('CAP',      false, inp(cap,      setCap,      'Es. 90133', geoSpin), 'cap'),
+              cs('Città',    true,  inp(citta,    setCitta,    'Es. Palermo', { className: 'grav-field-citta', status: showErrors && !citta.trim() ? 'error' : undefined, ...geoSpin }), 'citta'),
+              cs('Provincia',false, inp(provincia, setProvincia, 'Es. PA', geoSpin), 'provincia'),
+              cs('Regione',  false, inp(regione,  setRegione,  'Es. Sicilia', geoSpin), 'regione'),
             ),
             g4(
-              cs('Nazione',     false, inp(nazione, setNazione, 'Es. Italia'), 'nazione'),
+              cs('Nazione',     false, inp(nazione, setNazione, 'Es. Italia', geoSpin), 'nazione'),
               cs('Latitudine',  true, inp(lat, setLat, 'Es. 38.115690', { className: 'grav-field-lat', status: showErrors && !lat.trim() ? 'error' : undefined }), 'lat'),
               cs('Longitudine', true, inp(lng, setLng, 'Es. 13.361270', { className: 'grav-field-lng', status: showErrors && !lng.trim() ? 'error' : undefined }), 'lng'),
-              cs('Zona',        false, inp(zn,      setZn,      'Es. Centro storico'), 'zn'),
+              cs('Zona',        false, inp(zn,      setZn,      'Es. Centro storico', geoSpin), 'zn'),
             ),
+            React.createElement(ImpiantoLocationMap, { lat, lng, tipologia, canale, stato,
+              onChange: handlePinMoved }),
           ),
           box('Note', 'Annotazioni libere sull\'impianto, visibili solo internamente.',
             React.createElement('div', { className: (JSON.stringify(dirtySnapshot.note) !== JSON.stringify(savedSnapshot.note)) ? 'input-modified' : undefined },
@@ -7302,14 +7390,14 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     React.createElement(Drawer, {
       title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
         React.createElement(DiscardCloseIcon, { dirty: isFaceDirty(), onDiscard: closeFaceDrawer }),
-        faceEditId ? 'Modifica Faccia' : 'Aggiungi Faccia'),
+        faceEditId ? 'Modifica Faccia' : 'Crea Faccia'),
       placement: 'right', width: 720, rootClassName: 'grav-face-drawer',
       styles: { body: { padding: 24 } },
       closable: false, maskClosable: !isFaceDirty(), keyboard: !isFaceDirty(),
       onClose: closeFaceDrawer, open: faceDrawerOpen,
       extra: React.createElement(Space, null,
         React.createElement(DiscardButton, { dirty: isFaceDirty(), onDiscard: closeFaceDrawer }, 'Annulla'),
-        React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), disabled: !fcTipo, onClick: saveFace }, faceEditId ? 'Salva' : 'Aggiungi'),
+        React.createElement(Button, { type: 'primary', icon: React.createElement(AppstoreAddOutlined), disabled: !fcTipo, onClick: saveFace }, faceEditId ? 'Salva' : 'Crea'),
       ),
     },
       fcIsLinkedPost ? React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginBottom: 16, background: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
@@ -7377,7 +7465,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     React.createElement(Drawer, {
       title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
         React.createElement(DiscardCloseIcon, { dirty: isAssetDirty(), onDiscard: closeAssetDrawer }),
-        (assetEditId ? 'Modifica ' : 'Aggiungi ') + (acCategory === 'Dispositivo' ? 'dispositivo' : 'cespite')),
+        (assetEditId ? 'Modifica ' : 'Crea ') + (acCategory === 'Dispositivo' ? 'dispositivo' : 'cespite')),
       placement: 'right', width: 600,
       rootClassName: 'grav-cespite-drawer',
       styles: { body: { padding: 24 } },
@@ -7387,10 +7475,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         React.createElement(DiscardButton, { dirty: isAssetDirty(), onDiscard: closeAssetDrawer }, 'Annulla'),
         React.createElement(Button, {
           type: 'primary',
-          icon: React.createElement(assetEditId ? SaveOutlined : PlusOutlined),
+          icon: React.createElement(assetEditId ? SaveOutlined : AppstoreAddOutlined),
           disabled: !acTipo || (!!assetEditId && acModified.size === 0),
           onClick: saveAsset,
-        }, assetEditId ? 'Salva' : 'Aggiungi'),
+        }, assetEditId ? 'Salva' : 'Crea'),
       ),
     },
       cs(acCategory === 'Dispositivo' ? 'Tipo dispositivo' : 'Tipo cespite', false,
