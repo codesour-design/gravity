@@ -12,10 +12,19 @@
  *   badge      : { text, variant }  (opzionale)
  *                  variant: 'default' | 'primary' | 'success' | 'ooh' | 'dooh'
  *   badges     : [{ text, variant }]  (opzionale — badge multipli, alternativo a badge)
- *   showMenu   : boolean — mostra ⋮ kebab nell'header  (default false)
- *   image      : { id, placeholder, aspectRatio }  (opzionale)
- *                  id: chiave univoca per image-slot
- *                  placeholder: testo dell'empty state
+ *   showMenu   : boolean — mostra un ⋮ puramente decorativo nell'header, senza azioni
+ *                  (default false) — usare `menu` sotto per un kebab funzionante
+ *   menu       : [{ key, label, icon, danger, onClick }]  (opzionale)
+ *                  azioni nell'header via kebab ⋮ cliccabile (Ant Design Dropdown):
+ *                  icon è il nome di un'icona AntD (es. 'DeleteOutlined'), onClick
+ *                  il gestore dell'azione. Se presente e non vuoto, ha priorità su
+ *                  `showMenu` (il kebab diventa automaticamente funzionante).
+ *   image      : { id, src, placeholder, aspectRatio, heightPx }  (opzionale)
+ *                  id: chiave univoca per image-slot (nessun effetto se `src` è presente)
+ *                  src: URL di una foto reale — se presente ha sempre priorità su
+ *                    image-slot/placeholder, per card che devono mostrare l'immagine vera
+ *                    dell'entità (non un segnaposto), es. la foto di copertina di un impianto
+ *                  placeholder: testo dell'empty state (quando non c'è né `src` né image-slot)
  *                  aspectRatio: es. '16/9' (default '16/9') o numero px per height fissa
  *   fields     : [{ icon, label, value, valueStyle, valueNode }]
  *                  icon: nome dell'icona AntD (es. 'TagOutlined'), oppure null
@@ -50,9 +59,12 @@
 
   if (global.GravityEntityCard) return;
 
-  var React  = global.React;
-  var icons  = global.icons || {};
-  var h      = React.createElement;
+  var React    = global.React;
+  var icons    = global.icons || {};
+  var antd     = global.antd || {};
+  var Dropdown = antd.Dropdown;
+  var Button   = antd.Button;
+  var h        = React.createElement;
 
   // ── Badge color variants ──────────────────────────────────────────────────
   var BADGE_VARIANTS = {
@@ -95,6 +107,7 @@
   // altrimenti un div placeholder coerente con lo stile del design.
   function ImageArea(props) {
     var id          = props.id;
+    var src         = props.src;
     var placeholder = props.placeholder || 'Immagine';
     var aspectRatio = props.aspectRatio || '16/9';
     var heightPx    = props.heightPx;  // alternativa ad aspectRatio (es. 150)
@@ -102,6 +115,11 @@
     var sizeStyle = heightPx
       ? { width: '100%', height: heightPx + 'px', display: 'block' }
       : { width: '100%', aspectRatio: aspectRatio, display: 'block' };
+
+    // Foto reale: sempre prioritaria su image-slot/placeholder quando presente.
+    if (src) {
+      return h('img', { src: src, style: Object.assign({ objectFit: 'cover' }, sizeStyle) });
+    }
 
     // Se image-slot è definito come custom element usa quello,
     // altrimenti fallback a un div con icona
@@ -159,6 +177,7 @@
       '  color:rgba(0,0,0,0.88);white-space:nowrap}' +
       '.gec-menu{font-size:18px;color:#595959;line-height:1;flex-shrink:0;' +
       '  cursor:pointer;padding:0 2px;user-select:none}' +
+      '.gec-menu-btn{flex-shrink:0;margin-top:-2px}' +
       '.gec-body{padding:14px 16px;display:flex;flex-direction:column;gap:9px}' +
       '.gec-body-2col{padding:14px 16px;display:grid;' +
       '  grid-template-columns:1fr 1fr;column-gap:16px;row-gap:9px}' +
@@ -175,6 +194,7 @@
     var badge       = props.badge;
     var badges      = props.badges;
     var showMenu    = props.showMenu || false;
+    var menu        = props.menu;            // [{ key, label, icon, danger, onClick }]
     var image       = props.image;          // { id, placeholder, aspectRatio, heightPx }
     var fields      = props.fields || [];
     var bodyColumns = props.bodyColumns || 1;
@@ -192,14 +212,43 @@
       })
     );
 
+    var hasMenu = menu && menu.length > 0;
+    var MoreIcon = icons.MoreOutlined;
+    var headerRight = hasMenu
+      ? h(Dropdown, {
+          trigger: ['click'],
+          menu: {
+            items: menu.map(function (m) {
+              var ItemIcon = m.icon ? icons[m.icon] : null;
+              return {
+                key: m.key,
+                label: m.label,
+                danger: m.danger,
+                icon: ItemIcon ? h(ItemIcon) : undefined,
+                onClick: m.onClick,
+              };
+            }),
+          },
+        },
+          h(Button, {
+            type: 'text',
+            size: 'small',
+            className: 'gec-menu-btn',
+            onClick: function (e) { e.stopPropagation(); },
+            icon: MoreIcon ? h(MoreIcon, { style: { fontSize: '18px', color: '#595959' } }) : '⋮',
+          })
+        )
+      : (showMenu ? h('span', { className: 'gec-menu' }, '⋮') : null);
+
     var header = h('div', { className: 'gec-header' },
       headerLeft,
-      showMenu ? h('span', { className: 'gec-menu' }, '⋮') : null
+      headerRight
     );
 
     var imageEl = image
       ? h(ImageArea, {
           id: image.id,
+          src: image.src,
           placeholder: image.placeholder,
           aspectRatio: image.aspectRatio,
           heightPx: image.heightPx,

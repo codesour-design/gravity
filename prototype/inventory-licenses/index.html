@@ -112,7 +112,7 @@
        sull'id del pulsante Salva: quell'id è condiviso da tutti i PermitFormDrawer (anche
        Concessione/Contratto, che restano sul Drawer semplice 640px e non devono attivarlo). */
     body:has(.grav-section-drawer-nav) #ghf-nav-slot { right: 220px; }
-    /* Drawer piccoli di collegamento ("Collega impianti"/"Collega atto di provenienza", 640px,
+    /* Drawer piccoli di collegamento ("Collega impianti"/"Collega permesso", 640px,
        nota 'permessi-collegamento-drawer-card'): a quella larghezza la dev bar si sovrappone
        all'header del drawer invece di trovare spazio a fianco — niente ancoraggio possibile
        come per il GravitySectionDrawer a 90%, quindi la si nasconde finché il drawer è aperto. */
@@ -131,7 +131,7 @@ const { useState, useMemo, useEffect, useRef } = React;
 const {
   ConfigProvider, App: AntApp, Typography, Button, Table, Tag, Badge, Tabs,
   Tooltip, Dropdown, Drawer, Modal, Input, Form, Radio, InputNumber,
-  DatePicker, Space, Popconfirm, Row, Col, Select,
+  DatePicker, Space, Popconfirm, Row, Col, Select, Pagination,
   Descriptions, Empty, Popover, Alert, Checkbox, Avatar,
   message,
 } = antd;
@@ -228,35 +228,36 @@ const MOCK_CONCESSIONI = [
 // stessi impianti già seedati in seedImpiantoCondiviso (spaziCollegati), per coerenza.
 const MOCK_AUTORIZZAZIONI = [
   { id: 'aut-001', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Palermo', identificativoDocumento: 'AUT-2024-001', dataStipula: '15/01/2024', dataDecorrenza: '15/01/2024', dataScadenza: '31/12/2025', cup: 620.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
-    includeConcessioneSuoloPubblico: false, attoProvenienzaId: 'conc-001',
-    impiantiAutorizzati: [{ impiantoId: 'OOH-1002', codiceAutorizzazione: 'CIM-1002', cup: 620 }] },
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: ['conc-001', 'contr-001'],
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1002', codiceAutorizzazione: 'CIM-1002' }] },
   { id: 'aut-002', tipologia: 'Genio Civile', tipologiaV2: 'Strutturale / Genio Civile', enteEmittente: 'Genio Civile di Palermo', identificativoDocumento: 'AUT-2023-087', dataStipula: '10/03/2023', dataDecorrenza: '01/04/2023', dataScadenza: '15/03/2024', cup: 890.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: 'In rinnovo',
-    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
     impiantiAutorizzati: [] },
   { id: 'aut-003', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Catania', identificativoDocumento: 'AUT-2024-015', dataStipula: '05/06/2024', dataDecorrenza: '05/06/2024', dataScadenza: '28/02/2027', cup: 1200.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
-    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
-    impiantiAutorizzati: [{ impiantoId: 'OOH-1005', codiceAutorizzazione: 'CIM-3015', cup: 1200 }] },
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1005', codiceAutorizzazione: 'CIM-3015' }] },
   { id: 'aut-004', tipologia: 'Genio Civile', tipologiaV2: 'Strutturale / Genio Civile', enteEmittente: 'Genio Civile di Catania', identificativoDocumento: 'AUT-2022-133', dataStipula: '20/08/2022', dataDecorrenza: '01/09/2022', dataScadenza: '20/08/2025', cup: 340.00, stato: 'Attiva', promemoria: '60 giorni prima della scadenza', giorniPreavviso: 60, statoOverride: null,
-    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
     impiantiAutorizzati: [] },
   { id: 'aut-005', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Messina', identificativoDocumento: 'AUT-2021-076', dataStipula: '12/11/2021', dataDecorrenza: '12/11/2021', dataScadenza: '28/02/2024', cup: 1580.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: null,
-    includeConcessioneSuoloPubblico: true, attoProvenienzaId: null,
-    impiantiAutorizzati: [{ impiantoId: 'OOH-1006', codiceAutorizzazione: '', cup: 1580 }] },
+    includeConcessioneSuoloPubblico: true, attiProvenienzaIds: [],
+    estensioneOccupazioneMq: 12, tipoOccupazione: 'Permanente', durataOccupazioneGiorni: null,
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1006', codiceAutorizzazione: '' }] },
   { id: 'aut-006', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Palermo', identificativoDocumento: 'AUT-2025-002', dataStipula: '08/01/2025', dataDecorrenza: '08/01/2025', dataScadenza: '08/01/2028', cup: 210.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
-    includeConcessioneSuoloPubblico: false, attoProvenienzaId: 'contr-001',
-    impiantiAutorizzati: [{ impiantoId: 'OOH-1004', codiceAutorizzazione: '', cup: 180 }, { impiantoId: 'OOH-1011', codiceAutorizzazione: '', cup: 210 }] },
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: ['contr-001'],
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1004', codiceAutorizzazione: '' }, { impiantoId: 'OOH-1011', codiceAutorizzazione: '' }] },
   { id: 'aut-007', tipologia: 'Provincia/Regione/ANAS', tipologiaV2: 'Nulla osta ente proprietario strada (ANAS | Provincia/Città Metropolitana | Regione)', enteEmittente: 'ANAS S.p.A. — Struttura Territoriale Sicilia', identificativoDocumento: 'AUT-2023-041', dataStipula: '22/04/2023', dataDecorrenza: '01/05/2023', dataScadenza: '31/08/2026', cup: 940.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
-    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
     impiantiAutorizzati: [] },
   { id: 'aut-008', tipologia: 'Soprintendenza', tipologiaV2: 'Paesaggistica / Soprintendenza', enteEmittente: 'Soprintendenza Beni Culturali di Siracusa', identificativoDocumento: 'AUT-2020-058', dataStipula: '18/09/2020', dataDecorrenza: '18/09/2020', dataScadenza: '18/09/2024', cup: 480.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: null,
-    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
     impiantiAutorizzati: [] },
   { id: 'aut-009', tipologia: 'RFI', tipologiaV2: 'Nulla osta ente proprietario strada (ANAS | Provincia/Città Metropolitana | Regione)', enteEmittente: 'Rete Ferroviaria Italiana S.p.A.', identificativoDocumento: 'AUT-2024-029', dataStipula: '02/02/2024', dataDecorrenza: '01/03/2024', dataScadenza: '02/02/2029', cup: 1670.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
-    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
     impiantiAutorizzati: [] },
   { id: 'aut-010', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Catania', identificativoDocumento: 'AUT-2025-009', dataStipula: '14/02/2025', dataDecorrenza: '14/02/2025', dataScadenza: '14/02/2030', cup: 760.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
-    includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
-    impiantiAutorizzati: [{ impiantoId: 'OOH-1013', codiceAutorizzazione: '', cup: 760 }] },
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1013', codiceAutorizzazione: '' }] },
 ].map(r => ({ ...r, spaziCollegati: [] }));
 
 // v2 — nuova entità sibling di Concessione e Autorizzazione (regime giuridico e ciclo di
@@ -322,6 +323,17 @@ const FORNITORI_ELETTRICI = ['Enel Energia', 'A2A Energia', 'Edison Energia'];
 // prototype/inventory-systems (anagrafica reale, con la propria nota di design sospesa su
 // "codice cimasa" — vedi components/handoff-engine.md). Qui è dato di visualizzazione, non editabile.
 const STATO_CIMASA_CICLO = ['Presente', 'Presente', 'Presente', 'Da verificare', 'Assente'];
+// v2 — Foto di copertina: stesso pool condiviso di inventory-systems (nota
+// 'impianto-foto-copertina-non-pseudo-casuale'), assegnata per record al posto di un calcolo a
+// tempo di rendering — coerente con il campo `fotoCopertina` scelto nel form Nuovo Impianto.
+const FOTO_IMPIANTO = [
+  '../_shared/assets/system-photos/6x3-poster-asti-1024x731.jpg',
+  '../_shared/assets/system-photos/Affissioni-poster-Milano.jpg',
+  '../_shared/assets/system-photos/Pescara_Piccola.jpg',
+  '../_shared/assets/system-photos/Realizzazione-Grandi-Impianti-pubblicitari-e-Cartellonistica-Lecce-scaled.jpg',
+  '../_shared/assets/system-photos/europemedia_affissioni_pubblicitarie_arredo_urbano_neovision.avif',
+  '../_shared/assets/system-photos/quali-sono-le-regole-del-codice-della-strada-per-la-pubblicita-lungo-le-strade-e-sui-veicoli.jpg',
+];
 
 function generaMockSpazi(n) {
   const rows = [];
@@ -355,6 +367,7 @@ function generaMockSpazi(n) {
       utenzaElettrica: illuminato ? { codicePod: `IT001E${String(10000000 + i * 37)}`, fornitore: FORNITORI_ELETTRICI[i % FORNITORI_ELETTRICI.length] } : null,
       codiceInterno: `INT-${String(i + 1).padStart(4, '0')}`,
       codiceGestionaleEsterno: i % 3 === 0 ? null : `EXT-${canale}-${String(i + 1).padStart(4, '0')}`,
+      fotoCopertina: FOTO_IMPIANTO[i % FOTO_IMPIANTO.length],
     });
   }
   return rows;
@@ -443,6 +456,13 @@ const STATO_BADGE_V2 = {
   'Revocata/Decaduta': 'error',
   Cessata: 'default',
 };
+// Colore del pallino di GravityEntityCard.statusDot per uno stato v2 — stessi hex di
+// tokens.js (colorSuccess/colorWarning/colorError/colorInfo), non importabili qui come
+// costanti JS pure (fuori da un componente React con accesso al token provider).
+const STATO_DOT_COLOR_V2 = {
+  success: '#52C41A', warning: '#FAAD14', error: '#FF4A1C', processing: '#3E00FB', default: 'rgba(0,0,0,0.45)',
+};
+const statoDotNode = (stato) => window.GravityEntityCard.statusDot(STATO_DOT_COLOR_V2[STATO_BADGE_V2[stato] || 'default'], stato);
 const oggiMezzanotte = () => new Date(new Date().toDateString()).getTime();
 function computeStatoAutomaticoV2(dataDecorrenza, dataScadenza, giorniPreavviso) {
   const oggiTs = oggiMezzanotte();
@@ -536,6 +556,10 @@ function renderStato(v) {
 // v2 — helper e enum del nuovo modello dati (Concessione/Autorizzazione/Contratto Privato).
 const MODALITA_ATTRIBUZIONE_OPTS = ['Bando pubblico', 'Affidamento diretto', 'Rinnovo di concessione precedente']
   .map(v => ({ value: v, label: v }));
+// v2 — box "Occupazione di Suolo Pubblico" (Autorizzazione, sezione "Diritto sul Suolo"):
+// Permanente implica canone annuale (nessuna durata da inserire), Temporanea richiede i
+// giorni di occupazione (onTipoOccupazioneChange azzera durataOccupazioneGiorni al cambio).
+const TIPO_OCCUPAZIONE_OPTS = ['Permanente', 'Temporanea'].map(v => ({ value: v, label: v }));
 // v2 — enum tipologia interamente rifatto su richiesta esplicita (nota
 // 'autorizzazione-tipologia-overhaul'): supersede la precedente riduzione a 4 valori e la
 // nota 'autorizzazione-genio-civile-rimossa' — "Genio Civile" rientra come "Strutturale /
@@ -939,18 +963,32 @@ const EMPTY_PERMIT_STATE = {
   // v2 — Concessione/Contratto Privato: Impianti collegati, stesso pattern per-riga
   // dell'Autorizzazione (nota 'concessione-contratto-impianti-collegati') — numero utenza e
   // canone (patrimoniale/di locazione) si impostano per impianto, non più come valore
-  // aggregato unico sul record.
-  impiantiConcessione: [],
+  // aggregato unico sul record. Nasce già con una riga vuota (nota
+  // 'permessi-elenco-mai-vuoto', cfr. richiesta UX su Autorizzazione/Cimasa e CUP): l'utente
+  // trova subito Codice/CUP (o Numero Utenza/Canone) e Collega impianto pronti, mai uno stato
+  // vuoto da sbloccare con un'azione — `_seed: true` la esclude da dirty/validità/salvataggio
+  // finché resta intatta (vedi updateImpiantoRowByRef/confirmImpiantiLink che la rimuovono al
+  // primo tocco).
+  impiantiConcessione: [{ impiantoId: null, numeroUtenza: '', canonePatrimoniale: null, _manualKey: 'manual-seed', _seed: true }],
   // v2 — Autorizzazione: estensioni. impiantiAutorizzati sostituisce Impianti coperti/Codice
   // Autorizzazione (per cimasa)/Riferimento allegato/CUP a valore singolo (nota
-  // 'autorizzazione-impianti-tab-dedicata'): un'Autorizzazione copre N impianti, ciascuno
-  // con un proprio codice cimasa e un proprio CUP.
-  includeConcessioneSuoloPubblico: false, attoProvenienzaId: null,
-  impiantiAutorizzati: [],
+  // 'autorizzazione-impianti-tab-dedicata'): un'Autorizzazione copre N impianti, ciascuno con un
+  // proprio codice autorizzazione per cimasa. Il CUP NON vive più qui (nota
+  // 'cup-pratica-a-parte-legata-impianto'): è una pratica a sé, legata all'impianto, non
+  // all'Autorizzazione — la sezione "Impianti collegati" registra solo codice e collegamento
+  // impianto.
+  includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
+  // v2 — dettagli dell'occupazione di suolo pubblico inclusa nell'atto (box "Occupazione di
+  // Suolo Pubblico", sezione "Diritto sul Suolo"): compilabili solo quando il check sopra è
+  // attivo, altrimenti azzerati (stesso pattern di attiProvenienzaIds/onIncludeSuoloChange).
+  // durataOccupazioneGiorni si applica solo a tipoOccupazione 'Temporanea' — 'Permanente'
+  // implica un canone annuale, nessun valore da inserire.
+  estensioneOccupazioneMq: null, tipoOccupazione: null, durataOccupazioneGiorni: null,
+  impiantiAutorizzati: [{ impiantoId: null, codiceAutorizzazione: '', _manualKey: 'manual-seed', _seed: true }],
   // v2 — Contratto Privato (autorizzazioneComunaleCollegata rimosso, nota 'contratto-vista-derivata')
   proprietarioLocatore: '', tipoContratto: null, identificativoContratto: '',
   foglio: '', particella: '', subalterno: '', indirizzo: '',
-  impiantiContratto: [],
+  impiantiContratto: [{ impiantoId: null, numeroUtenza: '', canoneLocazione: null, _manualKey: 'manual-seed', _seed: true }],
 };
 
 // v2 — label + tip (icona "?" con Tooltip) che spiega la natura del campo, stesso pattern
@@ -1016,37 +1054,50 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
   // collegata a un atto (Concessione o Contratto Privato) che ha dato il bene poi autorizzato.
   const onIncludeSuoloChange = (checked) => setF(prev => ({
     ...prev, includeConcessioneSuoloPubblico: checked,
-    ...(checked ? { attoProvenienzaId: null } : {}),
+    ...(checked
+      ? { attiProvenienzaIds: [] }
+      : { estensioneOccupazioneMq: null, tipoOccupazione: null, durataOccupazioneGiorni: null }),
   }));
+  // v2 — cambiare Tipo Occupazione azzera la durata: 'Permanente' non ne prevede una (canone
+  // annuale implicito), 'Temporanea' la richiede in giorni — un valore lasciato dalla scelta
+  // precedente non avrebbe più senso per la nuova.
+  const onTipoOccupazioneChange = (v) => setF(prev => ({ ...prev, tipoOccupazione: v, durataOccupazioneGiorni: null }));
   // v2 — cambiare Tipo Autorizzazione cambia l'anagrafica enti selezionabile
   // (ENTI_PER_TIPO_AUTORIZZAZIONE) e l'elenco impianti già autorizzati escluso in Tab 2: righe
-  // scelte per il tipo precedente non sono necessariamente valide per il nuovo, si azzerano.
-  const onTipoAutorizzazioneChange = (v) => setF(prev => ({ ...prev, tipoAutorizzazione: v, enteEmittente: '', impiantiAutorizzati: [] }));
+  // scelte per il tipo precedente non sono necessariamente valide per il nuovo, si azzerano —
+  // tornando a una singola riga vuota (`_seed`, nota 'permessi-elenco-mai-vuoto'), non a [].
+  const onTipoAutorizzazioneChange = (v) => setF(prev => ({
+    ...prev, tipoAutorizzazione: v, enteEmittente: '',
+    impiantiAutorizzati: [{ impiantoId: null, codiceAutorizzazione: '', _manualKey: 'manual-seed', _seed: true }],
+  }));
 
   const dirty = f.tipoConcessione != null || f.tipoAutorizzazione != null || !!f.enteEmittente.trim()
     || !!f.partitaIva.trim() || f.tipoDocumento != null || !!f.idDocumento.trim() || !!f.numeroProtocollo.trim()
     || !!f.dataStipula || !!f.dataDecorrenza || !!f.dataScadenza || f.promemoria !== 'No Promemoria' || f.utenze.length > 0 || f.cup != null
-    || f.modalitaAttribuzione != null || f.includeConcessioneSuoloPubblico || f.attoProvenienzaId != null
-    || f.impiantiAutorizzati.length > 0
+    || f.modalitaAttribuzione != null || f.includeConcessioneSuoloPubblico || f.attiProvenienzaIds.length > 0
+    || f.estensioneOccupazioneMq != null || f.tipoOccupazione != null || f.durataOccupazioneGiorni != null
+    || f.impiantiAutorizzati.some(r => !r._seed)
     || !!f.proprietarioLocatore.trim() || f.tipoContratto != null || !!f.identificativoContratto.trim()
     || !!f.foglio.trim() || !!f.particella.trim() || !!f.indirizzo.trim()
     || !!f.ubicazione.trim() || f.superficieConcessaMq != null
-    || f.impiantiConcessione.length > 0 || f.impiantiContratto.length > 0;
+    || f.impiantiConcessione.some(r => !r._seed) || f.impiantiContratto.some(r => !r._seed);
 
   const utenzeValid = f.utenze.every(u => u.numero.trim() && u.canone != null && u.canone > 0);
   // v2 — Tab 2: l'impianto NON è più richiesto per riga (nota 'autorizzazione-impianti-tab-dedicata')
   // — un'autorizzazione spesso arriva prima che l'impianto sia censito in Inventario · Impianti,
-  // quindi cimasa e/o CUP vanno segnabili comunque. Una riga è valida se ha almeno un campo
-  // compilato (impianto, cimasa o CUP): non è ammessa solo una riga totalmente vuota. Zero righe
-  // resta valido (Autorizzazione senza impianti ancora collegati).
-  const impiantiAutorizzatiValid = f.impiantiAutorizzati.every(r =>
-    !!r.impiantoId || !!r.codiceAutorizzazione.trim() || (r.cup != null && r.cup > 0));
+  // quindi il codice cimasa va segnabile comunque. Una riga è valida se ha almeno un campo
+  // compilato (impianto o codice cimasa): non è ammessa solo una riga totalmente vuota. La riga
+  // seed intatta (nota 'permessi-elenco-mai-vuoto') non conta: equivale a zero righe, che resta
+  // valido (Autorizzazione senza impianti ancora collegati). Il CUP non vive più qui (nota
+  // 'cup-pratica-a-parte-legata-impianto'), quindi non entra più nella regola di validità.
+  const impiantiAutorizzatiValid = f.impiantiAutorizzati.filter(r => !r._seed).every(r =>
+    !!r.impiantoId || !!r.codiceAutorizzazione.trim());
   // v2 — Impianti collegati (Concessione/Contratto): stessa regola di validità per riga
-  // dell'Autorizzazione — almeno un campo compilato, zero righe è uno stato valido (nota
-  // 'concessione-contratto-impianti-collegati').
-  const impiantiConcessioneValid = f.impiantiConcessione.every(r =>
+  // dell'Autorizzazione — almeno un campo compilato, riga seed esclusa, zero righe è uno stato
+  // valido (nota 'concessione-contratto-impianti-collegati').
+  const impiantiConcessioneValid = f.impiantiConcessione.filter(r => !r._seed).every(r =>
     !!r.impiantoId || !!r.numeroUtenza.trim() || (r.canonePatrimoniale != null && r.canonePatrimoniale > 0));
-  const impiantiContrattoValid = f.impiantiContratto.every(r =>
+  const impiantiContrattoValid = f.impiantiContratto.filter(r => !r._seed).every(r =>
     !!r.impiantoId || !!r.numeroUtenza.trim() || (r.canoneLocazione != null && r.canoneLocazione > 0));
 
   const provenienzaValid = !isV2 || (
@@ -1092,7 +1143,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
         // v2 — Totale Canone è la somma delle righe di Impianti collegati (stesso pattern del
         // CUP su Autorizzazione), non più un importo unico digitato a mano.
         totaleCanone: isV2
-          ? f.impiantiConcessione.reduce((s, r) => s + (Number(r.canonePatrimoniale) || 0), 0)
+          ? f.impiantiConcessione.filter(r => !r._seed).reduce((s, r) => s + (Number(r.canonePatrimoniale) || 0), 0)
           : f.utenze.reduce((s, u) => s + (Number(u.canone) || 0), 0),
         stato, promemoria: f.promemoria,
         giorniPreavviso: PROMEMORIA_GIORNI[f.promemoria] ?? null, statoOverride: null,
@@ -1107,8 +1158,8 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
         // v2 — Impianti collegati: ogni riga è un impianto col proprio numero utenza e canone
         // patrimoniale. spaziCollegati si popola qui stesso, così "Spazi collegati" nel
         // dettaglio li mostra subito — stesso pattern dell'Autorizzazione.
-        impiantiConcessione: isV2 ? f.impiantiConcessione.map(r => ({ impiantoId: r.impiantoId, numeroUtenza: r.numeroUtenza.trim(), canonePatrimoniale: Number(r.canonePatrimoniale) || 0 })) : [],
-        spaziCollegati: isV2 ? f.impiantiConcessione.map(r => MOCK_SPAZI.find(s => s.id === r.impiantoId)).filter(Boolean) : [],
+        impiantiConcessione: isV2 ? f.impiantiConcessione.filter(r => !r._seed).map(r => ({ impiantoId: r.impiantoId, numeroUtenza: r.numeroUtenza.trim(), canonePatrimoniale: Number(r.canonePatrimoniale) || 0 })) : [],
+        spaziCollegati: isV2 ? f.impiantiConcessione.filter(r => !r._seed).map(r => MOCK_SPAZI.find(s => s.id === r.impiantoId)).filter(Boolean) : [],
       });
     } else if (isAutorizzazione) {
       onSave('autorizzazione', {
@@ -1129,15 +1180,22 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
         stato, promemoria: f.promemoria,
         giorniPreavviso: PROMEMORIA_GIORNI[f.promemoria] ?? null, statoOverride: null,
         includeConcessioneSuoloPubblico: isEsposizionePubblicitaria && f.includeConcessioneSuoloPubblico,
-        // v2 — attoProvenienzaId è l'opposto di includeConcessioneSuoloPubblico, non un suo
+        // v2 — attiProvenienzaIds è l'opposto di includeConcessioneSuoloPubblico, non un suo
         // figlio: si salva SOLO quando il check è spento (nota 'autorizzazione-atto-provenienza-scollegato').
-        attoProvenienzaId: isEsposizionePubblicitaria && !f.includeConcessioneSuoloPubblico ? f.attoProvenienzaId : null,
-        // v2 — Tab 2: ogni riga è un impianto con il proprio codice cimasa e il proprio CUP.
-        // spaziCollegati si popola qui stesso dagli impianti scelti in Tab 2, così "Spazi
-        // collegati" nel dettaglio li mostra subito — "Collega Spazi" resta comunque
-        // disponibile dopo il salvataggio per aggiungerne altri senza cimasa/CUP dedicati.
-        impiantiAutorizzati: isV2 ? f.impiantiAutorizzati.map(r => ({ impiantoId: r.impiantoId, codiceAutorizzazione: r.codiceAutorizzazione.trim(), cup: Number(r.cup) || 0 })) : [],
-        spaziCollegati: isV2 ? f.impiantiAutorizzati.map(r => MOCK_SPAZI.find(s => s.id === r.impiantoId)).filter(Boolean) : [],
+        // Più atti collegabili (Concessioni e/o Contratti Privati), non più un legame singolo.
+        attiProvenienzaIds: isEsposizionePubblicitaria && !f.includeConcessioneSuoloPubblico ? f.attiProvenienzaIds : [],
+        // v2 — Estensione/Tipo/Durata Occupazione (box "Occupazione di Suolo Pubblico"): hanno
+        // senso solo quando il check è acceso, si salvano solo in quel caso.
+        estensioneOccupazioneMq: isEsposizionePubblicitaria && f.includeConcessioneSuoloPubblico ? f.estensioneOccupazioneMq : null,
+        tipoOccupazione: isEsposizionePubblicitaria && f.includeConcessioneSuoloPubblico ? f.tipoOccupazione : null,
+        durataOccupazioneGiorni: isEsposizionePubblicitaria && f.includeConcessioneSuoloPubblico && f.tipoOccupazione === 'Temporanea' ? f.durataOccupazioneGiorni : null,
+        // v2 — Tab 2: ogni riga è un impianto con il proprio codice cimasa — il CUP non vive più
+        // qui (nota 'cup-pratica-a-parte-legata-impianto'), è una pratica a sé legata
+        // all'impianto. spaziCollegati si popola qui stesso dagli impianti scelti in Tab 2, così
+        // "Spazi collegati" nel dettaglio li mostra subito — "Collega Spazi" resta comunque
+        // disponibile dopo il salvataggio per aggiungerne altri senza cimasa dedicata.
+        impiantiAutorizzati: isV2 ? f.impiantiAutorizzati.filter(r => !r._seed).map(r => ({ impiantoId: r.impiantoId, codiceAutorizzazione: r.codiceAutorizzazione.trim() })) : [],
+        spaziCollegati: isV2 ? f.impiantiAutorizzati.filter(r => !r._seed).map(r => MOCK_SPAZI.find(s => s.id === r.impiantoId)).filter(Boolean) : [],
       });
     } else {
       onSave('contratto', {
@@ -1147,7 +1205,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
         identificativoContratto: f.identificativoContratto.trim(),
         // v2 — Canone Locazione è la somma delle righe di Impianti collegati (nota
         // 'concessione-contratto-impianti-collegati'), non più un importo unico digitato a mano.
-        canoneLocazioneAnnuo: f.impiantiContratto.reduce((s, r) => s + (Number(r.canoneLocazione) || 0), 0),
+        canoneLocazioneAnnuo: f.impiantiContratto.filter(r => !r._seed).reduce((s, r) => s + (Number(r.canoneLocazione) || 0), 0),
         dataStipula: f.dataStipula.format('DD/MM/YYYY'),
         dataDecorrenza: f.dataDecorrenza ? f.dataDecorrenza.format('DD/MM/YYYY') : undefined,
         dataScadenza: f.dataScadenza.format('DD/MM/YYYY'),
@@ -1159,8 +1217,8 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
         giorniPreavviso: PROMEMORIA_GIORNI[f.promemoria] ?? null, statoOverride: null,
         // v2 — Impianti collegati: ogni riga è un impianto col proprio numero utenza e canone
         // di locazione. spaziCollegati si popola qui stesso, come per Concessione/Autorizzazione.
-        impiantiContratto: f.impiantiContratto.map(r => ({ impiantoId: r.impiantoId, numeroUtenza: r.numeroUtenza.trim(), canoneLocazione: Number(r.canoneLocazione) || 0 })),
-        spaziCollegati: f.impiantiContratto.map(r => MOCK_SPAZI.find(s => s.id === r.impiantoId)).filter(Boolean),
+        impiantiContratto: f.impiantiContratto.filter(r => !r._seed).map(r => ({ impiantoId: r.impiantoId, numeroUtenza: r.numeroUtenza.trim(), canoneLocazione: Number(r.canoneLocazione) || 0 })),
+        spaziCollegati: f.impiantiContratto.filter(r => !r._seed).map(r => MOCK_SPAZI.find(s => s.id === r.impiantoId)).filter(Boolean),
       });
     }
   };
@@ -1185,8 +1243,9 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
         dataScadenza: prev.dataScadenza || dayjs().add(5, 'year'),
         utenze: prev.utenze.length ? prev.utenze : [{ numero: 'UT-11002', canone: 1450 }],
         // v2 — Tab "Impianti collegati": precompila una riga di esempio invece del vecchio
-        // canone unico (nota 'concessione-contratto-impianti-collegati').
-        impiantiConcessione: isV2 && prev.impiantiConcessione.length === 0
+        // canone unico (nota 'concessione-contratto-impianti-collegati') — sostituisce la riga
+        // seed intatta (nota 'permessi-elenco-mai-vuoto'), non si aggiunge sopra.
+        impiantiConcessione: isV2 && prev.impiantiConcessione.every(r => r._seed)
           ? [{ impiantoId: MOCK_SPAZI[20].id, numeroUtenza: 'UT-11002', canonePatrimoniale: 1450 }]
           : prev.impiantiConcessione,
         modalitaAttribuzione: prev.modalitaAttribuzione || 'Affidamento diretto',
@@ -1200,9 +1259,11 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
         dataDecorrenza: prev.dataDecorrenza || prev.dataStipula || dayjs(),
         dataScadenza: prev.dataScadenza || dayjs().add(3, 'year'),
         cup: prev.cup != null ? prev.cup : 540,
-        // v2 — Tab 2: precompila una riga di esempio invece del vecchio CUP singolo.
-        impiantiAutorizzati: isV2 && prev.impiantiAutorizzati.length === 0
-          ? [{ impiantoId: MOCK_SPAZI[0].id, codiceAutorizzazione: 'CIM-3015', cup: 540 }]
+        // v2 — Tab 2: precompila una riga di esempio invece del vecchio CUP singolo — sostituisce
+        // la riga seed intatta (nota 'permessi-elenco-mai-vuoto'). Niente CUP per riga (nota
+        // 'cup-pratica-a-parte-legata-impianto').
+        impiantiAutorizzati: isV2 && prev.impiantiAutorizzati.every(r => r._seed)
+          ? [{ impiantoId: MOCK_SPAZI[0].id, codiceAutorizzazione: 'CIM-3015' }]
           : prev.impiantiAutorizzati,
       })),
       fillContrattoExample: () => setF(prev => ({
@@ -1210,7 +1271,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
         proprietarioLocatore: prev.proprietarioLocatore || 'Immobiliare Esempio Srl',
         tipoContratto: prev.tipoContratto || 'Locazione',
         identificativoContratto: prev.identificativoContratto || 'LOC-2026-003',
-        impiantiContratto: prev.impiantiContratto.length === 0
+        impiantiContratto: prev.impiantiContratto.every(r => r._seed)
           ? [{ impiantoId: MOCK_SPAZI[21].id, numeroUtenza: 'UT-11003', canoneLocazione: 1800 }]
           : prev.impiantiContratto,
         dataStipula: prev.dataStipula || dayjs(),
@@ -1263,10 +1324,16 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
   const impiantiRowsKey = isAutorizzazione ? 'impiantiAutorizzati' : isConcessione ? 'impiantiConcessione' : 'impiantiContratto';
   const impiantiRows = f[impiantiRowsKey];
   const emptyImpiantoRow = (impiantoId) => isAutorizzazione
-    ? { impiantoId, codiceAutorizzazione: '', cup: null }
+    ? { impiantoId, codiceAutorizzazione: '' }
     : isConcessione
     ? { impiantoId, numeroUtenza: '', canonePatrimoniale: null }
     : { impiantoId, numeroUtenza: '', canoneLocazione: null };
+  // v2 — la riga con cui la sezione nasce già popolata (nota 'permessi-elenco-mai-vuoto'): mai
+  // uno stato vuoto da sbloccare con un'azione, l'utente trova subito Codice/CUP (o Numero
+  // Utenza/Canone) e "Collega impianto" pronti. `_seed: true` la esclude da dirty/validità/
+  // salvataggio finché resta intatta — il primo tocco (modifica di un campo o collegamento di
+  // un impianto) la trasforma in una riga normale.
+  const seedImpiantoRow = () => ({ ...emptyImpiantoRow(null), _manualKey: 'manual-seed', _seed: true });
 
   const [impiantiLinkOpen, setImpiantiLinkOpen] = useState(false);
   const [impiantiLinkSearch, setImpiantiLinkSearch] = useState('');
@@ -1277,115 +1344,125 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
   const [impiantiResolveKey, setImpiantiResolveKey] = useState(null);
   const impiantiLinkSnapshotRef = useRef([]);
   const manualKeyCounterRef = useRef(0);
+  // v2 — Filtri Canale/Tipologia nel drawer "Seleziona impianto" (nota
+  // 'permessi-collegamento-drawer-scala-reale'): affiancano la ricerca testuale per restringere
+  // un parco impianti a scala reale (migliaia di record) prima di navigare la griglia — reset
+  // ad ogni apertura, non persistono da una riga all'altra.
+  const [impiantiLinkCanale, setImpiantiLinkCanale] = useState(null);
+  const [impiantiLinkTipo, setImpiantiLinkTipo] = useState(null);
+  const [impiantiLinkPage, setImpiantiLinkPage] = useState(1);
+  const IMPIANTI_LINK_PAGE_SIZE = 9;
 
   const impiantiLinkBase = isAutorizzazione
     ? MOCK_SPAZI.filter(s => !impiantiGiaAutorizzatiPerTipo.has(s.id) || impiantiRows.some(r => r.impiantoId === s.id))
     : isConcessione
     ? MOCK_SPAZI.filter(s => s.suolo === 'Pubblico')
     : MOCK_SPAZI.filter(s => s.suolo === 'Privato');
+  // v2 — opzioni Tipologia dipendenti dal Canale scelto (se scelto): non proporre tipologie che
+  // in questo scope non esistono comunque (es. Alux/Totem se il Canale è OOH).
+  const impiantiLinkTipoOptions = useMemo(() => {
+    const scope = impiantiLinkCanale ? impiantiLinkBase.filter(s => s.canale === impiantiLinkCanale) : impiantiLinkBase;
+    return Array.from(new Set(scope.map(s => s.tipo))).sort().map(t => ({ value: t, label: t }));
+  }, [impiantiLinkBase, impiantiLinkCanale]);
   const impiantiLinkQuery = impiantiLinkSearch.trim().toLowerCase();
-  const impiantiLinkCandidatesRaw = impiantiLinkQuery
-    ? impiantiLinkBase.filter(s => s.id.toLowerCase().includes(impiantiLinkQuery) || (s.indirizzo || '').toLowerCase().includes(impiantiLinkQuery))
-    : impiantiLinkBase;
+  const impiantiLinkCandidatesRaw = impiantiLinkBase.filter(s =>
+    (!impiantiLinkQuery || s.id.toLowerCase().includes(impiantiLinkQuery) || (s.indirizzo || '').toLowerCase().includes(impiantiLinkQuery))
+    && (!impiantiLinkCanale || s.canale === impiantiLinkCanale)
+    && (!impiantiLinkTipo || s.tipo === impiantiLinkTipo));
   // v2 — in modalità risoluzione esclude gli impianti già collegati in un'altra riga di questo
   // stesso form: non ha senso proporre di assegnarne uno già usato altrove.
   const impiantiLinkCandidates = impiantiResolveKey
     ? impiantiLinkCandidatesRaw.filter(s => !impiantiRows.some(r => r.impiantoId === s.id))
     : impiantiLinkCandidatesRaw;
+  const impiantiLinkTotalPages = Math.max(1, Math.ceil(impiantiLinkCandidates.length / IMPIANTI_LINK_PAGE_SIZE));
+  const impiantiLinkPageSafe = Math.min(impiantiLinkPage, impiantiLinkTotalPages);
+  const impiantiLinkPageItems = impiantiLinkCandidates.slice(
+    (impiantiLinkPageSafe - 1) * IMPIANTI_LINK_PAGE_SIZE, impiantiLinkPageSafe * IMPIANTI_LINK_PAGE_SIZE);
+  // v2 — nessun filtro/ricerca attivo e il parco è ampio: prima di riempire la griglia di card
+  // suggerisce di restringere, invece di limitarsi a paginare centinaia di risultati silenziosi.
+  const impiantiLinkNoFilterActive = !impiantiLinkQuery && !impiantiLinkCanale && !impiantiLinkTipo;
+  const impiantiLinkShowRefineHint = impiantiLinkNoFilterActive && impiantiLinkCandidates.length > IMPIANTI_LINK_PAGE_SIZE;
 
-  const openImpiantiLink = () => {
-    const ids = impiantiRows.filter(r => r.impiantoId).map(r => r.impiantoId);
-    setImpiantiResolveKey(null);
-    setImpiantiLinkSelected(ids);
-    setImpiantiLinkSearch('');
-    impiantiLinkSnapshotRef.current = [...ids];
-    setImpiantiLinkOpen(true);
-  };
-  // v2 — apre lo stesso drawer per assegnare un impianto a una riga "Da censire" già esistente,
-  // invece di aggiungerne una nuova: nessuna preselezione (la riga non ha ancora un impianto).
+  // v2 — una sola sezione, una sola riga per impianto: Codice/CUP (o Numero Utenza/Canone) e
+  // Collega impianto convivono nella stessa riga (nota 'permessi-elenco-mai-vuoto', cfr.
+  // richiesta UX su Autorizzazione/Cimasa e CUP — ripristinato dopo aver provato e scartato lo
+  // split in due fasi separate). Il drawer di ricerca qui sotto lavora sempre in modalità
+  // "risolvi questa riga" (selezione singola), non in collegamento massivo.
   const openImpiantiResolve = (manualKey) => {
     setImpiantiResolveKey(manualKey);
     setImpiantiLinkSelected([]);
     setImpiantiLinkSearch('');
+    setImpiantiLinkCanale(null);
+    setImpiantiLinkTipo(null);
+    setImpiantiLinkPage(1);
     impiantiLinkSnapshotRef.current = [];
     setImpiantiLinkOpen(true);
   };
-  const toggleImpiantiLinkSel = (id) => setImpiantiLinkSelected(prev => {
-    if (impiantiResolveKey) return prev.includes(id) ? [] : [id];
-    return prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-  });
+  const toggleImpiantiLinkSel = (id) => setImpiantiLinkSelected(prev => prev.includes(id) ? [] : [id]);
   const isImpiantiLinkDirty = () =>
     JSON.stringify([...impiantiLinkSelected].sort()) !== JSON.stringify([...impiantiLinkSnapshotRef.current].sort());
   const closeImpiantiLink = () => { setImpiantiLinkOpen(false); setImpiantiResolveKey(null); };
   const confirmImpiantiLink = () => {
-    setF(prev => {
-      const rows = prev[impiantiRowsKey];
-      if (impiantiResolveKey) {
-        const newId = impiantiLinkSelected[0];
-        if (!newId) return prev;
-        return {
-          ...prev,
-          [impiantiRowsKey]: rows.map(r => {
-            if (r._manualKey !== impiantiResolveKey) return r;
-            const { _manualKey, ...rest } = r;
-            return { ...rest, impiantoId: newId };
-          }),
-        };
-      }
-      const kept = rows.filter(r => r.impiantoId && impiantiLinkSelected.includes(r.impiantoId));
-      const keptIds = new Set(kept.map(r => r.impiantoId));
-      const added = impiantiLinkSelected.filter(id => !keptIds.has(id)).map(id => emptyImpiantoRow(id));
-      const manual = rows.filter(r => !r.impiantoId);
-      return { ...prev, [impiantiRowsKey]: [...kept, ...added, ...manual] };
-    });
+    const newId = impiantiLinkSelected[0];
+    if (!newId) return;
+    setF(prev => ({
+      ...prev,
+      [impiantiRowsKey]: prev[impiantiRowsKey].map(r => {
+        if (r._manualKey !== impiantiResolveKey) return r;
+        const { _manualKey, ...rest } = r;
+        return { ...rest, impiantoId: newId, _seed: false };
+      }),
+    }));
     setImpiantiLinkOpen(false);
     setImpiantiResolveKey(null);
   };
-  // v2 — "Aggiungi senza impianto": azione diretta, fuori dal drawer di ricerca (nota
-  // 'permessi-collegamento-drawer-card') — segnare cimasa/CUP (o numero utenza/canone) prima
-  // ancora che l'impianto sia censito in Inventario è un caso d'uso frequente quanto collegare
-  // un impianto esistente, quindi ha il proprio punto di ingresso invece di essere sepolto in
-  // fondo al drawer di ricerca dopo N impianti.
+  // v2 — "Registra Cimasa e CUP": aggiunge una riga in più oltre a quella con cui la sezione
+  // nasce già popolata (nota 'permessi-elenco-mai-vuoto') — la riga nasce senza impianto,
+  // collegabile subito con "Collega impianto" o più avanti dal Dettaglio con "Collega Spazi".
   const addManualImpiantoRow = () => {
     manualKeyCounterRef.current += 1;
     setF(prev => ({ ...prev, [impiantiRowsKey]: [...prev[impiantiRowsKey], { ...emptyImpiantoRow(null), _manualKey: 'manual-' + manualKeyCounterRef.current }] }));
   };
-  const scollegaImpiantoRow = (row) => setF(prev => ({
-    ...prev,
-    [impiantiRowsKey]: prev[impiantiRowsKey].filter(r => (row.impiantoId ? r.impiantoId !== row.impiantoId : r._manualKey !== row._manualKey)),
-  }));
+  // v2 — rimuove la riga; se era l'ultima, la sezione non resta mai vuota (nota
+  // 'permessi-elenco-mai-vuoto') — ne rinasce subito una nuova, pronta per un nuovo giro.
+  const scollegaImpiantoRow = (row) => setF(prev => {
+    const remaining = prev[impiantiRowsKey].filter(r => (row.impiantoId ? r.impiantoId !== row.impiantoId : r._manualKey !== row._manualKey));
+    return { ...prev, [impiantiRowsKey]: remaining.length > 0 ? remaining : [seedImpiantoRow()] };
+  });
   const updateImpiantoRowByRef = (row, patch) => setF(prev => ({
     ...prev,
-    [impiantiRowsKey]: prev[impiantiRowsKey].map(r => (row.impiantoId ? r.impiantoId === row.impiantoId : r._manualKey === row._manualKey) ? { ...r, ...patch } : r),
+    [impiantiRowsKey]: prev[impiantiRowsKey].map(r => (row.impiantoId ? r.impiantoId === row.impiantoId : r._manualKey === row._manualKey) ? { ...r, ...patch, _seed: false } : r),
   }));
 
   // v2 — "Collega atto di provenienza" (sezione Origine, Autorizzazione): stesso pattern
-  // drawer+card di "Collega impianti" qui sopra, applicato a un legame singolo (un solo atto,
-  // non un elenco) invece che multiplo — selezione radio anziché checkbox, un solo elemento
-  // evidenziato alla volta.
+  // drawer+card di "Collega impianti" qui sopra — selezione multipla (checkbox), non più un
+  // legame singolo: un'Autorizzazione può ereditare il diritto sul suolo da più atti (es. una
+  // Concessione e un Contratto Privato che coprono impianti diversi coperti dalla stessa
+  // Autorizzazione).
   const [attoLinkOpen, setAttoLinkOpen] = useState(false);
   const [attoLinkSearch, setAttoLinkSearch] = useState('');
-  const [attoLinkSelected, setAttoLinkSelected] = useState(null);
-  const attoLinkSnapshotRef = useRef(null);
+  const [attoLinkSelected, setAttoLinkSelected] = useState([]);
+  const attoLinkSnapshotRef = useRef([]);
   const attoLinkAll = [
-    ...(concessioniList || []).map(c => ({ id: c.id, kind: 'Concessione', title: c.identificativoDocumento, subtitle: c.enteEmittente })),
-    ...(contrattiList || []).map(c => ({ id: c.id, kind: 'Contratto Privato', title: c.identificativoContratto, subtitle: c.proprietarioLocatore })),
+    ...(concessioniList || []).map(c => ({ id: c.id, kind: 'Concessione', title: c.identificativoDocumento, subtitle: c.enteEmittente, dataStipula: c.dataStipula, dataScadenza: c.dataScadenza, stato: statoEffettivoV2(c) })),
+    ...(contrattiList || []).map(c => ({ id: c.id, kind: 'Contratto Privato', title: c.identificativoContratto, subtitle: c.proprietarioLocatore, dataStipula: c.dataStipula, dataScadenza: c.dataScadenza, stato: statoEffettivoV2(c) })),
   ];
   const attoLinkQuery = attoLinkSearch.trim().toLowerCase();
   const attoLinkCandidates = attoLinkQuery
     ? attoLinkAll.filter(a => a.title.toLowerCase().includes(attoLinkQuery) || (a.subtitle || '').toLowerCase().includes(attoLinkQuery))
     : attoLinkAll;
-  const attoProvenienzaRecord = f.attoProvenienzaId ? attoLinkAll.find(a => a.id === f.attoProvenienzaId) : null;
+  const attiProvenienzaRecords = f.attiProvenienzaIds.map(id => attoLinkAll.find(a => a.id === id)).filter(Boolean);
+  const toggleAttoLinkSel = (id) => setAttoLinkSelected(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
   const openAttoLink = () => {
-    setAttoLinkSelected(f.attoProvenienzaId);
+    setAttoLinkSelected(f.attiProvenienzaIds);
     setAttoLinkSearch('');
-    attoLinkSnapshotRef.current = f.attoProvenienzaId;
+    attoLinkSnapshotRef.current = f.attiProvenienzaIds;
     setAttoLinkOpen(true);
   };
-  const isAttoLinkDirty = () => attoLinkSelected !== attoLinkSnapshotRef.current;
+  const isAttoLinkDirty = () => JSON.stringify([...attoLinkSelected].sort()) !== JSON.stringify([...attoLinkSnapshotRef.current].sort());
   const closeAttoLink = () => setAttoLinkOpen(false);
-  const confirmAttoLink = () => { set('attoProvenienzaId')(attoLinkSelected); setAttoLinkOpen(false); };
-  const scollegaAtto = () => set('attoProvenienzaId')(null);
+  const confirmAttoLink = () => { set('attiProvenienzaIds')(attoLinkSelected); setAttoLinkOpen(false); };
+  const scollegaAtto = (id) => set('attiProvenienzaIds')(f.attiProvenienzaIds.filter(v => v !== id));
 
   const drawerTitle = React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
     React.createElement(DiscardCloseIcon, { dirty, onDiscard: handleClose }), title);
@@ -1409,15 +1486,23 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
       padding: '0 5px', borderRadius: 9, background: window.GRAVITY_THEME.token.colorPrimary, color: '#fff', fontSize: 12, fontWeight: 700, lineHeight: 1,
     },
   }, n);
-  const impiantiCollegaBtn = React.createElement(Button, { icon: React.createElement(PlusOutlined), onClick: openImpiantiLink }, 'Collega impianti');
-  // v2 — azione secondaria (link, non un pulsante pieno come "Collega impianti"): segnare
-  // cimasa/CUP o numero utenza/canone prima ancora che l'impianto sia censito in Inventario.
-  const impiantiAddManualBtn = React.createElement(Button, { type: 'link', onClick: addManualImpiantoRow }, 'Aggiungi senza impianto');
-  // v2 — Popover di riconoscimento: dati reali dell'impianto (Tipo/Formato/Suolo/Superficie),
-  // non una foto — FOTO_IMPIANTO altrove nel repo è un'assegnazione pseudo-casuale, non una
-  // vera foto per impianto, quindi fuorviante qui dove serve distinguere impianti reali simili
-  // (nota 'permessi-collegamento-drawer-card'). Trigger esplicito (icona Ⓘ), non tutto il
-  // blocco identità, per restare scopribile (LAYOUT.md §6.2) invece che scoperto per caso.
+  // v2 — aggiunge una riga in più oltre a quella con cui la sezione nasce già popolata (nota
+  // 'permessi-elenco-mai-vuoto') — pulsante primary, "Registra" invece di "Aggiungi" per tenere
+  // il focus su segnare i dati piuttosto che su un generico "aggiungi elemento" (Concessione/
+  // Contratto, dove il dato da segnare — canone — pesa quanto l'impianto). Su "Impianti
+  // collegati" (Autorizzazione) l'azione principale è invece collegare l'impianto (il codice
+  // cimasa è successivo e spesso non ancora disponibile): copy generica "Aggiungi impianto" e
+  // pulsante default, non primary, per non competere con "Collega impianto" dentro la riga.
+  const impiantiAddManualBtn = (label, opts = {}) => React.createElement(Button, {
+    type: opts.type || 'primary', icon: React.createElement(PlusOutlined), onClick: addManualImpiantoRow,
+  }, opts.text || `Registra ${label}`);
+  // v2 — Popover di riconoscimento: dati reali dell'impianto (Tipo/Formato/Suolo/Superficie) per
+  // la riga compatta di "Impianti collegati" — qui resta testuale per scelta di scopo (riga
+  // densa, non una card): la foto di copertina reale (`fotoCopertina`, nota
+  // 'impianto-foto-copertina-non-pseudo-casuale') si vede invece nella griglia del drawer
+  // "Seleziona impianto" (nota 'permessi-collegamento-drawer-scala-reale'), dove aiuta di più a
+  // scegliere tra impianti simili. Trigger esplicito (icona Ⓘ), non tutto il blocco identità,
+  // per restare scopribile (LAYOUT.md §6.2) invece che scoperto per caso.
   const impiantoInfoPopover = (spazio) => {
     // v2 — icona tipologia dall'asset custom condiviso (systemstype-icons via
     // GravityMap.systypeIconSrc, LAYOUT.md §6.5), fallback su TagOutlined se il tipo non ha
@@ -1446,67 +1531,89 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
     }, React.createElement(InfoCircleOutlined, { style: { color: 'rgba(0,0,0,0.45)', cursor: 'help', flexShrink: 0 } }));
   };
 
-  // v2 — Elenco impianti a righe (una per impianto, non una griglia di card): la colonna
-  // "Impianto" è sola lettura (l'impianto si sceglie nel drawer "Collega impianti", non più con
-  // una Select per riga qui) — icona tipologia + ID + indirizzo, con l'icona Ⓘ per i dettagli di
-  // riconoscimento. Le altre due colonne restano editabili inline, stesso layout a 4 colonne
-  // (9/7/5/3) di prima del passaggio a card.
-  const renderImpiantiRows = (rows, cfg) => rows.length === 0
-    ? gravLinkEmpty({
-        description: cfg.emptyDescription,
-        action: React.createElement(Space, { direction: 'vertical', align: 'center', size: 4 }, impiantiCollegaBtn, impiantiAddManualBtn),
-      })
-    : React.createElement(React.Fragment, null,
-        React.createElement(Row, { gutter: 16, style: { marginBottom: 12 } },
-          React.createElement(Col, { span: 9 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } }, 'Impianto')),
-          React.createElement(Col, { span: 7 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } }, tipLabel(cfg.field2Label, cfg.field2Tip))),
-          React.createElement(Col, { span: 5 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } }, tipLabel(cfg.field3Label, cfg.field3Tip))),
-        ),
-        rows.map((r, i) => {
-          const spazio = r.impiantoId ? MOCK_SPAZI.find(s => s.id === r.impiantoId) : null;
-          const isManual = !r.impiantoId;
-          // v2 — icona tipologia dall'asset custom (systemstype-icons via GravityMap.systypeIconSrc),
-          // fallback TagOutlined se il tipo non ha un'icona custom.
-          const typeIconSrc = spazio && window.GravityMap ? window.GravityMap.systypeIconSrc(spazio.tipo, spazio.canale) : null;
-          return React.createElement(Row, { key: r.impiantoId || r._manualKey || i, gutter: 16, style: { marginBottom: 20 } },
-            React.createElement(Col, { span: 9, style: { display: 'flex', alignItems: 'center', minHeight: 40 } },
-              isManual
-                ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-                    React.createElement(Tag, { color: 'gold' }, 'Da censire'),
-                    React.createElement(Button, { type: 'link', style: { padding: 0 }, onClick: () => openImpiantiResolve(r._manualKey) }, 'Seleziona impianto'),
-                  )
-                : React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, width: '100%' } },
-                    typeIconSrc
-                      ? React.createElement('img', { src: typeIconSrc, style: { width: 14, height: 14, flexShrink: 0 } })
-                      : React.createElement(TagOutlined, { style: { color: 'rgba(0,0,0,0.45)', flexShrink: 0, fontSize: 14 } }),
-                    React.createElement('span', {
-                      style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-                    }, spazio ? `${spazio.id} · ${spazio.indirizzo}` : r.impiantoId),
-                    spazio ? impiantoInfoPopover(spazio) : null,
-                  ),
-            ),
-            React.createElement(Col, { span: 7 },
-              React.createElement(Input, { value: r[cfg.field2Key], placeholder: cfg.field2Placeholder, onChange: e => updateImpiantoRowByRef(r, { [cfg.field2Key]: e.target.value }) }),
-            ),
-            React.createElement(Col, { span: 5 },
-              React.createElement(InputNumber, { value: r[cfg.field3Key], onChange: v => updateImpiantoRowByRef(r, { [cfg.field3Key]: v }), min: 0, style: { width: '100%' }, addonAfter: '€/anno', placeholder: '0,00' }),
-            ),
-            React.createElement(Col, { span: 3, style: { display: 'flex', alignItems: 'center' } },
-              React.createElement(Button, { type: 'link', danger: true, onClick: () => scollegaImpiantoRow(r) }, 'Scollega'),
-            ),
+  // v2 — Elenco a righe, mai vuoto (nota 'permessi-elenco-mai-vuoto'). Due varianti secondo
+  // `cfg.field3Key`:
+  // - con field3 (Concessione/Contratto — Numero Utenza/Canone): Codice+Canone pesano di più
+  //   (8+6=14/24) di "Impianto" (7/24) — il compito primario è segnare l'importo dovuto, il
+  //   collegamento è secondario ma resta disponibile subito, riga per riga.
+  // - senza field3 (Autorizzazione — solo Codice cimasa, niente CUP: nota
+  //   'cup-pratica-a-parte-legata-impianto'): Codice per primo (10/24), "Impianto" segue
+  //   (11/24, più largo perché il suo contenuto — icona+id+indirizzo+Ⓘ, o tag+azione — è più
+  //   denso di un semplice campo testo) — stesso ordine campo-poi-impianto delle altre due
+  //   varianti, tab "Impianti" (cfr. richiesta UX su Autorizzazione/Cimasa e CUP).
+  const renderImpiantiRows = (rows, cfg) => {
+    const hasField3 = !!cfg.field3Key;
+    const impiantoCell = (r) => {
+      const spazio = r.impiantoId ? MOCK_SPAZI.find(s => s.id === r.impiantoId) : null;
+      // v2 — icona tipologia dall'asset custom (systemstype-icons via GravityMap.systypeIconSrc),
+      // fallback TagOutlined se il tipo non ha un'icona custom.
+      const typeIconSrc = spazio && window.GravityMap ? window.GravityMap.systypeIconSrc(spazio.tipo, spazio.canale) : null;
+      return spazio
+        ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, width: '100%' } },
+            typeIconSrc
+              ? React.createElement('img', { src: typeIconSrc, style: { width: 14, height: 14, flexShrink: 0 } })
+              : React.createElement(TagOutlined, { style: { color: 'rgba(0,0,0,0.45)', flexShrink: 0, fontSize: 14 } }),
+            React.createElement('span', {
+              style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+            }, `${spazio.id} · ${spazio.indirizzo}`),
+            impiantoInfoPopover(spazio),
+          )
+        : React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            React.createElement(Tag, null, 'Non collegato'),
+            React.createElement(Button, { type: 'link', style: { padding: 0 }, onClick: () => openImpiantiResolve(r._manualKey) }, 'Collega impianto'),
           );
-        }),
-      );
+    };
+    const codiceCell = (r) => React.createElement(Input, {
+      value: r[cfg.field2Key], placeholder: cfg.field2Placeholder,
+      onChange: e => updateImpiantoRowByRef(r, { [cfg.field2Key]: e.target.value }),
+    });
+    return React.createElement(React.Fragment, null,
+      React.createElement(Row, { gutter: 16, style: { marginBottom: 12 } },
+        hasField3
+          ? [
+              React.createElement(Col, { key: 'f2', span: 8 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } }, tipLabel(cfg.field2Label, cfg.field2Tip))),
+              React.createElement(Col, { key: 'f3', span: 6 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } }, tipLabel(cfg.field3Label, cfg.field3Tip))),
+              React.createElement(Col, { key: 'imp', span: 7 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } }, 'Impianto')),
+            ]
+          : [
+              React.createElement(Col, { key: 'f2', span: 10 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } }, tipLabel(cfg.field2Label, cfg.field2Tip))),
+              React.createElement(Col, { key: 'imp', span: 11 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } }, 'Impianto')),
+            ],
+      ),
+      rows.map((r, i) => React.createElement(Row, { key: r.impiantoId || r._manualKey || i, gutter: 16, style: { marginBottom: 20 } },
+        hasField3
+          ? [
+              React.createElement(Col, { key: 'f2', span: 8 }, codiceCell(r)),
+              React.createElement(Col, { key: 'f3', span: 6 },
+                React.createElement(InputNumber, { value: r[cfg.field3Key], onChange: v => updateImpiantoRowByRef(r, { [cfg.field3Key]: v }), min: 0, style: { width: '100%' }, addonAfter: '€/anno', placeholder: '0,00' }),
+              ),
+              React.createElement(Col, { key: 'imp', span: 7, style: { display: 'flex', alignItems: 'center', minHeight: 40 } }, impiantoCell(r)),
+            ]
+          : [
+              React.createElement(Col, { key: 'f2', span: 10 }, codiceCell(r)),
+              React.createElement(Col, { key: 'imp', span: 11, style: { display: 'flex', alignItems: 'center', minHeight: 40 } }, impiantoCell(r)),
+            ],
+        React.createElement(Col, { key: 'azione', span: 3, style: { display: 'flex', alignItems: 'center' } },
+          React.createElement(Button, { type: 'link', danger: true, onClick: () => scollegaImpiantoRow(r) }, 'Rimuovi'),
+        ),
+      )),
+    );
+  };
 
-  // v2 — Drawer "Collega impianti": ricerca + selezione multipla degli impianti compatibili,
-  // più l'azione "Aggiungi senza impianto" per il caso non ancora censito (nota
-  // 'permessi-collegamento-drawer-card') — unico punto di ingresso per Autorizzazione,
+  // v2 — Drawer "Seleziona impianto": ricerca + filtri (Canale/Tipologia) + griglia di
+  // GravityEntityCard con foto di copertina reale, usato solo dalla Fase 2 ("Collega impianti")
+  // per assegnare un impianto a UNA riga specifica — non più un drawer di collegamento massivo
+  // (nota 'permessi-due-fasi-cimasa-impianti'), unico punto di ingresso per Autorizzazione,
   // Concessione e Contratto (candidati e forma riga già risolti sopra da impiantiRowsKey).
+  // Griglia paginata (nota 'permessi-collegamento-drawer-scala-reale'): un parco impianti a
+  // scala reale può contare migliaia di record — card + foto aiutano a riconoscere quello giusto
+  // tra impianti simili, ma solo abbinate a filtri e paginazione (componente.entity-card.md
+  // §"Pattern d'uso" — mai uno scroll infinito di centinaia di card).
   const impiantiLinkDrawerNode = React.createElement(Drawer, {
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
       React.createElement(DiscardCloseIcon, { dirty: isImpiantiLinkDirty(), onDiscard: closeImpiantiLink }),
-      impiantiResolveKey ? 'Seleziona impianto' : 'Collega impianti'),
-    placement: 'right', width: 640, closable: false, rootClassName: 'grav-permit-link-drawer',
+      'Seleziona impianto'),
+    placement: 'right', width: 880, closable: false, rootClassName: 'grav-permit-link-drawer',
     maskClosable: !isImpiantiLinkDirty(), keyboard: !isImpiantiLinkDirty(),
     onClose: closeImpiantiLink, open: impiantiLinkOpen,
     styles: { body: { padding: 24 } },
@@ -1514,56 +1621,95 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
       React.createElement(DiscardButton, { dirty: isImpiantiLinkDirty(), onDiscard: closeImpiantiLink }, 'Annulla'),
       React.createElement(Button, {
         type: 'primary', icon: React.createElement(PlusOutlined), onClick: confirmImpiantiLink,
-        disabled: impiantiResolveKey ? impiantiLinkSelected.length === 0 : false,
-      },
-        impiantiResolveKey
-          ? 'Seleziona'
-          : (impiantiLinkSelected.length > 0 ? `Collega (${impiantiLinkSelected.length})` : 'Collega')),
+        disabled: impiantiLinkSelected.length === 0,
+      }, 'Seleziona'),
     ),
   },
+    // v2 — nota di design: gli impianti già collegati (a questa stessa riga esclusa, o altrove
+    // nello stesso ambito — vedi impiantiLinkBase/impiantiLinkCandidates sopra) non devono
+    // comparire tra i candidati selezionabili qui.
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 13, color: 'rgba(0,0,0,0.45)' } },
+      React.createElement(InfoCircleOutlined, { style: { fontSize: 13 } }),
+      'Gli impianti già collegati non compaiono in questo elenco.',
+      React.createElement(HandoffDesignNote, { id: 'permessi-collegamento-drawer-scala-reale', placement: 'right' }),
+    ),
     React.createElement(Input, {
-      value: impiantiLinkSearch, onChange: e => setImpiantiLinkSearch(e.target.value),
+      value: impiantiLinkSearch, onChange: e => { setImpiantiLinkSearch(e.target.value); setImpiantiLinkPage(1); },
       placeholder: 'Cerca per ID o indirizzo…', allowClear: true, prefix: React.createElement(SearchOutlined),
-      style: { marginBottom: 16 },
+      style: { marginBottom: 12 },
     }),
+    React.createElement(Row, { gutter: 12, style: { marginBottom: 16 } },
+      React.createElement(Col, { span: 12 },
+        React.createElement(Select, {
+          value: impiantiLinkCanale, allowClear: true, placeholder: 'Tutti i canali', style: { width: '100%' },
+          options: [{ value: 'OOH', label: 'OOH' }, { value: 'DOOH', label: 'DOOH' }],
+          onChange: v => { setImpiantiLinkCanale(v || null); setImpiantiLinkTipo(null); setImpiantiLinkPage(1); },
+        }),
+      ),
+      React.createElement(Col, { span: 12 },
+        React.createElement(Select, {
+          value: impiantiLinkTipo, allowClear: true, placeholder: 'Tutte le tipologie', style: { width: '100%' },
+          options: impiantiLinkTipoOptions,
+          onChange: v => { setImpiantiLinkTipo(v || null); setImpiantiLinkPage(1); },
+        }),
+      ),
+    ),
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 } },
+      React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } },
+        impiantiLinkCandidates.length === 1 ? '1 impianto trovato' : `${impiantiLinkCandidates.length} impianti trovati`),
+      impiantiLinkShowRefineHint && React.createElement(Tag, { color: 'gold' }, 'Restringi con ricerca o filtri per trovarlo più in fretta'),
+    ),
     impiantiLinkCandidates.length === 0
-      ? React.createElement(Empty, { description: 'Nessun impianto compatibile trovato', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { marginBottom: 16 } })
-      : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 } },
-          impiantiLinkCandidates.map(s => {
-            const sel = impiantiLinkSelected.includes(s.id);
-            return React.createElement('div', {
-              key: s.id, onClick: () => toggleImpiantiLinkSel(s.id),
-              style: {
-                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 6,
-                border: sel ? '1px solid #3E00FB' : '1px solid #F0F0F0', background: sel ? '#F5F2FF' : '#fff', cursor: 'pointer',
-              },
-            },
-              impiantiResolveKey
-                ? React.createElement(Radio, { checked: sel, onClick: e => e.stopPropagation(), onChange: () => toggleImpiantiLinkSel(s.id) })
-                : React.createElement(Checkbox, { checked: sel, onClick: e => e.stopPropagation(), onChange: () => toggleImpiantiLinkSel(s.id) }),
-              React.createElement('div', { style: { flex: 1 } },
-                React.createElement('div', { style: { fontSize: 14, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, s.id),
-                React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, s.indirizzo),
-              ),
-              React.createElement(Tag, null, s.canale),
-            );
-          }),
+      ? React.createElement(Empty, { description: 'Nessun impianto compatibile — prova a modificare ricerca o filtri', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { marginBottom: 16 } })
+      : React.createElement(React.Fragment, null,
+          React.createElement(Row, { gutter: [16, 16], style: { marginBottom: 16 } },
+            impiantiLinkPageItems.map(s => {
+              const sel = impiantiLinkSelected.includes(s.id);
+              return React.createElement(Col, { key: s.id, span: 8 },
+                React.createElement('div', {
+                  onClick: () => toggleImpiantiLinkSel(s.id),
+                  style: { cursor: 'pointer', borderRadius: 8, outline: sel ? `2px solid ${window.GRAVITY_THEME.token.colorPrimary}` : '2px solid transparent', outlineOffset: 1 },
+                },
+                  React.createElement(window.GravityEntityCard, {
+                    title: s.id,
+                    badges: [{ text: s.canale, variant: s.canale === 'DOOH' ? 'dooh' : 'ooh' }],
+                    image: { id: s.id, src: s.fotoCopertina, heightPx: 120 },
+                    fields: [
+                      { icon: 'EnvironmentOutlined', label: 'Indirizzo:', value: s.indirizzo },
+                      { icon: 'TagOutlined', label: 'Tipologia:', value: s.tipo },
+                      { icon: 'ExpandOutlined', label: 'Formato:', value: s.formato },
+                    ],
+                    style: sel ? { background: '#F5F2FF' } : undefined,
+                  }),
+                ),
+              );
+            }),
+          ),
+          impiantiLinkTotalPages > 1 && React.createElement('div', { style: { display: 'flex', justifyContent: 'center' } },
+            React.createElement(Pagination, {
+              simple: true, showSizeChanger: false, current: impiantiLinkPageSafe, pageSize: IMPIANTI_LINK_PAGE_SIZE,
+              total: impiantiLinkCandidates.length, onChange: p => setImpiantiLinkPage(p),
+            }),
+          ),
         ),
   );
 
   // v2 — Drawer "Collega atto di provenienza" (Origine, Autorizzazione): stessa UX del drawer
-  // impianti sopra, applicata a un legame singolo — selezione a scelta unica (Radio) invece di
-  // checkbox multiple.
+  // impianti sopra — selezione multipla (checkbox), non più a scelta unica: un'Autorizzazione
+  // può collegare più Concessioni e/o Contratti Privati di riferimento.
   const attoLinkDrawerNode = React.createElement(Drawer, {
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-      React.createElement(DiscardCloseIcon, { dirty: isAttoLinkDirty(), onDiscard: closeAttoLink }), 'Collega atto di provenienza'),
+      React.createElement(DiscardCloseIcon, { dirty: isAttoLinkDirty(), onDiscard: closeAttoLink }), 'Collega permesso'),
     placement: 'right', width: 640, closable: false, rootClassName: 'grav-permit-link-drawer',
     maskClosable: !isAttoLinkDirty(), keyboard: !isAttoLinkDirty(),
     onClose: closeAttoLink, open: attoLinkOpen,
     styles: { body: { padding: 24 } },
     extra: React.createElement(Space, null,
       React.createElement(DiscardButton, { dirty: isAttoLinkDirty(), onDiscard: closeAttoLink }, 'Annulla'),
-      React.createElement(Button, { type: 'primary', icon: React.createElement(PlusOutlined), disabled: !attoLinkSelected, onClick: confirmAttoLink }, 'Collega'),
+      React.createElement(Button, {
+        type: 'primary', icon: React.createElement(PlusOutlined), onClick: confirmAttoLink,
+        disabled: attoLinkSelected.length === 0,
+      }, 'Collega'),
     ),
   },
     React.createElement(Input, {
@@ -1575,15 +1721,15 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
       ? React.createElement(Empty, { description: 'Nessuna Concessione o Contratto trovato', image: Empty.PRESENTED_IMAGE_SIMPLE })
       : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
           attoLinkCandidates.map(a => {
-            const sel = attoLinkSelected === a.id;
+            const sel = attoLinkSelected.includes(a.id);
             return React.createElement('div', {
-              key: a.id, onClick: () => setAttoLinkSelected(sel ? null : a.id),
+              key: a.id, onClick: () => toggleAttoLinkSel(a.id),
               style: {
                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 6,
                 border: sel ? '1px solid #3E00FB' : '1px solid #F0F0F0', background: sel ? '#F5F2FF' : '#fff', cursor: 'pointer',
               },
             },
-              React.createElement(Radio, { checked: sel, onClick: e => e.stopPropagation(), onChange: () => setAttoLinkSelected(sel ? null : a.id) }),
+              React.createElement(Checkbox, { checked: sel, onClick: e => e.stopPropagation(), onChange: () => toggleAttoLinkSel(a.id) }),
               React.createElement('div', { style: { flex: 1 } },
                 React.createElement('div', { style: { fontSize: 14, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, a.title),
                 React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, a.subtitle),
@@ -1609,7 +1755,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
       activeKey: activeTab, onActiveKeyChange: setActiveTab,
       sections: [
         {
-          key: 'info', label: 'Informazioni', title: 'Informazioni',
+          key: 'info', label: 'Dati dell\'Atto', title: 'Dati dell\'Atto',
           description: 'Dati generali dell\'atto.',
           children: [
             // v2 — Tipo Autorizzazione separato dal corpo dei campi richiesti per quel tipo
@@ -1696,74 +1842,157 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           // 'concessione-contratto-impianti-collegati'). Disabilitata (non nascosta, LAYOUT.md
           // §6.2) finché il Tipo Autorizzazione non è "Esposizione pubblicitaria": per le
           // altre 6 tipologie l'origine del suolo non si applica.
-          key: 'origine', label: 'Origine', title: 'Origine',
+          key: 'origine', label: 'Diritto sul Suolo', title: 'Diritto sul Suolo',
           description: 'Il diritto di occupare il suolo su cui si trova l\'impianto: incluso in questo stesso atto, oppure ereditato da un atto già registrato a sistema.',
           disabled: !isEsposizionePubblicitaria,
-          children: React.createElement(window.GravityFormArea, { key: 'origine-area' },
-            React.createElement(Form, { className: 'grav-autorizzazione-origine-section', layout: 'vertical', component: 'div' },
-              React.createElement(Form.Item, { valuePropName: 'checked', style: { marginBottom: 16 } },
-                React.createElement(Checkbox, { checked: f.includeConcessioneSuoloPubblico, onChange: e => onIncludeSuoloChange(e.target.checked) },
-                  tipLabel('Include automaticamente concessione di suolo pubblico', 'Spuntala quando il Comune concede, insieme all\'autorizzazione, anche l\'uso del suolo pubblico, senza rilasciare un atto di Concessione separato. È il caso più comune nelle autorizzazioni triennali per occupazione di suolo: se l\'atto non menziona una Concessione a parte, probabilmente è già inclusa qui.')),
+          children: [
+            // v2 — box "Occupazione di Suolo Pubblico": checkbox + dettagli dell'occupazione
+            // inclusa nell'atto (estensione, tipo, durata) — compilabili solo a checkbox
+            // attivo, stesso trattamento (dimmed, non nascosti, LAYOUT.md §6.2) del box
+            // "Concessioni o Contratti di riferimento" qui sotto, ma **speculare**: quel box si
+            // spegne quando il check è acceso (l'atto di provenienza esterno non serve più),
+            // questo si spegne quando è spento (i dettagli dell'occupazione inclusa non si
+            // applicano finché non la includi).
+            React.createElement(window.GravityFormArea, {
+              key: 'origine-check', title: 'Occupazione di Suolo Pubblico',
+              description: 'Spunta quando il Comune concede, insieme all\'autorizzazione, anche l\'uso del suolo pubblico, senza rilasciare un atto di Concessione separato: è il caso più comune nelle autorizzazioni triennali per occupazione di suolo. Con il check attivo, registra anche superficie occupata, tipo di occupazione e la sua durata.',
+            },
+              React.createElement(Form, { className: 'grav-autorizzazione-origine-section', layout: 'vertical', component: 'div' },
+                React.createElement(Form.Item, { valuePropName: 'checked', style: { marginBottom: 16 } },
+                  React.createElement(Checkbox, { checked: f.includeConcessioneSuoloPubblico, onChange: e => onIncludeSuoloChange(e.target.checked) },
+                    'Include automaticamente concessione di suolo pubblico'),
+                ),
+                React.createElement('div', { style: !f.includeConcessioneSuoloPubblico ? { opacity: 0.5 } : undefined },
+                  React.createElement(Row, { gutter: 16 },
+                    React.createElement(Col, { span: 8 },
+                      React.createElement(Form.Item, { label: 'Superficie Occupata', style: { marginBottom: 0 } },
+                        React.createElement(InputNumber, {
+                          value: f.estensioneOccupazioneMq, onChange: set('estensioneOccupazioneMq'),
+                          min: 0, style: { width: '100%' }, addonAfter: 'mq',
+                          disabled: !f.includeConcessioneSuoloPubblico,
+                        }),
+                      ),
+                    ),
+                    React.createElement(Col, { span: 8 },
+                      React.createElement(Form.Item, { label: 'Tipo di Occupazione', style: { marginBottom: 0 } },
+                        React.createElement(Select, {
+                          value: f.tipoOccupazione, onChange: onTipoOccupazioneChange,
+                          options: TIPO_OCCUPAZIONE_OPTS, placeholder: 'Seleziona', style: { width: '100%' },
+                          disabled: !f.includeConcessioneSuoloPubblico,
+                        }),
+                      ),
+                    ),
+                    React.createElement(Col, { span: 8 },
+                      React.createElement(Form.Item, { label: 'Durata Occupazione', style: { marginBottom: 0 } },
+                        f.tipoOccupazione === 'Temporanea'
+                          ? React.createElement(InputNumber, {
+                              value: f.durataOccupazioneGiorni, onChange: set('durataOccupazioneGiorni'),
+                              min: 1, style: { width: '100%' }, addonAfter: 'giorni', placeholder: '0',
+                              disabled: !f.includeConcessioneSuoloPubblico,
+                            })
+                          : React.createElement(Input, { value: 'Annuale', disabled: true, style: { width: '100%' } }),
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              // v2 — "Collega atto di provenienza": empty state + drawer di collegamento
-              // (stesso pattern di "Impianti collegati" qui sotto), sostituisce la Select
-              // singola con un punto di ingresso esplicito e una card di riepilogo una volta
-              // collegato (nota 'permessi-collegamento-drawer-card').
-              (() => {
-                const disabled = f.includeConcessioneSuoloPubblico;
-                const btnInner = React.createElement(Button, { icon: React.createElement(PlusOutlined), disabled, onClick: openAttoLink }, 'Collega atto di provenienza');
-                const collegaAttoBtn = disabled
-                  ? React.createElement(Tooltip, { title: 'Non serve collegarla: l\'hai già inclusa spuntando "Include automaticamente concessione di suolo pubblico" qui sopra.' },
-                      React.createElement('span', null, btnInner))
-                  : btnInner;
-                const content = attoProvenienzaRecord
-                  ? React.createElement(window.GravityEntityCard, {
-                      title: attoProvenienzaRecord.title,
-                      badges: [{ text: attoProvenienzaRecord.kind, variant: 'default' }],
-                      fields: [{ icon: 'BankOutlined', label: attoProvenienzaRecord.kind === 'Contratto Privato' ? 'Proprietario:' : 'Ente:', value: attoProvenienzaRecord.subtitle }],
-                      footer: React.createElement(Button, { type: 'link', danger: true, size: 'small', style: { padding: 0 }, onClick: scollegaAtto }, 'Scollega'),
-                      style: { maxWidth: 360 },
-                    })
-                  : gravLinkEmpty({ description: 'Nessun atto di provenienza collegato.', action: collegaAttoBtn });
-                return React.createElement(Form.Item, {
-                  label: React.createElement('span', null, tipLabel('Concessione o Contratto di riferimento', 'Collega qui la Concessione o il Contratto Privato che riguarda il terreno o lo spazio su cui si trova l\'impianto. Usalo per tenere traccia di chi possiede o concede quel suolo.'), ' ',
-                    React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
-                  style: { marginBottom: 0 },
-                }, content);
-              })(),
             ),
-          ),
+            // v2 — "Collega atto di provenienza": empty state + drawer di collegamento (stesso
+            // pattern di "Impianti collegati" qui sotto), sostituisce la Select singola con un
+            // punto di ingresso esplicito e una griglia di card una volta collegato (nota
+            // 'permessi-collegamento-drawer-card') — più atti collegabili (Concessioni e/o
+            // Contratti Privati), non più un legame singolo. Pulsante "Collega" nell'header del
+            // box (`extra`), non sotto la griglia, una volta superato lo stato vuoto — stessa
+            // logica dei box con elenco collegato già in uso nel form (es. "Cimasa" qui sotto,
+            // `extra: impiantiAddManualBtn(...)`): nello stato vuoto il pulsante resta dentro
+            // l'empty state (`gravLinkEmpty`), non c'è ancora un header da popolare.
+            (() => {
+              const disabled = f.includeConcessioneSuoloPubblico;
+              const hasAtti = attiProvenienzaRecords.length > 0;
+              const btnInner = React.createElement(Button, {
+                icon: React.createElement(PlusOutlined), disabled, onClick: openAttoLink,
+              }, 'Collega permesso');
+              const collegaAttoBtn = disabled
+                ? React.createElement(Tooltip, { title: 'Non serve collegarla: l\'hai già inclusa spuntando "Include automaticamente concessione di suolo pubblico" qui sopra.' },
+                    React.createElement('span', null, btnInner))
+                : btnInner;
+              // v2 — quando il check "Include automaticamente concessione di suolo pubblico" è
+              // attivo, l'intero box (non solo il pulsante) va "spento" in modo visibile — non
+              // basta il pulsante disabilitato con tooltip, va comunicata a colpo d'occhio anche
+              // la sezione che diventa irrilevante: stesso opacity dimming di LAYOUT.md §6.2
+              // ("Dimmed": opacity 0.2 quando un elemento perde di rilevanza pur restando
+              // visibile), qui più leggero (0.5) perché il box resta leggibile — il motivo
+              // preciso resta nel tooltip del pulsante, non duplicato come testo statico.
+              // Niente pointerEvents:'none' sul wrapper: bloccherebbe anche l'hover che apre
+              // quel tooltip — il pulsante è già lui stesso `disabled` (AntD ne blocca il click).
+              return React.createElement('div', {
+                style: disabled ? { opacity: 0.5 } : undefined,
+              },
+              React.createElement(window.GravityFormArea, {
+                key: 'origine-atti',
+                title: 'Concessioni o Contratti di riferimento',
+                description: 'Collega qui le Concessioni o i Contratti Privati che riguardano il terreno o lo spazio su cui si trovano gli impianti coperti da questa Autorizzazione; puoi collegarne più di uno. Usali per tenere traccia di chi possiede o concede quel suolo.',
+                extra: hasAtti ? collegaAttoBtn : null,
+              },
+                hasAtti
+                  ? React.createElement('div', {
+                      style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 },
+                    },
+                      attiProvenienzaRecords.map(rec => React.createElement(window.GravityEntityCard, {
+                        key: rec.id,
+                        title: rec.title,
+                        badges: [{ text: rec.kind, variant: 'default' }],
+                        menu: [{ key: 'scollega', label: 'Scollega', icon: 'DeleteOutlined', danger: true, onClick: () => scollegaAtto(rec.id) }],
+                        fields: [
+                          { icon: 'BankOutlined', label: rec.kind === 'Contratto Privato' ? 'Proprietario:' : 'Ente:', value: rec.subtitle },
+                          { icon: 'CalendarOutlined', label: 'Data Stipula:', value: rec.dataStipula },
+                          { icon: 'ThunderboltOutlined', label: 'Stato:', valueNode: statoDotNode(rec.stato) },
+                        ],
+                        footer: rec.dataScadenza ? `Scade il ${rec.dataScadenza}` : null,
+                      })),
+                    )
+                  : gravLinkEmpty({ description: 'Nessun atto di provenienza collegato.', action: collegaAttoBtn }),
+              ),
+              );
+            })(),
+          ],
         },
         {
-          // v2 — sezione rinominata da "Impianti collegati" a "Cimasa e CUP" (nome specifico,
-          // non condiviso con Concessione/Contratto): il nome generico non comunicava che qui
-          // si autorizzano cimasa e CUP per impianto, scoperto solo aprendo la sezione — resta
-          // comunque sempre la terza sezione, stessa struttura degli altri due tipi.
-          key: 'impianti', label: 'Cimasa e CUP', title: 'Cimasa e CUP',
-          description: [
-            'Ogni impianto coperto da questa Autorizzazione, con il proprio codice cimasa e il proprio CUP. Non ancora censito in Inventario? "Aggiungi senza impianto" per segnare comunque i suoi dati.',
-          ],
+          // v2 — sezione rinominata da "Cimasa e CUP" a "Impianti" (nota
+          // 'cup-pratica-a-parte-legata-impianto'), poi a "Cimasa" (troppo stretto: nominava solo
+          // il codice, non l'intento della sezione), poi a "Impianti Coperti" e infine a
+          // "Impianti collegati" — coerente con la dicitura già in uso nel Detail View (card
+          // principale, nota 'autorizzazione-impianti-tab-dedicata') e nelle sezioni analoghe di
+          // Concessione/Contratto (nota 'concessione-contratto-impianti-collegati'). Il codice
+          // per riga è il "codice autorizzazione per cimasa" (mai solo "codice cimasa": la
+          // cimasa è la struttura fisica del cartello, il codice è quello dell'autorizzazione
+          // che la riguarda). Il CUP resta fuori da questo form — è una pratica a sé, legata
+          // all'impianto, non all'Autorizzazione — sezione sempre terza, stessa struttura degli
+          // altri due tipi.
+          key: 'impianti', label: 'Impianti collegati', title: 'Impianti collegati',
+          description: React.createElement('span', null,
+            'Collega ogni impianto coperto da questa Autorizzazione e registra il relativo codice autorizzazione per cimasa; il CUP si gestisce invece come pratica a parte, legata all\'impianto. ',
+            React.createElement('strong', null, 'Puoi segnare il codice autorizzazione per cimasa anche prima che l\'impianto sia censito in Inventario'),
+            ': potrai collegarlo più avanti, anche dal Dettaglio con "Collega Spazi".',
+          ),
           disabled: !f.tipoAutorizzazione,
-          // v2 — deprecata la logica "Impianti coperti" (Singolo/Più impianti + Codice
-          // Autorizzazione singolo + allegato/OCR + CUP unico) a favore di un elenco di card,
-          // una per impianto (nota 'autorizzazione-impianti-tab-dedicata'), popolato dal
-          // drawer "Collega impianti" (nota 'permessi-collegamento-drawer-card') invece che da
-          // una Select per riga.
+          // v2 — sezione unica: codice autorizzazione per cimasa e collegamento impianto nella
+          // stessa riga (nota 'permessi-elenco-mai-vuoto' — ripristinata dopo aver provato e
+          // scartato lo split in due fasi separate) — deprecata anche la vecchia logica
+          // "Impianti coperti" (Singolo/Più impianti + Codice Autorizzazione singolo +
+          // allegato/OCR + CUP unico, nota 'autorizzazione-impianti-tab-dedicata').
           children: React.createElement(window.GravityFormArea, {
             title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
-              'Elenco impianti',
-              f.impiantiAutorizzati.length > 0 && impiantiCountBadge(f.impiantiAutorizzati.length),
+              'Elenco',
+              impiantiCountBadge(f.impiantiAutorizzati.length),
             ),
-            extra: f.impiantiAutorizzati.length > 0 && React.createElement(Space, { size: 8 }, impiantiAddManualBtn, impiantiCollegaBtn),
+            extra: impiantiAddManualBtn('Cimasa', { type: 'default', text: 'Aggiungi impianto' }),
           },
             React.createElement('div', { className: 'grav-autorizzazione-impianti-tab' },
               renderImpiantiRows(f.impiantiAutorizzati, {
-                field2Key: 'codiceAutorizzazione', field2Label: 'Codice Autorizzazione per cimasa',
-                field2Tip: 'Il codice che identifica la cimasa, cioè la struttura del cartello, per questo impianto. Puoi lasciarlo vuoto e compilarlo più avanti, quando l\'ente te lo comunica.',
+                field2Key: 'codiceAutorizzazione', field2Label: 'Codice Autorizzazione per Cimasa',
+                field2Tip: 'Il codice dell\'autorizzazione da riportare sulla cimasa, cioè la struttura del cartello, di questo impianto. Puoi lasciarlo vuoto e compilarlo più avanti, quando l\'ente te lo comunica.',
                 field2Placeholder: 'Es. CIM-3015',
-                field3Key: 'cup', field3Label: 'CUP',
-                field3Tip: 'Il Canone Unico Patrimoniale dovuto ogni anno per questo impianto. La somma di tutte le righe compare come CUP totale nel dettaglio dell\'Autorizzazione.',
-                emptyDescription: 'Nessun impianto collegato a questa Autorizzazione.',
               }),
             ),
           ),
@@ -1791,7 +2020,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
       activeKey: activeTab, onActiveKeyChange: setActiveTab,
       sections: [
         {
-          key: 'info', label: 'Informazioni', title: 'Informazioni',
+          key: 'info', label: 'Dati dell\'Atto', title: 'Dati dell\'Atto',
           description: 'Dati generali dell\'atto e l\'area concessa.',
           children: [
             React.createElement(window.GravityFormArea, {
@@ -1876,7 +2105,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           ],
         },
         {
-          key: 'origine', label: 'Origine', title: 'Origine',
+          key: 'origine', label: 'Modalità di Attribuzione', title: 'Modalità di Attribuzione',
           description: 'Come hai ottenuto la Concessione: bando pubblico, affidamento diretto o rinnovo di una concessione già in essere.',
           children: React.createElement(window.GravityFormArea, { key: 'origine-area' },
             React.createElement(Form, { className: 'grav-concessione-origine-section', layout: 'vertical', component: 'div' },
@@ -1944,18 +2173,16 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           // la terza sezione, stessa struttura degli altri due tipi.
           key: 'impianti', label: 'Canone Patrimoniale', title: 'Canone Patrimoniale',
           description: [
-            'Ogni impianto coperto da questa Concessione, con il proprio numero utenza e il proprio canone patrimoniale. Non ancora censito in Inventario? "Aggiungi senza impianto" per segnare comunque i suoi dati. Mostra solo impianti su suolo Pubblico (nota \'impianto-suolo-esclusivo-concessione-contratto\').',
+            'Registra il numero utenza e il canone patrimoniale dovuti per ogni impianto coperto da questa Concessione. Impianto non ancora censito in Inventario? Puoi collegarlo più avanti, anche dal Dettaglio con "Collega Spazi".',
           ],
-          // v2 — nota 'concessione-contratto-impianti-collegati': stesso elenco di card
-          // dell'Autorizzazione, popolato dal drawer "Collega impianti" (nota
-          // 'permessi-collegamento-drawer-card') invece che da una Select per riga. Terza
-          // sezione, stesso ordine di Autorizzazione/Contratto.
+          // v2 — sezione unica: Numero Utenza/Canone e collegamento impianto nella stessa riga
+          // (nota 'permessi-elenco-mai-vuoto', cfr. nota 'concessione-contratto-impianti-collegati').
           children: React.createElement(window.GravityFormArea, {
             title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
-              'Elenco impianti',
-              f.impiantiConcessione.length > 0 && impiantiCountBadge(f.impiantiConcessione.length),
+              'Elenco',
+              impiantiCountBadge(f.impiantiConcessione.length),
             ),
-            extra: f.impiantiConcessione.length > 0 && React.createElement(Space, { size: 8 }, impiantiAddManualBtn, impiantiCollegaBtn),
+            extra: impiantiAddManualBtn('Canone Patrimoniale'),
           },
             React.createElement('div', { className: 'grav-concessione-impianti-tab' },
               renderImpiantiRows(f.impiantiConcessione, {
@@ -1964,7 +2191,6 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                 field2Placeholder: 'Es. UT-10234',
                 field3Key: 'canonePatrimoniale', field3Label: 'Canone Patrimoniale',
                 field3Tip: 'La quota di canone dovuta per questo impianto. La somma di tutte le righe compare come Totale Canone nel dettaglio della Concessione.',
-                emptyDescription: 'Nessun impianto collegato a questa Concessione.',
               }),
             ),
           ),
@@ -1990,7 +2216,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
       activeKey: activeTab, onActiveKeyChange: setActiveTab,
       sections: [
         {
-          key: 'info', label: 'Informazioni', title: 'Informazioni',
+          key: 'info', label: 'Dati del Contratto', title: 'Dati del Contratto',
           description: 'Dati generali del contratto privato con il proprietario o locatore.',
           children: React.createElement(window.GravityFormArea, {
             key: 'dati', title: 'Dati del contratto',
@@ -2097,18 +2323,16 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           // la terza sezione, stessa struttura degli altri due tipi.
           key: 'impianti', label: 'Canone Locazione', title: 'Canone Locazione',
           description: [
-            'Ogni impianto coperto da questo Contratto, con il proprio numero utenza e il proprio canone di locazione. Non ancora censito in Inventario? "Aggiungi senza impianto" per segnare comunque i suoi dati. Mostra solo impianti su suolo Privato (nota \'impianto-suolo-esclusivo-concessione-contratto\').',
+            'Registra il numero utenza e il canone di locazione dovuti per ogni impianto coperto da questo Contratto. Impianto non ancora censito in Inventario? Puoi collegarlo più avanti, anche dal Dettaglio con "Collega Spazi".',
           ],
-          // v2 — nota 'concessione-contratto-impianti-collegati': stesso elenco di card di
-          // Autorizzazione/Concessione, popolato dal drawer "Collega impianti" (nota
-          // 'permessi-collegamento-drawer-card'). Terza sezione, stesso ordine di
-          // Autorizzazione/Concessione.
+          // v2 — sezione unica: Numero Utenza/Canone e collegamento impianto nella stessa riga
+          // (nota 'permessi-elenco-mai-vuoto', cfr. nota 'concessione-contratto-impianti-collegati').
           children: React.createElement(window.GravityFormArea, {
             title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
-              'Elenco impianti',
-              f.impiantiContratto.length > 0 && impiantiCountBadge(f.impiantiContratto.length),
+              'Elenco',
+              impiantiCountBadge(f.impiantiContratto.length),
             ),
-            extra: f.impiantiContratto.length > 0 && React.createElement(Space, { size: 8 }, impiantiAddManualBtn, impiantiCollegaBtn),
+            extra: impiantiAddManualBtn('Canone Locazione'),
           },
             React.createElement('div', { className: 'grav-contratto-impianti-tab' },
               renderImpiantiRows(f.impiantiContratto, {
@@ -2117,7 +2341,6 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                 field2Placeholder: 'Es. UT-10234',
                 field3Key: 'canoneLocazione', field3Label: 'Canone Locazione',
                 field3Tip: 'La quota di affitto dovuta per questo impianto. La somma di tutte le righe compare come Canone Locazione nel dettaglio del Contratto.',
-                emptyDescription: 'Nessun impianto collegato a questo Contratto.',
               }),
             ),
           ),
@@ -2551,11 +2774,10 @@ function PermitDetailPage({ record, kind, isV2, concessioniList, autorizzazioniL
     : isAutorizzazione
     ? (isV2
         ? [
+            // v2 — niente più KPI 'CUP totale': il CUP non vive più sull'Autorizzazione, è una
+            // pratica a sé legata all'impianto (nota 'cup-pratica-a-parte-legata-impianto').
             { icon: TagOutlined, label: 'Tipologia', value: record.tipologiaV2 || record.tipologia },
             { icon: ClockCircleOutlined, label: 'Data Scadenza', value: record.dataScadenza },
-            // v2 — CUP totale è la somma delle righe di Tab 2 (Impianti collegati), non più
-            // un valore singolo sul record (nota 'autorizzazione-impianti-tab-dedicata').
-            { icon: EuroCircleOutlined, label: 'CUP totale', value: fmtEuro((record.impiantiAutorizzati || []).reduce((s, r) => s + (r.cup || 0), 0)) },
             { icon: ApartmentOutlined, label: 'Impianti collegati', value: (record.impiantiAutorizzati || []).length },
           ]
         : [
@@ -2596,29 +2818,51 @@ function PermitDetailPage({ record, kind, isV2, concessioniList, autorizzazioniL
     ));
   }
   if (isV2 && isAutorizzazione && record.tipologiaV2 === TIPO_AUTORIZZAZIONE_ESPOSIZIONE) {
-    // v2 — Concessione/Contratto di riferimento come GravityEntityCard, non più una riga
-    // Descriptions: collegamento singolo, stesso trattamento della card di riepilogo nel
-    // drawer "Origine" del form (components/entity-card.md — pattern "collegamento singolo").
-    const attoId = !record.includeConcessioneSuoloPubblico ? record.attoProvenienzaId : null;
-    const attoIsContratto = !!attoId && attoId.startsWith('contr-');
-    const attoRec = attoId
-      ? (attoIsContratto ? (contrattiList || []).find(c => c.id === attoId) : (concessioniList || []).find(c => c.id === attoId))
-      : null;
-    const attoProvenienza = attoRec && {
-      kind: attoIsContratto ? 'Contratto Privato' : 'Concessione',
-      title: attoIsContratto ? attoRec.identificativoContratto : attoRec.identificativoDocumento,
-      subtitle: attoIsContratto ? attoRec.proprietarioLocatore : attoRec.enteEmittente,
-    };
+    // v2 — Concessioni/Contratti di riferimento come GravityEntityCard, una per atto collegato
+    // (collegamento multiplo, non più singolo — un'Autorizzazione può ereditare il diritto sul
+    // suolo da più atti) — stesso trattamento della card di riepilogo nel drawer "Origine" del
+    // form (components/entity-card.md).
+    const attiIds = !record.includeConcessioneSuoloPubblico ? (record.attiProvenienzaIds || []) : [];
+    const attiProvenienza = attiIds.map(attoId => {
+      const attoIsContratto = attoId.startsWith('contr-');
+      const attoRec = attoIsContratto ? (contrattiList || []).find(c => c.id === attoId) : (concessioniList || []).find(c => c.id === attoId);
+      return attoRec && {
+        id: attoId,
+        kind: attoIsContratto ? 'Contratto Privato' : 'Concessione',
+        title: attoIsContratto ? attoRec.identificativoContratto : attoRec.identificativoDocumento,
+        subtitle: attoIsContratto ? attoRec.proprietarioLocatore : attoRec.enteEmittente,
+        dataStipula: attoRec.dataStipula,
+        dataScadenza: attoRec.dataScadenza,
+        stato: statoEffettivoV2(attoRec),
+      };
+    }).filter(Boolean);
     sideCards.push(React.createElement(InfoCard, { key: 'copertura', icon: SafetyCertificateOutlined, label: 'Copertura' },
-      React.createElement(Descriptions, { size: 'small', column: 1, style: { marginBottom: attoProvenienza ? 12 : 0 } },
+      React.createElement(Descriptions, { size: 'small', column: 1, style: { marginBottom: attiProvenienza.length > 0 ? 12 : 0 } },
         React.createElement(Descriptions.Item, { label: 'Concessione suolo pubblico incl.' }, record.includeConcessioneSuoloPubblico ? 'Sì' : 'No'),
+        record.includeConcessioneSuoloPubblico && record.estensioneOccupazioneMq != null
+          && React.createElement(Descriptions.Item, { label: 'Superficie Occupata' }, `${record.estensioneOccupazioneMq} mq`),
+        record.includeConcessioneSuoloPubblico && record.tipoOccupazione
+          && React.createElement(Descriptions.Item, { label: 'Tipo di Occupazione' }, record.tipoOccupazione),
+        record.includeConcessioneSuoloPubblico && record.tipoOccupazione
+          && React.createElement(Descriptions.Item, { label: 'Durata Occupazione' },
+              record.tipoOccupazione === 'Temporanea'
+                ? (record.durataOccupazioneGiorni != null ? `${record.durataOccupazioneGiorni} giorni` : '—')
+                : 'Annuale'),
       ),
-      attoProvenienza && React.createElement(window.GravityEntityCard, {
-        title: attoProvenienza.title,
-        badges: [{ text: attoProvenienza.kind, variant: 'default' }],
-        fields: [{ icon: 'BankOutlined', label: attoProvenienza.kind === 'Contratto Privato' ? 'Proprietario:' : 'Ente:', value: attoProvenienza.subtitle }],
-        style: { maxWidth: 360 },
-      }),
+      attiProvenienza.length > 0 && React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 12 } },
+        attiProvenienza.map(atto => React.createElement(window.GravityEntityCard, {
+          key: atto.id,
+          title: atto.title,
+          badges: [{ text: atto.kind, variant: 'default' }],
+          fields: [
+            { icon: 'BankOutlined', label: atto.kind === 'Contratto Privato' ? 'Proprietario:' : 'Ente:', value: atto.subtitle },
+            { icon: 'CalendarOutlined', label: 'Data Stipula:', value: atto.dataStipula },
+            { icon: 'ThunderboltOutlined', label: 'Stato:', valueNode: statoDotNode(atto.stato) },
+          ],
+          footer: atto.dataScadenza ? `Scade il ${atto.dataScadenza}` : null,
+          style: { width: 360 },
+        })),
+      ),
     ));
   }
   if (isContratto) {
@@ -2646,12 +2890,13 @@ function PermitDetailPage({ record, kind, isV2, concessioniList, autorizzazioniL
   const impiantiCardSpec = isAutorizzazione
     ? {
         data: record.impiantiAutorizzati || [],
-        tip: 'Ogni impianto coperto da questa Autorizzazione, con il proprio codice cimasa e il proprio CUP.',
+        // v2 — niente più CUP in colonna: è una pratica a sé legata all'impianto, non
+        // all'Autorizzazione (nota 'cup-pratica-a-parte-legata-impianto').
+        tip: 'Ogni impianto coperto da questa Autorizzazione, con il proprio codice autorizzazione per cimasa.',
         noteId: 'autorizzazione-impianti-tab-dedicata',
         columns: [
           { title: 'Impianto', dataIndex: 'impiantoId', render: id => id ? renderFkLabel(MOCK_SPAZI, id, 'indirizzo') : React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Da collegare') },
-          { title: 'Codice Autorizzazione (per cimasa)', dataIndex: 'codiceAutorizzazione', render: v => v || '—' },
-          { title: 'CUP', dataIndex: 'cup', align: 'right', render: fmtEuro },
+          { title: 'Codice Autorizzazione per Cimasa', dataIndex: 'codiceAutorizzazione', render: v => v || '—' },
         ],
       }
     : isConcessione
@@ -2808,6 +3053,7 @@ function PermitDetailPage({ record, kind, isV2, concessioniList, autorizzazioniL
                   { text: s.id, variant: 'default' },
                   { text: s.canale, variant: s.canale === 'OOH' ? 'ooh' : 'dooh' },
                 ],
+                menu: [{ key: 'scollega', label: 'Scollega', icon: 'DeleteOutlined', danger: true, onClick: () => onScollegaSpazio(s.id) }],
                 fields: [
                   { icon: TYPE_ICON_NAMES_SPAZI[s.tipo], label: 'Tipo:', value: s.tipo },
                   { icon: 'ExpandOutlined', label: 'Formato:', value: s.formato },
@@ -2840,10 +3086,6 @@ function PermitDetailPage({ record, kind, isV2, concessioniList, autorizzazioniL
                         })()),
                   ] : []),
                 ],
-                footer: React.createElement(Button, {
-                  size: 'small', type: 'text', danger: true, icon: React.createElement(DeleteOutlined),
-                  onClick: () => onScollegaSpazio(s.id),
-                }, 'Scollega'),
               }),
             )),
           ),
@@ -3007,13 +3249,14 @@ function AppRoot() {
       { title: 'Identificativo Documento', dataIndex: 'identificativoDocumento', width: 180, ...makeSearchFilter('identificativoDocumento') },
       { title: 'Data Stipula', dataIndex: 'dataStipula', width: 120, sorter: (a, b) => parseItDate(a.dataStipula) - parseItDate(b.dataStipula) },
       { title: 'Data Scadenza', dataIndex: 'dataScadenza', width: 130, sorter: (a, b) => parseItDate(a.dataScadenza) - parseItDate(b.dataScadenza) },
-      // v2 — CUP condizionale al tipo "Esposizione pubblicitaria": '—' per le altre 6 (nota
-      // 'autorizzazione-tipologia-overhaul'). V1 mostra sempre l'importo, invariato. In v2 il
-      // valore è la somma delle righe di Tab 2 (nota 'autorizzazione-impianti-tab-dedicata'),
-      // non più il campo singolo `cup` (sempre 0 sui record creati in v2).
-      { title: 'CUP (€)', dataIndex: 'cup', width: 130, align: 'right',
-        sorter: (a, b) => cupTotale(a, isV2) - cupTotale(b, isV2),
-        render: (v, r) => (!isV2 || r.tipologiaV2 === TIPO_AUTORIZZAZIONE_ESPOSIZIONE) ? fmtEuro(cupTotale(r, isV2)) : React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—') },
+      // v2 — niente più colonna CUP: il CUP non vive più sull'Autorizzazione, è una pratica a
+      // sé legata all'impianto (nota 'cup-pratica-a-parte-legata-impianto') — V1 mostra sempre
+      // l'importo, invariato.
+      ...(isV2 ? [] : [
+        { title: 'CUP (€)', dataIndex: 'cup', width: 130, align: 'right',
+          sorter: (a, b) => cupTotale(a, isV2) - cupTotale(b, isV2),
+          render: (v, r) => fmtEuro(cupTotale(r, isV2)) },
+      ]),
     ];
     const v2Extra = [
       { title: 'Data Decorrenza', dataIndex: 'dataDecorrenza', width: 130, sorter: (a, b) => parseItDate(a.dataDecorrenza) - parseItDate(b.dataDecorrenza) },
@@ -3097,12 +3340,11 @@ function AppRoot() {
     if (!isV2) return null;
     const attive = autorizzazioni.filter(a => a.stato === 'Attiva');
     const scadute = autorizzazioni.filter(a => a.stato === 'Scaduta');
+    // v2 — niente più valueExtra CUP/anno su "Attive": il CUP non vive più sull'Autorizzazione,
+    // è una pratica a sé legata all'impianto (nota 'cup-pratica-a-parte-legata-impianto').
     return [
       { icon: FileTextOutlined, label: 'Totale autorizzazioni', value: autorizzazioni.length },
-      {
-        icon: CheckCircleOutlined, label: 'Attive', value: attive.length,
-        valueExtra: `${fmtEuro(attive.reduce((s, a) => s + a.cup, 0))} CUP/anno`,
-      },
+      { icon: CheckCircleOutlined, label: 'Attive', value: attive.length },
       { icon: ClockCircleOutlined, label: 'Scadute', value: scadute.length },
     ];
   }, [isV2, autorizzazioni]);

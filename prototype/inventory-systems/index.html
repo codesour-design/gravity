@@ -1580,7 +1580,6 @@ function LeafletMap({ impianti, highlightedId, selectedIds, filteredIds, onSelec
           React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.65)' } }, value),
         );
       const statoAmmCfg = STATO_AMM_CONFIG[cardImp.stato_amm] || STATO_AMM_CONFIG['Attivo'];
-      const fotoIdx = parseInt(cardImp.id.slice(1), 10) % FOTO_IMPIANTO.length;
       return React.createElement('div', {
         ref: cardRef,
         style: {
@@ -1611,7 +1610,7 @@ function LeafletMap({ impianti, highlightedId, selectedIds, filteredIds, onSelec
         // Body: immagine + info affiancati
         React.createElement('div', { style: { display: 'flex', flexDirection: 'row', alignItems: 'stretch' } },
           React.createElement('div', { style: { width: 160, flexShrink: 0, overflow: 'hidden' } },
-            React.createElement('img', { src: FOTO_IMPIANTO[fotoIdx], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
+            React.createElement('img', { src: cardImp.fotoCopertina || FOTO_IMPIANTO[0], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
           ),
           React.createElement('div', { style: { flex: 1, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '1px solid #f0f0f0', minWidth: 0 } },
             React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
@@ -2562,6 +2561,21 @@ const FOTO_IMPIANTO = [
   '../_shared/assets/system-photos/quali-sono-le-regole-del-codice-della-strada-per-la-pubblicita-lungo-le-strade-e-sui-veicoli.jpg',
 ];
 
+// v2 — Foto di copertina: campo reale sul record (`fotoCopertina`), non più un'assegnazione
+// pseudo-casuale calcolata a tempo di rendering da `id` (nota corretta: il vecchio pattern
+// `FOTO_IMPIANTO[parseInt(id)... % length]` mostrava la stessa "finta" distribuzione ad ogni
+// render senza che nessuno l'avesse davvero scelta). Si imposta ora nel form Nuovo Impianto
+// (sezione Identità) — backfill deterministico qui sotto per i record mock esistenti, stessa
+// distribuzione visiva di prima così le card non cambiano aspetto, ma il valore vive sul
+// record ed è editabile.
+(function seedFotoCopertina() {
+  IMPIANTI.forEach((imp, i) => {
+    if (imp.fotoCopertina === undefined) {
+      const n = parseInt((String(imp.id).match(/\d+/) || [0])[0], 10) || i;
+      imp.fotoCopertina = FOTO_IMPIANTO[n % FOTO_IMPIANTO.length];
+    }
+  });
+})();
 
 const FACCE = [
   { id: 1, tipo: 'anteriore',  formato: '1,40 x 2,00 m', slot: 4, orientamento: '45°',  conoVisibilita: 'r 40 m', illuminazione: '2 faretti',     prezzo: 300 },
@@ -4246,7 +4260,7 @@ function ImpiantoDetailV2({ imp, onBack }) {
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 } }, moduli.map(m => React.createElement(EntityCard, {
           key: m.id,
           header: { title: m.id + ' · ' + m.tipo, menu: [{ key: 'rm', label: 'Scollega', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => removeModulo(m.id) }] },
-          image: { height: 100, node: React.createElement('img', { src: FOTO_IMPIANTO[(parseInt((String(m.id).match(/\d+/) || [0])[0], 10) || 0) % FOTO_IMPIANTO.length], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }) },
+          image: { height: 100, node: React.createElement('img', { src: m.fotoCopertina || FOTO_IMPIANTO[0], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }) },
           body: { rows: [
             { icon: EnvironmentOutlined, label: 'Indirizzo', value: m.indirizzo },
             { icon: ExpandOutlined, label: 'Formato', value: m.formato },
@@ -4690,6 +4704,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [tipologia, setTipologia] = useState(iv.tipologia || null);
   const [formato,   setFormato]   = useState(iv.formato   || null);
   const [stato,     setStato]     = useState(iv.stato     || null);
+  // v2 — Foto di copertina: campo reale sul record, scelto qui invece di essere calcolato a
+  // tempo di rendering da id (nota 'impianto-foto-copertina-non-pseudo-casuale') — picker a
+  // miniature sul pool FOTO_IMPIANTO condiviso, non un vero upload (nessun backend nel mock).
+  const [fotoCopertina, setFotoCopertina] = useState(iv.fotoCopertina || null);
   // Tipologie e formati creati al volo dal "+" accanto ai rispettivi campi (solo
   // in questa sessione del form, non persistiti altrove) — si aggiungono alle
   // opzioni statiche di MACRO_TIPI_PER_CANALE/FORMATI_PER_TIPO senza sostituirle.
@@ -4732,6 +4750,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setNome(v.nome || '');
     setTipologia(v.tipologia || null);
     setStato(v.stato || null);
+    setFotoCopertina(v.fotoCopertina || null);
     setVia(v.via || '');
     setCivico(v.civico || '');
     setCap(v.cap || '');
@@ -5662,7 +5681,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const canSave = canale && tipologia && formato && via.trim() && citta.trim() && stato && lat.trim() && lng.trim();
 
   const collectFormData = () => ({
-    canale, nome, tipologia, formato, stato,
+    canale, nome, tipologia, formato, stato, fotoCopertina,
     via, civico, cap, citta, provincia, regione, nazione, lat, lng,
     tipoSuolo, catSuolo, utenza, zona: zn, note,
     largImp, altImp, profImp, altTerra, tipoAltezza, areaEspositiva, riparato, facce,
@@ -6028,7 +6047,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   // continuerebbe ad avvisare di modifiche non salvate che in realtà sono già
   // state salvate un istante prima.
   const buildDirtySnapshot = () => ({
-    canale, nome, tipologia, stato, formato,
+    canale, nome, tipologia, stato, formato, fotoCopertina,
     via, civico, cap, citta, provincia, regione, nazione, lat, lng, zn, note, tipoSuolo, catSuolo, utenza,
     largImp, altImp, profImp, altTerra, tipoAltezza, riparato, facce, assets,
     aliasImpianto, circuiti, qualita, moduliCollegati, proprieta, vendita, prezzoNetto, prezzoLordo, aliquotaIva, scontoModuli, scontoModuliPct, cimasa,
@@ -6473,6 +6492,23 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                 { className: 'grav-field-stato', status: showErrors && !stato ? 'error' : undefined }), 'stato'),
             ),
           ),
+          box(React.createElement('span', null, 'Foto di copertina',
+              React.createElement(HandoffDesignNote, { id: 'impianto-foto-copertina-non-pseudo-casuale', placement: 'right' })),
+            'Scegli l\'immagine che rappresenta l\'impianto nelle card e nei popover mappa. Facoltativa: senza una scelta, l\'impianto resta senza foto invece di mostrarne una a caso.',
+            React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap' } },
+              FOTO_IMPIANTO.map((src, i) => React.createElement('div', {
+                key: i,
+                onClick: () => setFotoCopertina(fotoCopertina === src ? null : src),
+                style: {
+                  width: 96, height: 64, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
+                  border: fotoCopertina === src ? `2px solid ${window.GRAVITY_THEME.token.colorPrimary}` : '2px solid transparent',
+                  boxShadow: fotoCopertina === src ? 'none' : '0 0 0 1px #F0F0F0',
+                },
+              },
+                React.createElement('img', { src, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
+              )),
+            ),
+          ),
           box('Indirizzo e coordinate', 'Cerca l\'indirizzo nel campo Via: gli altri campi, comprese le coordinate, si compilano in automatico.',
             React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '3fr 1fr', gap: 12 } },
               cs('Via', true, viaAutocomplete, 'via'),
@@ -6897,7 +6933,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                       return React.createElement(EntityCard, {
                         key: id,
                         header: { title: imp.id + ' · ' + imp.tipo, menu: [{ key: 'rm', label: 'Scollega', danger: true, icon: React.createElement(DeleteOutlined), onClick: () => removeModulo(id) }] },
-                        image: { height: 100, node: React.createElement('img', { src: FOTO_IMPIANTO[(parseInt((String(imp.id).match(/\d+/) || [0])[0], 10) || 0) % FOTO_IMPIANTO.length], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }) },
+                        image: { height: 100, node: React.createElement('img', { src: imp.fotoCopertina || FOTO_IMPIANTO[0], style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }) },
                         body: { rows: [
                           { icon: EnvironmentOutlined, label: 'Indirizzo', value: imp.indirizzo },
                           { icon: ExpandOutlined, label: 'Formato', value: imp.formato },

@@ -117,24 +117,31 @@ suo **nome è specifico per tipo**, non più il generico "Impianti collegati" id
 un'etichetta come "Cimasa e CUP" comunica da subito cosa si autorizza in quella sezione, prima
 ancora di aprirla, invece di farlo scoprire solo dopo (stessa logica di "Documentazione viva" —
 il nome scelto in un primo giro può rivelarsi non abbastanza esplicito e va corretto).
-- **Nuova Autorizzazione**: "Informazioni" (dati generali dell'atto), "Origine" (diritto sul
-  suolo — incluso nell'atto o ereditato da un altro, disabilitata se il Tipo non è Esposizione
+- **Nuova Autorizzazione**: "Dati dell'Atto" (dati generali dell'atto), "Diritto sul Suolo"
+  (incluso nell'atto o ereditato da un altro, disabilitata se il Tipo non è Esposizione
   pubblicitaria) e **"Cimasa e CUP"** (elenco a righe, disabilitata finché il Tipo non è
-  scelto in "Informazioni").
-- **Nuova Concessione**: "Informazioni" (dati dell'atto + area concessa), "Origine" (modalità
-  di attribuzione) e **"Canone Patrimoniale"** (numero utenza e canone patrimoniale per
+  scelto in "Dati dell'Atto").
+- **Nuova Concessione**: "Dati dell'Atto" (dati dell'atto + area concessa), "Modalità di
+  Attribuzione" (bando pubblico, affidamento diretto o rinnovo) e **"Canone Patrimoniale"**
+  (numero utenza e canone patrimoniale per impianto) — nessuna sezione disabilitata.
+- **Nuovo Contratto Privato**: "Dati del Contratto" (dati del contratto), "Riferimento
+  Catastale" (facoltativo) e **"Canone Locazione"** (numero utenza e canone di locazione per
   impianto) — nessuna sezione disabilitata.
-- **Nuovo Contratto Privato**: "Informazioni" (dati del contratto), "Riferimento Catastale"
-  (facoltativo) e **"Canone Locazione"** (numero utenza e canone di locazione per impianto) —
-  nessuna sezione disabilitata.
+
+> Nota: "Diritto sul Suolo" e "Modalità di Attribuzione" erano entrambe etichettate "Origine"
+> (a sua volta rinominata da "Provenienza") finché non si è notato che, pur trattando entrambe
+> di come si è ottenuto il diritto sottostante, il contenuto delle due sezioni è specifico per
+> tipo — lo stesso motivo per cui "Impianti collegati" è già specifico per tipo (sopra). "Dati
+> dell'Atto"/"Dati del Contratto" sostituiscono il generico "Informazioni" comune a tutti e tre.
 
 Concessione V1 e Autorizzazione V1 restano invece sul Drawer semplice a 640px (LAYOUT.md §3.2):
 solo la v2 usa `GravitySectionDrawer` per questi tre form.
 
 ## Sotto-pattern: elenco collegato con ricerca via drawer (non ancora un componente condiviso)
 
-Le sezioni "Cimasa e CUP"/"Canone Patrimoniale"/"Canone Locazione" (le tre sopra) e "Origine" (solo Autorizzazione, campo
-"Concessione o Contratto di riferimento") condividono un sotto-pattern per collegare
+Le sezioni "Cimasa e CUP"/"Canone Patrimoniale"/"Canone Locazione" (le tre sopra) e "Diritto sul
+Suolo" (solo Autorizzazione, campo "Concessioni o Contratti di riferimento") condividono un
+sotto-pattern per collegare
 un'altra entità quando una `Select` semplice non basta a trovarla — caso reale quando le
 opzioni sono migliaia con nomi simili (nota 'permessi-collegamento-drawer-card'). **Non è
 ancora estratto in `prototype/_shared/`**: vive per ora duplicato in
@@ -151,10 +158,17 @@ candidato naturale per una futura estrazione, segnalato ma non ancora deciso.
   una griglia di card**: resta un elenco a righe (una per elemento), perché a scala reale
   (20.000+ impianti) una card fitta di informazioni per ciascuna riga è meno leggibile di una
   riga compatta, e perché il drawer già risolve la ricerca — le righe non devono più farlo.
-- **Collegamento singolo (atto di provenienza)**: stesso drawer, ma selezione a scelta unica
-  (`Radio` invece di `Checkbox`) — il risultato è una singola `GravityEntityCard` (coerente
-  con le card di "Spazi collegati"), non una riga: con un solo elemento possibile, la card è
-  più leggibile di una riga isolata.
+- **Collegamento multiplo a manciata (atti di provenienza)**: stesso drawer e stessa selezione a
+  checkbox del collegamento impianti sopra, ma il risultato è una **griglia di `GravityEntityCard`**
+  a fill per larghezza (`grid` `auto-fit minmax`, non colonne fisse, non un elenco a righe): la
+  cardinalità tipica è 0-2 atti collegati, non migliaia, quindi la card resta più leggibile di
+  una riga anche con più di un elemento, e con una sola card collegata questa riempie l'intera
+  larghezza del box invece di lasciare spazio vuoto accanto. Il pulsante che apre il drawer vive
+  nello stato vuoto (`gravLinkEmpty`) finché non c'è nulla collegato, poi si sposta nell'`extra`
+  dell'header del box ("Collega permesso", stessa etichetta in entrambi gli stati) — mai sotto la griglia; ogni card ha il proprio
+  "Scollega" nel kebab `menu` (non un'azione unica per l'intero collegamento) — dettaglio in
+  `components/entity-card.md` → "Griglia a manciata, fill per larghezza" e "Pulsante 'Collega' e
+  stato vuoto".
 - **Riga (collegamento multiplo)**: `Row`/`Col` a 4 colonne (9/7/5/3, `gutter: 16`), una riga
   per elemento con `marginBottom: 20` tra una riga e l'altra — più ariosa del `gutter: 16` /
   `marginBottom: 12` della sola intestazione colonne, per dare respiro a un elenco che può
