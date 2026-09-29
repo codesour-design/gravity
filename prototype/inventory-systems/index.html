@@ -7550,35 +7550,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           }),
     ),
 
-    // Drawer oneri economici — selezione multipla dal catalogo
-    React.createElement(Drawer, {
-      title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-        React.createElement(DiscardCloseIcon, { dirty: onereKeys.length > 0, onDiscard: () => { setOnereKeys([]); setOnereDrawerOpen(false); } }), 'Aggiungi oneri economici'),
-      placement: 'right', width: 640,
-      styles: { body: { padding: 24 } },
-      closable: false, maskClosable: onereKeys.length === 0, keyboard: onereKeys.length === 0,
-      onClose: () => { setOnereKeys([]); setOnereDrawerOpen(false); }, open: onereDrawerOpen,
-      extra: React.createElement(Space, null,
-        React.createElement(DiscardButton, { dirty: onereKeys.length > 0, onDiscard: () => { setOnereKeys([]); setOnereDrawerOpen(false); } }, 'Annulla'),
-        React.createElement(Button, {
-          type: onereKeys.length > 0 ? 'primary' : 'default',
-          disabled: onereKeys.length === 0,
-          onClick: () => {
-            const nuovi = onereKeys.map(k => ONERI_DATA.find(x => x.key === k)).filter(Boolean).map(o => ({ id: o.key, tipo: o.tipo, enteForn: o.enteForn, riferimento: o.riferimento, importo: o.importo, periodicita: o.periodicita, dataInizio: o.dataInizio, dataScadenza: o.dataScadenza, status: o.status, isActive: o.isActive }));
-            setAddedOneri(prev => {
-              const esistenti = new Set(prev.map(x => x.id));
-              return [...prev, ...nuovi.filter(n => !esistenti.has(n.id))];
-            });
-            setOnereKeys([]);
-            setOnereDrawerOpen(false);
-            antdMsg.success(nuovi.length === 1 ? 'Onere economico aggiunto' : nuovi.length + ' oneri economici aggiunti');
-          },
-        }, onereKeys.length > 0 ? 'Aggiungi (' + onereKeys.length + ')' : 'Aggiungi'),
-      ),
-    },
-      React.createElement(OneriCatalogList, { data: ONERI_DATA, selectedKeys: onereKeys, onSelectionChange: setOnereKeys }),
-    ),
-
     // Drawer collegamento moduli — GravityEntityPickerDrawer (LAYOUT.md §3.10)
     React.createElement(window.GravityEntityPickerDrawer, {
       open: linkDrawerOpen, onClose: () => setLinkDrawerOpen(false), dirty: isLinkDirty(),
