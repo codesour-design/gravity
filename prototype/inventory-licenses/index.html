@@ -20,7 +20,10 @@
   <script src="../_shared/navbar.js"></script>
   <script src="../_shared/entity-card.js"></script>
   <script src="../_shared/section-drawer.js"></script>
+  <script src="../_shared/entity-picker-drawer.js"></script>
   <script src="../_shared/page-header.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="../_shared/map-interactions.js"></script>
 
   <!-- Handoff loader — attiva il layer handoff (note di design + tour + interfaccia
@@ -335,6 +338,14 @@ const FOTO_IMPIANTO = [
   '../_shared/assets/system-photos/quali-sono-le-regole-del-codice-della-strada-per-la-pubblicita-lungo-le-strade-e-sui-veicoli.jpg',
 ];
 
+// Nomi commerciali (Alias) di alcuni impianti: nomi "di battaglia" al posto dell'ID.
+const ALIAS_IMPIANTI = [
+  'Spectacular', 'Il Faro', 'Skyline Politeama', 'La Vela', 'Porta Nuova XL', 'Belvedere',
+  'Il Gigante', 'Maqueda Prime', 'Vetrina del Corso', 'Cinema Sotto le Stelle', 'La Cupola',
+  'Golden Gate', 'Lungomare Live', 'Il Monolite', 'Piazza Grande', 'Crocevia', 'Hollywood',
+  'Il Balcone', 'Nord Express', 'Sipario', 'Orizzonte', 'Tramonto',
+];
+
 function generaMockSpazi(n) {
   const rows = [];
   for (let i = 0; i < n; i++) {
@@ -356,18 +367,27 @@ function generaMockSpazi(n) {
       id: `${canale}-${String(1000 + i)}`,
       canale, tipo, formato, facce, proprietario,
       indirizzo: `${via} ${civico}, ${citta}`,
+      // v2 — nome commerciale (Alias) dell'impianto, come in inventory-systems.
+      // Solo alcuni impianti hanno un Alias: dove c'è, sostituisce l'ID come nome mostrato.
+      alias: i % 3 === 0 ? ALIAS_IMPIANTI[(i / 3) % ALIAS_IMPIANTI.length] : null,
       suolo: i % 2 === 0 ? 'Pubblico' : 'Privato',
       // v2 — campi trasversali §4 modello target (nota 'impianto-campi-derivati-vs-espliciti'):
       // digitale coincide con canale==='DOOH' (nessuna terza modalità in questo mock);
       // superficieMq è indicativa, non calcolata dal formato reale.
       digitale: canale === 'DOOH',
       superficieMq: 2 + (i % 12),
+      // v2 — coordinate mock sparse sul centro di Palermo (mappa degli impianti collegati).
+      lat: +(38.106 + ((i * 7) % 30) * 0.0012).toFixed(5),
+      lng: +(13.343 + ((i * 11) % 26) * 0.0011).toFixed(5),
       statoCimasa,
       codiceCimasa: statoCimasa === 'Presente' ? `CIM-${2000 + i}` : null,
       utenzaElettrica: illuminato ? { codicePod: `IT001E${String(10000000 + i * 37)}`, fornitore: FORNITORI_ELETTRICI[i % FORNITORI_ELETTRICI.length] } : null,
       codiceInterno: `INT-${String(i + 1).padStart(4, '0')}`,
       codiceGestionaleEsterno: i % 3 === 0 ? null : `EXT-${canale}-${String(i + 1).padStart(4, '0')}`,
       fotoCopertina: FOTO_IMPIANTO[i % FOTO_IMPIANTO.length],
+      // v2 — data di creazione del record (ISO, usata dal sort del drawer "Seleziona impianto");
+      // sfasata dall'indice così l'ordine per data non coincide con quello per ID.
+      dataCreazione: new Date(Date.UTC(2026, 8, 28) - ((i * 37) % 400) * 86400000).toISOString().slice(0, 10),
     });
   }
   return rows;
@@ -973,7 +993,7 @@ const EMPTY_PERMIT_STATE = {
   // v2 — Autorizzazione: estensioni. impiantiAutorizzati sostituisce Impianti coperti/Codice
   // Autorizzazione (per cimasa)/Riferimento allegato/CUP a valore singolo (nota
   // 'autorizzazione-impianti-tab-dedicata'): un'Autorizzazione copre N impianti, ciascuno con un
-  // proprio codice autorizzazione per cimasa. Il CUP NON vive più qui (nota
+  // proprio codice cimasa. Il CUP NON vive più qui (nota
   // 'cup-pratica-a-parte-legata-impianto'): è una pratica a sé, legata all'impianto, non
   // all'Autorizzazione — la sezione "Impianti collegati" registra solo codice e collegamento
   // impianto.
@@ -1350,7 +1370,10 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
   // ad ogni apertura, non persistono da una riga all'altra.
   const [impiantiLinkCanale, setImpiantiLinkCanale] = useState(null);
   const [impiantiLinkTipo, setImpiantiLinkTipo] = useState(null);
+  const [impiantiLinkFormato, setImpiantiLinkFormato] = useState(null);
   const [impiantiLinkPage, setImpiantiLinkPage] = useState(1);
+  // v2 — ordinamento del drawer "Seleziona impianto": di default i record creati più di recente.
+  const [impiantiLinkSort, setImpiantiLinkSort] = useState('recenti');
   const IMPIANTI_LINK_PAGE_SIZE = 9;
 
   const impiantiLinkBase = isAutorizzazione
@@ -1358,30 +1381,59 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
     : isConcessione
     ? MOCK_SPAZI.filter(s => s.suolo === 'Pubblico')
     : MOCK_SPAZI.filter(s => s.suolo === 'Privato');
-  // v2 — opzioni Tipologia dipendenti dal Canale scelto (se scelto): non proporre tipologie che
-  // in questo scope non esistono comunque (es. Alux/Totem se il Canale è OOH).
+  // v2 — filtri a cascata Canale → Tipologia → Formato (sfaccettati): ogni select propone solo i
+  // valori compatibili con gli ALTRI due filtri attivi, e scegliere un valore autocompila gli
+  // altri quando ne resta uno solo possibile (es. Tipologia "Alux" → Canale DOOH). Un filtro
+  // già impostato ma incompatibile con la nuova scelta viene azzerato.
+  const Picker = window.GravityEntityPickerDrawer;
+  const impiantiLinkFilters = { canale: impiantiLinkCanale, tipo: impiantiLinkTipo, formato: impiantiLinkFormato };
+  const applyImpiantiLinkFilter = (key, value) => {
+    const next = Picker.cascade(impiantiLinkBase, impiantiLinkFilters, key, value, ['canale', 'tipo']);
+    setImpiantiLinkCanale(next.canale); setImpiantiLinkTipo(next.tipo); setImpiantiLinkFormato(next.formato);
+    setImpiantiLinkPage(1);
+  };
+  const impiantiLinkFacetValues = (key) => Picker.facetItems(impiantiLinkBase, impiantiLinkFilters, key);
+  const impiantiLinkCanaleOptions = useMemo(() => {
+    const present = new Set(impiantiLinkFacetValues('canale').map(s => s.canale));
+    return ['OOH', 'DOOH'].filter(c => present.has(c)).map(c => ({
+      value: c, label: React.createElement(Tag, { color: c === 'OOH' ? 'green' : 'magenta', style: { margin: 0 } }, c),
+    }));
+  }, [impiantiLinkBase, impiantiLinkTipo, impiantiLinkFormato]);
   const impiantiLinkTipoOptions = useMemo(() => {
-    const scope = impiantiLinkCanale ? impiantiLinkBase.filter(s => s.canale === impiantiLinkCanale) : impiantiLinkBase;
-    return Array.from(new Set(scope.map(s => s.tipo))).sort().map(t => ({ value: t, label: t }));
-  }, [impiantiLinkBase, impiantiLinkCanale]);
+    const scope = impiantiLinkFacetValues('tipo');
+    // v2 — icona tipologia dall'asset custom condiviso (LAYOUT.md §6.5), fallback TagOutlined.
+    return Array.from(new Set(scope.map(s => s.tipo))).sort().map(t => {
+      const canale = (scope.find(s => s.tipo === t) || {}).canale;
+      const src = window.GravityMap ? window.GravityMap.systypeIconSrc(t, canale) : null;
+      return {
+        value: t,
+        label: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+          src ? React.createElement('img', { src, style: { width: 14, height: 14, flexShrink: 0 } })
+              : React.createElement(TagOutlined, { style: { fontSize: 14, color: 'rgba(0,0,0,0.45)' } }),
+          t),
+      };
+    });
+  }, [impiantiLinkBase, impiantiLinkCanale, impiantiLinkFormato]);
+  const impiantiLinkFormatoOptions = useMemo(() =>
+    Array.from(new Set(impiantiLinkFacetValues('formato').map(s => s.formato))).sort().map(f => ({ value: f, label: f })),
+  [impiantiLinkBase, impiantiLinkCanale, impiantiLinkTipo]);
   const impiantiLinkQuery = impiantiLinkSearch.trim().toLowerCase();
   const impiantiLinkCandidatesRaw = impiantiLinkBase.filter(s =>
-    (!impiantiLinkQuery || s.id.toLowerCase().includes(impiantiLinkQuery) || (s.indirizzo || '').toLowerCase().includes(impiantiLinkQuery))
+    (!impiantiLinkQuery || s.id.toLowerCase().includes(impiantiLinkQuery) || (s.indirizzo || '').toLowerCase().includes(impiantiLinkQuery) || (s.alias || '').toLowerCase().includes(impiantiLinkQuery))
     && (!impiantiLinkCanale || s.canale === impiantiLinkCanale)
-    && (!impiantiLinkTipo || s.tipo === impiantiLinkTipo));
+    && (!impiantiLinkTipo || s.tipo === impiantiLinkTipo)
+    && (!impiantiLinkFormato || s.formato === impiantiLinkFormato));
   // v2 — in modalità risoluzione esclude gli impianti già collegati in un'altra riga di questo
   // stesso form: non ha senso proporre di assegnarne uno già usato altrove.
-  const impiantiLinkCandidates = impiantiResolveKey
+  const impiantiLinkCandidatesUnsorted = impiantiResolveKey
     ? impiantiLinkCandidatesRaw.filter(s => !impiantiRows.some(r => r.impiantoId === s.id))
     : impiantiLinkCandidatesRaw;
+  const impiantiLinkCandidates = [...impiantiLinkCandidatesUnsorted].sort((a, b) =>
+    impiantiLinkSort === 'recenti' ? b.dataCreazione.localeCompare(a.dataCreazione) : a.dataCreazione.localeCompare(b.dataCreazione));
   const impiantiLinkTotalPages = Math.max(1, Math.ceil(impiantiLinkCandidates.length / IMPIANTI_LINK_PAGE_SIZE));
   const impiantiLinkPageSafe = Math.min(impiantiLinkPage, impiantiLinkTotalPages);
   const impiantiLinkPageItems = impiantiLinkCandidates.slice(
     (impiantiLinkPageSafe - 1) * IMPIANTI_LINK_PAGE_SIZE, impiantiLinkPageSafe * IMPIANTI_LINK_PAGE_SIZE);
-  // v2 — nessun filtro/ricerca attivo e il parco è ampio: prima di riempire la griglia di card
-  // suggerisce di restringere, invece di limitarsi a paginare centinaia di risultati silenziosi.
-  const impiantiLinkNoFilterActive = !impiantiLinkQuery && !impiantiLinkCanale && !impiantiLinkTipo;
-  const impiantiLinkShowRefineHint = impiantiLinkNoFilterActive && impiantiLinkCandidates.length > IMPIANTI_LINK_PAGE_SIZE;
 
   // v2 — una sola sezione, una sola riga per impianto: Codice/CUP (o Numero Utenza/Canone) e
   // Collega impianto convivono nella stessa riga (nota 'permessi-elenco-mai-vuoto', cfr.
@@ -1394,6 +1446,8 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
     setImpiantiLinkSearch('');
     setImpiantiLinkCanale(null);
     setImpiantiLinkTipo(null);
+    setImpiantiLinkFormato(null);
+    setImpiantiLinkSort('recenti');
     setImpiantiLinkPage(1);
     impiantiLinkSnapshotRef.current = [];
     setImpiantiLinkOpen(true);
@@ -1493,6 +1547,9 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
   // collegati" (Autorizzazione) l'azione principale è invece collegare l'impianto (il codice
   // cimasa è successivo e spesso non ancora disponibile): copy generica "Aggiungi impianto" e
   // pulsante default, non primary, per non competere con "Collega impianto" dentro la riga.
+  // v2 — box Mappa sotto l'elenco: mostra gli impianti già collegati nelle righe.
+  const impiantiMapArea = (rows) => React.createElement(window.GravityFormArea, { key: 'mappa', title: 'Mappa', description: 'Gli impianti collegati, aggiornati mentre li aggiungi o li rimuovi.' },
+    React.createElement(ImpiantiLinkedMap, { spazi: rows.map(r => r.impiantoId && MOCK_SPAZI.find(x => x.id === r.impiantoId)).filter(Boolean) }));
   const impiantiAddManualBtn = (label, opts = {}) => React.createElement(Button, {
     type: opts.type || 'primary', icon: React.createElement(PlusOutlined), onClick: addManualImpiantoRow,
   }, opts.text || `Registra ${label}`);
@@ -1503,33 +1560,31 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
   // "Seleziona impianto" (nota 'permessi-collegamento-drawer-scala-reale'), dove aiuta di più a
   // scegliere tra impianti simili. Trigger esplicito (icona Ⓘ), non tutto il blocco identità,
   // per restare scopribile (LAYOUT.md §6.2) invece che scoperto per caso.
-  const impiantoInfoPopover = (spazio) => {
-    // v2 — icona tipologia dall'asset custom condiviso (systemstype-icons via
-    // GravityMap.systypeIconSrc, LAYOUT.md §6.5), fallback su TagOutlined se il tipo non ha
-    // un'icona custom — stesso pattern già in uso in inventory-systems/planning.
-    const tipoIconSrc = window.GravityMap ? window.GravityMap.systypeIconSrc(spazio.tipo, spazio.canale) : null;
-    const tipoIconNode = tipoIconSrc
-      ? React.createElement('img', { src: tipoIconSrc, style: { width: 12, height: 12, display: 'inline-block' } })
-      : React.createElement(TagOutlined, { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } });
-    return React.createElement(Popover, {
-      placement: 'top', trigger: 'hover',
-      content: React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, minWidth: 200 } },
-        [
-          { iconNode: tipoIconNode, label: 'Tipo', value: spazio.tipo },
-          { icon: 'ExpandOutlined', label: 'Formato', value: spazio.formato },
-          { icon: 'EnvironmentOutlined', label: 'Suolo', value: spazio.suolo },
-          { icon: 'BorderOutlined', label: 'Superficie', value: `${spazio.superficieMq} mq` },
-        ].map((f, fi) => {
-          const FieldIcon = f.icon ? icons[f.icon] : null;
-          return React.createElement('div', { key: fi, style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 } },
-            f.iconNode || (FieldIcon ? React.createElement(FieldIcon, { style: { color: 'rgba(0,0,0,0.45)', fontSize: 12 } }) : null),
-            React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, f.label + ':'),
-            React.createElement('span', { style: { color: 'rgba(0,0,0,0.65)' } }, f.value),
-          );
-        }),
-      ),
-    }, React.createElement(InfoCircleOutlined, { style: { color: 'rgba(0,0,0,0.45)', cursor: 'help', flexShrink: 0 } }));
-  };
+  // v2 — dati impianto unici: stessi campi, label e icone nella card del drawer "Seleziona
+  // impianto" e nel Popover accanto alle cimase, così l'impianto si riconosce allo stesso modo.
+  const impiantoNome = (spazio) => spazio.alias || spazio.id;
+  const impiantoFieldsOf = (spazio) => [
+    // Con l'Alias come nome, l'ID resta leggibile come primo campo.
+    ...(spazio.alias ? [{ icon: 'NumberOutlined', label: 'ID:', value: spazio.id }] : []),
+    { icon: 'EnvironmentOutlined', label: 'Indirizzo:', value: spazio.indirizzo },
+    { icon: 'TagOutlined', label: 'Tipologia:', value: spazio.tipo },
+    { icon: 'ExpandOutlined', label: 'Formato:', value: spazio.formato },
+    { icon: 'BorderOutlined', label: 'Superficie:', value: `${spazio.superficieMq} mq` },
+    { icon: 'BankOutlined', label: 'Suolo:', value: spazio.suolo },
+  ];
+  // v2 — al hover sull'identità dell'impianto collegato compare la stessa GravityEntityCard del
+  // drawer "Seleziona impianto" (foto + dati), al posto del vecchio popover testuale con Ⓘ.
+  const impiantoHoverCard = (spazio, trigger) => React.createElement(Popover, {
+    placement: 'topLeft', trigger: 'hover', mouseEnterDelay: 0.25, arrow: false,
+    styles: { body: { padding: 0, overflow: 'hidden' } },
+    content: React.createElement(window.GravityEntityCard, {
+      title: impiantoNome(spazio),
+      badges: [{ text: spazio.canale, variant: spazio.canale === 'DOOH' ? 'dooh' : 'ooh' }],
+      image: { id: spazio.id, src: spazio.fotoCopertina, heightPx: 140 },
+      fields: impiantoFieldsOf(spazio).filter(f => f.label !== 'ID:'),
+      style: { border: 'none' },
+    }),
+  }, trigger);
 
   // v2 — Elenco a righe, mai vuoto (nota 'permessi-elenco-mai-vuoto'). Due varianti secondo
   // `cfg.field3Key`:
@@ -1549,19 +1604,18 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
       // fallback TagOutlined se il tipo non ha un'icona custom.
       const typeIconSrc = spazio && window.GravityMap ? window.GravityMap.systypeIconSrc(spazio.tipo, spazio.canale) : null;
       return spazio
-        ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, width: '100%' } },
+        ? impiantoHoverCard(spazio, React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, width: '100%', cursor: 'default' } },
             typeIconSrc
               ? React.createElement('img', { src: typeIconSrc, style: { width: 14, height: 14, flexShrink: 0 } })
               : React.createElement(TagOutlined, { style: { color: 'rgba(0,0,0,0.45)', flexShrink: 0, fontSize: 14 } }),
             React.createElement('span', {
               style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-            }, `${spazio.id} · ${spazio.indirizzo}`),
-            impiantoInfoPopover(spazio),
-          )
-        : React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-            React.createElement(Tag, null, 'Non collegato'),
-            React.createElement(Button, { type: 'link', style: { padding: 0 }, onClick: () => openImpiantiResolve(r._manualKey) }, 'Collega impianto'),
-          );
+            }, `${impiantoNome(spazio)} · ${spazio.indirizzo}`),
+            React.createElement(InfoCircleOutlined, { style: { color: 'rgba(0,0,0,0.45)', fontSize: 13, flexShrink: 0, cursor: 'help' } }),
+          ))
+        : React.createElement(Button, {
+            icon: React.createElement(LinkOutlined), onClick: () => openImpiantiResolve(r._manualKey),
+          }, 'Collega impianto');
     };
     const codiceCell = (r) => React.createElement(Input, {
       value: r[cfg.field2Key], placeholder: cfg.field2Placeholder,
@@ -1580,21 +1634,26 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
               React.createElement(Col, { key: 'imp', span: 11 }, React.createElement('span', { style: { fontSize: 12, fontWeight: 600, color: 'rgba(0,0,0,0.65)' } }, 'Impianto')),
             ],
       ),
-      rows.map((r, i) => React.createElement(Row, { key: r.impiantoId || r._manualKey || i, gutter: 16, style: { marginBottom: 20 } },
+      rows.map((r, i) => React.createElement(Row, { key: r.impiantoId || r._manualKey || i, gutter: 16, align: 'middle', style: { marginBottom: 20 } },
         hasField3
           ? [
               React.createElement(Col, { key: 'f2', span: 8 }, codiceCell(r)),
               React.createElement(Col, { key: 'f3', span: 6 },
                 React.createElement(InputNumber, { value: r[cfg.field3Key], onChange: v => updateImpiantoRowByRef(r, { [cfg.field3Key]: v }), min: 0, style: { width: '100%' }, addonAfter: '€/anno', placeholder: '0,00' }),
               ),
-              React.createElement(Col, { key: 'imp', span: 7, style: { display: 'flex', alignItems: 'center', minHeight: 40 } }, impiantoCell(r)),
+              React.createElement(Col, { key: 'imp', span: 7, style: { display: 'flex', alignItems: 'center', minHeight: 32 } }, impiantoCell(r)),
             ]
           : [
               React.createElement(Col, { key: 'f2', span: 10 }, codiceCell(r)),
-              React.createElement(Col, { key: 'imp', span: 11, style: { display: 'flex', alignItems: 'center', minHeight: 40 } }, impiantoCell(r)),
+              React.createElement(Col, { key: 'imp', span: 11, style: { display: 'flex', alignItems: 'center', minHeight: 32 } }, impiantoCell(r)),
             ],
         React.createElement(Col, { key: 'azione', span: 3, style: { display: 'flex', alignItems: 'center' } },
-          React.createElement(Button, { type: 'link', danger: true, onClick: () => scollegaImpiantoRow(r) }, 'Rimuovi'),
+          React.createElement(Popconfirm, {
+            title: r.impiantoId ? 'Rimuovere questo impianto?' : 'Rimuovere questa riga?',
+            description: 'I dati inseriti in questa riga andranno persi.',
+            okText: 'Rimuovi', cancelText: 'Annulla', okButtonProps: { danger: true },
+            placement: 'topRight', onConfirm: () => scollegaImpiantoRow(r),
+          }, React.createElement(Button, { type: 'link', danger: true, style: { padding: 0 } }, 'Rimuovi')),
         ),
       )),
     );
@@ -1609,90 +1668,51 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
   // scala reale può contare migliaia di record — card + foto aiutano a riconoscere quello giusto
   // tra impianti simili, ma solo abbinate a filtri e paginazione (componente.entity-card.md
   // §"Pattern d'uso" — mai uno scroll infinito di centinaia di card).
-  const impiantiLinkDrawerNode = React.createElement(Drawer, {
+  const impiantiLinkDrawerNode = React.createElement(window.GravityEntityPickerDrawer, {
+    open: impiantiLinkOpen, onClose: closeImpiantiLink, dirty: isImpiantiLinkDirty(),
+    rootClassName: 'grav-permit-link-drawer',
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
       React.createElement(DiscardCloseIcon, { dirty: isImpiantiLinkDirty(), onDiscard: closeImpiantiLink }),
       'Seleziona impianto'),
-    placement: 'right', width: 880, closable: false, rootClassName: 'grav-permit-link-drawer',
-    maskClosable: !isImpiantiLinkDirty(), keyboard: !isImpiantiLinkDirty(),
-    onClose: closeImpiantiLink, open: impiantiLinkOpen,
-    styles: { body: { padding: 24 } },
-    extra: React.createElement(Space, null,
-      React.createElement(DiscardButton, { dirty: isImpiantiLinkDirty(), onDiscard: closeImpiantiLink }, 'Annulla'),
-      React.createElement(Button, {
-        type: 'primary', icon: React.createElement(PlusOutlined), onClick: confirmImpiantiLink,
-        disabled: impiantiLinkSelected.length === 0,
-      }, 'Seleziona'),
-    ),
-  },
+    cancelAction: React.createElement(DiscardButton, { dirty: isImpiantiLinkDirty(), onDiscard: closeImpiantiLink }, 'Annulla'),
+    confirmText: 'Seleziona', onConfirm: confirmImpiantiLink, confirmDisabled: impiantiLinkSelected.length === 0,
     // v2 — nota di design: gli impianti già collegati (a questa stessa riga esclusa, o altrove
     // nello stesso ambito — vedi impiantiLinkBase/impiantiLinkCandidates sopra) non devono
     // comparire tra i candidati selezionabili qui.
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 13, color: 'rgba(0,0,0,0.45)' } },
-      React.createElement(InfoCircleOutlined, { style: { fontSize: 13 } }),
-      'Gli impianti già collegati non compaiono in questo elenco.',
-      React.createElement(HandoffDesignNote, { id: 'permessi-collegamento-drawer-scala-reale', placement: 'right' }),
-    ),
-    React.createElement(Input, {
-      value: impiantiLinkSearch, onChange: e => { setImpiantiLinkSearch(e.target.value); setImpiantiLinkPage(1); },
-      placeholder: 'Cerca per ID o indirizzo…', allowClear: true, prefix: React.createElement(SearchOutlined),
-      style: { marginBottom: 12 },
+    heading: {
+      title: 'Trova l\'impianto da collegare',
+      description: React.createElement(React.Fragment, null,
+        'Cerca o filtra per canale, tipologia e formato. Gli impianti già collegati non vengono mostrati. ',
+        React.createElement(HandoffDesignNote, { id: 'permessi-collegamento-drawer-scala-reale', placement: 'right' })),
+    },
+    search: {
+      value: impiantiLinkSearch, placeholder: 'Cerca per ID, Alias o Indirizzo…',
+      onChange: e => { setImpiantiLinkSearch(e.target.value); setImpiantiLinkPage(1); },
+    },
+    filters: [
+      { key: 'canale', value: impiantiLinkCanale, placeholder: 'Canale', width: 110, options: impiantiLinkCanaleOptions, onChange: v => applyImpiantiLinkFilter('canale', v) },
+      { key: 'tipo', value: impiantiLinkTipo, placeholder: 'Tipologia', width: 180, options: impiantiLinkTipoOptions, onChange: v => applyImpiantiLinkFilter('tipo', v) },
+      { key: 'formato', value: impiantiLinkFormato, placeholder: 'Formato', width: 180, options: impiantiLinkFormatoOptions, onChange: v => applyImpiantiLinkFilter('formato', v) },
+    ],
+    sort: {
+      icon: React.createElement(impiantiLinkSort === 'recenti' ? icons.SortDescendingOutlined : icons.SortAscendingOutlined),
+      label: impiantiLinkSort === 'recenti' ? 'Creati di recente' : 'Creati da più tempo',
+      onToggle: () => { setImpiantiLinkSort(impiantiLinkSort === 'recenti' ? 'meno-recenti' : 'recenti'); setImpiantiLinkPage(1); },
+    },
+    total: impiantiLinkCandidates.length,
+    countLabel: n => n === 1 ? '1 impianto trovato' : `${n} impianti trovati`,
+    emptyText: 'Nessun impianto trovato. Modifica la ricerca o i filtri.',
+    items: impiantiLinkPageItems, getKey: s => s.id,
+    selectedKeys: impiantiLinkSelected, onToggle: toggleImpiantiLinkSel,
+    renderCard: (s, sel) => React.createElement(window.GravityEntityCard, {
+      title: impiantoNome(s),
+      badges: [{ text: s.canale, variant: s.canale === 'DOOH' ? 'dooh' : 'ooh' }],
+      image: { id: s.id, src: s.fotoCopertina, heightPx: 140 },
+      fields: impiantoFieldsOf(s),
+      style: sel ? { width: '100%', height: '100%', background: '#F5F2FF' } : { width: '100%', height: '100%' },
     }),
-    React.createElement(Row, { gutter: 12, style: { marginBottom: 16 } },
-      React.createElement(Col, { span: 12 },
-        React.createElement(Select, {
-          value: impiantiLinkCanale, allowClear: true, placeholder: 'Tutti i canali', style: { width: '100%' },
-          options: [{ value: 'OOH', label: 'OOH' }, { value: 'DOOH', label: 'DOOH' }],
-          onChange: v => { setImpiantiLinkCanale(v || null); setImpiantiLinkTipo(null); setImpiantiLinkPage(1); },
-        }),
-      ),
-      React.createElement(Col, { span: 12 },
-        React.createElement(Select, {
-          value: impiantiLinkTipo, allowClear: true, placeholder: 'Tutte le tipologie', style: { width: '100%' },
-          options: impiantiLinkTipoOptions,
-          onChange: v => { setImpiantiLinkTipo(v || null); setImpiantiLinkPage(1); },
-        }),
-      ),
-    ),
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 } },
-      React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } },
-        impiantiLinkCandidates.length === 1 ? '1 impianto trovato' : `${impiantiLinkCandidates.length} impianti trovati`),
-      impiantiLinkShowRefineHint && React.createElement(Tag, { color: 'gold' }, 'Restringi con ricerca o filtri per trovarlo più in fretta'),
-    ),
-    impiantiLinkCandidates.length === 0
-      ? React.createElement(Empty, { description: 'Nessun impianto compatibile — prova a modificare ricerca o filtri', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { marginBottom: 16 } })
-      : React.createElement(React.Fragment, null,
-          React.createElement(Row, { gutter: [16, 16], style: { marginBottom: 16 } },
-            impiantiLinkPageItems.map(s => {
-              const sel = impiantiLinkSelected.includes(s.id);
-              return React.createElement(Col, { key: s.id, span: 8 },
-                React.createElement('div', {
-                  onClick: () => toggleImpiantiLinkSel(s.id),
-                  style: { cursor: 'pointer', borderRadius: 8, outline: sel ? `2px solid ${window.GRAVITY_THEME.token.colorPrimary}` : '2px solid transparent', outlineOffset: 1 },
-                },
-                  React.createElement(window.GravityEntityCard, {
-                    title: s.id,
-                    badges: [{ text: s.canale, variant: s.canale === 'DOOH' ? 'dooh' : 'ooh' }],
-                    image: { id: s.id, src: s.fotoCopertina, heightPx: 120 },
-                    fields: [
-                      { icon: 'EnvironmentOutlined', label: 'Indirizzo:', value: s.indirizzo },
-                      { icon: 'TagOutlined', label: 'Tipologia:', value: s.tipo },
-                      { icon: 'ExpandOutlined', label: 'Formato:', value: s.formato },
-                    ],
-                    style: sel ? { background: '#F5F2FF' } : undefined,
-                  }),
-                ),
-              );
-            }),
-          ),
-          impiantiLinkTotalPages > 1 && React.createElement('div', { style: { display: 'flex', justifyContent: 'center' } },
-            React.createElement(Pagination, {
-              simple: true, showSizeChanger: false, current: impiantiLinkPageSafe, pageSize: IMPIANTI_LINK_PAGE_SIZE,
-              total: impiantiLinkCandidates.length, onChange: p => setImpiantiLinkPage(p),
-            }),
-          ),
-        ),
-  );
+    pagination: { current: impiantiLinkPageSafe, pageSize: IMPIANTI_LINK_PAGE_SIZE, onChange: p => setImpiantiLinkPage(p) },
+  });
 
   // v2 — Drawer "Collega atto di provenienza" (Origine, Autorizzazione): stessa UX del drawer
   // impianti sopra — selezione multipla (checkbox), non più a scelta unica: un'Autorizzazione
@@ -1707,7 +1727,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
     extra: React.createElement(Space, null,
       React.createElement(DiscardButton, { dirty: isAttoLinkDirty(), onDiscard: closeAttoLink }, 'Annulla'),
       React.createElement(Button, {
-        type: 'primary', icon: React.createElement(PlusOutlined), onClick: confirmAttoLink,
+        type: 'primary', icon: React.createElement(LinkOutlined), onClick: confirmAttoLink,
         disabled: attoLinkSelected.length === 0,
       }, 'Collega'),
     ),
@@ -1910,7 +1930,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
               const disabled = f.includeConcessioneSuoloPubblico;
               const hasAtti = attiProvenienzaRecords.length > 0;
               const btnInner = React.createElement(Button, {
-                icon: React.createElement(PlusOutlined), disabled, onClick: openAttoLink,
+                icon: React.createElement(LinkOutlined), disabled, onClick: openAttoLink,
               }, 'Collega permesso');
               const collegaAttoBtn = disabled
                 ? React.createElement(Tooltip, { title: 'Non serve collegarla: l\'hai già inclusa spuntando "Include automaticamente concessione di suolo pubblico" qui sopra.' },
@@ -1964,38 +1984,37 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           // "Impianti collegati" — coerente con la dicitura già in uso nel Detail View (card
           // principale, nota 'autorizzazione-impianti-tab-dedicata') e nelle sezioni analoghe di
           // Concessione/Contratto (nota 'concessione-contratto-impianti-collegati'). Il codice
-          // per riga è il "codice autorizzazione per cimasa" (mai solo "codice cimasa": la
-          // cimasa è la struttura fisica del cartello, il codice è quello dell'autorizzazione
-          // che la riguarda). Il CUP resta fuori da questo form — è una pratica a sé, legata
+          // per riga è il "codice cimasa" (la cimasa è la struttura
+          // fisica del cartello, il codice è quello dell'autorizzazione che la riguarda). Il CUP resta fuori da questo form — è una pratica a sé, legata
           // all'impianto, non all'Autorizzazione — sezione sempre terza, stessa struttura degli
           // altri due tipi.
           key: 'impianti', label: 'Impianti collegati', title: 'Impianti collegati',
           description: React.createElement('span', null,
-            'Collega ogni impianto coperto da questa Autorizzazione e registra il relativo codice autorizzazione per cimasa; il CUP si gestisce invece come pratica a parte, legata all\'impianto. ',
-            React.createElement('strong', null, 'Puoi segnare il codice autorizzazione per cimasa anche prima che l\'impianto sia censito in Inventario'),
+            'Collega ogni impianto coperto da questa Autorizzazione e registra il relativo codice cimasa. ',
+            React.createElement('strong', null, 'Puoi segnare il codice cimasa anche prima che l\'impianto sia censito in Inventario'),
             ': potrai collegarlo più avanti, anche dal Dettaglio con "Collega Spazi".',
           ),
           disabled: !f.tipoAutorizzazione,
-          // v2 — sezione unica: codice autorizzazione per cimasa e collegamento impianto nella
+          // v2 — sezione unica: codice cimasa e collegamento impianto nella
           // stessa riga (nota 'permessi-elenco-mai-vuoto' — ripristinata dopo aver provato e
           // scartato lo split in due fasi separate) — deprecata anche la vecchia logica
           // "Impianti coperti" (Singolo/Più impianti + Codice Autorizzazione singolo +
           // allegato/OCR + CUP unico, nota 'autorizzazione-impianti-tab-dedicata').
-          children: React.createElement(window.GravityFormArea, {
+          children: [React.createElement(window.GravityFormArea, { key: 'elenco',
             title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Elenco',
               impiantiCountBadge(f.impiantiAutorizzati.length),
             ),
-            extra: impiantiAddManualBtn('Cimasa', { type: 'default', text: 'Aggiungi impianto' }),
+            extra: impiantiAddManualBtn('Cimasa', { type: 'dashed', text: 'Aggiungi riga cimasa' }),
           },
             React.createElement('div', { className: 'grav-autorizzazione-impianti-tab' },
               renderImpiantiRows(f.impiantiAutorizzati, {
-                field2Key: 'codiceAutorizzazione', field2Label: 'Codice Autorizzazione per Cimasa',
+                field2Key: 'codiceAutorizzazione', field2Label: 'Codice Cimasa',
                 field2Tip: 'Il codice dell\'autorizzazione da riportare sulla cimasa, cioè la struttura del cartello, di questo impianto. Puoi lasciarlo vuoto e compilarlo più avanti, quando l\'ente te lo comunica.',
                 field2Placeholder: 'Es. CIM-3015',
               }),
             ),
-          ),
+          ), impiantiMapArea(f.impiantiAutorizzati)],
         },
       ],
      }),
@@ -2177,7 +2196,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           ],
           // v2 — sezione unica: Numero Utenza/Canone e collegamento impianto nella stessa riga
           // (nota 'permessi-elenco-mai-vuoto', cfr. nota 'concessione-contratto-impianti-collegati').
-          children: React.createElement(window.GravityFormArea, {
+          children: [React.createElement(window.GravityFormArea, { key: 'elenco',
             title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Elenco',
               impiantiCountBadge(f.impiantiConcessione.length),
@@ -2193,7 +2212,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                 field3Tip: 'La quota di canone dovuta per questo impianto. La somma di tutte le righe compare come Totale Canone nel dettaglio della Concessione.',
               }),
             ),
-          ),
+          ), impiantiMapArea(f.impiantiConcessione)],
         },
       ],
      }),
@@ -2327,7 +2346,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           ],
           // v2 — sezione unica: Numero Utenza/Canone e collegamento impianto nella stessa riga
           // (nota 'permessi-elenco-mai-vuoto', cfr. nota 'concessione-contratto-impianti-collegati').
-          children: React.createElement(window.GravityFormArea, {
+          children: [React.createElement(window.GravityFormArea, { key: 'elenco',
             title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
               'Elenco',
               impiantiCountBadge(f.impiantiContratto.length),
@@ -2343,7 +2362,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                 field3Tip: 'La quota di affitto dovuta per questo impianto. La somma di tutte le righe compare come Canone Locazione nel dettaglio del Contratto.',
               }),
             ),
-          ),
+          ), impiantiMapArea(f.impiantiContratto)],
         },
       ],
      }),
@@ -2624,6 +2643,55 @@ function PermitTableV2({ dataSource, columns, totalLabel, rowKey, onRowClick, ta
 // ─────────────────────────────────────────────────────────
 // DRAWER — Connetti Impianti (Fase 4): selezione multipla spazi da collegare
 // ─────────────────────────────────────────────────────────
+// v2 — Mappa degli impianti collegati (GravityMap condiviso, components/map-interactions.md):
+// un marker per impianto con l'icona tipologia dello stato amministrativo "Attivo"; si aggiorna
+// a ogni collegamento/rimozione e inquadra i marker presenti. Senza impianti collegati mostra
+// la città con un messaggio, non una mappa vuota senza spiegazione.
+function ImpiantiLinkedMap({ spazi, height = 320 }) {
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const layerRef = useRef(null);
+  const [iconsReady, setIconsReady] = useState(0);
+  const srcOf = (s) => window.GravityMap.markerSrc(s.tipo, 'active', s.canale);
+
+  useEffect(() => {
+    if (mapRef.current || !containerRef.current || !window.L) return;
+    const map = L.map(containerRef.current, { center: [38.1155, 13.3615], zoom: 13, zoomControl: true, attributionControl: false });
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16 }).addTo(map);
+    layerRef.current = L.layerGroup().addTo(map);
+    mapRef.current = map;
+    map.on('zoomend', () => setIconsReady(n => n + 1));
+    return () => { map.remove(); mapRef.current = null; };
+  }, []);
+
+  const key = spazi.map(s => s.id).join('|');
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    let cancelled = false;
+    window.GravityMap.preloadAll([...new Set(spazi.map(srcOf))]).then(() => {
+      if (cancelled) return;
+      layerRef.current.clearLayers();
+      spazi.forEach(s => {
+        L.marker([s.lat, s.lng], { icon: window.GravityMap.makeMarkerIcon({ src: srcOf(s), zoom: map.getZoom(), flags: {} }) })
+          .bindTooltip(s.alias || s.id, { direction: 'top', offset: [0, -28] })
+          .addTo(layerRef.current);
+      });
+      if (spazi.length === 1) map.setView([spazi[0].lat, spazi[0].lng], 15);
+      else if (spazi.length > 1) map.fitBounds(L.latLngBounds(spazi.map(s => [s.lat, s.lng])), { padding: [48, 48], maxZoom: 15 });
+      else map.setView([38.1155, 13.3615], 13);
+    });
+    return () => { cancelled = true; };
+  }, [key, iconsReady]);
+
+  return React.createElement('div', { style: { position: 'relative', borderRadius: 8, overflow: 'hidden', border: '1px solid #F0F0F0' } },
+    React.createElement('div', { ref: containerRef, style: { height, width: '100%' } }),
+    spazi.length === 0 && React.createElement('div', {
+      style: { position: 'absolute', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.6)', pointerEvents: 'none' },
+    }, React.createElement(Typography.Text, { type: 'secondary' }, 'Collega un impianto per vederlo sulla mappa')),
+  );
+}
+
 function ConnettiImpiantiDrawer({ open, excludeIds, isV2, naturaSuoloRichiesta, onClose, onConnetti }) {
   const [selectedKeys, setSelectedKeys] = useState([]);
 
@@ -2892,11 +2960,11 @@ function PermitDetailPage({ record, kind, isV2, concessioniList, autorizzazioniL
         data: record.impiantiAutorizzati || [],
         // v2 — niente più CUP in colonna: è una pratica a sé legata all'impianto, non
         // all'Autorizzazione (nota 'cup-pratica-a-parte-legata-impianto').
-        tip: 'Ogni impianto coperto da questa Autorizzazione, con il proprio codice autorizzazione per cimasa.',
+        tip: 'Ogni impianto coperto da questa Autorizzazione, con il proprio codice cimasa.',
         noteId: 'autorizzazione-impianti-tab-dedicata',
         columns: [
           { title: 'Impianto', dataIndex: 'impiantoId', render: id => id ? renderFkLabel(MOCK_SPAZI, id, 'indirizzo') : React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Da collegare') },
-          { title: 'Codice Autorizzazione per Cimasa', dataIndex: 'codiceAutorizzazione', render: v => v || '—' },
+          { title: 'Codice Cimasa', dataIndex: 'codiceAutorizzazione', render: v => v || '—' },
         ],
       }
     : isConcessione

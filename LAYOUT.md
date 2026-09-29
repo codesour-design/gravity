@@ -394,6 +394,17 @@ non ricostruire il pattern inline per-prototipo**.
 
 ---
 
+### 3.10 Drawer di selezione entità
+
+Drawer per **trovare e scegliere** un'entità esistente tra un parco ampio (impianti, atti…):
+intestazione (azione + vincoli) → riga unica ricerca + filtri a cascata → conteggio e ordinamento
+→ griglia di `GravityEntityCard` selezionabili (3 per riga) → paginazione in basso a destra.
+Componente condiviso `GravityEntityPickerDrawer` (`prototype/_shared/entity-picker-drawer.js`);
+regole di intestazione, scala di spacing e larghezza in **`components/entity-picker-drawer.md`**
+— non ricostruire il pattern inline. Frame Figma: `[Modulo] List/[ActionName]/[NomeSelezione]`.
+
+---
+
 > Per la corrispondenza di ciascun pattern con il nome del frame Figma → **Parte 2, §11**.
 
 ---
