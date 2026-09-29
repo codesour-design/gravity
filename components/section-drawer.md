@@ -122,7 +122,10 @@ sections: [{
 - **`GravityFormArea`**: sfondo bianco, bordo `#E8E8E8` (**non** `colorBorderSecondary`
   `#F0F0F0`: su sfondo `colorBgLayout` un bordo più chiaro dello sfondo circostante è invisibile —
   vedi LAYOUT.md §4, nuova riga dedicata), `borderRadius: 8`, header con bottom-border
-  `colorBorderSecondary` se presente titolo/descrizione/extra.
+  `colorBorderSecondary` se presente titolo/descrizione/extra. **Altezza header stabile**:
+  `min-height: 70px` (20+18 padding + 32 `controlHeight`) e blocco testo `flex: 1; min-width: 0` —
+  quando il pulsante passa dallo stato vuoto all'`extra` l'header non cambia altezza (nessuno
+  "scalino") e il testo non si sposta.
 
 ## Decisioni di design
 
@@ -162,10 +165,10 @@ il nome scelto in un primo giro può rivelarsi non abbastanza esplicito e va cor
   (incluso nell'atto o ereditato da un altro, disabilitata se il Tipo non è Esposizione
   pubblicitaria) e **"Cimasa e CUP"** (elenco a righe, disabilitata finché il Tipo non è
   scelto in "Dati dell'Atto").
-- **Nuova Concessione**: "Dati dell'Atto" (dati dell'atto, area concessa e modalità di
+- **Nuova Concessione**: "Dati dell'Atto", **"Area e Attribuzione"** (area concessa e modalità di
   attribuzione: bando pubblico, affidamento diretto o rinnovo) e **"Impianti collegati"**
-  (numero utenza per impianto) — "Impianti collegati" disabilitata finché il Tipo Documento non
-  è scelto (area del tipo sempre visibile).
+  (numero utenza per impianto) — "Area e Attribuzione" e "Impianti collegati" disabilitate finché il Tipo
+  Documento non è scelto (area del tipo sempre visibile).
 - **Nuovo Contratto Privato**: "Dati del Contratto" (dati del contratto), "Riferimento
   Catastale" (facoltativo) e **"Impianti collegati"** (numero utenza per
   impianto) — "Impianti collegati" disabilitata finché il Tipo Contratto non è scelto (area del
@@ -179,6 +182,10 @@ il nome scelto in un primo giro può rivelarsi non abbastanza esplicito e va cor
 
 Concessione V1 e Autorizzazione V1 restano invece sul Drawer semplice a 640px (LAYOUT.md §3.2):
 solo la v2 usa `GravitySectionDrawer` per questi tre form.
+
+> **Regola di struttura**: la seconda sezione dei drawer di Permesso parla sempre dell'*origine
+> dell'atto* ("Diritto sul Suolo" in Autorizzazione, "Area e Attribuzione" in Concessione); l'ultima è sempre
+> "Impianti collegati". Il Contratto Privato ha invece "Riferimento Catastale" (facoltativo).
 
 ## Sotto-pattern: elenco collegato con ricerca via drawer (non ancora un componente condiviso)
 

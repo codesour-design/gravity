@@ -40,7 +40,7 @@ window.HANDOFF_COMPONENTS = [
     composizione: 'GravitySectionDrawer + GravityFormArea (components/section-drawer.md) → Checkbox + stato vuoto illustrato/GravityEntityCard con drawer "Collega atto di provenienza"',
     figma: 'Da definire — pattern custom' },
   { selector: '.grav-concessione-origine-section', name: 'Area "Modalità di attribuzione" (Concessione)', level: 'Organismo', custom: true,
-    funzione: 'Area dentro "Dati dell\'Atto" della Nuova Concessione: Modalità di attribuzione (Bando pubblico/Affidamento diretto/Rinnovo), con campi condizionali per "Bando pubblico". Compare dopo la scelta del Tipo Documento.',
+    funzione: 'Area della sezione "Area e Attribuzione" (seconda tab) della Nuova Concessione, insieme all\'Area concessa: Modalità di attribuzione (Bando pubblico/Affidamento diretto/Rinnovo), con campi condizionali per "Bando pubblico". Compare dopo la scelta del Tipo Documento.',
     composizione: 'GravitySectionDrawer + GravityFormArea (components/section-drawer.md) → Select + Input/DatePicker/TextArea condizionali',
     figma: 'Da definire — pattern custom' },
   { selector: '.grav-autorizzazione-impianti-tab', name: 'Sezione "Cimasa e CUP" (Autorizzazione v2)', level: 'Organismo', custom: true,
@@ -160,7 +160,7 @@ window.HANDOFF_SCENARIOS = [
       headers: ['Entità', 'Sezioni (in ordine)'],
       rows: [
         ['Autorizzazione', 'Dati dell\'Atto · Diritto sul Suolo (disabilitata se il Tipo non è Esposizione pubblicitaria) · Impianti collegati (disabilitata finché il Tipo non è scelto)'],
-        ['Concessione', 'Dati dell\'Atto (atto, area concessa, modalità di attribuzione) · Impianti collegati (disabilitata finché il Tipo Documento non è scelto)'],
+        ['Concessione', 'Dati dell\'Atto · Area e Attribuzione (area concessa, modalità di attribuzione) · Impianti collegati (disabilitata finché il Tipo Documento non è scelto)'],
         ['Contratto Privato', 'Dati del Contratto · Riferimento Catastale (facoltativo, sempre attiva) · Impianti collegati (disabilitata finché il Tipo Contratto non è scelto)'],
       ],
       note: 'Il motivo del blocco compare in tooltip sulla voce disabilitata.',
@@ -183,6 +183,11 @@ window.HANDOFF_SCENARIOS = [
 
 // ════════════════════════════════════════════════════════════════════════════
 window.HANDOFF_NOTES = [
+  {
+    id: 'tipologia-documento-nessun-impatto-modello',
+    title: 'Tipo Documento e Tipo Contratto: solo un\'etichetta',
+    body: 'Per ora la tipologia **non cambia il modello dati**.\n- Campi, sezioni e validazioni sono identici per ogni tipo, in Concessione e in Contratto Privato\n- Serve a sbloccare il resto del form e a leggere la lista\n- ==Da definire==: campi o sezioni specifici per tipo, come in Autorizzazione',
+  },
   {
     id: 'permit-modifica-non-sviluppata',
     title: 'Modifica permesso — sviluppo futuro',

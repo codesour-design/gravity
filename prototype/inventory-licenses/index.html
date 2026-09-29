@@ -1116,12 +1116,6 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
   const impiantiContrattoValid = f.impiantiContratto.filter(r => !r._seed).every(r =>
     !!r.impiantoId || !!r.numeroUtenza.trim());
 
-  const provenienzaValid = !isV2 || (
-    !!f.modalitaAttribuzione && (
-      f.modalitaAttribuzione !== 'Bando pubblico'
-      || (!!f.riferimentoBando.trim() && !!f.enteBanditore.trim() && !!f.dataAggiudicazione)
-    )
-  );
   // v2 — CUP/Concessione suolo pubblico sono condizionali al SOLO tipo "Esposizione
   // pubblicitaria (Comunale)" (nota 'autorizzazione-tipologia-overhaul'): le altre 6
   // tipologie di Autorizzazione non hanno CUP. V1 (solo Comunale/Genio Civile, sempre col
@@ -1131,7 +1125,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
   const canSave = isConcessione
     ? ((isV2 || !!f.tipoConcessione) && !!f.enteEmittente.trim() && !!f.tipoDocumento && !!f.idDocumento.trim()
         && !!f.dataStipula && (!isV2 || !!f.dataDecorrenza) && !!f.dataScadenza
-        && (isV2 ? impiantiConcessioneValid : utenzeValid) && provenienzaValid)
+        && (isV2 ? impiantiConcessioneValid : utenzeValid))
     : isAutorizzazione
     ? (!!f.tipoAutorizzazione && !!f.enteEmittente.trim() && !!f.numeroProtocollo.trim()
         && !!f.dataStipula && (!isV2 || !!f.dataDecorrenza) && !!f.dataScadenza
@@ -1833,7 +1827,9 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           dirty: sectionMod(['includeConcessioneSuoloPubblico','attiProvenienzaIds','estensioneOccupazioneMq','tipoOccupazione','durataOccupazioneGiorni']),
           description: 'Il diritto di occupare il suolo su cui si trova l\'impianto: incluso in questo stesso atto, oppure ereditato da un atto già registrato a sistema.',
           disabled: !isEsposizionePubblicitaria,
-          disabledReason: 'Il diritto sul suolo si registra solo per le autorizzazioni di tipo Esposizione pubblicitaria (Comunale).',
+          disabledReason: !f.tipoAutorizzazione
+            ? 'Seleziona il Tipo Autorizzazione in "Dati dell\'Atto" per sbloccare questa sezione.'
+            : 'Il diritto sul suolo riguarda solo le autorizzazioni di tipo Esposizione pubblicitaria (Comunale).',
           children: [
             // v2 — box "Occupazione di Suolo Pubblico": checkbox + dettagli dell'occupazione
             // inclusa nell'atto (estensione, tipo, durata) — compilabili solo a checkbox
@@ -1844,7 +1840,10 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
             // applicano finché non la includi).
             React.createElement(window.GravityFormArea, {
               key: 'origine-check', title: 'Occupazione di Suolo Pubblico',
-              description: 'Spunta quando il Comune concede, insieme all\'autorizzazione, anche l\'uso del suolo pubblico, senza rilasciare un atto di Concessione separato: è il caso più comune nelle autorizzazioni triennali per occupazione di suolo. Con il check attivo, registra anche superficie occupata, tipo di occupazione e la sua durata.',
+              description: React.createElement(React.Fragment, null,
+                'Spunta se il Comune concede l\'uso del suolo pubblico insieme all\'autorizzazione, senza un atto di Concessione separato (caso tipico delle autorizzazioni triennali).',
+                React.createElement('br'),
+                React.createElement('strong', null, 'Con il check attivo, indica superficie occupata, tipo e durata dell\'occupazione.')),
             },
               React.createElement(Form, { className: 'grav-autorizzazione-origine-section', layout: 'vertical', component: 'div' },
                 React.createElement(Form.Item, { valuePropName: 'checked', style: { marginBottom: 16 } },
@@ -1920,12 +1919,12 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
               React.createElement(window.GravityFormArea, {
                 key: 'origine-atti',
                 title: 'Concessioni o Contratti di riferimento',
-                description: 'Collega qui le Concessioni o i Contratti Privati che riguardano il terreno o lo spazio su cui si trovano gli impianti coperti da questa Autorizzazione; puoi collegarne più di uno. Usali per tenere traccia di chi possiede o concede quel suolo.',
+                description: 'Collega qui le Concessioni o i Contratti Privati che riguardano il terreno o lo spazio su cui si trovano gli impianti coperti da questa Autorizzazione; puoi collegarne più di uno.',
                 extra: hasAtti ? collegaAttoBtn : null,
               },
                 hasAtti
                   ? React.createElement('div', {
-                      style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 },
+                      style: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 },
                     },
                       attiProvenienzaRecords.map(rec => React.createElement(window.GravityEntityCard, {
                         key: rec.id,
@@ -1965,7 +1964,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
             ': potrai collegarlo più avanti, anche dal Dettaglio con "Collega Spazi".',
           ),
           disabled: !f.tipoAutorizzazione,
-          disabledReason: 'Scegli prima il Tipo Autorizzazione nei Dati dell\'Atto.',
+          disabledReason: 'Seleziona il Tipo Autorizzazione in "Dati dell\'Atto" per sbloccare questa sezione.',
           // v2 — sezione unica: codice cimasa e collegamento impianto nella
           // stessa riga (nota 'permessi-elenco-mai-vuoto' — ripristinata dopo aver provato e
           // scartato lo split in due fasi separate) — deprecata anche la vecchia logica
@@ -2069,14 +2068,14 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
       sections: [
         {
           key: 'info', label: 'Dati dell\'Atto', title: 'Dati dell\'Atto',
-          dirty: sectionMod(['tipoDocumento','enteEmittente','idDocumento','dataStipula','dataDecorrenza','dataScadenza','promemoria','ubicazione','superficieConcessaMq','modalitaAttribuzione','riferimentoBando','enteBanditore','dataAggiudicazione','lotto','noteBando']),
-          description: 'Dati generali dell\'atto e l\'area concessa.',
+          dirty: sectionMod(['tipoDocumento','enteEmittente','idDocumento','dataStipula','dataDecorrenza','dataScadenza','promemoria']),
+          description: 'Dati generali dell\'atto.',
           children: [
-            tipoAreaBase('tipo', 'Tipo Documento', 'Il tipo di atto con cui l\'ente pubblico ti concede il suolo o il bene. Scegli prima questo: poi compaiono gli altri dati dell\'atto.', true,
+            tipoAreaBase('tipo', 'Tipo Documento', 'Indica che tipo di atto hai ricevuto dall\'ente pubblico. Selezionalo per primo: sblocca il resto del form.', true,
               mod('tipoDocumento', React.createElement(Select, {
                 value: f.tipoDocumento, onChange: set('tipoDocumento'),
                 options: TIPO_DOCUMENTO_CONCESSIONE_OPTS_V2, placeholder: 'Seleziona', style: { width: '100%' },
-              })), 'concessione-solo-pubblica'),
+              })), 'tipologia-documento-nessun-impatto-modello'),
             showRest && React.createElement(window.GravityFormArea, {
               key: 'dati', title: 'Dati dell\'atto',
               extra: React.createElement(HandoffDesignNote, { id: 'concessione-contratto-drawer-a-sezioni', placement: 'left' }),
@@ -2103,7 +2102,17 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                 promemoriaField(f.promemoria, set('promemoria'), f.dataScadenza, PROMEMORIA_OPTS_V2, true, isMod('promemoria')),
               ),
             ),
-            showRest && React.createElement(window.GravityFormArea, { key: 'area', title: 'Area concessa' },
+          ],
+        },
+        {
+          // v2 — seconda sezione = origine dell'atto (nome "Area e Attribuzione": "Origine" scartato), come "Diritto sul Suolo" in Autorizzazione:
+          // qui l'area su cui insiste la Concessione e come è stata ottenuta.
+          key: 'origine', label: 'Area e Attribuzione', title: 'Area e Attribuzione',
+          dirty: sectionMod(['ubicazione','superficieConcessaMq','modalitaAttribuzione','riferimentoBando','enteBanditore','dataAggiudicazione','lotto','noteBando']),
+          description: 'L\'area che ti è stata concessa e il modo in cui l\'hai ottenuta: bando, affidamento diretto o rinnovo.',
+          disabled: !showRest, disabledReason: 'Seleziona il Tipo Documento in "Dati dell\'Atto" per sbloccare questa sezione.',
+          children: [
+            React.createElement(window.GravityFormArea, { key: 'area', title: 'Area concessa' },
               React.createElement(Form, { layout: 'vertical', component: 'div' },
                 React.createElement(Row, { className: 'grav-concessione-estesi-row', gutter: 16 },
                   React.createElement(Col, { span: 16 },
@@ -2125,11 +2134,11 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                 ),
               ),
             ),
-            showRest && React.createElement(window.GravityFormArea, { key: 'origine-area', title: 'Modalità di attribuzione', description: 'Come hai ottenuto la Concessione: bando pubblico, affidamento diretto o rinnovo di una concessione già in essere.' },
+            React.createElement(window.GravityFormArea, { key: 'origine-area', title: 'Modalità di attribuzione', description: 'Come hai ottenuto la Concessione: bando pubblico, affidamento diretto o rinnovo di una concessione già in essere.' },
               React.createElement(Form, { className: 'grav-concessione-origine-section', layout: 'vertical', component: 'div' },
                 React.createElement(Form.Item, {
-                  label: tipLabel('Modalità di attribuzione', 'Come hai ottenuto la Concessione: partecipando a un bando pubblico, con un affidamento diretto senza gara, oppure rinnovando una concessione già in essere.'),
-                  required: true, style: { marginBottom: 16 },
+                  label: React.createElement('span', null, tipLabel('Modalità di attribuzione', 'Come hai ottenuto la Concessione: partecipando a un bando pubblico, con un affidamento diretto senza gara, oppure rinnovando una concessione già in essere.'), ' ', React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
+                  style: { marginBottom: 16 },
                 },
                   mod('modalitaAttribuzione', React.createElement(Select, {
                     value: f.modalitaAttribuzione, onChange: onModalitaAttribuzioneChange,
@@ -2140,16 +2149,16 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                   React.createElement(Row, { gutter: 16 },
                     React.createElement(Col, { span: 12 },
                       React.createElement(Form.Item, {
-                        label: tipLabel('Riferimento Bando', 'Il codice o identificativo della gara pubblica con cui hai vinto la Concessione, così puoi ritrovarla nei tuoi archivi.'),
-                        required: true, style: { marginBottom: 16 },
+                        label: React.createElement('span', null, tipLabel('Riferimento Bando', 'Il codice o identificativo della gara pubblica con cui hai vinto la Concessione, così puoi ritrovarla nei tuoi archivi.'), ' ', React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
+                        style: { marginBottom: 16 },
                       },
                         mod('riferimentoBando', React.createElement(Input, { value: f.riferimentoBando, onChange: e => set('riferimentoBando')(e.target.value), placeholder: 'Es. GARA-PA-2026-002' })),
                       ),
                     ),
                     React.createElement(Col, { span: 12 },
                       React.createElement(Form.Item, {
-                        label: tipLabel('Ente Banditore', 'L\'ente che ha pubblicato il bando. Non sempre coincide con l\'Ente Emittente: ad esempio una Regione può bandire una gara che poi un Comune gestisce.'),
-                        required: true, style: { marginBottom: 16 },
+                        label: React.createElement('span', null, tipLabel('Ente Banditore', 'L\'ente che ha pubblicato il bando. Non sempre coincide con l\'Ente Emittente: ad esempio una Regione può bandire una gara che poi un Comune gestisce.'), ' ', React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
+                        style: { marginBottom: 16 },
                       },
                         mod('enteBanditore', React.createElement(Input, { value: f.enteBanditore, onChange: e => set('enteBanditore')(e.target.value), placeholder: 'Es. Regione Siciliana' })),
                       ),
@@ -2158,8 +2167,8 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                   React.createElement(Row, { gutter: 16 },
                     React.createElement(Col, { span: 12 },
                       React.createElement(Form.Item, {
-                        label: tipLabel('Data Aggiudicazione', 'La data in cui il bando è stato aggiudicato, di norma precedente alla Data Stipula del contratto vero e proprio.'),
-                        required: true, style: { marginBottom: 16 },
+                        label: React.createElement('span', null, tipLabel('Data Aggiudicazione', 'La data in cui il bando è stato aggiudicato, di norma precedente alla Data Stipula del contratto vero e proprio.'), ' ', React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)')),
+                        style: { marginBottom: 16 },
                       },
                         mod('dataAggiudicazione', React.createElement(DatePicker, { value: f.dataAggiudicazione, onChange: set('dataAggiudicazione'), style: { width: '100%' }, format: 'DD/MM/YYYY', placeholder: 'gg/mm/aaaa' })),
                       ),
@@ -2187,7 +2196,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           ],
         },
         sezioneImpianti('impiantiConcessione', {
-          className: 'grav-concessione-impianti-tab', disabled: !showRest, disabledReason: 'Scegli prima il Tipo Documento nei Dati dell\'Atto.',
+          className: 'grav-concessione-impianti-tab', disabled: !showRest, disabledReason: 'Seleziona il Tipo Documento in "Dati dell\'Atto" per sbloccare questa sezione.',
           description: 'Collega ogni impianto coperto da questa Concessione e registra il relativo numero utenza.',
           utenzaTip: 'Il numero con cui l\'ente identifica l\'utenza collegata a questo impianto. Puoi lasciarlo vuoto e compilarlo più avanti, quando l\'ente te lo comunica.',
         }),
@@ -2213,11 +2222,11 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           dirty: sectionMod(['tipoContratto','proprietarioLocatore','identificativoContratto','indirizzo','dataStipula','dataDecorrenza','dataScadenza','promemoria']),
           description: 'Dati generali del contratto privato con il proprietario o locatore.',
           children: [
-            tipoAreaBase('tipo', 'Tipo Contratto', 'Scegli Locazione se paghi un affitto, Comodato se il proprietario ti concede lo spazio gratuitamente, oppure un altro tipo di accordo privato. Scegli prima questo: poi compaiono gli altri dati del contratto.', true,
+            tipoAreaBase('tipo', 'Tipo Contratto', 'Locazione se paghi un affitto, Comodato se il proprietario ti cede lo spazio gratuitamente, oppure un altro accordo privato. Selezionalo per primo: sblocca il resto del form.', true,
               mod('tipoContratto', React.createElement(Select, {
                 value: f.tipoContratto, onChange: set('tipoContratto'),
                 options: TIPO_CONTRATTO_OPTS, placeholder: 'Seleziona', style: { width: '100%' },
-              }))),
+              })), 'tipologia-documento-nessun-impatto-modello'),
             showRest && React.createElement(window.GravityFormArea, {
               key: 'dati', title: 'Dati del contratto',
               extra: React.createElement(HandoffDesignNote, { id: 'concessione-contratto-drawer-a-sezioni', placement: 'left' }),
@@ -2258,6 +2267,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
         {
           key: 'catastale', label: 'Riferimento Catastale', title: 'Riferimento Catastale',
           dirty: sectionMod(['foglio','particella','subalterno']),
+          disabled: !showRest, disabledReason: 'Seleziona il Tipo Contratto in "Dati del Contratto" per sbloccare questa sezione.',
           description: 'Facoltativo. Sono le coordinate catastali dell\'unità immobiliare, un riferimento rapido con cui il proprietario identifica lo spazio.',
           children: [
             React.createElement(window.GravityFormArea, { key: 'catastale-area' },
@@ -2284,7 +2294,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           ],
         },
         sezioneImpianti('impiantiContratto', {
-          className: 'grav-contratto-impianti-tab', disabled: !showRest, disabledReason: 'Scegli prima il Tipo Contratto nei Dati del Contratto.',
+          className: 'grav-contratto-impianti-tab', disabled: !showRest, disabledReason: 'Seleziona il Tipo Contratto in "Dati del Contratto" per sbloccare questa sezione.',
           description: 'Collega ogni impianto coperto da questo Contratto e registra il relativo numero utenza.',
           utenzaTip: 'Il numero con cui il proprietario identifica l\'utenza collegata a questo impianto. Puoi lasciarlo vuoto e compilarlo più avanti.',
         }),
@@ -2436,7 +2446,7 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
           showSearch: true, optionFilterProp: 'label', allowClear: true, disabled,
         });
         return React.createElement(Form.Item, {
-          label: React.createElement('span', null, tipLabel('Concessione o Contratto di riferimento', 'Collega qui la Concessione o il Contratto Privato che riguarda il terreno o lo spazio su cui si trova l\'impianto. Usalo per tenere traccia di chi possiede o concede quel suolo.'), ' ',
+          label: React.createElement('span', null, tipLabel('Concessione o Contratto di riferimento', 'Collega qui la Concessione o il Contratto Privato che riguarda il terreno o lo spazio su cui si trova l\'impianto.'), ' ',
             React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.45)' } }, '(facoltativo)'),
             React.createElement(HandoffDesignNote, { id: 'autorizzazione-atto-provenienza-scollegato', placement: 'right' })),
           style: { marginBottom: 20 },
@@ -2839,7 +2849,7 @@ function PermitDetailPage({ record, kind, isV2, concessioniList, autorizzazioniL
                 ? (record.durataOccupazioneGiorni != null ? `${record.durataOccupazioneGiorni} giorni` : '—')
                 : 'Annuale'),
       ),
-      attiProvenienza.length > 0 && React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 12 } },
+      attiProvenienza.length > 0 && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 } },
         attiProvenienza.map(atto => React.createElement(window.GravityEntityCard, {
           key: atto.id,
           title: atto.title,
@@ -2850,7 +2860,6 @@ function PermitDetailPage({ record, kind, isV2, concessioniList, autorizzazioniL
             { icon: 'ThunderboltOutlined', label: 'Stato:', valueNode: statoDotNode(atto.stato) },
           ],
           footer: atto.dataScadenza ? `Scade il ${atto.dataScadenza}` : null,
-          style: { width: 360 },
         })),
       ),
     ));

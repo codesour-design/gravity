@@ -159,7 +159,7 @@
     s.id  = 'gravity-entity-card-css';
     s.textContent = [
       /* Card wrapper */
-      '.gec-card{border-radius:8px;border:1px solid #f0f0f0;overflow:hidden;background:#fff;display:flex;flex-direction:column;align-items:flex-start;width:320px;box-sizing:border-box}',
+      '.gec-card{border-radius:8px;border:1px solid #f0f0f0;overflow:hidden;background:#fff;display:flex;flex-direction:column;align-items:flex-start;width:100%;box-sizing:border-box}',
       /* Header */
       '.gec-header{display:flex;gap:8px;align-items:center;padding:8px 12px;width:100%;box-sizing:border-box;border-bottom:1px solid #f0f0f0}',
       '.gec-header-title-row{display:flex;flex:1;gap:8px;align-items:center;min-width:0;overflow:hidden}',

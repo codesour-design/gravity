@@ -122,13 +122,12 @@ griglia di card, mai come Select a valore singolo (dettaglio in `components/sect
   badge per identificativo + canale, campi per gli attributi dell'entità, eventuali campi
   aggiuntivi editabili nel footer quando la card rappresenta anche una relazione con dati propri
   (es. codice/CUP per-impianto).
+- **Larghezza: sempre fill.** La card ha `width: 100%` di default e riempie la cella di grid/Col che occupa, senza superarla; mai una larghezza fissa, salvo override esplicito via `style`.
 - **Griglia a manciata, fill per larghezza** (es. "Concessioni o Contratti di riferimento" di
   un'Autorizzazione, `LAYOUT.md` §3.9 "Diritto sul Suolo"): `display: grid;
-  gridTemplateColumns: repeat(auto-fit, minmax(320px, 1fr))` — stesso pattern già in uso per le
-  "Card laterali" del Detail View (§3.4) — invece delle colonne fisse a 3 della griglia a scala
-  reale: l'elemento tipico è 0, 1 o 2 atti collegati, quindi le card **si allargano per
-  riempire la riga** (1 card = piena larghezza, 2 card = metà ciascuna) invece di restare a
-  larghezza fissa con spazio vuoto accanto. Azione di scollegamento **per singola card** nel
+  gridTemplateColumns: repeat(2, minmax(0, 1fr))` — 2 colonne fisse — invece delle colonne fisse a 3 della griglia a scala
+  reale: l'elemento tipico è 0, 1 o 2 atti collegati, quindi ogni card **riempie la propria cella**
+  (mai oltre: 1 card = metà riga, 2 card = metà ciascuna, la terza va a capo). Azione di scollegamento **per singola card** nel
   kebab `menu` dell'header (es. `{ key: 'scollega', label: 'Scollega', icon: 'DeleteOutlined',
   danger: true, onClick }`), non nel footer (vedi sezione sopra).
 - **Non usarla senza filtri+paginazione** per liste a scala reale (migliaia di righe): il
