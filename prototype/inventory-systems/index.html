@@ -5846,7 +5846,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const SECTIONS = [
     { id: 'identita',        label: 'Anagrafica e ubicazione' },
     { id: 'dati-amministrativi',   label: 'Iter autorizzativo' },
-    { id: 'oneri-economici',       label: 'Oneri economici' },
+    ...(isV2 ? [{ id: 'oneri-economici', label: 'Oneri economici' }] : []),
     { id: 'caratteristiche', label: 'Dati tecnici' },
     { id: 'struttura',       label: isV2 ? 'Struttura' : 'Cespiti e dispositivi' },
     { id: 'affissione',      label: 'Squadre' },
@@ -6437,9 +6437,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const sec = (id, title, description, ...children) =>
     _sections.push({
       key: id,
-      label: _navLabel(id, title,
-        id === 'struttura' ? React.createElement(HandoffDesignNote, { id: 'struttura-fuori-sprint-coming-soon', placement: 'right' }) :
-        id === 'commerciale' ? React.createElement(HandoffDesignNote, { id: 'commerciale-fuori-sprint-coming-soon', placement: 'right' }) : null),
+      label: _navLabel(id, title, null),
       title, description,
       disabled: disabledSections.includes(id),
       children: children.length === 1 ? children[0] : React.createElement(React.Fragment, null, ...children),
@@ -6934,7 +6932,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         ),
 
         // ── 3. Oneri economici
-        sec('oneri-economici', 'Oneri economici', React.createElement(React.Fragment, null, 'Costi ricorrenti e continuativi per il mantenimento e l\'esercizio dell\'impianto: canone suolo pubblico, utenze, connettività, polizza RC e contratti di manutenzione.', React.createElement(HandoffDesignNote, { id: 'oneri-fornitori-crud', placement: 'right' })),
+        isV2 && sec('oneri-economici', 'Oneri economici', React.createElement(React.Fragment, null, 'Costi ricorrenti e continuativi per il mantenimento e l\'esercizio dell\'impianto: canone suolo pubblico, utenze, connettività, polizza RC e contratti di manutenzione.', React.createElement(HandoffDesignNote, { id: 'oneri-fornitori-crud', placement: 'right' })),
           ...ONERE_TYPES.map(t => {
             const o = oneri[t.id];
             const f = (k, v) => setOnereField(t.id, k, v);
