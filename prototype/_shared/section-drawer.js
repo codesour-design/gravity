@@ -96,7 +96,9 @@
     .grav-form-area-header {
       padding: 20px 24px 18px; border-bottom: 1px solid var(--gravity-border-secondary, #F0F0F0);
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      box-sizing: border-box; min-height: 70px; /* 20 + 18 padding + 32 controlHeight: stessa altezza con e senza azione */
     }
+    .grav-form-area-header-text { flex: 1; min-width: 0; }
     .grav-form-area-title { font-size: 15px; font-weight: 600; color: var(--gravity-text, rgba(0,0,0,0.88)); margin-bottom: 4px; }
     .grav-form-area-description { font-size: 13px; color: var(--gravity-text-tertiary, rgba(0,0,0,0.45)); line-height: 20px; }
     .grav-form-area-extra { flex-shrink: 0; }
@@ -170,7 +172,7 @@
   function GravityFormArea({ title, description, extra, children }) {
     return React.createElement('div', { className: 'grav-form-area' },
       (title || description || extra) && React.createElement('div', { className: 'grav-form-area-header' },
-        React.createElement('div', null,
+        React.createElement('div', { className: 'grav-form-area-header-text' },
           title && React.createElement('div', { className: 'grav-form-area-title' }, title),
           description && React.createElement('div', { className: 'grav-form-area-description' }, description),
         ),

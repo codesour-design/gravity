@@ -2226,7 +2226,7 @@ const ALIQUOTA_IVA_OPTS = [
 ];
 const parseEuro = (s) => { if (s == null || s === '') return 0; const n = parseFloat(String(s).replace(/\./g, '').replace(',', '.')); return isNaN(n) ? 0 : n; };
 const fmtEuro = (n) => { const v = Math.round((Number(n) || 0) * 100) / 100; const [int, dec] = v.toFixed(2).split('.'); return int.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + dec; };
-const STATO_COLORS = { 'Attivo': '#1677FF', 'Inizializzato': '#FAAD14', 'In Manutenzione': '#FA8C16', 'Rimosso': 'rgba(0,0,0,0.45)' };
+const STATO_COLORS = { 'Inizializzato': '#FAAD14', 'Attivo': '#1677FF', 'In Manutenzione': '#FA8C16', 'Rimosso': 'rgba(0,0,0,0.45)' };
 // Stati selezionabili nel modale "Nuovo evento" + mappatura al Badge della timeline
 const NEW_EVENT_STATI = ['Inizializzato', 'Attivo', 'In Manutenzione', 'Rimosso'];
 const STATO_BADGE = { 'Inizializzato': 'processing', 'Attivo': 'success', 'In Manutenzione': 'warning', 'Rimosso': 'default' };
@@ -4953,7 +4953,7 @@ function ImpiantoLocationMap({ lat, lng, tipologia, canale, stato, onChange }) {
     return () => { cancelled = true; };
   }, [valid, la, ln, src]);
 
-  return React.createElement('div', { style: { position: 'relative', marginTop: 4 } },
+  return React.createElement('div', { style: { position: 'relative', marginTop: 16 } },
     React.createElement('div', { ref: boxRef, style: { height: 280, borderRadius: 8, overflow: 'hidden', border: '1px solid #E8E8E8', background: '#f5f5f5' } }),
     !valid && React.createElement('div', { style: { position: 'absolute', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: 'rgba(245,245,245,0.72)', color: 'rgba(0,0,0,0.45)', fontSize: 13, textAlign: 'center', padding: 24, pointerEvents: 'none' } },
       'Inserisci l\'indirizzo o le coordinate per vedere il pin dell\'impianto sulla mappa.'),
@@ -4969,7 +4969,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [nome,      setNome]      = useState(iv.nome      || '');
   const [tipologia, setTipologia] = useState(iv.tipologia || null);
   const [formato,   setFormato]   = useState(iv.formato   || null);
-  const [stato,     setStato]     = useState(iv.stato     || null);
+  const [stato,     setStato]     = useState(iv.stato     || 'Inizializzato');
   // v2 — Foto di copertina: campo reale sul record, scelto qui invece di essere calcolato a
   // tempo di rendering da id (nota 'impianto-foto-copertina-non-pseudo-casuale') — picker a
   // miniature sul pool FOTO_IMPIANTO condiviso, non un vero upload (nessun backend nel mock).
@@ -5015,7 +5015,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setCanale(v.canale || null);
     setNome(v.nome || '');
     setTipologia(v.tipologia || null);
-    setStato(v.stato || null);
+    setStato(v.stato || 'Inizializzato');
     setFotoCopertina(v.fotoCopertina || null);
     // Mock: in modifica la galleria "Foto dell'impianto" parte già compilata (nessun backend);
     // in creazione riparte vuota, così le foto di un record non finiscono in un altro.
