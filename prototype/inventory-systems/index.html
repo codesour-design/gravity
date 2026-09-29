@@ -427,6 +427,9 @@
     .ni-section-title { font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.35); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 16px; }
     .ni-grid { display: grid; gap: 16px 12px; margin-bottom: 16px; }
     .ni-grid:last-child { margin-bottom: 0; }
+    /* Row/Col dei g2/g3/g4: stessa spaziatura verticale tra righe del vecchio .ni-grid */
+    .ni-row { margin-bottom: 16px; }
+    .ni-row:last-child { margin-bottom: 0; }
     /* In ogni riga del grid i campi sono colonne flex: il controllo si allinea in basso
        così gli input restano sulla stessa linea anche quando le label vanno a capo su 2 righe */
     .ni-grid .ni-field { margin-bottom: 0; display: flex; flex-direction: column; }
@@ -6435,6 +6438,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       key: id,
       label: _navLabel(id, title, null),
       title, description,
+      dirty: !!sectionDirty[id] && !disabledSections.includes(id),
       disabled: disabledSections.includes(id),
       children: children.length === 1 ? children[0] : React.createElement(React.Fragment, null, ...children),
     });
@@ -6453,9 +6457,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   }, n);
 
   // Grid helpers — Row/Col AntD (LAYOUT.md §2.1), sostituiscono .ni-grid CSS
-  const g2 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 12 }, c)));
-  const g3 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 8 }, c)));
-  const g4 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 6 }, c)));
+  const g2 = (...f) => React.createElement(Row, { gutter: [12, 16], className: 'ni-row' }, f.map((c, i) => React.createElement(Col, { key: i, span: 12 }, c)));
+  const g3 = (...f) => React.createElement(Row, { gutter: [12, 16], className: 'ni-row' }, f.map((c, i) => React.createElement(Col, { key: i, span: 8 }, c)));
+  const g4 = (...f) => React.createElement(Row, { gutter: [12, 16], className: 'ni-row' }, f.map((c, i) => React.createElement(Col, { key: i, span: 6 }, c)));
   // Sotto-intestazione dentro un box (per raggruppare più sottosezioni in un'unica card).
   // `extra`: nodo opzionale allineato a destra sulla stessa riga del titolo
   // (es. uno switch che riguarda l'intera sottosezione sottostante).
@@ -6690,11 +6694,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       hasRequired[id] ? React.createElement('span', { style: { color: '#FF4D4F', fontSize: 13, lineHeight: 1 } }, ' *') : null,
       hdNote || null,
     ),
-    sectionDirty[id] ? React.createElement(Tooltip, { title: 'Modifiche non salvate in questa sezione' },
-      React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', lineHeight: 0, flexShrink: 0 } },
-        React.createElement('span', { style: { width: 5, height: 5, borderRadius: '50%', background: window.GRAVITY_THEME.token.colorPrimary, display: 'block' } })
-      )
-    ) : null,
   );
 
         // ── 1. Identità
