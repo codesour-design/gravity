@@ -23,6 +23,8 @@
   <script src="../_shared/filter-drawer.js"></script>
   <script src="../_shared/form-helpers.js"></script>
   <script src="../_shared/entity-card.js"></script>
+  <script src="../_shared/entity-picker-drawer.js"></script>
+  <script src="../_shared/section-drawer.js"></script>
 
   <!-- Handoff loader — attiva il layer handoff (note di design + tour + interfaccia
        semplificata) SOLO con ?handoff=<versione>. Senza il parametro questo è il
@@ -3595,42 +3597,88 @@ function SquadraDrawer({ open, onClose, onSubmit, kind, editData }) {
 // Drawer dedicato: collegamento di altri MODULI (impianti esistenti)
 // ─────────────────────────────────────────────────────────
 function ModuliLinkDrawer({ open, onClose, onSubmit, existingIds, currentId }) {
+  const PAGE_SIZE = 9;
+  const Picker = window.GravityEntityPickerDrawer;
   const [search, setSearch] = useState('');
+  const [filterTipo, setFilterTipo] = useState(null);
+  const [filterFormato, setFilterFormato] = useState(null);
   const [selected, setSelected] = useState([]);
-  useEffect(() => { if (open) { setSearch(''); setSelected([]); } }, [open]);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    if (open) { setSearch(''); setFilterTipo(null); setFilterFormato(null); setSelected([]); setPage(1); }
+  }, [open]);
+
   const excluded = new Set([currentId, ...(existingIds || [])]);
+  const base = IMPIANTI.filter(i => !excluded.has(i.id));
+  const filters = { tipo: filterTipo, formato: filterFormato };
+
+  const applyFilter = (key, value) => {
+    const next = Picker.cascade(base, filters, key, value, ['tipo']);
+    setFilterTipo(next.tipo);
+    setFilterFormato(next.formato);
+    setPage(1);
+  };
+
+  const tipoOptions = React.useMemo(() =>
+    Array.from(new Set(Picker.facetItems(base, filters, 'tipo').map(i => i.tipo))).sort().map(t => ({ value: t, label: t })),
+  [filterFormato, excluded.size]);
+  const formatoOptions = React.useMemo(() =>
+    Array.from(new Set(Picker.facetItems(base, filters, 'formato').map(i => i.formato))).sort().map(f => ({ value: f, label: f })),
+  [filterTipo, excluded.size]);
+
   const q = search.trim().toLowerCase();
-  const candidates = IMPIANTI.filter(i => !excluded.has(i.id) && (!q || i.id.toLowerCase().includes(q) || (i.tipo || '').toLowerCase().includes(q) || (i.indirizzo || '').toLowerCase().includes(q))).slice(0, 40);
+  const candidates = base.filter(i =>
+    (!q || i.id.toLowerCase().includes(q) || (i.tipo || '').toLowerCase().includes(q) || (i.indirizzo || '').toLowerCase().includes(q))
+    && (!filterTipo || i.tipo === filterTipo)
+    && (!filterFormato || i.formato === filterFormato));
+
+  const pageSafe = Math.min(page, Math.max(1, Math.ceil(candidates.length / PAGE_SIZE)));
+  const pageItems = candidates.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+
   const toggle = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const save = () => {
-    if (!selected.length) { antdMsg.warning('Seleziona almeno un impianto'); return; }
+    if (!selected.length) return;
     const recs = selected.map(id => { const i = IMPIANTI.find(x => x.id === id); return { id: i.id, tipo: i.tipo, indirizzo: i.indirizzo + ', Palermo', formato: (i.formato || '').replace('×', '×').replace('cm', ' cm') }; });
     onSubmit(recs);
   };
   const dirty = selected.length > 0;
-  return React.createElement(Drawer, {
+
+  return React.createElement(Picker, {
+    open, onClose, dirty,
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
       React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }), 'Collega moduli'),
-    placement: 'right', width: 640, styles: { body: { padding: 24 } },
-    closable: false, maskClosable: !dirty, keyboard: !dirty,
-    onClose: onClose, open: open, destroyOnClose: true,
-    extra: React.createElement(Space, null,
-      React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
-      React.createElement(Button, { type: selected.length ? 'primary' : 'default', icon: React.createElement(LinkOutlined), disabled: !selected.length, onClick: save }, selected.length ? 'Collega (' + selected.length + ')' : 'Collega')),
-  },
-    React.createElement(Input, { value: search, onChange: e => setSearch(e.target.value), placeholder: 'Cerca per ID, tipo o indirizzo…', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), allowClear: true, style: { marginBottom: 16 } }),
-    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '68vh', overflow: 'auto' } },
-      candidates.length === 0
-        ? React.createElement(Empty, { description: 'Nessun impianto trovato', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '24px 0' } })
-        : candidates.map(i => {
-            const on = selected.includes(i.id);
-            return React.createElement('div', { key: i.id, onClick: () => toggle(i.id), style: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid ' + (on ? window.GRAVITY_THEME.token.colorPrimary : '#EAECEF'), background: on ? '#F5F2FF' : '#fff', borderRadius: 8, cursor: 'pointer' } },
-              React.createElement(Checkbox, { checked: on }),
-              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                React.createElement('div', { style: { fontSize: 14, fontWeight: 600 } }, i.id + ' · ' + i.tipo),
-                React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, i.indirizzo)),
-              React.createElement(Tag, { style: { margin: 0 } }, i.formato));
-          })));
+    cancelAction: React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
+    confirmText: selected.length ? 'Collega (' + selected.length + ')' : 'Collega',
+    confirmIcon: React.createElement(LinkOutlined),
+    confirmDisabled: !selected.length,
+    onConfirm: save,
+    heading: {
+      title: 'Trova gli impianti da collegare come moduli',
+      description: 'Cerca o filtra per tipologia e formato. Gli impianti già collegati e l\'impianto corrente non vengono mostrati.',
+    },
+    search: { value: search, placeholder: 'Cerca per ID, tipo o indirizzo…', onChange: e => { setSearch(e.target.value); setPage(1); } },
+    filters: [
+      { key: 'tipo', value: filterTipo, placeholder: 'Tipologia', width: 180, options: tipoOptions, onChange: v => applyFilter('tipo', v) },
+      { key: 'formato', value: filterFormato, placeholder: 'Formato', width: 180, options: formatoOptions, onChange: v => applyFilter('formato', v) },
+    ],
+    total: candidates.length,
+    countLabel: n => n === 1 ? '1 impianto trovato' : n + ' impianti trovati',
+    emptyText: 'Nessun impianto trovato. Modifica la ricerca o i filtri.',
+    items: pageItems, getKey: i => i.id,
+    selectedKeys: selected, onToggle: toggle,
+    renderCard: (i, sel) => React.createElement(window.GravityEntityCard, {
+      title: i.alias || i.id,
+      image: { id: i.id, src: i.fotoCopertina, heightPx: 120 },
+      fields: [
+        { icon: 'AppstoreOutlined', label: 'Tipo:', value: i.tipo },
+        { icon: 'ExpandOutlined', label: 'Formato:', value: i.formato },
+        { icon: 'EnvironmentOutlined', label: 'Indirizzo:', value: i.indirizzo },
+      ],
+      style: sel ? { width: '100%', height: '100%', background: '#F5F2FF' } : { width: '100%', height: '100%' },
+    }),
+    pagination: { current: pageSafe, pageSize: PAGE_SIZE, onChange: p => setPage(p) },
+  });
 }
 
 function ImpiantoDetailV2({ imp, onBack }) {
@@ -5532,6 +5580,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [linkDrawerOpen,  setLinkDrawerOpen]  = useState(false);
   const [linkSelectedIds, setLinkSelectedIds] = useState([]);
   const [linkSearch,      setLinkSearch]      = useState('');
+  const [linkPage,        setLinkPage]        = useState(1);
   const [saveLinkOpen,    setSaveLinkOpen]    = useState(false);
   const [saveLinkChosen,  setSaveLinkChosen]  = useState([]);
   const [proprieta,      setProprieta]      = useState(null);
@@ -5723,6 +5772,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   // Lista mostrata nel drawer di collegamento: SOLO impianti compatibili (stesso tipo+formato),
   // filtrati per ricerca testo. Il vincolo di compatibilità non è esposto all'utente.
+  const LINK_PAGE_SIZE = 9;
   const linkCandidates = React.useMemo(() => {
     const q = linkSearch.trim().toLowerCase();
     return moduliCompatibili.filter(imp =>
@@ -5730,9 +5780,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       imp.tipo.toLowerCase().includes(q) || imp.indirizzo.toLowerCase().includes(q)
     );
   }, [moduliCompatibili, linkSearch]);
+  const linkPageSafe = Math.min(linkPage, Math.max(1, Math.ceil(linkCandidates.length / LINK_PAGE_SIZE)));
+  const linkPageItems = linkCandidates.slice((linkPageSafe - 1) * LINK_PAGE_SIZE, linkPageSafe * LINK_PAGE_SIZE);
 
   const linkSnapshotRef = useRef([]);
-  const openLinkDrawer = () => { if (!canAddSubItems) return; setLinkSelectedIds(moduliCollegati); setLinkSearch(''); setLinkDrawerOpen(true); linkSnapshotRef.current = [...moduliCollegati]; };
+  const openLinkDrawer = () => { if (!canAddSubItems) return; setLinkSelectedIds(moduliCollegati); setLinkSearch(''); setLinkPage(1); setLinkDrawerOpen(true); linkSnapshotRef.current = [...moduliCollegati]; };
   const moduliAddBtn = lockedTip(React.createElement(Button, { icon: React.createElement(canAddSubItems ? LinkOutlined : LockOutlined), disabled: !canAddSubItems, onClick: openLinkDrawer }, 'Collega impianto'));
   const confirmLinkDrawer = () => { setModuliCollegati(linkSelectedIds); setLinkDrawerOpen(false); };
   const isLinkDirty = () => JSON.stringify([...linkSelectedIds].sort()) !== JSON.stringify([...linkSnapshotRef.current].sort());
@@ -6383,30 +6435,19 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   // Section wrapper — mostra solo la sezione attiva
   const sec = (id, title, description, ...children) =>
-    activeSection !== id ? null :
-    React.createElement('div', null,
-      React.createElement('div', { style: { marginBottom: 28 } },
-        React.createElement('div', { style: { fontSize: 20, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 6, letterSpacing: '-0.01em' } }, title),
-        React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, description),
-      ),
-      ...children,
-    );
+    _sections.push({
+      key: id,
+      label: _navLabel(id, title,
+        id === 'struttura' ? React.createElement(HandoffDesignNote, { id: 'struttura-fuori-sprint-coming-soon', placement: 'right' }) :
+        id === 'commerciale' ? React.createElement(HandoffDesignNote, { id: 'commerciale-fuori-sprint-coming-soon', placement: 'right' }) : null),
+      title, description,
+      disabled: disabledSections.includes(id),
+      children: children.length === 1 ? children[0] : React.createElement(React.Fragment, null, ...children),
+    });
 
-  // Box sottosezione con titolo e descrizione — stile settings card.
-  // boxX accetta anche un nodo `extra` (es. un bottone) allineato a destra nell'header.
+  // box / boxX — shim su GravityFormArea (section-drawer.js)
   const boxX = (title, description, extra, ...children) =>
-    React.createElement('div', { style: { background: '#fff', border: '1px solid #E8E8E8', borderRadius: 8, overflow: 'hidden', marginBottom: 16 } },
-      React.createElement('div', { style: { padding: '20px 24px 18px', borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 } },
-        React.createElement('div', null,
-          React.createElement('div', { style: { fontSize: 15, fontWeight: 600, color: 'rgba(0,0,0,0.88)', marginBottom: 4 } }, title),
-          React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, description),
-        ),
-        extra ? React.createElement('div', { style: { flexShrink: 0 } }, extra) : null,
-      ),
-      React.createElement('div', { style: { padding: '20px 24px 24px' } },
-        ...children,
-      ),
-    );
+    React.createElement(window.GravityFormArea, { title, description, extra }, ...children);
   const box = (title, description, ...children) => boxX(title, description, null, ...children);
   // Pallino contatore accanto al titolo di boxX: sfondo primary, numero bianco
   const countBadge = (n) => React.createElement('span', {
@@ -6417,10 +6458,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     },
   }, n);
 
-  // Grid helpers
-  const g2 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-2' }, ...f);
-  const g3 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-3' }, ...f);
-  const g4 = (...f) => React.createElement('div', { className: 'ni-grid ni-grid-4' }, ...f);
+  // Grid helpers — Row/Col AntD (LAYOUT.md §2.1), sostituiscono .ni-grid CSS
+  const g2 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 12 }, c)));
+  const g3 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 8 }, c)));
+  const g4 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 6 }, c)));
   // Sotto-intestazione dentro un box (per raggruppare più sottosezioni in un'unica card).
   // `extra`: nodo opzionale allineato a destra sulla stessa riga del titolo
   // (es. uno switch che riguarda l'intera sottosezione sottostante).
@@ -6647,84 +6688,20 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     })
   );
 
-  return React.createElement(Drawer, {
-    open: open,
-    onClose: onClose,
-    placement: 'right',
-    width: '100%',
-    rootClassName: isV2 ? 'grav-main-drawer sys-v2' : 'grav-main-drawer',
-    closable: false, maskClosable: !dirty, keyboard: !dirty,
-    destroyOnClose: true,
-    title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-      React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }),
-      canAddSubItems ? 'Modifica Impianto' : 'Nuovo Impianto'),
-    footer: null,
-    extra: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-      React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
-      // Un solo pulsante: il click chiede sempre, tramite Popconfirm ancorato a sé
-      // stesso (stesso linguaggio Gravity di DiscardButton, LAYOUT.md §6.6), se
-      // restare nel form (primario, onConfirm → doSaveStay) o uscire (onCancel →
-      // doSaveAndExit) — vedi HANDOFF_NOTES impianto-salvato-prima-subentita.
-      React.createElement(Popconfirm, {
-        title: canAddSubItems ? 'Salvare le modifiche?' : 'Creare l\'impianto?',
-        description: 'Puoi continuare a modificare il form o uscire.',
-        icon: null,
-        okText: canAddSubItems ? 'Continua e Salva' : 'Continua e Crea',
-        cancelText: canAddSubItems ? 'Esci e Salva' : 'Esci e Crea',
-        onConfirm: handleSaveStay,
-        onCancel: handleSaveAndExit,
-        placement: 'bottomRight',
-        align: { offset: [-16, 8] },
-        overlayInnerStyle: { padding: '16px 20px' },
-        okButtonProps: { size: 'middle', icon: React.createElement(SaveOutlined), style: { background: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess, color: window.GRAVITY_THEME.token.colorTextLightSolid } },
-        cancelButtonProps: { size: 'middle', icon: React.createElement(SaveOutlined), style: { color: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess } },
-      },
-        React.createElement(Button, {
-          id: 'grav-tour-form-save',
-          type: 'primary',
-          icon: React.createElement(SaveOutlined),
-          // Oltre ai campi obbligatori, serve una modifica non ancora salvata:
-          // dopo "Crea/Salva e continua" formSnapshotRef si riallinea (doSaveStay)
-          // e il pulsante si spegne finché non arriva una modifica successiva.
-          disabled: !canSave || !dirty,
-          style: (!canSave || !dirty) ? undefined : { background: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess, color: window.GRAVITY_THEME.token.colorTextLightSolid },
-        }, canAddSubItems ? 'Salva impianto' : 'Crea Impianto'),
-      ),
+  // Costruzione sezioni per GravitySectionDrawer — eseguite qui (prima del return)
+  // per popolare _sections prima di passarle al componente.
+  const _sections = [];
+  const _navLabel = (id, text, hdNote) => React.createElement(React.Fragment, null,
+    React.createElement('span', { style: { whiteSpace: 'nowrap' } }, text,
+      hasRequired[id] ? React.createElement('span', { style: { color: '#FF4D4F', fontSize: 13, lineHeight: 1 } }, ' *') : null,
+      hdNote || null,
     ),
-    styles: { body: { padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' } },
-  },
-
-    React.createElement('div', { className: 'create-body' },
-
-      React.createElement('nav', { id: 'grav-tour-form-nav', className: 'create-nav' },
-        React.createElement('div', { className: 'create-nav-label' }, 'Sezioni',
-          React.createElement(HandoffDesignNote, { id: 'sezioni-facoltative', placement: 'right' })),
-        SECTIONS.filter(({ id }) => !disabledSections.includes(id)).map(({ id, label }) => {
-          const isActive = activeSection === id;
-          return React.createElement('div', {
-            key: id,
-            'data-section': id,
-            className: 'create-nav-item' + (isActive ? ' active' : ''),
-            onClick: () => setActiveSection(id),
-            style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
-          },
-            React.createElement('span', { style: { whiteSpace: 'nowrap' } },
-              label,
-              hasRequired[id] && React.createElement('span', {
-                style: { color: '#FF4D4F', fontSize: 13, lineHeight: 1 },
-              }, ' *'),
-              id === 'struttura' && React.createElement(HandoffDesignNote, { id: 'struttura-fuori-sprint-coming-soon', placement: 'right' }),
-              id === 'commerciale' && React.createElement(HandoffDesignNote, { id: 'commerciale-fuori-sprint-coming-soon', placement: 'right' }),
-            ),
-            sectionDirty[id] && React.createElement(Tooltip, { title: 'Modifiche non salvate in questa sezione' },
-              React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', lineHeight: 0, flexShrink: 0 } },
-                React.createElement('span', { style: { width: 5, height: 5, borderRadius: '50%', background: window.GRAVITY_THEME.token.colorPrimary, display: 'block' } }))),
-          );
-        }),
-      ),
-
-      React.createElement('div', { className: 'create-scroll' },
-        React.createElement('div', { id: 'grav-tour-form-required', className: 'create-content' },
+    sectionDirty[id] ? React.createElement(Tooltip, { title: 'Modifiche non salvate in questa sezione' },
+      React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', lineHeight: 0, flexShrink: 0 } },
+        React.createElement('span', { style: { width: 5, height: 5, borderRadius: '50%', background: window.GRAVITY_THEME.token.colorPrimary, display: 'block' } })
+      )
+    ) : null,
+  );
 
         // ── 1. Identità
         sec('identita', 'Anagrafica e ubicazione', 'Dati identificativi e posizione geografica dell\'impianto.',
@@ -7286,13 +7263,52 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                 : lockedEmpty("Crea l'impianto per collegare i moduli", moduliAddBtn),
             ),
           ),
-        ),
+        )
 
-        ) // create-content
-      ) // create-scroll
-    ), // create-body
+  const _titleEl = React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+    React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }),
+    canAddSubItems ? 'Modifica Impianto' : 'Nuovo Impianto');
 
-    // Permits drawer — stessa UX del dettaglio impianto
+  const _extraEl = React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+    React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
+    // Un solo pulsante: il click chiede sempre, tramite Popconfirm ancorato a sé
+    // stesso (stesso linguaggio Gravity di DiscardButton, LAYOUT.md §6.6), se
+    // restare nel form (primario, onConfirm → doSaveStay) o uscire (onCancel →
+    // doSaveAndExit) — vedi HANDOFF_NOTES impianto-salvato-prima-subentita.
+    React.createElement(Popconfirm, {
+      title: canAddSubItems ? 'Salvare le modifiche?' : 'Creare l\'impianto?',
+      description: 'Puoi continuare a modificare il form o uscire.',
+      icon: null,
+      okText: canAddSubItems ? 'Continua e Salva' : 'Continua e Crea',
+      cancelText: canAddSubItems ? 'Esci e Salva' : 'Esci e Crea',
+      onConfirm: handleSaveStay,
+      onCancel: handleSaveAndExit,
+      placement: 'bottomRight',
+      align: { offset: [-16, 8] },
+      overlayInnerStyle: { padding: '16px 20px' },
+      okButtonProps: { size: 'middle', icon: React.createElement(SaveOutlined), style: { background: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess, color: window.GRAVITY_THEME.token.colorTextLightSolid } },
+      cancelButtonProps: { size: 'middle', icon: React.createElement(SaveOutlined), style: { color: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess } },
+    },
+      React.createElement(Button, {
+        id: 'grav-tour-form-save',
+        type: 'primary', icon: React.createElement(SaveOutlined),
+        disabled: !canSave || !dirty,
+        style: (!canSave || !dirty) ? undefined : { background: window.GRAVITY_THEME.token.colorSuccess, borderColor: window.GRAVITY_THEME.token.colorSuccess, color: window.GRAVITY_THEME.token.colorTextLightSolid },
+      }, canAddSubItems ? 'Salva impianto' : 'Crea Impianto'),
+    ),
+  );
+
+  return React.createElement(React.Fragment, null,
+    React.createElement(window.GravitySectionDrawer, {
+      open, dirty, onClose,
+      rootClassName: isV2 ? 'grav-main-drawer sys-v2' : 'grav-main-drawer',
+      width: '100%',
+      activeKey: activeSection, onActiveKeyChange: setActiveSection,
+      title: _titleEl, extra: _extraEl,
+      sections: _sections,
+    }),
+
+    // Permits drawer — intestazione EntityPickerDrawer + accordion originale
     React.createElement(Drawer, {
       title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
         React.createElement(DiscardCloseIcon, { dirty: !!permitRowKey, onDiscard: closePermitDrawer }),
@@ -7316,15 +7332,31 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         }, 'Aggiungi'),
       ),
     },
-      permitDrawerType === 'autorizzazione'
-        ? React.createElement(AutorizzazioniEsposizioneList, { data: AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory === 'Esposizione pubblicitaria (Comunale)' && a.status === 'Attiva'), selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
-        : permitDrawerType === 'contratto'
-          ? React.createElement(ContrattiList, { data: CONTRATTI_DATA.filter(c => c.status === 'Attiva'), selectedKey: permitRowKey, onRowSelect: setPermitRowKey })
-          : React.createElement(GrantsAccordion, {
-              data: GRANTS_DATA.filter(g => g.status === 'Attiva'),
-              selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey,
-              kindLabel: 'concessione',
-            }),
+      React.createElement(React.Fragment, null,
+        React.createElement('div', { style: { marginBottom: 20 } },
+          React.createElement(Typography.Title, { level: 4, style: { margin: '0 0 2px' } },
+            permitDrawerType === 'autorizzazione'
+              ? "Trova l'autorizzazione da collegare"
+              : permitDrawerType === 'contratto'
+                ? 'Trova il contratto privato da collegare'
+                : 'Trova la concessione da collegare'),
+          React.createElement(Typography.Text, { type: 'secondary' },
+            permitDrawerType === 'autorizzazione'
+              ? "Seleziona l'atto e il codice cimasa da associare all'impianto. Vengono mostrate solo le autorizzazioni di esposizione pubblicitaria attive."
+              : permitDrawerType === 'contratto'
+                ? 'Cerca per proprietario/locatore, identificativo o tipo. Vengono mostrati solo i contratti attivi.'
+                : "Seleziona la concessione e il numero utenza da associare all'impianto. Vengono mostrate solo le concessioni attive."),
+        ),
+        permitDrawerType === 'autorizzazione'
+          ? React.createElement(AutorizzazioniEsposizioneList, { data: AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory === 'Esposizione pubblicitaria (Comunale)' && a.status === 'Attiva'), selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
+          : permitDrawerType === 'contratto'
+            ? React.createElement(ContrattiList, { data: CONTRATTI_DATA.filter(c => c.status === 'Attiva'), selectedKey: permitRowKey, onRowSelect: setPermitRowKey })
+            : React.createElement(GrantsAccordion, {
+                data: GRANTS_DATA.filter(g => g.status === 'Attiva'),
+                selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey,
+                kindLabel: 'concessione',
+              }),
+      ),
     ),
 
     // Modale: la concessione selezionata ha una propria Utenza/Cimasa che sovrascriverebbe
@@ -7518,51 +7550,76 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
           }),
     ),
 
-    // Drawer collegamento moduli — seleziona impianti esistenti da collegare
+    // Drawer oneri economici — selezione multipla dal catalogo
     React.createElement(Drawer, {
       title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-        React.createElement(DiscardCloseIcon, { dirty: isLinkDirty(), onDiscard: () => setLinkDrawerOpen(false) }), 'Collega impianto'),
-      placement: 'right', width: 640, rootClassName: 'grav-moduli-drawer',
+        React.createElement(DiscardCloseIcon, { dirty: onereKeys.length > 0, onDiscard: () => { setOnereKeys([]); setOnereDrawerOpen(false); } }), 'Aggiungi oneri economici'),
+      placement: 'right', width: 640,
       styles: { body: { padding: 24 } },
-      closable: false, maskClosable: !isLinkDirty(), keyboard: !isLinkDirty(),
-      onClose: () => setLinkDrawerOpen(false), open: linkDrawerOpen,
+      closable: false, maskClosable: onereKeys.length === 0, keyboard: onereKeys.length === 0,
+      onClose: () => { setOnereKeys([]); setOnereDrawerOpen(false); }, open: onereDrawerOpen,
       extra: React.createElement(Space, null,
-        React.createElement(DiscardButton, { dirty: isLinkDirty(), onDiscard: () => setLinkDrawerOpen(false) }, 'Annulla'),
-        React.createElement(Button, { type: 'primary', icon: React.createElement(LinkOutlined), onClick: confirmLinkDrawer },
-          linkSelectedIds.length > 0 ? 'Collega (' + linkSelectedIds.length + ')' : 'Collega'),
+        React.createElement(DiscardButton, { dirty: onereKeys.length > 0, onDiscard: () => { setOnereKeys([]); setOnereDrawerOpen(false); } }, 'Annulla'),
+        React.createElement(Button, {
+          type: onereKeys.length > 0 ? 'primary' : 'default',
+          disabled: onereKeys.length === 0,
+          onClick: () => {
+            const nuovi = onereKeys.map(k => ONERI_DATA.find(x => x.key === k)).filter(Boolean).map(o => ({ id: o.key, tipo: o.tipo, enteForn: o.enteForn, riferimento: o.riferimento, importo: o.importo, periodicita: o.periodicita, dataInizio: o.dataInizio, dataScadenza: o.dataScadenza, status: o.status, isActive: o.isActive }));
+            setAddedOneri(prev => {
+              const esistenti = new Set(prev.map(x => x.id));
+              return [...prev, ...nuovi.filter(n => !esistenti.has(n.id))];
+            });
+            setOnereKeys([]);
+            setOnereDrawerOpen(false);
+            antdMsg.success(nuovi.length === 1 ? 'Onere economico aggiunto' : nuovi.length + ' oneri economici aggiunti');
+          },
+        }, onereKeys.length > 0 ? 'Aggiungi (' + onereKeys.length + ')' : 'Aggiungi'),
       ),
     },
-      React.createElement('div', { style: { marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4 } },
-        React.createElement(Input, {
-          value: linkSearch, onChange: e => setLinkSearch(e.target.value),
-          placeholder: 'Cerca per ID, tipo o indirizzo…', allowClear: true,
-          prefix: React.createElement(SearchOutlined), style: { width: '100%' },
-        }),
-        React.createElement(HandoffDesignNote, { id: 'commerciale-moduli-distanza-mancante', placement: 'bottom' }),
-      ),
-      (!tipologia || !formato) ? React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginBottom: 16, background: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
-        React.createElement(InfoCircleOutlined, { style: { fontSize: 14, color: window.GRAVITY_THEME.token.colorPrimary, marginTop: 2 } }),
-        React.createElement('span', null, 'Imposta tipologia e formato dell\'impianto per filtrare automaticamente i moduli compatibili.'),
-      ) : null,
-      linkCandidates.length === 0
-        ? React.createElement(Empty, { description: 'Nessun impianto compatibile trovato', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '24px 0' } })
-        : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '60vh', overflow: 'auto' } },
-            linkCandidates.map(imp => {
-              const sel = linkSelectedIds.includes(imp.id);
-              return React.createElement('div', {
-                key: imp.id, onClick: () => toggleLinkSel(imp.id),
-                style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid ' + (sel ? window.GRAVITY_THEME.token.colorPrimary : '#E8E8E8'), borderRadius: 8, cursor: 'pointer', background: sel ? '#F5F2FF' : '#fff' },
-              },
-                React.createElement(Checkbox, { checked: sel }),
-                React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                  React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, imp.id + ' · ' + imp.tipo),
-                  React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, imp.indirizzo),
-                ),
-                React.createElement(Tag, { style: { margin: 0 } }, imp.formato),
-              );
-            }),
-          ),
+      React.createElement(OneriCatalogList, { data: ONERI_DATA, selectedKeys: onereKeys, onSelectionChange: setOnereKeys }),
     ),
+
+    // Drawer collegamento moduli — GravityEntityPickerDrawer (LAYOUT.md §3.10)
+    React.createElement(window.GravityEntityPickerDrawer, {
+      open: linkDrawerOpen, onClose: () => setLinkDrawerOpen(false), dirty: isLinkDirty(),
+      rootClassName: 'grav-moduli-drawer',
+      title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+        React.createElement(DiscardCloseIcon, { dirty: isLinkDirty(), onDiscard: () => setLinkDrawerOpen(false) }), 'Collega impianto'),
+      cancelAction: React.createElement(DiscardButton, { dirty: isLinkDirty(), onDiscard: () => setLinkDrawerOpen(false) }, 'Annulla'),
+      confirmText: linkSelectedIds.length > 0 ? 'Collega (' + linkSelectedIds.length + ')' : 'Collega',
+      confirmIcon: React.createElement(LinkOutlined),
+      confirmDisabled: !linkSelectedIds.length,
+      onConfirm: confirmLinkDrawer,
+      heading: {
+        title: 'Trova gli impianti da collegare come moduli',
+        description: React.createElement(React.Fragment, null,
+          (!tipologia || !formato)
+            ? 'Imposta tipologia e formato dell\'impianto per filtrare automaticamente i moduli compatibili. '
+            : 'Vengono mostrati solo gli impianti compatibili per tipologia' + (formato ? ', formato' : '') + ' e indirizzo. ',
+          React.createElement(HandoffDesignNote, { id: 'commerciale-moduli-distanza-mancante', placement: 'right' }),
+        ),
+      },
+      search: {
+        value: linkSearch, placeholder: 'Cerca per ID, tipo o indirizzo…',
+        onChange: e => { setLinkSearch(e.target.value); setLinkPage(1); },
+      },
+      total: linkCandidates.length,
+      countLabel: n => n === 1 ? '1 impianto trovato' : n + ' impianti trovati',
+      emptyText: 'Nessun impianto compatibile trovato. Modifica la ricerca.',
+      items: linkPageItems, getKey: imp => imp.id,
+      selectedKeys: linkSelectedIds, onToggle: toggleLinkSel,
+      renderCard: (imp, sel) => React.createElement(window.GravityEntityCard, {
+        title: imp.alias || imp.id,
+        image: { id: imp.id, src: imp.fotoCopertina, heightPx: 120 },
+        fields: [
+          { icon: 'AppstoreOutlined', label: 'Tipo:', value: imp.tipo },
+          { icon: 'ExpandOutlined', label: 'Formato:', value: imp.formato },
+          { icon: 'EnvironmentOutlined', label: 'Indirizzo:', value: imp.indirizzo },
+        ],
+        style: sel ? { width: '100%', height: '100%', background: '#F5F2FF' } : { width: '100%', height: '100%' },
+      }),
+      pagination: { current: linkPageSafe, pageSize: LINK_PAGE_SIZE, onChange: p => setLinkPage(p) },
+    }),
 
     // Drawer aggiunta/modifica squadra (affissione | manutenzione)
     React.createElement(SquadraDrawer, {
