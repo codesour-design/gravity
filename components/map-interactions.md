@@ -155,3 +155,15 @@ marker mappa, che sono un asset separato:
 - Card al click sul marker → `components/map-popover.md`.
 - Trasposizione varianti AntD generiche (Card, Text, Icon, Button del popover) →
   `components/react-figma-map.md`.
+
+## Uso: mappa in un box di form (inventory-licenses)
+
+Terzo consumatore di `GravityMap`, in forma ridotta: `ImpiantiLinkedMap` (locale a
+`prototype/inventory-licenses`) è il box **"Mappa"** sotto il box "Elenco" nella sezione Impianti
+collegati dei tre drawer Permesso (Autorizzazione, Concessione, Contratto Privato). Mostra un
+marker per ogni impianto collegato nelle righe (icona tipologia, stato amministrativo "Attivo",
+`GravityMap.markerSrc`/`makeMarkerIcon`), si aggiorna a ogni collegamento/rimozione e inquadra i
+marker presenti (`fitBounds`, singolo impianto → zoom 15). Senza impianti collegati mostra la
+città con il messaggio "Collega un impianto per vederlo sulla mappa". Solo stato default: niente
+cluster, hover/focus né selezione (pochi marker, sola lettura). Richiede Leaflet oltre a
+`map-interactions.js`.
