@@ -484,6 +484,9 @@ valori inventati:
   **tooltip in hover** — mai un'etichetta statica accanto al controllo, mai lasciare l'utente a
   indovinare. Pattern: `components/form-patterns.md` §4 (opzioni Select) e
   `components/filter-drawer.md` (sezioni disabilitate).
+- **Modificato e non salvato**: stroke primary sul campo + pallino primary 5px sulla voce di
+  menu della sezione (drawer sezionati) — sistema completo in `components/section-drawer.md`
+  §"Tracciamento modifiche".
 - **Dimmed**: quando un elemento ha il focus (es. marker mappa), gli altri passano a
   `opacity: 0.2` invece di sparire — si mantiene il contesto spaziale
   (`components/map-interactions.md`).

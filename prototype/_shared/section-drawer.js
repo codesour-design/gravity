@@ -26,7 +26,8 @@
 //     navLabel: 'Sezioni',           // facoltativo, default 'Sezioni'
 //     activeKey, onActiveKeyChange,  // sezione attiva — controllata dal chiamante
 //     sections: [
-//       { key, label, title, description, disabled, children },
+//       { key, label, title, description, disabled, disabledReason, dirty, children },
+//       // dirty → pallino primary in menu; campo modificato → window.GravityModified(bool, controllo)
 //       ...
 //     ],
 //   })
@@ -37,6 +38,14 @@
   'use strict';
 
   const CSS = `
+    /* Tracciamento modifiche (stesso sistema di "Nuovo Impianto"): campo modificato = stroke
+       primary sul controllo (.input-modified, vedi GravityModified); sezione con modifiche non
+       salvate = pallino primary 5px nella voce di menu (section.dirty). */
+    .input-modified .ant-input,
+    .input-modified .ant-input-number,
+    .input-modified .ant-input-affix-wrapper,
+    .input-modified .ant-select .ant-select-selector,
+    .input-modified .ant-picker { border-color: var(--gravity-primary, #3E00FB) !important; }
     .grav-section-drawer-body { display: flex; height: 100%; }
     .grav-section-drawer-nav {
       width: 220px; flex-shrink: 0; padding: var(--gravity-space-lg, 24px) var(--gravity-space, 16px);
@@ -125,13 +134,25 @@
       React.createElement('div', { className: 'grav-section-drawer-body' },
         React.createElement('nav', { className: 'grav-section-drawer-nav' },
           React.createElement('div', { className: 'grav-section-drawer-nav-label' }, navLabel),
-          sections.map(s => React.createElement('div', {
-            key: s.key,
-            className: 'grav-section-drawer-nav-item'
-              + (s.key === active.key ? ' active' : '')
-              + (s.disabled ? ' disabled' : ''),
-            onClick: s.disabled ? undefined : () => onActiveKeyChange(s.key),
-          }, s.label)),
+          sections.map(s => {
+            const item = React.createElement('div', {
+              key: s.key,
+              className: 'grav-section-drawer-nav-item'
+                + (s.key === active.key ? ' active' : '')
+                + (s.disabled ? ' disabled' : ''),
+              onClick: s.disabled ? undefined : () => onActiveKeyChange(s.key),
+              style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
+            },
+              React.createElement('span', null, s.label),
+              s.dirty && React.createElement(antd.Tooltip, { title: 'Modifiche non salvate in questa sezione' },
+                React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', lineHeight: 0, flexShrink: 0 } },
+                  React.createElement('span', { style: { width: 5, height: 5, borderRadius: '50%', background: 'var(--gravity-primary, #3E00FB)', display: 'block' } }))),
+            );
+            // disabledReason: il motivo del blocco in hover (LAYOUT.md §6.2), mai testo statico
+            return s.disabled && s.disabledReason
+              ? React.createElement(antd.Tooltip, { key: s.key, title: s.disabledReason, placement: 'right' }, item)
+              : item;
+          }),
         ),
         React.createElement('div', { className: 'grav-section-drawer-scroll', ref: scrollRef },
           React.createElement('div', { className: 'grav-section-drawer-content' },
@@ -159,6 +180,12 @@
     );
   }
 
+  // Avvolge il controllo di un campo modificato con lo stroke primary (.input-modified).
+  function GravityModified(modified, control) {
+    return modified ? React.createElement('div', { className: 'input-modified' }, control) : control;
+  }
+
+  window.GravityModified = GravityModified;
   window.GravitySectionDrawer = GravitySectionDrawer;
   window.GravityFormArea = GravityFormArea;
 })();
