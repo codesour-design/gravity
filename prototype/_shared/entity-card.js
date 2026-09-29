@@ -218,7 +218,7 @@
     var allHeaderBadges = badges || (badge ? [badge] : []);
 
     // ── Header ──
-    var EllipsisIcon = icons.EllipsisOutlined;
+    var MenuIcon = icons.MoreOutlined; // kebab ⋮ verticale (EllipsisOutlined è il meatball ⋯)
     var hasMenu = menu && menu.length > 0;
     var headerRight = hasMenu
       ? h(Dropdown, {
@@ -241,11 +241,11 @@
             size: 'small',
             className: 'gec-menu-btn',
             onClick: function (e) { e.stopPropagation(); },
-            icon: EllipsisIcon ? h(EllipsisIcon, { style: { fontSize: '16px', color: 'rgba(0,0,0,0.45)' } }) : '⋮',
+            icon: MenuIcon ? h(MenuIcon, { style: { fontSize: '16px', color: 'rgba(0,0,0,0.45)' } }) : '⋮',
           })
         )
       : (showMenu
-          ? h('div', { className: 'gec-menu' }, EllipsisIcon ? h(EllipsisIcon) : h('span', null, '⋮'))
+          ? h('div', { className: 'gec-menu' }, MenuIcon ? h(MenuIcon) : h('span', null, '⋮'))
           : null);
 
     var header = h('div', { className: 'gec-header' },
