@@ -23,6 +23,7 @@
   <script src="../_shared/filter-drawer.js"></script>
   <script src="../_shared/form-helpers.js"></script>
   <script src="../_shared/entity-card.js"></script>
+  <script src="../_shared/entity-picker-drawer.js"></script>
   <script src="../_shared/section-drawer.js"></script>
 
   <!-- Handoff loader — attiva il layer handoff (note di design + tour + interfaccia
@@ -3597,42 +3598,88 @@ function SquadraDrawer({ open, onClose, onSubmit, kind, editData }) {
 // Drawer dedicato: collegamento di altri MODULI (impianti esistenti)
 // ─────────────────────────────────────────────────────────
 function ModuliLinkDrawer({ open, onClose, onSubmit, existingIds, currentId }) {
+  const PAGE_SIZE = 9;
+  const Picker = window.GravityEntityPickerDrawer;
   const [search, setSearch] = useState('');
+  const [filterTipo, setFilterTipo] = useState(null);
+  const [filterFormato, setFilterFormato] = useState(null);
   const [selected, setSelected] = useState([]);
-  useEffect(() => { if (open) { setSearch(''); setSelected([]); } }, [open]);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    if (open) { setSearch(''); setFilterTipo(null); setFilterFormato(null); setSelected([]); setPage(1); }
+  }, [open]);
+
   const excluded = new Set([currentId, ...(existingIds || [])]);
+  const base = IMPIANTI.filter(i => !excluded.has(i.id));
+  const filters = { tipo: filterTipo, formato: filterFormato };
+
+  const applyFilter = (key, value) => {
+    const next = Picker.cascade(base, filters, key, value, ['tipo']);
+    setFilterTipo(next.tipo);
+    setFilterFormato(next.formato);
+    setPage(1);
+  };
+
+  const tipoOptions = React.useMemo(() =>
+    Array.from(new Set(Picker.facetItems(base, filters, 'tipo').map(i => i.tipo))).sort().map(t => ({ value: t, label: t })),
+  [filterFormato, excluded.size]);
+  const formatoOptions = React.useMemo(() =>
+    Array.from(new Set(Picker.facetItems(base, filters, 'formato').map(i => i.formato))).sort().map(f => ({ value: f, label: f })),
+  [filterTipo, excluded.size]);
+
   const q = search.trim().toLowerCase();
-  const candidates = IMPIANTI.filter(i => !excluded.has(i.id) && (!q || i.id.toLowerCase().includes(q) || (i.tipo || '').toLowerCase().includes(q) || (i.indirizzo || '').toLowerCase().includes(q))).slice(0, 40);
+  const candidates = base.filter(i =>
+    (!q || i.id.toLowerCase().includes(q) || (i.tipo || '').toLowerCase().includes(q) || (i.indirizzo || '').toLowerCase().includes(q))
+    && (!filterTipo || i.tipo === filterTipo)
+    && (!filterFormato || i.formato === filterFormato));
+
+  const pageSafe = Math.min(page, Math.max(1, Math.ceil(candidates.length / PAGE_SIZE)));
+  const pageItems = candidates.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+
   const toggle = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const save = () => {
-    if (!selected.length) { antdMsg.warning('Seleziona almeno un impianto'); return; }
+    if (!selected.length) return;
     const recs = selected.map(id => { const i = IMPIANTI.find(x => x.id === id); return { id: i.id, tipo: i.tipo, indirizzo: i.indirizzo + ', Palermo', formato: (i.formato || '').replace('×', '×').replace('cm', ' cm') }; });
     onSubmit(recs);
   };
   const dirty = selected.length > 0;
-  return React.createElement(Drawer, {
+
+  return React.createElement(Picker, {
+    open, onClose, dirty,
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
       React.createElement(DiscardCloseIcon, { dirty, onDiscard: onClose }), 'Collega moduli'),
-    placement: 'right', width: 640, styles: { body: { padding: 24 } },
-    closable: false, maskClosable: !dirty, keyboard: !dirty,
-    onClose: onClose, open: open, destroyOnClose: true,
-    extra: React.createElement(Space, null,
-      React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
-      React.createElement(Button, { type: selected.length ? 'primary' : 'default', icon: React.createElement(LinkOutlined), disabled: !selected.length, onClick: save }, selected.length ? 'Collega (' + selected.length + ')' : 'Collega')),
-  },
-    React.createElement(Input, { value: search, onChange: e => setSearch(e.target.value), placeholder: 'Cerca per ID, tipo o indirizzo…', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), allowClear: true, style: { marginBottom: 16 } }),
-    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '68vh', overflow: 'auto' } },
-      candidates.length === 0
-        ? React.createElement(Empty, { description: 'Nessun impianto trovato', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '24px 0' } })
-        : candidates.map(i => {
-            const on = selected.includes(i.id);
-            return React.createElement('div', { key: i.id, onClick: () => toggle(i.id), style: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid ' + (on ? window.GRAVITY_THEME.token.colorPrimary : '#EAECEF'), background: on ? '#F5F2FF' : '#fff', borderRadius: 8, cursor: 'pointer' } },
-              React.createElement(Checkbox, { checked: on }),
-              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                React.createElement('div', { style: { fontSize: 14, fontWeight: 600 } }, i.id + ' · ' + i.tipo),
-                React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, i.indirizzo)),
-              React.createElement(Tag, { style: { margin: 0 } }, i.formato));
-          })));
+    cancelAction: React.createElement(DiscardButton, { dirty, onDiscard: onClose }, 'Annulla'),
+    confirmText: selected.length ? 'Collega (' + selected.length + ')' : 'Collega',
+    confirmIcon: React.createElement(LinkOutlined),
+    confirmDisabled: !selected.length,
+    onConfirm: save,
+    heading: {
+      title: 'Trova gli impianti da collegare come moduli',
+      description: 'Cerca o filtra per tipologia e formato. Gli impianti già collegati e l\'impianto corrente non vengono mostrati.',
+    },
+    search: { value: search, placeholder: 'Cerca per ID, tipo o indirizzo…', onChange: e => { setSearch(e.target.value); setPage(1); } },
+    filters: [
+      { key: 'tipo', value: filterTipo, placeholder: 'Tipologia', width: 180, options: tipoOptions, onChange: v => applyFilter('tipo', v) },
+      { key: 'formato', value: filterFormato, placeholder: 'Formato', width: 180, options: formatoOptions, onChange: v => applyFilter('formato', v) },
+    ],
+    total: candidates.length,
+    countLabel: n => n === 1 ? '1 impianto trovato' : n + ' impianti trovati',
+    emptyText: 'Nessun impianto trovato. Modifica la ricerca o i filtri.',
+    items: pageItems, getKey: i => i.id,
+    selectedKeys: selected, onToggle: toggle,
+    renderCard: (i, sel) => React.createElement(window.GravityEntityCard, {
+      title: i.alias || i.id,
+      image: { id: i.id, src: i.fotoCopertina, heightPx: 120 },
+      fields: [
+        { icon: 'AppstoreOutlined', label: 'Tipo:', value: i.tipo },
+        { icon: 'ExpandOutlined', label: 'Formato:', value: i.formato },
+        { icon: 'EnvironmentOutlined', label: 'Indirizzo:', value: i.indirizzo },
+      ],
+      style: sel ? { width: '100%', height: '100%', background: '#F5F2FF' } : { width: '100%', height: '100%' },
+    }),
+    pagination: { current: pageSafe, pageSize: PAGE_SIZE, onChange: p => setPage(p) },
+  });
 }
 
 function ImpiantoDetailV2({ imp, onBack }) {
@@ -5532,6 +5579,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [linkDrawerOpen,  setLinkDrawerOpen]  = useState(false);
   const [linkSelectedIds, setLinkSelectedIds] = useState([]);
   const [linkSearch,      setLinkSearch]      = useState('');
+  const [linkPage,        setLinkPage]        = useState(1);
   const [saveLinkOpen,    setSaveLinkOpen]    = useState(false);
   const [saveLinkChosen,  setSaveLinkChosen]  = useState([]);
   const [proprieta,      setProprieta]      = useState(null);
@@ -5723,6 +5771,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   // Lista mostrata nel drawer di collegamento: SOLO impianti compatibili (stesso tipo+formato),
   // filtrati per ricerca testo. Il vincolo di compatibilità non è esposto all'utente.
+  const LINK_PAGE_SIZE = 9;
   const linkCandidates = React.useMemo(() => {
     const q = linkSearch.trim().toLowerCase();
     return moduliCompatibili.filter(imp =>
@@ -5730,9 +5779,11 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       imp.tipo.toLowerCase().includes(q) || imp.indirizzo.toLowerCase().includes(q)
     );
   }, [moduliCompatibili, linkSearch]);
+  const linkPageSafe = Math.min(linkPage, Math.max(1, Math.ceil(linkCandidates.length / LINK_PAGE_SIZE)));
+  const linkPageItems = linkCandidates.slice((linkPageSafe - 1) * LINK_PAGE_SIZE, linkPageSafe * LINK_PAGE_SIZE);
 
   const linkSnapshotRef = useRef([]);
-  const openLinkDrawer = () => { if (!canAddSubItems) return; setLinkSelectedIds(moduliCollegati); setLinkSearch(''); setLinkDrawerOpen(true); linkSnapshotRef.current = [...moduliCollegati]; };
+  const openLinkDrawer = () => { if (!canAddSubItems) return; setLinkSelectedIds(moduliCollegati); setLinkSearch(''); setLinkPage(1); setLinkDrawerOpen(true); linkSnapshotRef.current = [...moduliCollegati]; };
   const moduliAddBtn = lockedTip(React.createElement(Button, { icon: React.createElement(canAddSubItems ? LinkOutlined : LockOutlined), disabled: !canAddSubItems, onClick: openLinkDrawer }, 'Collega impianto'));
   const confirmLinkDrawer = () => { setModuliCollegati(linkSelectedIds); setLinkDrawerOpen(false); };
   const isLinkDirty = () => JSON.stringify([...linkSelectedIds].sort()) !== JSON.stringify([...linkSnapshotRef.current].sort());
@@ -7489,51 +7540,47 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       React.createElement(OneriCatalogList, { data: ONERI_DATA, selectedKeys: onereKeys, onSelectionChange: setOnereKeys }),
     ),
 
-    // Drawer collegamento moduli — seleziona impianti esistenti da collegare
-    React.createElement(Drawer, {
+    // Drawer collegamento moduli — GravityEntityPickerDrawer (LAYOUT.md §3.10)
+    React.createElement(window.GravityEntityPickerDrawer, {
+      open: linkDrawerOpen, onClose: () => setLinkDrawerOpen(false), dirty: isLinkDirty(),
+      rootClassName: 'grav-moduli-drawer',
       title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
         React.createElement(DiscardCloseIcon, { dirty: isLinkDirty(), onDiscard: () => setLinkDrawerOpen(false) }), 'Collega impianto'),
-      placement: 'right', width: 640, rootClassName: 'grav-moduli-drawer',
-      styles: { body: { padding: 24 } },
-      closable: false, maskClosable: !isLinkDirty(), keyboard: !isLinkDirty(),
-      onClose: () => setLinkDrawerOpen(false), open: linkDrawerOpen,
-      extra: React.createElement(Space, null,
-        React.createElement(DiscardButton, { dirty: isLinkDirty(), onDiscard: () => setLinkDrawerOpen(false) }, 'Annulla'),
-        React.createElement(Button, { type: 'primary', icon: React.createElement(LinkOutlined), onClick: confirmLinkDrawer },
-          linkSelectedIds.length > 0 ? 'Collega (' + linkSelectedIds.length + ')' : 'Collega'),
-      ),
-    },
-      React.createElement('div', { style: { marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4 } },
-        React.createElement(Input, {
-          value: linkSearch, onChange: e => setLinkSearch(e.target.value),
-          placeholder: 'Cerca per ID, tipo o indirizzo…', allowClear: true,
-          prefix: React.createElement(SearchOutlined), style: { width: '100%' },
-        }),
-        React.createElement(HandoffDesignNote, { id: 'commerciale-moduli-distanza-mancante', placement: 'bottom' }),
-      ),
-      (!tipologia || !formato) ? React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginBottom: 16, background: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
-        React.createElement(InfoCircleOutlined, { style: { fontSize: 14, color: window.GRAVITY_THEME.token.colorPrimary, marginTop: 2 } }),
-        React.createElement('span', null, 'Imposta tipologia e formato dell\'impianto per filtrare automaticamente i moduli compatibili.'),
-      ) : null,
-      linkCandidates.length === 0
-        ? React.createElement(Empty, { description: 'Nessun impianto compatibile trovato', image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '24px 0' } })
-        : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '60vh', overflow: 'auto' } },
-            linkCandidates.map(imp => {
-              const sel = linkSelectedIds.includes(imp.id);
-              return React.createElement('div', {
-                key: imp.id, onClick: () => toggleLinkSel(imp.id),
-                style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid ' + (sel ? window.GRAVITY_THEME.token.colorPrimary : '#E8E8E8'), borderRadius: 8, cursor: 'pointer', background: sel ? '#F5F2FF' : '#fff' },
-              },
-                React.createElement(Checkbox, { checked: sel }),
-                React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                  React.createElement('div', { style: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.88)' } }, imp.id + ' · ' + imp.tipo),
-                  React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, imp.indirizzo),
-                ),
-                React.createElement(Tag, { style: { margin: 0 } }, imp.formato),
-              );
-            }),
-          ),
-    ),
+      cancelAction: React.createElement(DiscardButton, { dirty: isLinkDirty(), onDiscard: () => setLinkDrawerOpen(false) }, 'Annulla'),
+      confirmText: linkSelectedIds.length > 0 ? 'Collega (' + linkSelectedIds.length + ')' : 'Collega',
+      confirmIcon: React.createElement(LinkOutlined),
+      confirmDisabled: !linkSelectedIds.length,
+      onConfirm: confirmLinkDrawer,
+      heading: {
+        title: 'Trova gli impianti da collegare come moduli',
+        description: React.createElement(React.Fragment, null,
+          (!tipologia || !formato)
+            ? 'Imposta tipologia e formato dell\'impianto per filtrare automaticamente i moduli compatibili. '
+            : 'Vengono mostrati solo gli impianti compatibili per tipologia' + (formato ? ', formato' : '') + ' e indirizzo. ',
+          React.createElement(HandoffDesignNote, { id: 'commerciale-moduli-distanza-mancante', placement: 'right' }),
+        ),
+      },
+      search: {
+        value: linkSearch, placeholder: 'Cerca per ID, tipo o indirizzo…',
+        onChange: e => { setLinkSearch(e.target.value); setLinkPage(1); },
+      },
+      total: linkCandidates.length,
+      countLabel: n => n === 1 ? '1 impianto trovato' : n + ' impianti trovati',
+      emptyText: 'Nessun impianto compatibile trovato. Modifica la ricerca.',
+      items: linkPageItems, getKey: imp => imp.id,
+      selectedKeys: linkSelectedIds, onToggle: toggleLinkSel,
+      renderCard: (imp, sel) => React.createElement(window.GravityEntityCard, {
+        title: imp.alias || imp.id,
+        image: { id: imp.id, src: imp.fotoCopertina, heightPx: 120 },
+        fields: [
+          { icon: 'AppstoreOutlined', label: 'Tipo:', value: imp.tipo },
+          { icon: 'ExpandOutlined', label: 'Formato:', value: imp.formato },
+          { icon: 'EnvironmentOutlined', label: 'Indirizzo:', value: imp.indirizzo },
+        ],
+        style: sel ? { width: '100%', height: '100%', background: '#F5F2FF' } : { width: '100%', height: '100%' },
+      }),
+      pagination: { current: linkPageSafe, pageSize: LINK_PAGE_SIZE, onChange: p => setLinkPage(p) },
+    }),
 
     // Drawer aggiunta/modifica squadra (affissione | manutenzione)
     React.createElement(SquadraDrawer, {
