@@ -2449,91 +2449,43 @@ function DiscardCloseIcon({ dirty, onDiscard }) {
 }
 
 // V2 — solo concessioni su suolo pubblico; i privati sono ora Contratto Privato (CONTRATTI_DATA)
+// Concessioni su suolo pubblico registrate in inventory-licenses (le ex "Concessioni Privato" sono ora
+// Contratti Privati, vedi CONTRATTI_DATA). Ogni utenza è quella registrata sulla concessione.
+// tot = canone patrimoniale totale (ripartito sulle utenze, mostrato solo nella v1 del drawer).
+const _fmtEur = n => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+const _grant = (r) => ({
+  key: r.id, grantType: 'Pubblico', documentType: r.tipoDocumento, documentId: r.ident, issuingAuthority: r.ente,
+  registrationNumber: '', totalPropertyTax: _fmtEur(r.tot), issueDate: r.stipula, expirationDate: r.scad,
+  status: r.stato, isActive: r.stato === 'Attiva', bando: r.bando, lotto: r.lotto, aggiudicazione: r.agg,
+  utilities: r.utenze.map(u => ({ utilityNumber: u, propertyTax: _fmtEur(r.tot / r.utenze.length), connectedTo: r.collegate && r.collegate[u] })),
+});
 const GRANTS_DATA = [
-  { key: '1', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 74322 del 15/04/2004', issuingAuthority: 'Comune di Catania', registrationNumber: '47294664857', totalPropertyTax: '1.000,00 €', issueDate: '10/12/2021', expirationDate: '10/12/2031', status: 'Attiva', isActive: true, bando: 'Bando CT 14/2021', lotto: 'Lotto 3', aggiudicazione: '02/12/2021', utilities: [
-    { utilityNumber: 'DB45PL', propertyTax: '1.050,60 €', connectedTo: ['PalinaButterfly_10LaMatla', '+20'], cimasaCode: 'P5847', expirationDate: '10/12/2031' },
-  ]},
-  { key: '2', grantType: 'Pubblico', documentType: 'Determinazione Dirigenziale', documentId: 'Det. 74322 del 15/04/2004', issuingAuthority: 'Comune di Messina', registrationNumber: '47294664857', totalPropertyTax: '2.000,00 €', issueDate: '15/06/2020', expirationDate: '15/06/2030', status: 'Attiva', isActive: true, bando: 'Bando ME 07/2020', lotto: 'Lotto 1', aggiudicazione: '28/05/2020', utilities: [
-    { utilityNumber: 'PF569KJ', propertyTax: '920,00 €', cimasaCode: 'P6021', expirationDate: '15/06/2030' },
-    { utilityNumber: 'RT257IL9', propertyTax: '190,00 €', cimasaCode: 'Non specificata', expirationDate: '15/06/2030' },
-  ]},
-  { key: '3', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Det. 74322 del 15/04/2004', issuingAuthority: 'Comune di Trapani', registrationNumber: '', totalPropertyTax: '3.500,00 €', issueDate: '22/03/2019', status: 'Scaduta', isActive: false, utilities: [
-    { utilityNumber: 'UT-004-2024', propertyTax: '1.500,00 €', cimasaCode: 'P7342' },
-    { utilityNumber: 'UT-005-2024', propertyTax: '2.000,00 €', cimasaCode: 'P7343' },
-  ]},
-  { key: '4', grantType: 'Pubblico', documentType: 'Atto Notarile', documentId: 'N. 74322 del 15/04/2004', issuingAuthority: 'Comune di Agrigento', registrationNumber: '', totalPropertyTax: '4.750,00 €', issueDate: '08/09/2018', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-006-2024', propertyTax: '2.250,00 €', cimasaCode: 'Non specificata' },
-    { utilityNumber: 'UT-007-2024', propertyTax: '1.500,00 €', cimasaCode: 'P8901' },
-    { utilityNumber: 'UT-008-2024', propertyTax: '1.000,00 €', connectedTo: ['ImplantoCT_01'], cimasaCode: 'P8902' },
-  ]},
-  { key: '6', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 74322 del 15/04/2004', issuingAuthority: 'Comune di Siracusa', registrationNumber: '', totalPropertyTax: '6.300,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-010-2024', propertyTax: '3.000,00 €', cimasaCode: 'P9245' },
-    { utilityNumber: 'UT-011-2024', propertyTax: '3.300,00 €', cimasaCode: 'P9246' },
-  ]},
-  { key: '8', grantType: 'Pubblico', documentType: 'Determinazione Dirigenziale', documentId: 'Det. 74322 del 15/04/2004', issuingAuthority: 'Comune di Enna', registrationNumber: '47294664857', totalPropertyTax: '8.900,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-015-2024', propertyTax: '4.000,00 €', cimasaCode: 'P2134' },
-    { utilityNumber: 'UT-016-2024', propertyTax: '4.900,00 €', cimasaCode: 'P2135' },
-  ]},
-  { key: '9', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 74322 del 15/04/2004', issuingAuthority: 'Comune di Ragusa', registrationNumber: '47294664857', totalPropertyTax: '9.999,99 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-017-2024', propertyTax: '9.999,99 €', cimasaCode: 'Non specificata' },
-  ]},
-  { key: '11', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 82145 del 22/08/2005', issuingAuthority: 'Comune di Palermo', registrationNumber: '48395738274', totalPropertyTax: '11.250,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-021-2024', propertyTax: '6.000,00 €', cimasaCode: 'P4567' },
-    { utilityNumber: 'UT-022-2024', propertyTax: '5.250,00 €', cimasaCode: 'P4568' },
-  ]},
-  { key: '12', grantType: 'Pubblico', documentType: 'Determinazione Dirigenziale', documentId: 'Det. 93847 del 10/11/2006', issuingAuthority: 'Comune di Caltanissetta', registrationNumber: '49284738294', totalPropertyTax: '12.400,00 €', status: 'Scaduta', isActive: false, utilities: [
-    { utilityNumber: 'UT-023-2024', propertyTax: '7.200,00 €', cimasaCode: 'Non specificata' },
-    { utilityNumber: 'UT-024-2024', propertyTax: '5.200,00 €', cimasaCode: 'P5678' },
-  ]},
-  { key: '14', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 47583 del 05/06/2008', issuingAuthority: 'Comune di Marsala', registrationNumber: '51384756294', totalPropertyTax: '14.750,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-026-2024', propertyTax: '8.000,00 €', cimasaCode: 'Non specificata' },
-    { utilityNumber: 'UT-027-2024', propertyTax: '4.000,00 €', cimasaCode: 'P7890' },
-    { utilityNumber: 'UT-028-2024', propertyTax: '2.750,00 €', cimasaCode: 'P7891' },
-  ]},
-  { key: '15', grantType: 'Pubblico', documentType: 'Atto Notarile', documentId: 'N. 65432 del 14/09/2009', issuingAuthority: 'Comune di Gela', registrationNumber: '52475836294', totalPropertyTax: '15.900,00 €', status: 'Scaduta', isActive: false, utilities: [
-    { utilityNumber: 'UT-029-2024', propertyTax: '9.500,00 €', cimasaCode: 'P8912' },
-    { utilityNumber: 'UT-030-2024', propertyTax: '6.400,00 €', cimasaCode: 'Non specificata' },
-  ]},
-  { key: '17', grantType: 'Pubblico', documentType: 'Determinazione Dirigenziale', documentId: 'Det. 58392 del 07/04/2011', issuingAuthority: 'Comune di Alcamo', registrationNumber: '54673829102', totalPropertyTax: '17.800,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-033-2024', propertyTax: '10.000,00 €', cimasaCode: 'P1234' },
-    { utilityNumber: 'UT-034-2024', propertyTax: '4.800,00 €', cimasaCode: 'Non specificata' },
-    { utilityNumber: 'UT-035-2024', propertyTax: '3.000,00 €', cimasaCode: 'P1236' },
-  ]},
-  { key: '18', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 69384 del 16/07/2012', issuingAuthority: 'Comune di Vittoria', registrationNumber: '55748392014', totalPropertyTax: '18.900,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-036-2024', propertyTax: '11.000,00 €', cimasaCode: 'P2345' },
-    { utilityNumber: 'UT-037-2024', propertyTax: '7.900,00 €', cimasaCode: 'P2346' },
-  ]},
-  { key: '20', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 92847 del 08/01/2014', issuingAuthority: 'Comune di Bagheria', registrationNumber: '57920384756', totalPropertyTax: '20.750,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-039-2024', propertyTax: '12.000,00 €', cimasaCode: 'P3456' },
-    { utilityNumber: 'UT-040-2024', propertyTax: '8.750,00 €', cimasaCode: 'Non specificata' },
-  ]},
-  { key: '21', grantType: 'Pubblico', documentType: 'Determinazione Dirigenziale', documentId: 'Det. 73948 del 19/05/2015', issuingAuthority: 'Comune di Modica', registrationNumber: '58103948572', totalPropertyTax: '21.900,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-041-2024', propertyTax: '13.500,00 €', cimasaCode: 'P4567' },
-    { utilityNumber: 'UT-042-2024', propertyTax: '5.400,00 €', cimasaCode: 'P4568' },
-    { utilityNumber: 'UT-043-2024', propertyTax: '3.000,00 €', cimasaCode: 'Non specificata' },
-  ]},
-  { key: '23', grantType: 'Pubblico', documentType: 'Atto Notarile', documentId: 'N. 85764 del 11/11/2017', issuingAuthority: 'Comune di Acireale', registrationNumber: '60395847261', totalPropertyTax: '23.800,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-046-2024', propertyTax: '14.000,00 €', cimasaCode: 'Non specificata' },
-    { utilityNumber: 'UT-047-2024', propertyTax: '9.800,00 €', cimasaCode: 'P6789' },
-  ]},
-  { key: '24', grantType: 'Pubblico', documentType: 'Atto Amministrativo', documentId: 'Pos. 97562 del 23/02/2018', issuingAuthority: 'Comune di Mazara del Vallo', registrationNumber: '61485937402', totalPropertyTax: '24.950,00 €', status: 'Attiva', isActive: true, utilities: [
-    { utilityNumber: 'UT-048-2024', propertyTax: '16.000,00 €', cimasaCode: 'P7890' },
-    { utilityNumber: 'UT-049-2024', propertyTax: '5.950,00 €', cimasaCode: 'P7891' },
-    { utilityNumber: 'UT-050-2024', propertyTax: '3.000,00 €', cimasaCode: 'Non specificata' },
-  ]},
-];
+  { id: 'conc-001', ente: 'Comune di Palermo', tipoDocumento: 'Concessione Suolo Pubblico', ident: 'CONC-2022-003', utenze: ['UT-10234', 'UT-10235'], collegate: { 'UT-10234': ['OOH-1020'] }, stipula: '12/03/2022', scad: '31/12/2027', tot: 3400, stato: 'Attiva', bando: 'GARA-PA-2022-004', lotto: 'Lotto 3 — Zona Centro', agg: '28/02/2022' },
+  { id: 'conc-003', ente: 'Città Metropolitana di Palermo', tipoDocumento: 'Concessione Demaniale', ident: 'CONC-2024-007', utenze: ['UT-10456', 'UT-10457', 'UT-10458'], stipula: '22/04/2024', scad: '15/03/2028', tot: 5200, stato: 'Attiva', bando: 'GARA-CM-2024-001', lotto: '', agg: '10/04/2024' },
+  { id: 'conc-004', ente: 'Comune di Catania', tipoDocumento: 'Concessione Suolo Pubblico', ident: 'CONC-2021-045', utenze: ['UT-9821'], stipula: '10/01/2021', scad: '10/01/2024', tot: 980, stato: 'Scaduta' },
+  { id: 'conc-006', ente: 'Comune di Palermo', tipoDocumento: 'Concessione Beni Comunali', ident: 'CONC-2020-088', utenze: ['UT-8890'], stipula: '02/02/2020', scad: '02/02/2024', tot: 760, stato: 'Scaduta' },
+  { id: 'conc-007', ente: 'Comune di Messina', tipoDocumento: 'Concessione Suolo Pubblico', ident: 'CONC-2024-022', utenze: ['UT-10601'], stipula: '14/02/2024', scad: '14/02/2029', tot: 2150, stato: 'Attiva', bando: 'GARA-ME-2024-002', lotto: 'Lotto 1', agg: '30/01/2024' },
+  { id: 'conc-009', ente: 'Comune di Siracusa', tipoDocumento: 'Concessione Demaniale', ident: 'CONC-2019-102', utenze: ['UT-7765'], stipula: '11/11/2019', scad: '11/11/2023', tot: 690, stato: 'Scaduta' },
+  { id: 'conc-010', ente: 'Comune di Palermo', tipoDocumento: 'Concessione Suolo Pubblico', ident: 'CONC-2025-005', utenze: ['UT-10788', 'UT-10789', 'UT-10790', 'UT-10791'], stipula: '20/01/2025', scad: '20/01/2030', tot: 6800, stato: 'Attiva', bando: 'GARA-PA-2024-011', lotto: 'Lotto 5 — Viale Regione Siciliana', agg: '12/12/2024' },
+  { id: 'conc-011', ente: 'Comune di Bagheria', tipoDocumento: 'Concessione Suolo Pubblico', ident: 'CONC-2025-018', utenze: ['UT-10855', 'UT-10856'], stipula: '03/03/2025', scad: '03/03/2030', tot: 2900, stato: 'Attiva', bando: 'GARA-BA-2025-002', lotto: 'Lotto 2', agg: '14/02/2025' },
+  { id: 'conc-012', ente: 'Comune di Trapani', tipoDocumento: 'Concessione Suolo Pubblico', ident: 'CONC-2025-031', utenze: ['UT-10912'], stipula: '22/05/2025', scad: '22/05/2030', tot: 1850, stato: 'Attiva', bando: 'GARA-TP-2025-001', lotto: 'Lotto 1 — Lungomare', agg: '30/04/2025' },
+  { id: 'conc-013', ente: 'Comune di Agrigento', tipoDocumento: 'Concessione Beni Comunali', ident: 'CONC-2025-044', utenze: ['UT-10977', 'UT-10978', 'UT-10979'], stipula: '10/09/2025', scad: '10/09/2031', tot: 4300, stato: 'Attiva' },
+  { id: 'conc-014', ente: 'Comune di Palermo', tipoDocumento: 'Concessione Suolo Pubblico', ident: 'CONC-2026-002', utenze: ['UT-11040', 'UT-11041'], stipula: '12/01/2026', scad: '12/01/2031', tot: 3750, stato: 'Attiva', bando: 'GARA-PA-2025-009', lotto: 'Lotto 6 — Zona Libertà', agg: '05/12/2025' },
+].map(_grant);
 
 // V2 — Contratti Privati (Locazione/Comodato/Servitù): entità separata da GRANTS_DATA
+// Contratti Privati registrati in inventory-licenses. Ogni contratto ha una o più utenze: i contratti
+// migrati dalle ex Concessioni Privato (contr-005/006/007) mantengono le utenze della concessione d'origine
+// (conc-002 → UT-10391, conc-005 → UT-10502/10503, conc-008 → UT-9944/9945).
 const CONTRATTI_DATA = [
-  { key: 'c1', proprietarioLocatore: 'Condominio "Alba"', tipoContratto: 'Comodato', identificativoContratto: 'COM-2004-001', canoneLocazione: '5.200,00 €', foglio: '45', particella: '112', subalterno: '1', dataStipula: '15/04/2004', dataScadenza: null, status: 'Scaduta', isActive: false },
-  { key: 'c2', proprietarioLocatore: 'Condominio "Nenni"', tipoContratto: 'Comodato', identificativoContratto: 'COM-2004-002', canoneLocazione: '7.800,00 €', foglio: '89', particella: '203', subalterno: '2', dataStipula: '15/04/2004', dataScadenza: '15/04/2034', status: 'Attiva', isActive: true },
-  { key: 'c3', proprietarioLocatore: 'Mauro Pezzati', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2004-003', canoneLocazione: '10.500,00 €', foglio: '115', particella: '388', subalterno: '', dataStipula: '15/04/2004', dataScadenza: '15/04/2030', status: 'Attiva', isActive: true },
-  { key: 'c4', proprietarioLocatore: 'Condominio "Sole"', tipoContratto: 'Comodato', identificativoContratto: 'COM-2007-004', canoneLocazione: '13.600,00 €', foglio: '187', particella: '74', subalterno: '1', dataStipula: '18/03/2007', dataScadenza: '18/03/2027', status: 'Attiva', isActive: true },
-  { key: 'c5', proprietarioLocatore: 'Rossi Immobiliare S.r.l.', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2010-005', canoneLocazione: '16.500,00 €', foglio: '203', particella: '447', subalterno: '2', dataStipula: '20/12/2010', dataScadenza: '20/12/2030', status: 'Attiva', isActive: true },
-  { key: 'c6', proprietarioLocatore: 'Condominio "Mare"', tipoContratto: 'Servitù', identificativoContratto: 'SRV-2013-006', canoneLocazione: '19.500,00 €', foglio: '92', particella: '231', subalterno: '', dataStipula: '25/10/2013', dataScadenza: '25/10/2023', status: 'Scaduta', isActive: false },
-  { key: 'c7', proprietarioLocatore: 'Bianchi Giuseppe', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2016-007', canoneLocazione: '22.500,00 €', foglio: '301', particella: '62', subalterno: '', dataStipula: '28/08/2016', dataScadenza: '28/08/2031', status: 'Attiva', isActive: true },
-  { key: 'c8', proprietarioLocatore: 'Condominio "Giardino"', tipoContratto: 'Comodato', identificativoContratto: 'COM-2019-008', canoneLocazione: '25.600,00 €', foglio: '412', particella: '89', subalterno: '3', dataStipula: '05/06/2019', dataScadenza: '05/06/2034', status: 'Attiva', isActive: true },
-];
+  { key: 'contr-001', proprietarioLocatore: 'Immobiliare San Lorenzo Srl', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2023-005', dataStipula: '05/06/2023', dataScadenza: '01/01/2026', foglio: '112', particella: '458', subalterno: '3', status: 'Attiva', utilities: [{ utilityNumber: 'UT-20045', connectedTo: ['OOH-1021'] }] },
+  { key: 'contr-002', proprietarioLocatore: 'Centro Commerciale Le Zagare Srl', tipoContratto: 'Comodato', identificativoContratto: 'COM-2022-011', dataStipula: '30/07/2022', dataScadenza: '30/07/2025', foglio: '89', particella: '212', subalterno: '', status: 'Attiva', utilities: [{ utilityNumber: 'UT-20110' }, { utilityNumber: 'UT-20111' }] },
+  { key: 'contr-003', proprietarioLocatore: 'Parco Commerciale Sicilia Spa', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2024-018', dataStipula: '18/09/2024', dataScadenza: '18/09/2027', foglio: '204', particella: '77', subalterno: '1', status: 'Attiva', utilities: [{ utilityNumber: 'UT-20188' }] },
+  { key: 'contr-004', proprietarioLocatore: 'Fondazione Patrimonio Storico Messina', tipoContratto: 'Servitù', identificativoContratto: 'ALT-2021-002', dataStipula: '12/11/2021', dataScadenza: '28/02/2024', foglio: '31', particella: '540', subalterno: '', status: 'Revocata/Decaduta', utilities: [{ utilityNumber: 'UT-9310' }] },
+  { key: 'contr-005', proprietarioLocatore: 'Immobiliare San Lorenzo Srl', tipoContratto: 'Locazione', identificativoContratto: 'AN-2023-011', dataStipula: '05/06/2023', dataScadenza: '01/01/2026', foglio: '', particella: '', subalterno: '', status: 'Attiva', utilities: [{ utilityNumber: 'UT-10391' }] },
+  { key: 'contr-006', proprietarioLocatore: 'Parco Commerciale Sicilia Spa', tipoContratto: 'Locazione', identificativoContratto: 'CO-2023-019', dataStipula: '18/09/2023', dataScadenza: '18/09/2026', foglio: '', particella: '', subalterno: '', status: 'Attiva', utilities: [{ utilityNumber: 'UT-10502' }, { utilityNumber: 'UT-10503' }] },
+  { key: 'contr-007', proprietarioLocatore: 'Centro Commerciale Le Zagare Srl', tipoContratto: 'Locazione', identificativoContratto: 'AN-2022-064', dataStipula: '30/07/2022', dataScadenza: '30/07/2025', foglio: '', particella: '', subalterno: '', status: 'Attiva', utilities: [{ utilityNumber: 'UT-9944' }, { utilityNumber: 'UT-9945' }] },
+].map(c => ({ ...c, isActive: c.status === 'Attiva' }));
 
 // Dati di progetto trasportati dalla pratica Genio Civile, cumulativi per fase:
 // redazione (Da presentare: progettista, geologo, tavole, materiali) →
@@ -2546,34 +2498,37 @@ const GC_PROGETTO_COLLAUDO  = { ...GC_PROGETTO_DEPOSITO, dataCollaudo: '02/09/20
 
 // V2 — enum a 7 tipologie (da inventory-licenses v2)
 const AUTHORIZATIONS_DATA = [
-  { key: '1',  authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 23456/2023', stipulationDate: '15/01/2023', expirationDate: '30/06/2025', codiciAutorizzazione: ['E-PA-2023-001', 'E-PA-2023-002'], status: 'Attiva', isActive: true },
+  // Esposizione pubblicitaria (Comunale) registrate in inventory-licenses: identificativo, ente, date e stato
+  // sono quelli del record; i codici cimasa sono quelli previsti dall'atto (uno per impianto autorizzato).
+  { key: 'aut-001', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'AUT-2024-001', stipulationDate: '15/01/2024', expirationDate: '31/12/2025', codiciAutorizzazione: ['CIM-1002', 'CIM-1003'], status: 'Attiva', isActive: true },
+  { key: 'aut-003', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Catania', protocolNumber: 'AUT-2024-015', stipulationDate: '05/06/2024', expirationDate: '28/02/2027', codiciAutorizzazione: ['CIM-3015', 'CIM-3016', 'CIM-3017'], status: 'Attiva', isActive: true },
+  { key: 'aut-005', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Messina', protocolNumber: 'AUT-2021-076', stipulationDate: '12/11/2021', expirationDate: '28/02/2024', codiciAutorizzazione: ['CIM-5001'], status: 'Scaduta', isActive: false },
+  { key: 'aut-006', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'AUT-2025-002', stipulationDate: '08/01/2025', expirationDate: '08/01/2028', codiciAutorizzazione: ['CIM-6004', 'CIM-6011'], status: 'Attiva', isActive: true },
+  { key: 'aut-010', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Catania', protocolNumber: 'AUT-2025-009', stipulationDate: '14/02/2025', expirationDate: '14/02/2030', codiciAutorizzazione: ['CIM-1013'], status: 'Attiva', isActive: true },
+  { key: 'aut-011', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Bagheria', protocolNumber: 'AUT-2025-014', stipulationDate: '03/04/2025', expirationDate: '03/04/2030', codiciAutorizzazione: ['CIM-4101', 'CIM-4102'], status: 'Attiva', isActive: true },
+  { key: 'aut-012', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Trapani', protocolNumber: 'AUT-2025-021', stipulationDate: '19/06/2025', expirationDate: '19/06/2030', codiciAutorizzazione: ['CIM-4210'], status: 'Attiva', isActive: true },
+  { key: 'aut-013', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Agrigento', protocolNumber: 'AUT-2025-033', stipulationDate: '22/09/2025', expirationDate: '22/09/2030', codiciAutorizzazione: ['CIM-4301', 'CIM-4302', 'CIM-4303'], status: 'Attiva', isActive: true },
+  { key: 'aut-014', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'AUT-2026-003', stipulationDate: '20/01/2026', expirationDate: '20/01/2031', codiciAutorizzazione: ['CIM-4401', 'CIM-4402'], status: 'Attiva', isActive: true },
   { key: '2',  authorizationCategory: 'Paesaggistica / Soprintendenza', issuingAuthority: 'Soprintendenza Belle Arti e Paesaggio di Palermo', protocolNumber: 'Prot. 34567/2022', stipulationDate: '10/03/2022', expirationDate: '15/03/2024', cup: 'J38C22001230001', status: 'Scaduta', isActive: false },
   { key: '3',  authorizationCategory: 'Titolo edilizio (SCIA / Permesso di costruire)', issuingAuthority: 'Comando Provinciale VVF Palermo', protocolNumber: 'Prot. 45678/2023', stipulationDate: '05/06/2023', expirationDate: '20/09/2025', cup: 'J37D23000890002', status: 'Attiva', isActive: true },
   { key: '4',  authorizationCategory: 'Parere luminanza / Inquinamento luminoso (DOOH)', issuingAuthority: 'ARPA Sicilia', protocolNumber: 'Prot. 56789/2023', stipulationDate: '20/08/2023', expirationDate: '31/12/2027', cup: 'J36D23001120003', status: 'In scadenza', isActive: true },
   { key: '5',  authorizationCategory: 'Allaccio elettrico / Impianto luminoso', issuingAuthority: 'E-Distribuzione S.p.A.', protocolNumber: 'Prot. 67890/2022', stipulationDate: '12/11/2022', expirationDate: '28/02/2025', cup: 'J35C22000780004', status: 'In rinnovo', isActive: true },
-  { key: '6',  authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 78901/2021', stipulationDate: '18/09/2021', expirationDate: '10/01/2024', codiciAutorizzazione: ['E-PA-2021-006'], status: 'Scaduta', isActive: false },
   { key: '7',  authorizationCategory: 'Nulla osta ente proprietario strada (ANAS | Provincia/Città Metropolitana | Regione)', issuingAuthority: 'Città Metropolitana di Palermo', protocolNumber: 'Prot. 89012/2023', stipulationDate: '22/04/2023', expirationDate: '31/08/2026', cup: 'J34D23000670005', status: 'Attiva', isActive: true },
-  { key: '8',  authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 01234/2024', stipulationDate: '08/01/2024', expirationDate: '15/05/2024', codiciAutorizzazione: ['E-PA-2024-008', 'E-PA-2024-009', 'E-PA-2024-010'], status: 'Cessata', isActive: false },
   // Strutturale / Genio Civile — pratica in zona sismica (artt. 93/94 DPR 380/2001).
   // Non scade: il ciclo di vita è Da presentare → Presentata → Collaudata.
   { key: '9',  authorizationCategory: 'Strutturale / Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Pratica GC 102/2026', status: 'Da presentare', isActive: false, progettoDati: GC_PROGETTO_REDAZIONE },
   { key: '10', authorizationCategory: 'Strutturale / Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Prot. 11223/2023', depositDate: '30/05/2023', cup: 'J33D23000920006', status: 'Presentata', isActive: true, progettoDati: GC_PROGETTO_DEPOSITO },
   { key: '11', authorizationCategory: 'Strutturale / Genio Civile', issuingAuthority: 'Ufficio del Genio Civile di Palermo', protocolNumber: 'Prot. 09871/2021', depositDate: '14/03/2021', collaudoDate: '02/09/2022', status: 'Collaudata', isActive: true, progettoDati: GC_PROGETTO_COLLAUDO },
-  { key: '12', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 45012/2024', stipulationDate: '10/03/2024', expirationDate: '09/03/2027', codiciAutorizzazione: ['E-PA-2024-012'], status: 'Attiva', isActive: true },
-  { key: '13', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 56123/2023', stipulationDate: '15/06/2023', expirationDate: '30/06/2025', codiciAutorizzazione: ['E-PA-2023-013', 'E-PA-2023-014'], status: 'In scadenza', isActive: true },
-  { key: '14', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 67234/2022', stipulationDate: '01/09/2022', expirationDate: '31/08/2025', codiciAutorizzazione: ['E-PA-2022-015'], status: 'In rinnovo', isActive: true },
-  { key: '15', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 78345/2025', stipulationDate: '20/01/2025', expirationDate: '19/01/2028', codiciAutorizzazione: ['E-PA-2025-016', 'E-PA-2025-017'], status: 'Attiva', isActive: true },
-  { key: '16', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 89456/2024', stipulationDate: '05/07/2024', expirationDate: '04/07/2027', codiciAutorizzazione: ['E-PA-2024-018'], status: 'Attiva', isActive: true },
-  { key: '17', authorizationCategory: 'Esposizione pubblicitaria (Comunale)', issuingAuthority: 'Comune di Palermo', protocolNumber: 'Prot. 90567/2023', stipulationDate: '12/11/2023', expirationDate: '30/06/2025', codiciAutorizzazione: ['E-PA-2023-019'], status: 'In scadenza', isActive: true },
 ];
 
 // Codici autorizzazione già collegati ad altri impianti esistenti.
 // Mappa codice → etichetta dell'impianto che lo usa già.
 const CODICI_LINKED = {
-  'E-PA-2023-002': 'OOH-012 · Via Maqueda, 148',
-  'E-PA-2024-009': 'OOH-031 · Via Roma, 310',
-  'E-PA-2023-014': 'OOH-058 · Piazza Politeama',
-  'E-PA-2025-017': 'OOH-074 · Via della Libertà, 35',
+  'CIM-1002': 'OOH-1002',
+  'CIM-3015': 'OOH-1005',
+  'CIM-1013': 'OOH-1013',
+  'CIM-6004': 'OOH-1004',
+  'CIM-6011': 'OOH-1011',
 };
 
 // V2 — 7 stati standard + stati ciclo di vita Genio Civile (Box 2)
@@ -2932,70 +2887,70 @@ function AssetAccordion({ list, onView, onRemove, editing, drafts, onDraftChange
   });
 }
 
-function GrantsAccordion({ data, selectedRowKey, onRowSelect, kindLabel = 'concessione', showHint = true }) {
+// Riga conteggio + ordinamento dei drawer permessi — stesso toggle del drawer di selezione impianti
+// (GravityEntityPickerDrawer): 'Creati di recente' (default) / 'Creati da più tempo'. L'ordine di
+// creazione è l'ordine dell'array mock (l'ultimo è il più recente).
+function PermitSortRow({ total, nouns, sort, onToggle }) { // nouns = [singolare, plurale, 'o'|'a']
+  return React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 } },
+    React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, total === 1 ? '1 ' + nouns[0] + ' trovat' + nouns[2] : total + ' ' + nouns[1] + ' trovat' + (nouns[2] === 'a' ? 'e' : 'i')),
+    React.createElement(Button, { type: 'text', size: 'small', onClick: onToggle,
+      icon: React.createElement(sort === 'recenti' ? icons.SortDescendingOutlined : icons.SortAscendingOutlined) },
+      sort === 'recenti' ? 'Creati di recente' : 'Creati da più tempo'));
+}
+const sortByCreation = (list, sort) => sort === 'recenti' ? [...list].reverse() : list;
+
+// Elenco ad accordion per collegare un atto con più utenze (Concessione, Contratto Privato):
+// stesso pattern del drawer Autorizzazione (AutorizzazioniEsposizioneList) — atto in header,
+// tutti chiusi di default, righe con Radio dentro un box #e8e8e8, ricerca e paginazione.
+// Chiave di selezione: 'attoKey-numeroUtenza' (selezione a livello di singola utenza).
+function PermitUtenzeAccordion({ data, selectedRowKey, onRowSelect, placeholder, matches, renderHead, renderMeta, columns, nouns, emptyLabel }) {
   const [searchText, setSearchText] = useState('');
+  const [sort, setSort] = useState('recenti');
+  const [userKeys, setUserKeys] = useState(null); // null = default: primo accordion della pagina aperto
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeKeys, setActiveKeys] = useState(data.length > 0 ? [data[0].key] : []);
   const pageSize = 5;
+  const gridCols = columns.map(c => c.width).join(' ') + ' 24px';
+  const gray = 'rgba(0,0,0,0.45)', dark = 'rgba(0,0,0,0.85)';
 
-  const filtered = !searchText ? data : data.filter(g => {
-    const s = searchText.toLowerCase();
-    return g.documentType.toLowerCase().includes(s) || g.documentId.toLowerCase().includes(s) || g.issuingAuthority.toLowerCase().includes(s);
-  });
+  const ordered = sortByCreation(data, sort);
+  const filtered = !searchText ? ordered : ordered.filter(item => matches(item, searchText.toLowerCase()));
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const activeKeys = userKeys ?? (paginated[0] ? [paginated[0].key] : []);
 
-  const collapseItems = paginated.map(grant => {
-    const isGrantSelected = grant.utilities.some(u => selectedRowKey === grant.key + '-' + u.utilityNumber);
+  const collapseItems = paginated.map(item => {
+    const isSel = !!(selectedRowKey && selectedRowKey.startsWith(item.key + '-'));
+    const meta = renderMeta(item);
     return {
-      key: grant.key,
-      label: React.createElement('div', { style: { width: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' } },
-        React.createElement('div', { style: { flex: 1 } },
-          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, marginBottom: 8 } },
-            React.createElement('span', { style: { fontWeight: 500 } }, grant.documentType),
-            React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 13, padding: '2px 8px' } }, grant.documentId),
-          ),
-          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 24, fontSize: 13 } },
-            React.createElement('span', null, React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Ente Emittente: '), grant.issuingAuthority),
-            grant.expirationDate ? React.createElement('span', null, React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Scadenza: '), grant.expirationDate) : null,
-            grant.status ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 4 } },
-              React.createElement('div', { style: { width: 6, height: 6, borderRadius: '50%', backgroundColor: grant.status === 'Attiva' ? '#52c41a' : '#ff4d4f' } }),
-              React.createElement('span', null, grant.status),
-            ) : null,
-          ),
+      key: item.key,
+      label: React.createElement('div', { style: { width: '100%' } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, marginBottom: 6 } },
+          React.createElement('span', { style: { fontWeight: 500, color: dark } }, renderHead(item).title),
+          React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 12, padding: '1px 7px' } }, renderHead(item).tag),
+          isSel ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: window.GRAVITY_THEME.token.colorPrimary, fontWeight: 500, marginLeft: 'auto' } },
+            React.createElement(CheckCircleFilled, { style: { fontSize: 14 } }), 'Selezionata') : null,
         ),
-        isGrantSelected ? React.createElement('div', { style: { paddingLeft: 16, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: window.GRAVITY_THEME.token.colorPrimary, fontWeight: 500 } },
-          React.createElement(CheckCircleFilled, { style: { fontSize: 16 } }),
-          React.createElement('span', null, 'Selezionata'),
-        ) : null,
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, fontSize: 12, color: gray, flexWrap: 'wrap' } },
+          meta.filter(m => m.value).map((m, i) => React.createElement('span', { key: i, style: { display: 'flex', gap: 5 } }, React.createElement('span', null, m.label + ':'), React.createElement('span', { style: { color: dark } }, m.value))),
+          item.status ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5 } },
+            React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', backgroundColor: permitDotColor(item.status, item.isActive) } }), item.status) : null,
+        ),
       ),
-      children: React.createElement('div', { style: { padding: '8px 0' } },
-        React.createElement('div', { style: { border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' } },
-          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '2fr 2fr 2fr 4fr 40px', padding: '8px 16px', fontWeight: 500, fontSize: 12, color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0' } },
-            React.createElement('div', null, 'Numero Utenza'),
-            React.createElement('div', { className: 'grav-cimasa-col' }, 'Codice Cimasa', React.createElement(HandoffDesignNote, { id: 'iter-cimasa-sospeso', placement: 'top' })),
-            React.createElement('div', null, 'Canone Patrimoniale'),
-            React.createElement('div', null, 'Aggiunta a:'),
-            React.createElement('div'),
-          ),
-          grant.utilities.map((utility, idx) => {
-            const uKey = grant.key + '-' + utility.utilityNumber;
-            const isSel = selectedRowKey === uKey;
+      children: React.createElement('div', { style: { padding: '4px 0' } },
+        React.createElement('div', { style: { border: '1px solid #e8e8e8', borderRadius: 6, overflow: 'hidden' } },
+          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: gridCols, columnGap: 12, padding: '6px 14px', fontSize: 12, fontWeight: 500, color: gray, backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0' } },
+            columns.map((c, i) => React.createElement('div', { key: i, className: c.className }, c.label, c.note || null)),
+            React.createElement('div')),
+          item.utilities.map((u, idx) => {
+            const rowKey = item.key + '-' + u.utilityNumber;
+            const isRowSel = selectedRowKey === rowKey;
             return React.createElement('div', {
-              key: uKey,
-              style: { display: 'grid', gridTemplateColumns: '2fr 2fr 2fr 4fr 40px', padding: '12px 16px', borderBottom: idx < grant.utilities.length - 1 ? '1px solid #f0f0f0' : 'none', backgroundColor: isSel ? '#f9f7ff' : 'transparent', cursor: 'pointer', alignItems: 'center', transition: 'background-color 0.2s' },
-              onClick: () => onRowSelect(isSel ? null : uKey),
+              key: rowKey,
+              style: { display: 'grid', gridTemplateColumns: gridCols, columnGap: 12, alignItems: 'center', padding: '10px 14px', borderTop: idx > 0 ? '1px solid #f5f5f5' : 'none', backgroundColor: isRowSel ? '#f9f7ff' : 'transparent', cursor: 'pointer', transition: 'background-color 0.2s' },
+              onClick: () => onRowSelect(isRowSel ? null : rowKey),
             },
-              React.createElement('div', { style: { fontSize: 13 } }, utility.utilityNumber),
-              React.createElement('div', { className: 'grav-cimasa-col', style: { fontSize: 13, color: (!utility.cimasaCode || utility.cimasaCode === 'Non specificata') ? '#bfbfbf' : 'rgba(0,0,0,0.85)' } }, (utility.cimasaCode && utility.cimasaCode !== 'Non specificata') ? utility.cimasaCode : 'N/D'),
-              React.createElement('div', { style: { fontSize: 13 } }, utility.propertyTax + ' / anno'),
-              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' } },
-                utility.connectedTo && utility.connectedTo.length > 0
-                  ? utility.connectedTo.map((tag, i) => React.createElement(Tag, { key: i, style: { margin: 0, border: '1px solid #d9d9d9', fontSize: 12, padding: '2px 8px' } }, tag))
-                  : React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Nessun impianto aggiunto'),
-              ),
+              columns.map((c, i) => React.createElement('div', { key: i, className: c.className, style: { fontSize: 13, color: dark } }, c.render(u))),
               React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end' } },
-                React.createElement(Checkbox, { checked: isSel, onChange: e => { e.stopPropagation(); onRowSelect(isSel ? null : uKey); } }),
-              ),
+                React.createElement(Radio, { checked: isRowSel, onChange: e => { e.stopPropagation(); onRowSelect(isRowSel ? null : rowKey); } })),
             );
           }),
         ),
@@ -3004,72 +2959,58 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect, kindLabel = 'conce
   });
 
   return React.createElement('div', null,
-    React.createElement(Input, { placeholder: 'Cerca ' + kindLabel + '...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: showHint ? 16 : 20 }, allowClear: true }),
-    showHint ? React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', gap: 6 } }, 'Seleziona ' + (kindLabel === 'concessione' ? 'una' : 'un') + ' ' + kindLabel + " e scegli il numero utenza che vuoi collegare all'impianto", React.createElement(HandoffDesignNote, { id: 'iter-scaduti-avviso', placement: 'bottom' })) : null,
-    React.createElement(Collapse, { items: collapseItems, ghost: false, style: { backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 6 }, activeKey: activeKeys, onChange: keys => setActiveKeys(keys) }),
-    filtered.length > pageSize ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: 20 } },
-      React.createElement(Pagination, { current: currentPage, total: filtered.length, pageSize: pageSize, onChange: setCurrentPage, size: 'small' }),
-    ) : null,
+    React.createElement(Input, { placeholder, prefix: React.createElement(SearchOutlined, { style: { color: gray } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); setUserKeys(null); }, style: { marginBottom: 16 }, allowClear: true }),
+    React.createElement(PermitSortRow, { total: filtered.length, nouns, sort, onToggle: () => { setSort(sort === 'recenti' ? 'meno-recenti' : 'recenti'); setCurrentPage(1); setUserKeys(null); } }),
+    paginated.length > 0 ? React.createElement(Collapse, { items: collapseItems, activeKey: activeKeys, onChange: setUserKeys, style: { backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 6 } })
+      : React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: gray, fontSize: 13, border: '1px solid #d9d9d9', borderRadius: 6 } }, emptyLabel),
+    filtered.length > pageSize ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', paddingTop: 20 } },
+      React.createElement(Pagination, { current: currentPage, total: filtered.length, pageSize, onChange: p => { setCurrentPage(p); setUserKeys(null); }, size: 'small', showSizeChanger: false })) : null,
   );
 }
 
-// V2 — selezione singola di un contratto privato (Locazione/Comodato/Servitù)
-function ContrattiList({ data, selectedKey, onRowSelect }) {
-  const [searchText, setSearchText] = useState('');
-
-  const filtered = !searchText ? data : data.filter(c => {
-    const s = searchText.toLowerCase();
-    return c.proprietarioLocatore.toLowerCase().includes(s)
-      || c.identificativoContratto.toLowerCase().includes(s)
-      || c.tipoContratto.toLowerCase().includes(s);
+function GrantsAccordion({ data, selectedRowKey, onRowSelect, simple }) {
+  const nd = { color: '#bfbfbf' };
+  // simple (form Nuovo impianto V2): la concessione ha solo Numero Utenza — canone negli Oneri economici, niente Cimasa.
+  return React.createElement(PermitUtenzeAccordion, {
+    data, selectedRowKey, onRowSelect,
+    placeholder: 'Cerca per ente, tipo o identificativo...', nouns: ['concessione', 'concessioni', 'a'], emptyLabel: 'Nessuna concessione disponibile',
+    matches: (g, s) => g.documentType.toLowerCase().includes(s) || g.documentId.toLowerCase().includes(s) || g.issuingAuthority.toLowerCase().includes(s),
+    renderHead: g => ({ title: g.documentType, tag: g.documentId }),
+    renderMeta: g => [{ label: 'Ente', value: g.issuingAuthority }, { label: 'Scadenza', value: g.expirationDate }],
+    columns: simple ? [{ label: 'Numero Utenza', width: '1fr', render: u => u.utilityNumber }] : [
+      { label: 'Numero Utenza', width: '2fr', render: u => u.utilityNumber },
+      { label: 'Codice Cimasa', width: '2fr', className: 'grav-cimasa-col', note: React.createElement(HandoffDesignNote, { id: 'iter-cimasa-sospeso', placement: 'top' }),
+        render: u => (u.cimasaCode && u.cimasaCode !== 'Non specificata') ? u.cimasaCode : React.createElement('span', { style: nd }, 'N/D') },
+      { label: 'Canone Patrimoniale', width: '2fr', render: u => u.propertyTax + ' / anno' },
+      { label: 'Aggiunta a', width: '3fr', render: u => (u.connectedTo && u.connectedTo.length)
+          ? React.createElement('span', { style: { display: 'flex', gap: 6, flexWrap: 'wrap' } }, u.connectedTo.map((t, i) => React.createElement(Tag, { key: i, style: { margin: 0, border: '1px solid #d9d9d9', fontSize: 12, padding: '1px 7px' } }, t)))
+          : React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Nessun impianto aggiunto') },
+    ],
   });
-
-  return React.createElement('div', null,
-    React.createElement(Input, { placeholder: 'Cerca contratto privato...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => setSearchText(e.target.value), style: { marginBottom: 20 }, allowClear: true }),
-    React.createElement('div', { style: { border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' } },
-      filtered.length > 0
-        ? filtered.map((ct, idx) => {
-            const isSel = selectedKey === ct.key;
-            return React.createElement('div', {
-              key: ct.key,
-              style: { padding: 16, borderBottom: idx < filtered.length - 1 ? '1px solid #f0f0f0' : 'none', backgroundColor: isSel ? '#f9f7ff' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, transition: 'background-color 0.2s' },
-              onClick: () => onRowSelect(isSel ? null : ct.key),
-            },
-              React.createElement('div', { style: { flex: 1 } },
-                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, marginBottom: 8 } },
-                  React.createElement('span', { style: { fontWeight: 500 } }, ct.proprietarioLocatore),
-                  React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 13, padding: '2px 8px' } }, ct.tipoContratto),
-                  React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(0,0,0,0.65)' } },
-                    React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', backgroundColor: permitDotColor(ct.status, ct.isActive) } }),
-                    ct.status,
-                  ),
-                ),
-                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 24, fontSize: 12, color: 'rgba(0,0,0,0.45)', flexWrap: 'wrap' } },
-                  React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-                    React.createElement('span', null, 'Contratto:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, ct.identificativoContratto)),
-                  React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-                    React.createElement('span', null, 'Canone:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, ct.canoneLocazione + ' / anno')),
-                  ct.foglio ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-                    React.createElement('span', null, 'Fg./Part.:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, ct.foglio + '/' + ct.particella + (ct.subalterno ? '/' + ct.subalterno : ''))) : null,
-                  ct.dataStipula ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-                    React.createElement('span', null, 'Stipula:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, ct.dataStipula)) : null,
-                  ct.dataScadenza ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-                    React.createElement('span', null, 'Scadenza:'), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, ct.dataScadenza)) : null,
-                ),
-              ),
-              React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', paddingTop: 2 } },
-                React.createElement(Radio, { checked: isSel, onChange: e => { e.stopPropagation(); onRowSelect(isSel ? null : ct.key); } }),
-              ),
-            );
-          })
-        : React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Nessun contratto privato disponibile'),
-    ),
-  );
 }
+
+// V2 — Contratto Privato (Locazione/Comodato/Servitù): più utenze per contratto, ciascuna col
+// proprio canone — stesso accordion della Concessione (nota 'concessione-contratto-impianti-collegati').
+function ContrattiList({ data, selectedRowKey, onRowSelect }) {
+  return React.createElement(PermitUtenzeAccordion, {
+    data, selectedRowKey, onRowSelect,
+    placeholder: 'Cerca per proprietario/locatore, identificativo o tipo...', nouns: ['contratto privato', 'contratti privati', 'o'], emptyLabel: 'Nessun contratto privato disponibile',
+    matches: (c, s) => c.proprietarioLocatore.toLowerCase().includes(s) || c.identificativoContratto.toLowerCase().includes(s) || c.tipoContratto.toLowerCase().includes(s),
+    renderHead: c => ({ title: c.proprietarioLocatore, tag: c.identificativoContratto }),
+    renderMeta: c => [{ label: 'Tipo', value: c.tipoContratto }, { label: 'Stipula', value: c.dataStipula }, { label: 'Scadenza', value: c.dataScadenza },
+      { label: 'Fg./Part.', value: c.foglio ? c.foglio + '/' + c.particella + (c.subalterno ? '/' + c.subalterno : '') : '' }],
+    columns: [
+      { label: 'Numero Utenza', width: '1fr', render: u => u.utilityNumber },
+    ],
+  });
+}
+
 
 // Onere economico: form inline nella sezione "Oneri economici" del drawer Nuovo/Modifica impianto.
 const ONERE_TYPES = [
-  { id: 'cup',         title: 'Canone Unico Patrimoniale (CUP)', description: 'Canone per l\'occupazione del suolo pubblico da parte dell\'impianto.', enteLabel: 'Ente', cat: 'ente', rifLabel: 'Riferimento atto', rifPh: 'Es. Det. 67890/2024' },
+  { id: 'cup',         title: 'Canone Unico Patrimoniale (CUP)', description: 'Canone patrimoniale dovuto per l\'occupazione di suolo pubblico e l\'esposizione pubblicitaria dell\'impianto.', enteLabel: 'Ente', cat: 'ente', rifLabel: 'Riferimento atto', rifPh: 'Es. Det. 67890/2024' },
+  { id: 'concessorio', title: 'Canone concessorio',            description: 'Canone dovuto all\'ente concedente per la concessione di suolo pubblico.', enteLabel: 'Ente concedente', cat: 'ente', rifLabel: 'Riferimento concessione', rifPh: 'Es. Pos. 74322 del 15/04/2004' },
+  { id: 'locazione',   title: 'Canone locazione',               description: 'Canone dovuto al proprietario/locatore per il contratto privato (locazione, comodato, servitù).', enteLabel: 'Locatore', cat: 'locatore', rifLabel: 'Riferimento contratto', rifPh: 'Es. LOC-2016-007' },
   { id: 'elettrica',   title: 'Utenza elettrica',                description: 'Fornitura di energia elettrica dell\'impianto.', enteLabel: 'Fornitore', cat: 'energia', rifLabel: 'POD', rifPh: 'Es. IT001E12345678', noScadenza: true },
   { id: 'connettivita', title: 'Connettività',                   description: 'Connessione dati per la gestione da remoto (DOOH).', enteLabel: 'Fornitore', cat: 'telco', rifLabel: 'SIM / Contratto', rifPh: 'Es. SIM 348 123 4567 · VF-2022-PA-0891' },
   { id: 'polizza',     title: 'Polizza assicurativa RC',         description: 'Copertura di responsabilità civile verso terzi.', enteLabel: 'Compagnia', cat: 'assicurazione', rifLabel: 'N. polizza', rifPh: 'Es. 7823441' },
@@ -3079,7 +3020,8 @@ const ONERE_TYPES = [
 // qui solo lookup (stesso approccio di FORNITORI_OPTS). `cat` filtra i fornitori per tipo di onere.
 const FORNITORI_ONERI = [
   { cat: 'ente', label: 'Comune di Palermo' }, { cat: 'ente', label: 'Città Metropolitana di Palermo' },
-  { cat: 'energia', label: 'E-Distribuzione S.p.A.' }, { cat: 'energia', label: 'Enel Energia S.p.A.' }, { cat: 'energia', label: 'A2A Energia S.p.A.' },
+  { cat: 'locatore', label: 'Mauro Pezzati' }, { cat: 'locatore', label: 'Rossi Immobiliare S.r.l.' }, { cat: 'locatore', label: 'Bianchi Giuseppe' }, { cat: 'locatore', label: 'Condominio "Alba"' },
+    { cat: 'energia', label: 'E-Distribuzione S.p.A.' }, { cat: 'energia', label: 'Enel Energia S.p.A.' }, { cat: 'energia', label: 'A2A Energia S.p.A.' },
   { cat: 'telco', label: 'Vodafone Italia S.p.A.' }, { cat: 'telco', label: 'TIM S.p.A.' }, { cat: 'telco', label: 'WindTre S.p.A.' },
   { cat: 'assicurazione', label: 'Generali Italia S.p.A.' }, { cat: 'assicurazione', label: 'UnipolSai Assicurazioni' }, { cat: 'assicurazione', label: 'AXA Assicurazioni' },
   { cat: 'manutenzione', label: 'Tecno Service S.r.l.' }, { cat: 'manutenzione', label: 'Impianti Sud S.r.l.' },
@@ -3094,11 +3036,12 @@ const makeOneri = src => Object.fromEntries(ONERE_TYPES.map(t => [t.id, { ...EMP
 // anche quando l'atto autorizza più impianti (più codici sullo stesso protocollo).
 function AutorizzazioniEsposizioneList({ data, selectedRowKey, onRowSelect }) {
   const [searchText, setSearchText] = useState('');
-  const [activeKeys, setActiveKeys] = useState([]);
+  const [sort, setSort] = useState('recenti');
+  const [userKeys, setUserKeys] = useState(null); // null = default: primo accordion della pagina aperto
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
-  const filtered = data.filter(a => {
+  const filtered = sortByCreation(data, sort).filter(a => {
     if (a.status === 'Scaduta') return false;
     if (!searchText) return true;
     const s = searchText.toLowerCase();
@@ -3107,6 +3050,7 @@ function AutorizzazioniEsposizioneList({ data, selectedRowKey, onRowSelect }) {
   });
 
   const esposizioni = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const activeKeys = userKeys ?? (esposizioni[0] ? [esposizioni[0].key] : []);
 
   const collapseItems = esposizioni.map(auth => {
     // isSel = true se uno qualsiasi dei codici di questo atto è il selezionato corrente
@@ -3132,7 +3076,7 @@ function AutorizzazioniEsposizioneList({ data, selectedRowKey, onRowSelect }) {
       ),
       children: React.createElement('div', { style: { padding: '4px 0' } },
         React.createElement('div', { style: { border: '1px solid #e8e8e8', borderRadius: 6, overflow: 'hidden' } },
-          React.createElement('div', { style: { padding: '6px 14px', fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.45)', backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0' } }, 'Codice Autorizzazione'),
+          React.createElement('div', { style: { padding: '6px 14px', fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.45)', backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0' } }, 'Codice Cimasa'),
           codici.length > 0
             ? codici.map((codice, idx) => {
                 const rowKey = auth.key + '|' + codice;
@@ -3160,15 +3104,16 @@ function AutorizzazioniEsposizioneList({ data, selectedRowKey, onRowSelect }) {
   });
 
   return React.createElement('div', null,
-    React.createElement(Input, { placeholder: 'Cerca per ente o protocollo...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: 20 }, allowClear: true }),
+    React.createElement(Input, { placeholder: 'Cerca per ente o protocollo...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: 16 }, allowClear: true }),
+    React.createElement(PermitSortRow, { total: filtered.length, nouns: ['autorizzazione', 'autorizzazioni', 'a'], sort, onToggle: () => { setSort(sort === 'recenti' ? 'meno-recenti' : 'recenti'); setCurrentPage(1); setUserKeys(null); } }),
     esposizioni.length > 0 ? React.createElement(Collapse, {
       items: collapseItems,
       activeKey: activeKeys,
-      onChange: setActiveKeys,
+      onChange: setUserKeys,
       style: { backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 6 },
     }) : React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: 'rgba(0,0,0,0.45)', fontSize: 13, border: '1px solid #d9d9d9', borderRadius: 6 } }, 'Nessuna autorizzazione disponibile'),
     filtered.length > pageSize ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', paddingTop: 20 } },
-      React.createElement(Pagination, { current: currentPage, total: filtered.length, pageSize, onChange: p => { setCurrentPage(p); setActiveKeys([]); }, size: 'small', showSizeChanger: false }),
+      React.createElement(Pagination, { current: currentPage, total: filtered.length, pageSize, onChange: p => { setCurrentPage(p); setUserKeys(null); }, size: 'small', showSizeChanger: false }),
     ) : null,
   );
 }
@@ -3745,7 +3690,7 @@ function ImpiantoDetailV2({ imp, onBack }) {
     via: (addr[0] || '').trim(), civico: (addr[1] || '36').trim(), cap: '90133', citta: 'Palermo',
     provincia: 'PA', regione: 'Sicilia', nazione: 'Italia', zona: imp.zona || 'Centro Storico',
     lat: imp.lat ? String(imp.lat) : '38.1182', lng: imp.lng ? String(imp.lng) : '13.3608',
-    tipoSuolo: 'Pubblico', catSuolo: 'Urbano', utenza: 'DB45PL', cimasa: 'CIM-2024-00847',
+    tipoSuolo: 'Pubblico', catSuolo: 'Urbano', utenza: 'UT-10234', cimasa: 'CIM-2024-00847',
     progettista: 'Studio Tecnico Russo & Partners', progetto: '1305', ddl: 'Ing. Paolo Greco', rsc: 'Arch. Marta Vitale',
     laboratorio: 'LabStrutture Palermo', geologo: 'Dott. Andrea Rizzo', collaudatore: 'Ing. Sergio Lombardo',
     dataCollaudo: '02/09/2022', calcestruzzo: 'RCK > 25 MPA', acciaioCarp: 'S355JR - IPE 200', acciaioArm: 'FEB 44 K',
@@ -3888,7 +3833,7 @@ function ImpiantoDetailV2({ imp, onBack }) {
   // ── Dati entità (mock) ──
   const stateColor = STATO_COLORS[data.stato] || '#1677FF';
   const [permits, setPermits] = useState([
-    { id: 'p-conc-1', permitType: 'concessione', documentType: 'Atto Amministrativo', documentId: 'Pos. 74322 del 15/04/2004', accountNumber: 'DB45PL', ente: 'Comune di Palermo', presentata: '15/04/2004', scadenza: '10/12/2031', state: 'Attiva', isActive: true },
+    { id: 'p-conc-1', permitType: 'concessione', documentType: 'Concessione Suolo Pubblico', documentId: 'CONC-2022-003', accountNumber: 'UT-10234', ente: 'Comune di Palermo', presentata: '12/03/2022', scadenza: '31/12/2027', state: 'Attiva', isActive: true },
     { id: 'p-aut-1', permitType: 'autorizzazione', documentType: 'Autorizzazione esposizione (art. 23 CdS)', authorizationCategory: 'Pubblicità permanente', documentId: 'Prot. 23456/2023', ente: 'Comune di Palermo', presentata: '15/01/2023', scadenza: '31/12/2027', state: 'Valida', isActive: true },
   ]);
   // Drawer per collegare una nuova concessione o autorizzazione
@@ -5596,7 +5541,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const [cimasaLogo,   setCimasaLogo]   = useState(null); // data URL logo custom; null = logo Gravity type (bianco) di default
   const [cimasaLogoBg, setCimasaLogoBg] = useState(null); // colore hex custom per lo sfondo della colonna logo; null = primary Gravity di default
   const [cimasaExtra,  setCimasaExtra]  = useState('');
-  // Ente emittente, Codice Autorizzazione e Numero Utenza ereditano tutti
+  // Ente emittente, Codice Cimasa e Numero Utenza ereditano tutti
   // insieme da un unico switch "Eredita da permessi" (non più uno switch per
   // campo): quando acceso, ognuno prende il proprio valore dal permesso
   // collegato pertinente (Autorizzazione per i primi due, Concessione o
@@ -6125,21 +6070,24 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       const np = { id: permitRowKey, permitType: 'autorizzazione', title: a.authorizationCategory, docId, ente: a.issuingAuthority, scadenza: a.expirationDate, presentata: a.depositDate || a.stipulationDate, collaudata: a.collaudoDate, state: a.status, isActive: a.isActive };
       setAddedPermits(prev => [...prev.filter(p => p.permitType !== 'autorizzazione'), np]);
       setSelAutorizzazioni([authKey]);
+      if (isV2 && a.authorizationCategory === 'Esposizione pubblicitaria (Comunale)' && selectedCodice) setCimasa(selectedCodice);
       closePermitDrawer();
-      antdMsg.success('Autorizzazione aggiunta');
+      antdMsg.success('Autorizzazione collegata');
       return;
     }
     // V2 — Contratto Privato: entità separata (CONTRATTI_DATA), selezione a singolo record,
     // nessuna utenza/cimasa da ereditare (sono concetti del suolo pubblico).
     if (permitDrawerType === 'contratto') {
-      if (!permitRowKey) { antdMsg.warning('Seleziona un contratto privato'); return; }
-      const ct = CONTRATTI_DATA.find(c => c.key === permitRowKey);
+      if (!permitRowKey) { antdMsg.warning("Seleziona un'utenza"); return; }
+      const ct = CONTRATTI_DATA.find(c => c.utilities.some(u => c.key + '-' + u.utilityNumber === permitRowKey));
       if (!ct) return;
-      const np = { id: ct.key, permitType: 'contratto', title: ct.tipoContratto, docId: ct.identificativoContratto, tipo: 'Privato', ente: ct.proprietarioLocatore, scadenza: ct.dataScadenza, presentata: ct.dataStipula, state: ct.status, isActive: ct.isActive };
+      const cu = ct.utilities.find(u => ct.key + '-' + u.utilityNumber === permitRowKey);
+      const np = { id: permitRowKey, permitType: 'contratto', title: ct.tipoContratto, docId: ct.identificativoContratto, tipo: 'Privato', ente: ct.proprietarioLocatore, scadenza: ct.dataScadenza, presentata: ct.dataStipula, state: ct.status, isActive: ct.isActive };
       setAddedPermits(prev => [...prev.filter(p => p.permitType !== 'concessione' && p.permitType !== 'contratto'), np]);
       setSelContratti([ct.key]);
+      setUtenza(cu.utilityNumber);
       closePermitDrawer();
-      antdMsg.success(permitReplaceMode ? 'Contratto Privato sostituito' : 'Contratto Privato aggiunto');
+      antdMsg.success(permitReplaceMode ? 'Contratto Privato sostituito' : 'Contratto Privato collegato');
       return;
     }
     // Concessione: selezione tramite utenza — mutuamente esclusiva col contratto
@@ -6155,9 +6103,8 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     setAddedPermits(prev => [...prev.filter(p => p.permitType !== 'concessione' && p.permitType !== 'contratto'), np]);
     setSelConcessioni([sg.key]);
     setUtenza(su.utilityNumber);
-    if (su.cimasaCode && su.cimasaCode !== 'Non specificata') setCimasa(su.cimasaCode);
     closePermitDrawer();
-    antdMsg.success(permitReplaceMode ? 'Concessione sostituita' : 'Concessione aggiunta');
+    antdMsg.success(permitReplaceMode ? 'Concessione sostituita' : 'Concessione collegata');
   };
 
   const handleRemovePermit = (id) => {
@@ -6168,24 +6115,24 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     else if (p.permitType === 'contratto') { setSelContratti([]); setUtenza(''); setCimasa(''); }
     else if (p.permitType === 'autorizzazione') {
       setSelAutorizzazioni(prev => prev.filter(k => k !== id));
+      if (isV2 && p.title === 'Esposizione pubblicitaria (Comunale)') setCimasa('');
     }
     antdMsg.success('Permesso scollegato');
   };
 
-  // Utenza/Cimasa già compilate a mano in "Iter autorizzativo" + concessione/contratto selezionato
-  // che possiede a sua volta entrambi i dati: collegandolo, handleAddPermit le sovrascrive in
-  // silenzio (righe sopra) — qui calcoliamo solo SE succederebbe, l'avviso è sul pulsante "Aggiungi".
+  // Utenza già compilata a mano in "Iter autorizzativo" + concessione/contratto selezionato con un'altra
+  // utenza: collegandolo, handleAddPermit la sovrascrive — qui calcoliamo solo SE succederebbe,
+  // l'avviso è sul pulsante "Aggiungi". (Concessione e Contratto hanno solo l'utenza, niente Cimasa.)
   const permitSelectedUtility = React.useMemo(() => {
-    if (permitDrawerType !== 'concessione' || !permitRowKey) return null;
-    for (const g of GRANTS_DATA) {
+    if ((permitDrawerType !== 'concessione' && permitDrawerType !== 'contratto') || !permitRowKey) return null;
+    const list = permitDrawerType === 'concessione' ? GRANTS_DATA : CONTRATTI_DATA;
+    for (const g of list) {
       const u = g.utilities.find(u => g.key + '-' + u.utilityNumber === permitRowKey);
       if (u) return u;
     }
     return null;
   }, [permitDrawerType, permitRowKey]);
-  const permitWillOverwrite = !!permitSelectedUtility && !!(utenza && utenza.trim()) && !!(cimasa && cimasa.trim())
-    && !!permitSelectedUtility.utilityNumber
-    && !!(permitSelectedUtility.cimasaCode && permitSelectedUtility.cimasaCode !== 'Non specificata');
+  const permitWillOverwrite = !!permitSelectedUtility && !!(utenza && utenza.trim()) && utenza.trim() !== permitSelectedUtility.utilityNumber;
   const [permitOverwriteOpen, setPermitOverwriteOpen] = useState(false);
   const closePermitOverwrite = () => setPermitOverwriteOpen(false);
   const confirmPermitOverwrite = () => { setPermitOverwriteOpen(false); handleAddPermit(); };
@@ -6195,13 +6142,20 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   // v2 — un impianto ha o una Concessione o un Contratto Privato, mai entrambi
   // (nota 'impianto-suolo-esclusivo-concessione-contratto', stesso vincolo di inventory-licenses).
   const hasSuoloAtto = hasConcessione || hasContratto;
+  // v2 — Codice Cimasa e Numero Utenza si compilano dal permesso collegato e restano in sola lettura
+  // finché il permesso è collegato (per modificarli a mano bisogna scollegarlo).
+  const cimasaLocked = isV2 && addedPermits.some(p => p.permitType === 'autorizzazione' && p.title === 'Esposizione pubblicitaria (Comunale)');
+  const utenzaLocked = isV2 && hasSuoloAtto;
+  // Sola lettura leggibile: readOnly (non disabled) con testo pieno e sfondo bianco, niente aspetto "spento".
+  const lockedInputProps = (locked) => locked ? { readOnly: true, suffix: React.createElement(LockOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), style: { width: '100%', background: '#fff', color: 'rgba(0,0,0,0.88)', cursor: 'default' } } : {};
+  const lockedField = (locked, reason, node) => locked ? React.createElement(Tooltip, { title: reason }, React.createElement('div', null, node)) : node;
 
   // ── Permessi raggruppati per stadio dell'iter autorizzativo ──
   // Step 1: concessioni + contratti privati + autorizzazioni (escluse le pratiche Genio Civile, che hanno un box dedicato)
   const permessiConcAut     = addedPermits.filter(p => p.permitType === 'concessione' || p.permitType === 'contratto' || (p.permitType === 'autorizzazione' && p.title !== 'Strutturale / Genio Civile'));
 
   // ── Cimasa: valori ereditati dal collegamento reale (non da mock) —
-  // Ente emittente + Codice Autorizzazione dalla prima Autorizzazione collegata,
+  // Ente emittente + Codice Cimasa dalla prima Autorizzazione collegata,
   // Numero Utenza dalla prima Concessione/Contratto privato collegati (la sua
   // utenza, se scelta, è già in `utenza`). Un solo switch (cimasaInheritPermessi)
   // decide per tutti e tre se ereditare o usare il valore manuale — se acceso
@@ -6263,7 +6217,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       // quando si collega poi una concessione che possiede a sua volta entrambi i dati.
       fillUtenzaCimasaExample: () => {
         setUtenza(v => v || 'UT-MANUALE-01');
-        setCimasa(v => v || 'CIM-MANUALE-01');
       },
       selectSomeAuthorizations: () => { const first = AUTHORIZATIONS_DATA.find(a => a.authorizationCategory === 'Esposizione pubblicitaria (Comunale)'); if (first && first.codiciAutorizzazione && first.codiciAutorizzazione.length > 0) setPermitRowKey(first.key + '|' + first.codiciAutorizzazione[0]); },
       fillSuoloExample: () => {
@@ -6485,7 +6438,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
 
   // Campo cimasa: "come" arriva il valore (eredita da permessi o manuale) è
   // deciso da un unico switch a monte (cimasaInheritPermessi, vedi sotto),
-  // uguale per Ente emittente/Codice Autorizzazione/Numero Utenza — qui resta
+  // uguale per Ente emittente/Codice Cimasa/Numero Utenza — qui resta
   // solo "se" mostrarlo in cimasa (icona occhio), indipendente dalla fonte.
   const cimasaField = (label, autoNode, manualNode, visible, setVisible, dirtyKey) => {
     // Solo il valore manuale conta come "modifica da salvare": quello ereditato
@@ -6582,13 +6535,13 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         ),
         React.createElement('div', { style: { marginTop: 20 } },
           g2(
-            cimasaField('Codice Autorizzazione',
+            cimasaField('Codice Cimasa',
               autoText(cimasaAutAuto, '—'),
               inp(cimasaAutManual, setCimasaAutManual, 'Es. Prot. 23456/2023'),
               cimasaAutVisible, setCimasaAutVisible, 'cimasaAutManual'),
             cimasaField('Numero Utenza',
               autoText(cimasaUteAuto, '—'),
-              inp(cimasaUteManual, setCimasaUteManual, 'Es. DB45PL'),
+              inp(cimasaUteManual, setCimasaUteManual, 'Es. UT-10234'),
               cimasaUteVisible, setCimasaUteVisible, 'cimasaUteManual'),
           ),
         ),
@@ -6819,10 +6772,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             // alla v1 (Utenza, Cimasa), che resta invariata.
             g2(
               isV2
-                ? cs('Codice Autorizzazione', false, inp(cimasa, setCimasa, 'Es. AUT-2024-001'), 'cimasa')
+                ? cs('Codice Cimasa', false, lockedField(cimasaLocked, 'Compilato dall\'autorizzazione collegata: scollega l\'autorizzazione per modificarlo a mano.', inp(cimasa, setCimasa, 'Es. AUT-2024-001', lockedInputProps(cimasaLocked))), 'cimasa')
                 : cs('Utenza', false, inp(utenza, setUtenza, '—'), 'utenza'),
               isV2
-                ? cs('Numero Utenza', false, inp(utenza, setUtenza, '—'), 'utenza')
+                ? cs('Numero Utenza', false, lockedField(utenzaLocked, 'Compilato dalla concessione o dal contratto collegato: scollega il permesso per modificarlo a mano.', inp(utenza, setUtenza, '—', lockedInputProps(utenzaLocked))), 'utenza')
                 : cs('Cimasa', false, inp(cimasa, setCimasa, 'Es. CIM-2024-001'), 'cimasa'),
             ),
             permessiConcAut.length > 0
@@ -6927,14 +6880,14 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         ),
 
         // ── 3. Oneri economici
-        isV2 && sec('oneri-economici', 'Oneri economici', React.createElement(React.Fragment, null, 'Costi ricorrenti e continuativi per il mantenimento e l\'esercizio dell\'impianto: canone suolo pubblico, utenze, connettività, polizza RC e contratti di manutenzione.', React.createElement(HandoffDesignNote, { id: 'oneri-fornitori-crud', placement: 'right' })),
+        isV2 && sec('oneri-economici', 'Oneri economici', React.createElement(React.Fragment, null, 'Costi ricorrenti e continuativi per il mantenimento e l\'esercizio dell\'impianto: canone unico patrimoniale, canone concessorio, canone di locazione, utenze, connettività, polizza RC e contratti di manutenzione.', React.createElement(HandoffDesignNote, { id: 'oneri-fornitori-crud', placement: 'right' })),
           ...ONERE_TYPES.map(t => {
             const o = oneri[t.id];
             const f = (k, v) => setOnereField(t.id, k, v);
             const fornitoriOpts = FORNITORI_ONERI.filter(x => x.cat === t.cat).map(x => ({ value: x.label, label: x.label }));
-            return box(t.title, t.description,
+            return box(t.id === 'cup' ? React.createElement(React.Fragment, null, t.title, React.createElement(HandoffDesignNote, { id: 'oneri-canone-patrimoniale-fonte', placement: 'right' })) : t.title, t.description,
               g3(
-                cs(t.enteLabel, false, sel(o.enteForn || undefined, v => f('enteForn', v || ''), fornitoriOpts, 'Seleziona ' + t.enteLabel.toLowerCase(), { showSearch: true }), onereDirty(t.id, 'enteForn')),
+                cs(React.createElement(React.Fragment, null, t.enteLabel, React.createElement(HandoffDesignNote, { id: 'oneri-ente-crud-fornitori', placement: 'top' })), false, sel(o.enteForn || undefined, v => f('enteForn', v || ''), fornitoriOpts, 'Seleziona ' + t.enteLabel.toLowerCase(), { showSearch: true }), onereDirty(t.id, 'enteForn')),
                 cs(t.rifLabel, false, inp(o.riferimento, v => f('riferimento', v), t.rifPh), onereDirty(t.id, 'riferimento')),
                 cs('Periodicità pagamento', false, sel(o.periodicita, v => f('periodicita', v), ONERE_PERIODICITA.map(x => ({ value: x, label: x }))), onereDirty(t.id, 'periodicita')),
               ),
@@ -7316,13 +7269,26 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       onClose: closePermitDrawer, open: permitDrawerOpen,
       extra: React.createElement(Space, null,
         React.createElement(DiscardButton, { dirty: !!permitRowKey, onDiscard: closePermitDrawer }, 'Annulla'),
-        React.createElement(Button, {
-          id: 'grav-tour-permit-add-btn',
-          type: permitRowKey ? 'primary' : 'default',
-          icon: React.createElement(PlusOutlined),
-          disabled: !permitRowKey,
-          onClick: () => { permitWillOverwrite ? setPermitOverwriteOpen(true) : handleAddPermit(); },
-        }, 'Aggiungi'),
+        // v2: "Collega" apre un Popconfirm ancorato al pulsante che avvisa della compilazione in sola lettura
+        // (LAYOUT.md §6.6); in v1 collega direttamente.
+        (() => {
+          const doLink = () => { permitWillOverwrite ? setPermitOverwriteOpen(true) : handleAddPermit(); };
+          const btn = React.createElement(Button, {
+            id: 'grav-tour-permit-add-btn',
+            type: permitRowKey ? 'primary' : 'default',
+            icon: React.createElement(LinkOutlined),
+            disabled: !permitRowKey,
+            onClick: isV2 ? undefined : doLink,
+          }, 'Collega');
+          if (!isV2 || !permitRowKey) return btn;
+          const campo = permitDrawerType === 'autorizzazione' ? 'Il Codice Cimasa' : 'Il Numero Utenza';
+          const scollega = permitDrawerType === 'autorizzazione' ? 'l\'autorizzazione' : permitDrawerType === 'contratto' ? 'il contratto' : 'la concessione';
+          return React.createElement(Popconfirm, {
+            placement: 'bottomRight', okText: 'Collega', cancelText: 'Annulla', onConfirm: doLink,
+            title: campo + ' verrà compilato e messo in sola lettura',
+            description: React.createElement('div', { style: { maxWidth: 280 } }, 'Per modificarlo a mano dovrai prima scollegare ' + scollega + '.'),
+          }, btn);
+        })(),
       ),
     },
       React.createElement(React.Fragment, null,
@@ -7337,17 +7303,16 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             permitDrawerType === 'autorizzazione'
               ? "Clicca su un atto per vedere le cimase al suo interno e seleziona quella da collegare all'impianto. Vengono mostrate solo le autorizzazioni di esposizione pubblicitaria attive."
               : permitDrawerType === 'contratto'
-                ? 'Cerca per proprietario/locatore, identificativo o tipo. Vengono mostrati solo i contratti attivi.'
-                : "Seleziona la concessione e il numero utenza da associare all'impianto. Vengono mostrate solo le concessioni attive."),
+                ? 'Clicca su un contratto per vedere le utenze al suo interno e seleziona quella da collegare all\'impianto. Vengono mostrati solo i contratti attivi.'
+                : "Clicca su una concessione per vedere le utenze al suo interno e seleziona quella da collegare all'impianto. Vengono mostrate solo le concessioni attive."),
         ),
         permitDrawerType === 'autorizzazione'
           ? React.createElement(AutorizzazioniEsposizioneList, { data: AUTHORIZATIONS_DATA.filter(a => a.authorizationCategory === 'Esposizione pubblicitaria (Comunale)' && a.status === 'Attiva'), selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
           : permitDrawerType === 'contratto'
-            ? React.createElement(ContrattiList, { data: CONTRATTI_DATA.filter(c => c.status === 'Attiva'), selectedKey: permitRowKey, onRowSelect: setPermitRowKey })
+            ? React.createElement(ContrattiList, { data: CONTRATTI_DATA.filter(c => c.status === 'Attiva'), selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey })
             : React.createElement(GrantsAccordion, {
                 data: GRANTS_DATA.filter(g => g.status === 'Attiva'),
-                selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey,
-                kindLabel: 'concessione', showHint: false,
+                selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey, simple: isV2,
               }),
       ),
     ),
@@ -7357,7 +7322,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     // Non è un'azione distruttiva (nessun dato viene perso, solo sostituito con un valore reale
     // e coerente): pulsanti neutri, nessuno stile "danger".
     React.createElement(Modal, {
-      title: 'Sovrascrivere Utenza e Cimasa?',
+      title: 'Sovrascrivere Utenza?',
       open: permitOverwriteOpen,
       onCancel: closePermitOverwrite,
       transitionName: '', maskTransitionName: '', // niente fade: evita che l'animazione di chiusura resti bloccata
@@ -7368,10 +7333,10 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       width: 480,
     },
       React.createElement('div', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)', lineHeight: '20px', marginBottom: 16 } },
-        'Hai già inserito Utenza e Cimasa in Iter autorizzativo: la concessione selezionata ha i propri valori, che sovrascriveranno quelli attuali.'
+        'Hai già inserito un Numero Utenza in Iter autorizzativo: l\'utenza selezionata lo sostituirà.'
       ),
       permitSelectedUtility && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 16px', background: '#FAFAFA', border: '1px solid #F0F0F0', borderRadius: 8 } },
-        [['Utenza', utenza, permitSelectedUtility.utilityNumber], ['Cimasa', cimasa, permitSelectedUtility.cimasaCode]].map(([label, oldVal, newVal]) =>
+        [['Utenza', utenza, permitSelectedUtility.utilityNumber]].map(([label, oldVal, newVal]) =>
           React.createElement('div', { key: label, style: { display: 'flex', alignItems: 'center', gap: 8 } },
             React.createElement('span', { style: { width: 60, fontSize: 12, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }, label),
             React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', textDecoration: 'line-through' } }, oldVal),

@@ -209,6 +209,14 @@ const MOCK_CONCESSIONI = [
     modalitaAttribuzione: 'Rinnovo di concessione precedente', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Corso Umberto, Siracusa', superficieConcessaMq: 18 },
   { id: 'conc-010', tipologia: 'Pubblico', enteEmittente: 'Comune di Palermo', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2025-005', numeriUtenze: ['UT-10788', 'UT-10789', 'UT-10790', 'UT-10791'], dataStipula: '20/01/2025', dataDecorrenza: '20/01/2025', dataScadenza: '20/01/2030', totaleCanone: 6800.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
     modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-PA-2024-011', enteBanditore: 'Comune di Palermo', dataAggiudicazione: '12/12/2024', lotto: 'Lotto 5 — Viale Regione Siciliana', noteBando: '', ubicazione: 'Via Notarbartolo, Palermo', superficieConcessaMq: 55 },
+  { id: 'conc-011', tipologia: 'Pubblico', enteEmittente: 'Comune di Bagheria', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2025-018', numeriUtenze: ['UT-10855', 'UT-10856'], dataStipula: '03/03/2025', dataDecorrenza: '03/03/2025', dataScadenza: '03/03/2030', totaleCanone: 2900.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-BA-2025-002', enteBanditore: 'Comune di Bagheria', dataAggiudicazione: '14/02/2025', lotto: 'Lotto 2', noteBando: '', ubicazione: 'Corso Umberto I, Bagheria', superficieConcessaMq: 32 },
+  { id: 'conc-012', tipologia: 'Pubblico', enteEmittente: 'Comune di Trapani', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2025-031', numeriUtenze: ['UT-10912'], dataStipula: '22/05/2025', dataDecorrenza: '22/05/2025', dataScadenza: '22/05/2030', totaleCanone: 1850.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-TP-2025-001', enteBanditore: 'Comune di Trapani', dataAggiudicazione: '30/04/2025', lotto: 'Lotto 1 — Lungomare', noteBando: '', ubicazione: 'Via Ammiraglio Staiti, Trapani', superficieConcessaMq: 28 },
+  { id: 'conc-013', tipologia: 'Pubblico', enteEmittente: 'Comune di Agrigento', tipoDocumento: 'Concessione Beni Comunali', identificativoDocumento: 'CONC-2025-044', numeriUtenze: ['UT-10977', 'UT-10978', 'UT-10979'], dataStipula: '10/09/2025', dataDecorrenza: '10/09/2025', dataScadenza: '10/09/2031', totaleCanone: 4300.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    modalitaAttribuzione: 'Rinnovo di concessione precedente', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Viale della Vittoria, Agrigento', superficieConcessaMq: 48 },
+  { id: 'conc-014', tipologia: 'Pubblico', enteEmittente: 'Comune di Palermo', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2026-002', numeriUtenze: ['UT-11040', 'UT-11041'], dataStipula: '12/01/2026', dataDecorrenza: '12/01/2026', dataScadenza: '12/01/2031', totaleCanone: 3750.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-PA-2025-009', enteBanditore: 'Comune di Palermo', dataAggiudicazione: '05/12/2025', lotto: 'Lotto 6 — Zona Libertà', noteBando: '', ubicazione: 'Via Libertà, Palermo', superficieConcessaMq: 42 },
 ].map(r => ({ impiantiConcessione: [], ...r, spaziCollegati: [] }));
 
 // v2 — impiantiAutorizzati sostituisce Impianti coperti/Codice Autorizzazione (per
@@ -236,7 +244,7 @@ const MOCK_AUTORIZZAZIONI = [
     impiantiAutorizzati: [{ impiantoId: 'OOH-1006', codiceAutorizzazione: '' }] },
   { id: 'aut-006', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Palermo', identificativoDocumento: 'AUT-2025-002', dataStipula: '08/01/2025', dataDecorrenza: '08/01/2025', dataScadenza: '08/01/2028', cup: 210.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
     includeConcessioneSuoloPubblico: false, attiProvenienzaIds: ['contr-001'],
-    impiantiAutorizzati: [{ impiantoId: 'OOH-1004', codiceAutorizzazione: '' }, { impiantoId: 'OOH-1011', codiceAutorizzazione: '' }] },
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1004', codiceAutorizzazione: 'CIM-6004' }, { impiantoId: 'OOH-1011', codiceAutorizzazione: 'CIM-6011' }] },
   { id: 'aut-007', tipologia: 'Provincia/Regione/ANAS', tipologiaV2: 'Nulla osta ente proprietario strada (ANAS | Provincia/Città Metropolitana | Regione)', enteEmittente: 'ANAS S.p.A. — Struttura Territoriale Sicilia', identificativoDocumento: 'AUT-2023-041', dataStipula: '22/04/2023', dataDecorrenza: '01/05/2023', dataScadenza: '31/08/2026', cup: 940.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
     includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
     impiantiAutorizzati: [] },
@@ -248,7 +256,19 @@ const MOCK_AUTORIZZAZIONI = [
     impiantiAutorizzati: [] },
   { id: 'aut-010', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Catania', identificativoDocumento: 'AUT-2025-009', dataStipula: '14/02/2025', dataDecorrenza: '14/02/2025', dataScadenza: '14/02/2030', cup: 760.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
     includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
-    impiantiAutorizzati: [{ impiantoId: 'OOH-1013', codiceAutorizzazione: '' }] },
+    impiantiAutorizzati: [{ impiantoId: 'OOH-1013', codiceAutorizzazione: 'CIM-1013' }] },
+  { id: 'aut-011', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Bagheria', identificativoDocumento: 'AUT-2025-014', dataStipula: '03/04/2025', dataDecorrenza: '03/04/2025', dataScadenza: '03/04/2030', cup: 540.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
+    impiantiAutorizzati: [] },
+  { id: 'aut-012', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Trapani', identificativoDocumento: 'AUT-2025-021', dataStipula: '19/06/2025', dataDecorrenza: '19/06/2025', dataScadenza: '19/06/2030', cup: 430.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
+    impiantiAutorizzati: [] },
+  { id: 'aut-013', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Agrigento', identificativoDocumento: 'AUT-2025-033', dataStipula: '22/09/2025', dataDecorrenza: '22/09/2025', dataScadenza: '22/09/2030', cup: 980.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
+    impiantiAutorizzati: [] },
+  { id: 'aut-014', tipologia: 'Comunale', tipologiaV2: 'Esposizione pubblicitaria (Comunale)', enteEmittente: 'Comune di Palermo', identificativoDocumento: 'AUT-2026-003', dataStipula: '20/01/2026', dataDecorrenza: '20/01/2026', dataScadenza: '20/01/2031', cup: 1150.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    includeConcessioneSuoloPubblico: false, attiProvenienzaIds: [],
+    impiantiAutorizzati: [] },
 ].map(r => ({ ...r, spaziCollegati: [] }));
 
 // v2 — nuova entità sibling di Concessione e Autorizzazione (regime giuridico e ciclo di
