@@ -180,3 +180,42 @@ Il drawer resta un overlay sulla lista (LAYOUT.md §1/§3.2): non superare ~1100
 Autorizzazione/Concessione/Contratto Privato), con filtri Canale → Tipologia → Formato a cascata,
 ordinamento per data di creazione e card con Alias/foto. Nota di handoff
 `permessi-collegamento-drawer-scala-reale`.
+
+---
+
+## Variante: elenco ad accordion (atti con più righe selezionabili)
+
+Quando l'entità da collegare è un **atto che contiene più righe** e si sceglie la riga, non l'atto
+(Concessione/Contratto Privato → **utenza**, Autorizzazione → **codice cimasa**), al posto della
+griglia di `GravityEntityCard` si usa un elenco ad accordion (`antd Collapse`). Stessa intestazione,
+ricerca, conteggio e paginazione del picker; cambia solo il corpo. Esempio reale:
+`prototype/inventory-systems`, drawer "Collega Concessione / Contratto Privato / Autorizzazione" del
+form Nuovo impianto (`PermitUtenzeAccordion`, `AutorizzazioniEsposizioneList`).
+
+- **Ordine dei blocchi:** ricerca (`marginBottom: 16`) → riga conteggio + ordinamento
+  (`marginBottom: 12`) → `Collapse` → paginazione in basso a destra (`paddingTop: 20`).
+- **Riga conteggio + ordinamento:** identica al picker — "N concessioni trovate" a sinistra
+  (singolare e genere gestiti), a destra il pulsante-toggle `type="text" size="small"`:
+  "Creati di recente" (`SortDescendingOutlined`, **default**) / "Creati da più tempo"
+  (`SortAscendingOutlined`). Il cambio riporta a pagina 1.
+- **Header dell'accordion:** titolo (peso 500) + `Tag` identificativo + metadati grigi 12px con
+  pallino di stato; a destra "Selezionata" (primary + `CheckCircleFilled`) quando una riga dell'atto
+  è scelta.
+- **Righe:** dentro un box `1px solid #e8e8e8`, `borderRadius: 6`, con sottointestazione grigia
+  (`#fafafa`, 12px) e una **`Radio` a destra** — selezione singola, chiave `attoKey-riga`. Riga
+  selezionata `#f9f7ff`; riga non selezionabile (es. codice già in uso) `#fafafa`, testo attenuato
+  e motivo in chiaro ("In uso · …").
+- **Colonne:** solo il dato che identifica la riga (es. Numero Utenza). Importi e canoni non
+  stanno nel drawer: vivono nella sezione Oneri economici.
+- **Primo accordion aperto:** all'apertura del drawer, e a ogni cambio di pagina, ricerca o
+  ordinamento, si apre **il primo accordion della pagina** (gli altri chiusi). L'utente può aprire e
+  chiudere liberamente; lo stato manuale si azzera al cambio di pagina/ricerca/ordinamento.
+- **Ordine di creazione:** il dato di creazione è quello del record (nel mock, l'ordine
+  dell'array: l'ultimo è il più recente).
+- **Paginazione:** 5 atti per pagina; il controllo compare solo oltre il quinto record.
+- **Azione di conferma "Collega":** il pulsante primary in header si chiama **Collega** (icona
+  `LinkOutlined`), non "Aggiungi". Se il collegamento compila un campo del form in sola lettura,
+  il click apre un **`Popconfirm` ancorato al pulsante** (`placement: bottomRight`, OK "Collega",
+  Annulla) che lo dichiara: titolo "Il Numero Utenza verrà compilato e messo in sola lettura",
+  descrizione con l'azione ("Per modificarlo a mano dovrai prima scollegare la concessione") —
+  LAYOUT.md §6.6, mai un `Alert` nel corpo del drawer.
