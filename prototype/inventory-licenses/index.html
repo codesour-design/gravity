@@ -134,7 +134,7 @@ const {
   CoffeeOutlined, FileTextOutlined, CheckCircleOutlined, ClockCircleOutlined,
   EnvironmentOutlined, FileProtectOutlined, ApartmentOutlined, WarningOutlined,
   ThunderboltOutlined, EuroCircleOutlined, ExpandOutlined, TagOutlined,
-  InfoCircleOutlined,
+  InfoCircleOutlined, CheckCircleFilled,
 } = icons;
 const { Title } = Typography;
 
@@ -191,20 +191,20 @@ const MOCK_CONCESSIONI = [
     modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-PA-2022-004', enteBanditore: 'Comune di Palermo', dataAggiudicazione: '28/02/2022', lotto: 'Lotto 3 — Zona Centro', noteBando: '', ubicazione: 'Via Roma, Palermo', superficieConcessaMq: 45,
     // v2 — nota 'concessione-contratto-impianti-collegati': seed dimostrativo.
     impiantiConcessione: [{ impiantoId: 'OOH-1020', numeroUtenza: 'UT-10234' }] },
-  { id: 'conc-002', tipologia: 'Privato', enteEmittente: 'Immobiliare San Lorenzo Srl', tipoDocumento: 'Atto Notarile', identificativoDocumento: 'AN-2023-011', numeriUtenze: ['UT-10391'], dataStipula: '05/06/2023', dataDecorrenza: '05/06/2023', dataScadenza: '01/01/2026', totaleCanone: 1250.50, stato: 'Attiva', promemoria: '60 giorni prima della scadenza', giorniPreavviso: 60, statoOverride: null,
-    modalitaAttribuzione: 'Affidamento diretto', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Via Maqueda, Palermo', superficieConcessaMq: 30 },
+  { id: 'conc-002', tipologia: 'Pubblico', enteEmittente: 'Comune di Palermo', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2023-014', numeriUtenze: ['UT-10301', 'UT-10302'], dataStipula: '28/02/2023', dataDecorrenza: '01/04/2023', dataScadenza: '28/02/2028', totaleCanone: 2100.00, stato: 'Attiva', promemoria: '90 giorni prima della scadenza', giorniPreavviso: 90, statoOverride: null,
+    modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-PA-2022-019', enteBanditore: 'Comune di Palermo', dataAggiudicazione: '15/01/2023', lotto: 'Lotto 2 — Ballarò', noteBando: '', ubicazione: 'Via Maqueda 204, Palermo', superficieConcessaMq: 22 },
   { id: 'conc-003', tipologia: 'Pubblico', enteEmittente: 'Città Metropolitana di Palermo', tipoDocumento: 'Concessione Demaniale', identificativoDocumento: 'CONC-2024-007', numeriUtenze: ['UT-10456', 'UT-10457', 'UT-10458'], dataStipula: '22/04/2024', dataDecorrenza: '01/05/2024', dataScadenza: '15/03/2028', totaleCanone: 5200.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
     modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-CM-2024-001', enteBanditore: 'Città Metropolitana di Palermo', dataAggiudicazione: '10/04/2024', lotto: '', noteBando: 'Aggiudicazione con riserva di verifica requisiti.' , ubicazione: 'Viale Lazio, Palermo', superficieConcessaMq: 60 },
   { id: 'conc-004', tipologia: 'Pubblico', enteEmittente: 'Comune di Catania', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2021-045', numeriUtenze: ['UT-9821'], dataStipula: '10/01/2021', dataDecorrenza: '10/01/2021', dataScadenza: '10/01/2024', totaleCanone: 980.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: null,
     modalitaAttribuzione: 'Rinnovo di concessione precedente', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Via Etnea, Catania', superficieConcessaMq: 25 },
-  { id: 'conc-005', tipologia: 'Privato', enteEmittente: 'Parco Commerciale Sicilia Spa', tipoDocumento: 'Concessione Onerosa', identificativoDocumento: 'CO-2023-019', numeriUtenze: ['UT-10502', 'UT-10503'], dataStipula: '18/09/2023', dataDecorrenza: '01/10/2023', dataScadenza: '18/09/2026', totaleCanone: 4100.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
-    modalitaAttribuzione: 'Affidamento diretto', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Viale Regione Siciliana, Palermo', superficieConcessaMq: 40 },
+  { id: 'conc-005', tipologia: 'Pubblico', enteEmittente: 'Comune di Ragusa', tipoDocumento: 'Concessione Onerosa', identificativoDocumento: 'CONC-2023-029', numeriUtenze: ['UT-10502', 'UT-10503'], dataStipula: '20/06/2023', dataDecorrenza: '01/07/2023', dataScadenza: '30/06/2028', totaleCanone: 2650.00, stato: 'Attiva', promemoria: '60 giorni prima della scadenza', giorniPreavviso: 60, statoOverride: null,
+    modalitaAttribuzione: 'Affidamento diretto', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Viale Europa 15, Ragusa', superficieConcessaMq: 20 },
   { id: 'conc-006', tipologia: 'Pubblico', enteEmittente: 'Comune di Palermo', tipoDocumento: 'Concessione Beni Comunali', identificativoDocumento: 'CONC-2020-088', numeriUtenze: ['UT-8890'], dataStipula: '02/02/2020', dataDecorrenza: '02/02/2020', dataScadenza: '02/02/2024', totaleCanone: 760.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: 'Cessata',
     modalitaAttribuzione: 'Rinnovo di concessione precedente', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Piazza Politeama, Palermo', superficieConcessaMq: 20 },
   { id: 'conc-007', tipologia: 'Pubblico', enteEmittente: 'Comune di Messina', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2024-022', numeriUtenze: ['UT-10601'], dataStipula: '14/02/2024', dataDecorrenza: '01/03/2024', dataScadenza: '14/02/2029', totaleCanone: 2150.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
     modalitaAttribuzione: 'Bando pubblico', riferimentoBando: 'GARA-ME-2024-002', enteBanditore: 'Comune di Messina', dataAggiudicazione: '30/01/2024', lotto: 'Lotto 1', noteBando: '', ubicazione: 'Via Garibaldi, Messina', superficieConcessaMq: 35 },
-  { id: 'conc-008', tipologia: 'Privato', enteEmittente: 'Centro Commerciale Le Zagare Srl', tipoDocumento: 'Atto Notarile', identificativoDocumento: 'AN-2022-064', numeriUtenze: ['UT-9944', 'UT-9945'], dataStipula: '30/07/2022', dataDecorrenza: '30/07/2022', dataScadenza: '30/07/2025', totaleCanone: 3050.00, stato: 'Attiva', promemoria: '60 giorni prima della scadenza', giorniPreavviso: 60, statoOverride: null,
-    modalitaAttribuzione: 'Affidamento diretto', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Via Nazionale, Messina', superficieConcessaMq: 28 },
+  { id: 'conc-008', tipologia: 'Pubblico', enteEmittente: 'Comune di Caltanissetta', tipoDocumento: 'Concessione Beni Comunali', identificativoDocumento: 'CONC-2022-058', numeriUtenze: ['UT-9944', 'UT-9945'], dataStipula: '15/09/2022', dataDecorrenza: '01/10/2022', dataScadenza: '30/09/2027', totaleCanone: 1920.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    modalitaAttribuzione: 'Rinnovo di concessione precedente', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Corso Vittorio Emanuele 88, Caltanissetta', superficieConcessaMq: 16 },
   { id: 'conc-009', tipologia: 'Pubblico', enteEmittente: 'Comune di Siracusa', tipoDocumento: 'Concessione Demaniale', identificativoDocumento: 'CONC-2019-102', numeriUtenze: ['UT-7765'], dataStipula: '11/11/2019', dataDecorrenza: '01/12/2019', dataScadenza: '11/11/2023', totaleCanone: 690.00, stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: null,
     modalitaAttribuzione: 'Rinnovo di concessione precedente', riferimentoBando: '', enteBanditore: '', dataAggiudicazione: null, lotto: '', noteBando: '', ubicazione: 'Corso Umberto, Siracusa', superficieConcessaMq: 18 },
   { id: 'conc-010', tipologia: 'Pubblico', enteEmittente: 'Comune di Palermo', tipoDocumento: 'Concessione Suolo Pubblico', identificativoDocumento: 'CONC-2025-005', numeriUtenze: ['UT-10788', 'UT-10789', 'UT-10790', 'UT-10791'], dataStipula: '20/01/2025', dataDecorrenza: '20/01/2025', dataScadenza: '20/01/2030', totaleCanone: 6800.00, stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
@@ -279,30 +279,21 @@ const MOCK_AUTORIZZAZIONI = [
 // impianto condiviso con un'Autorizzazione, mostrato quando lo spazio collegato è pubblico).
 const MOCK_CONTRATTI = [
   { id: 'contr-001', proprietarioLocatore: 'Immobiliare San Lorenzo Srl', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2023-005',
-    dataStipula: '05/06/2023', dataDecorrenza: '05/06/2023', dataScadenza: '01/01/2026', foglio: '112', particella: '458', subalterno: '3', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
+    dataStipula: '05/06/2023', dataDecorrenza: '05/06/2023', dataScadenza: '01/06/2028', foglio: '112', particella: '458', subalterno: '3', indirizzo: 'Via della Libertà 45, Palermo', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
     // v2 — nota 'concessione-contratto-impianti-collegati': seed dimostrativo.
     impiantiContratto: [{ impiantoId: 'OOH-1021', numeroUtenza: 'UT-20045' }] },
   { id: 'contr-002', proprietarioLocatore: 'Centro Commerciale Le Zagare Srl', tipoContratto: 'Comodato', identificativoContratto: 'COM-2022-011',
-    dataStipula: '30/07/2022', dataDecorrenza: '01/08/2022', dataScadenza: '30/07/2025', foglio: '89', particella: '212', subalterno: '', stato: 'Attiva', promemoria: '60 giorni prima della scadenza', giorniPreavviso: 60, statoOverride: null },
+    dataStipula: '30/07/2022', dataDecorrenza: '01/08/2022', dataScadenza: '30/07/2027', foglio: '89', particella: '212', subalterno: '', indirizzo: 'Via Ugo La Malfa 8, Palermo', stato: 'Attiva', promemoria: '60 giorni prima della scadenza', giorniPreavviso: 60, statoOverride: null },
   { id: 'contr-003', proprietarioLocatore: 'Parco Commerciale Sicilia Spa', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2024-018',
-    dataStipula: '18/09/2024', dataDecorrenza: '18/09/2024', dataScadenza: '18/09/2027', foglio: '204', particella: '77', subalterno: '1', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null },
-  { id: 'contr-004', proprietarioLocatore: 'Fondazione Patrimonio Storico Messina', tipoContratto: 'Servitù', identificativoContratto: 'ALT-2021-002',
-    dataStipula: '12/11/2021', dataDecorrenza: '01/12/2021', dataScadenza: '28/02/2024', foglio: '31', particella: '540', subalterno: '', stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: 'Revocata/Decaduta' },
-  // v2 — migrati dalle ex Concessioni Privato (nota 'concessione-solo-pubblica'): campi con
-  // corrispondente diretto mappati 1:1 (ente emittente→proprietario, identificativo, date,
-  // canone); Tipo Contratto, Riferimento Catastale e Autorizzazione Comunale collegata NON
-  // avevano un corrispondente nel modello precedente — lasciati vuoti/di default, da
-  // completare a mano (vedi Alert 'grav-contratto-migrata-alert' nel dettaglio e nota
-  // 'migrazione-concessioni-privato').
-  { id: 'contr-005', proprietarioLocatore: 'Immobiliare San Lorenzo Srl', tipoContratto: 'Locazione', identificativoContratto: 'AN-2023-011',
-    dataStipula: '05/06/2023', dataDecorrenza: '05/06/2023', dataScadenza: '01/01/2026', foglio: '', particella: '', subalterno: '', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
-    migrata: true, migratoDa: 'conc-002' },
-  { id: 'contr-006', proprietarioLocatore: 'Parco Commerciale Sicilia Spa', tipoContratto: 'Locazione', identificativoContratto: 'CO-2023-019',
-    dataStipula: '18/09/2023', dataDecorrenza: '18/09/2023', dataScadenza: '18/09/2026', foglio: '', particella: '', subalterno: '', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
-    migrata: true, migratoDa: 'conc-005' },
-  { id: 'contr-007', proprietarioLocatore: 'Centro Commerciale Le Zagare Srl', tipoContratto: 'Locazione', identificativoContratto: 'AN-2022-064',
-    dataStipula: '30/07/2022', dataDecorrenza: '30/07/2022', dataScadenza: '30/07/2025', foglio: '', particella: '', subalterno: '', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null,
-    migrata: true, migratoDa: 'conc-008' },
+    dataStipula: '18/09/2024', dataDecorrenza: '18/09/2024', dataScadenza: '18/09/2027', foglio: '204', particella: '77', subalterno: '1', indirizzo: 'Viale Leonardo Sciascia 60, Ragusa', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null },
+  { id: 'contr-004', proprietarioLocatore: 'Fondazione Patrimonio Storico Messina', tipoContratto: 'Servitù', identificativoContratto: 'SER-2021-002',
+    dataStipula: '12/11/2021', dataDecorrenza: '01/12/2021', dataScadenza: '28/02/2024', foglio: '31', particella: '540', subalterno: '', indirizzo: 'Via I Settembre 1847, Messina', stato: 'Scaduta', promemoria: 'No Promemoria', giorniPreavviso: null, statoOverride: 'Revocata/Decaduta' },
+  { id: 'contr-005', proprietarioLocatore: 'Immobiliare San Lorenzo Srl', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2023-011',
+    dataStipula: '20/10/2023', dataDecorrenza: '01/11/2023', dataScadenza: '01/11/2028', foglio: '47', particella: '221', subalterno: '2', indirizzo: 'Via Maqueda 102, Palermo', stato: 'Attiva', promemoria: '30 giorni prima della scadenza', giorniPreavviso: 30, statoOverride: null },
+  { id: 'contr-006', proprietarioLocatore: 'Parco Commerciale Sicilia Spa', tipoContratto: 'Diritto di superficie', identificativoContratto: 'SUP-2023-007',
+    dataStipula: '15/03/2023', dataDecorrenza: '01/04/2023', dataScadenza: '31/03/2033', foglio: '315', particella: '88', subalterno: '', indirizzo: 'Viale Regione Siciliana 2146, Palermo', stato: 'Attiva', promemoria: '90 giorni prima della scadenza', giorniPreavviso: 90, statoOverride: null },
+  { id: 'contr-007', proprietarioLocatore: 'Centro Commerciale Le Zagare Srl', tipoContratto: 'Locazione', identificativoContratto: 'LOC-2022-044',
+    dataStipula: '30/07/2022', dataDecorrenza: '30/07/2022', dataScadenza: '30/07/2027', foglio: '163', particella: '502', subalterno: '', indirizzo: 'Via Ugo La Malfa 20, Palermo', stato: 'Attiva', promemoria: '60 giorni prima della scadenza', giorniPreavviso: 60, statoOverride: null },
 ].map(r => ({ impiantiContratto: [], ...r, spaziCollegati: [] }));
 
 // ─────────────────────────────────────────────────────────
@@ -1037,6 +1028,15 @@ function gravLinkEmpty({ description, action }) {
   );
 }
 
+function PermitSortRow({ total, nouns, sort, onToggle }) { // nouns = [singolare, plurale, 'o'|'a']
+  return React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 } },
+    React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, total === 1 ? '1 ' + nouns[0] + ' trovat' + nouns[2] : total + ' ' + nouns[1] + ' trovat' + (nouns[2] === 'a' ? 'e' : 'i')),
+    React.createElement(Button, { type: 'text', size: 'small', onClick: onToggle,
+      icon: React.createElement(sort === 'recenti' ? icons.SortDescendingOutlined : icons.SortAscendingOutlined) },
+      sort === 'recenti' ? 'Creati di recente' : 'Creati da più tempo'));
+}
+const sortByCreationLic = (list, sort) => sort === 'recenti' ? [...list].reverse() : list;
+
 function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniList, contrattiList, onClose, onSave }) {
   const [f, setF] = useState(EMPTY_PERMIT_STATE);
   const set = (key) => (val) => setF(prev => ({ ...prev, [key]: val }));
@@ -1486,28 +1486,87 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
   // Concessione e un Contratto Privato che coprono impianti diversi coperti dalla stessa
   // Autorizzazione).
   const [attoLinkOpen, setAttoLinkOpen] = useState(false);
+  const [attoLinkType, setAttoLinkType] = useState('concessione'); // 'concessione' | 'contratto'
   const [attoLinkSearch, setAttoLinkSearch] = useState('');
+  const [attoLinkSort, setAttoLinkSort] = useState('recenti');
+  const [attoLinkPage, setAttoLinkPage] = useState(1);
   const [attoLinkSelected, setAttoLinkSelected] = useState([]);
   const attoLinkSnapshotRef = useRef([]);
-  const attoLinkAll = [
-    ...(concessioniList || []).map(c => ({ id: c.id, kind: 'Concessione', title: c.identificativoDocumento, subtitle: c.enteEmittente, dataStipula: c.dataStipula, dataScadenza: c.dataScadenza, stato: statoEffettivoV2(c) })),
-    ...(contrattiList || []).map(c => ({ id: c.id, kind: 'Contratto Privato', title: c.identificativoContratto, subtitle: c.proprietarioLocatore, dataStipula: c.dataStipula, dataScadenza: c.dataScadenza, stato: statoEffettivoV2(c) })),
-  ];
+  const ATTO_LINK_PAGE_SIZE = 10;
+  // Catalogo flat: due liste separate per tipo, allineate ai campi mostrati dai drawer di
+  // inventory-systems (GrantsAccordion / ContrattiList) — meta[] e search[] per tipo.
+  // Concessione: title=tipoDocumento, tag=identificativo, meta=[Ente, Scadenza] (come GrantsAccordion).
+  // Contratto: title=proprietario, tag=identificativo, meta=[Tipo, Stipula, Scadenza, Fg./Part.] (come ContrattiList).
+  const attoLinkAllConcessioni = (concessioniList || []).map(c => ({
+    id: c.id, kind: 'Concessione',
+    title: c.tipoDocumento || c.identificativoDocumento,
+    tag: c.identificativoDocumento,
+    ente: c.enteEmittente,
+    dataScadenza: c.dataScadenza,
+    stato: statoEffettivoV2(c), isActive: c.stato === 'Attiva',
+    meta: [{ label: 'Ente', value: c.enteEmittente }, { label: 'Scadenza', value: c.dataScadenza }],
+    search: [c.tipoDocumento, c.identificativoDocumento, c.enteEmittente].filter(Boolean).join(' ').toLowerCase(),
+  }));
+  const attoLinkAllContratti = (contrattiList || []).map(c => {
+    const catasto = c.foglio ? c.foglio + '/' + c.particella + (c.subalterno ? '/' + c.subalterno : '') : '';
+    return {
+      id: c.id, kind: 'Contratto Privato',
+      title: c.proprietarioLocatore,
+      tag: c.identificativoContratto,
+      tipoContratto: c.tipoContratto,
+      dataStipula: c.dataStipula,
+      dataScadenza: c.dataScadenza,
+      catasto,
+      stato: statoEffettivoV2(c), isActive: c.stato === 'Attiva',
+      meta: [
+        { label: 'Tipo', value: c.tipoContratto },
+        { label: 'Stipula', value: c.dataStipula },
+        { label: 'Scadenza', value: c.dataScadenza },
+        { label: 'Fg./Part.', value: catasto },
+      ],
+      search: [c.proprietarioLocatore, c.identificativoContratto, c.tipoContratto].filter(Boolean).join(' ').toLowerCase(),
+    };
+  });
+  // Lista selezionabile nel drawer: solo atti attivi (non Scaduti/Cessati/Revocati)
+  const STATI_NON_ATTIVI = ['Scaduta', 'Cessata', 'Revocata/Decaduta'];
+  const attoLinkBaseList = (attoLinkType === 'contratto' ? attoLinkAllContratti : attoLinkAllConcessioni)
+    .filter(a => !STATI_NON_ATTIVI.includes(a.stato));
+  // Lookup globale non filtrato: serve per mostrare anche atti già collegati che nel frattempo sono scaduti
+  const attoLinkAllFlat = [...attoLinkAllConcessioni, ...attoLinkAllContratti];
   const attoLinkQuery = attoLinkSearch.trim().toLowerCase();
-  const attoLinkCandidates = attoLinkQuery
-    ? attoLinkAll.filter(a => a.title.toLowerCase().includes(attoLinkQuery) || (a.subtitle || '').toLowerCase().includes(attoLinkQuery))
-    : attoLinkAll;
-  const attiProvenienzaRecords = f.attiProvenienzaIds.map(id => attoLinkAll.find(a => a.id === id)).filter(Boolean);
+  const attoLinkSorted = sortByCreationLic(attoLinkBaseList, attoLinkSort);
+  const attoLinkFiltered = attoLinkQuery
+    ? attoLinkSorted.filter(a => a.search.includes(attoLinkQuery))
+    : attoLinkSorted;
+  const attoLinkPageSafe = Math.min(attoLinkPage, Math.max(1, Math.ceil(attoLinkFiltered.length / ATTO_LINK_PAGE_SIZE)));
+  const attoLinkPageItems = attoLinkFiltered.slice((attoLinkPageSafe - 1) * ATTO_LINK_PAGE_SIZE, attoLinkPageSafe * ATTO_LINK_PAGE_SIZE);
+  const attiProvenienzaRecords = f.attiProvenienzaIds.map(id => attoLinkAllFlat.find(a => a.id === id)).filter(Boolean);
   const toggleAttoLinkSel = (id) => setAttoLinkSelected(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
-  const openAttoLink = () => {
-    setAttoLinkSelected(f.attiProvenienzaIds);
+  const openAttoLink = (tipo) => {
+    const t = tipo || 'concessione';
+    setAttoLinkType(t);
+    // pre-popola solo le selezioni del tipo aperto — le altre restano in f.attiProvenienzaIds
+    const otherIds = f.attiProvenienzaIds.filter(id => {
+      const rec = attoLinkAllFlat.find(a => a.id === id);
+      return rec && rec.kind !== (t === 'contratto' ? 'Contratto Privato' : 'Concessione');
+    });
+    const sameTypeIds = f.attiProvenienzaIds.filter(id => !otherIds.includes(id));
+    setAttoLinkSelected(sameTypeIds);
     setAttoLinkSearch('');
-    attoLinkSnapshotRef.current = f.attiProvenienzaIds;
+    setAttoLinkSort('recenti');
+    setAttoLinkPage(1);
+    attoLinkSnapshotRef.current = sameTypeIds;
+    // salva gli ids dell'altro tipo per il merge in confirmAttoLink
+    attoLinkSnapshotRef._otherIds = otherIds;
     setAttoLinkOpen(true);
   };
   const isAttoLinkDirty = () => JSON.stringify([...attoLinkSelected].sort()) !== JSON.stringify([...attoLinkSnapshotRef.current].sort());
   const closeAttoLink = () => setAttoLinkOpen(false);
-  const confirmAttoLink = () => { set('attiProvenienzaIds')(attoLinkSelected); setAttoLinkOpen(false); };
+  const confirmAttoLink = () => {
+    const otherIds = attoLinkSnapshotRef._otherIds || [];
+    set('attiProvenienzaIds')([...otherIds, ...attoLinkSelected]);
+    setAttoLinkOpen(false);
+  };
   const scollegaAtto = (id) => set('attiProvenienzaIds')(f.attiProvenienzaIds.filter(v => v !== id));
 
   const drawerTitle = React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
@@ -1682,12 +1741,23 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
     pagination: { current: impiantiLinkPageSafe, pageSize: IMPIANTI_LINK_PAGE_SIZE, onChange: p => setImpiantiLinkPage(p) },
   });
 
-  // v2 — Drawer "Collega atto di provenienza" (Origine, Autorizzazione): stessa UX del drawer
-  // impianti sopra — selezione multipla (checkbox), non più a scelta unica: un'Autorizzazione
-  // può collegare più Concessioni e/o Contratti Privati di riferimento.
+  // v2 — Drawer "Collega Concessione / Collega Contratto Privato" (Origine, Autorizzazione):
+  // due drawer separati per tipo (come in inventory-systems), senza accordion di selezione
+  // utenze — si collega direttamente l'atto. Lista flat con ricerca, sort e checkbox.
+  const attoLinkIsContratto = attoLinkType === 'contratto';
+  const attoLinkTitle = attoLinkIsContratto ? 'Collega Contratto Privato' : 'Collega Concessione';
+  const attoLinkHeading = attoLinkIsContratto ? 'Trova il contratto privato da collegare' : 'Trova la concessione da collegare';
+  const attoLinkDesc = attoLinkIsContratto
+    ? 'Cerca per proprietario/locatore, tipo o identificativo. Puoi selezionarne più di uno.'
+    : 'Cerca per ente emittente o identificativo. Puoi selezionarne più di uno.';
+  const attoLinkPlaceholder = attoLinkIsContratto ? 'Cerca per proprietario, identificativo o tipo...' : 'Cerca per ente, tipo o identificativo...';
+  const attoLinkNouns = attoLinkIsContratto ? ['contratto privato', 'contratti privati', 'o'] : ['concessione', 'concessioni', 'a'];
+  const attoLinkEmpty = attoLinkIsContratto ? 'Nessun contratto privato disponibile.' : 'Nessuna concessione disponibile.';
+
   const attoLinkDrawerNode = React.createElement(Drawer, {
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-      React.createElement(DiscardCloseIcon, { dirty: isAttoLinkDirty(), onDiscard: closeAttoLink }), 'Collega permesso'),
+      React.createElement(DiscardCloseIcon, { dirty: isAttoLinkDirty(), onDiscard: closeAttoLink }),
+      attoLinkTitle),
     placement: 'right', closable: false, rootClassName: 'grav-permit-link-drawer',
     maskClosable: !isAttoLinkDirty(), keyboard: !isAttoLinkDirty(),
     onClose: closeAttoLink, open: attoLinkOpen,
@@ -1695,43 +1765,64 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
     extra: React.createElement(Space, null,
       React.createElement(DiscardButton, { dirty: isAttoLinkDirty(), onDiscard: closeAttoLink }, 'Annulla'),
       React.createElement(Button, {
-        type: attoLinkSelected.length > 0 ? 'primary' : 'default', icon: React.createElement(LinkOutlined), onClick: confirmAttoLink,
+        type: attoLinkSelected.length > 0 ? 'primary' : 'default',
+        icon: React.createElement(LinkOutlined), onClick: confirmAttoLink,
         disabled: attoLinkSelected.length === 0,
-      }, 'Collega'),
+      }, attoLinkSelected.length > 0 ? 'Collega (' + attoLinkSelected.length + ')' : 'Collega'),
     ),
   },
-    // Stessa struttura del drawer "Collega permesso" di Nuovo Impianto (inventory-systems):
-    // intestazione titolo + descrizione, ricerca, elenco in box con bordo, senza box grigio.
+    // Intestazione: stessa struttura del drawer "Collega permesso" di inventory-systems
     React.createElement('div', { style: { marginBottom: 20 } },
-      React.createElement(Typography.Title, { level: 4, style: { margin: '0 0 4px' } }, 'Trova la concessione o il contratto da collegare'),
-      React.createElement(Typography.Text, { type: 'secondary' }, 'Puoi selezionarne più di uno. Cerca per identificativo o ente.'),
+      React.createElement(Typography.Title, { level: 4, style: { margin: '0 0 4px' } }, attoLinkHeading),
+      React.createElement(Typography.Text, { type: 'secondary' }, attoLinkDesc),
     ),
     React.createElement(Input, {
-      value: attoLinkSearch, onChange: e => setAttoLinkSearch(e.target.value),
-      placeholder: 'Cerca concessione o contratto...', allowClear: true, prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }),
-      style: { marginBottom: 20 },
+      value: attoLinkSearch,
+      onChange: e => { setAttoLinkSearch(e.target.value); setAttoLinkPage(1); },
+      placeholder: attoLinkPlaceholder, allowClear: true,
+      prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }),
+      style: { marginBottom: 16 },
     }),
+    React.createElement(PermitSortRow, {
+      total: attoLinkFiltered.length, nouns: attoLinkNouns, sort: attoLinkSort,
+      onToggle: () => { setAttoLinkSort(s => s === 'recenti' ? 'meno-recenti' : 'recenti'); setAttoLinkPage(1); },
+    }),
+    // Lista flat degli atti: stessa struttura delle righe-header dell'accordion di inventory-systems
+    // ma senza accordion — ogni riga è direttamente cliccabile con checkbox
     React.createElement('div', { style: { border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' } },
-      attoLinkCandidates.length === 0
-        ? React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Nessuna concessione o contratto disponibile')
-        : attoLinkCandidates.map((a, idx) => {
+      attoLinkPageItems.length === 0
+        ? React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, attoLinkEmpty)
+        : attoLinkPageItems.map((a, idx) => {
             const sel = attoLinkSelected.includes(a.id);
-            const detail = (label, value) => value ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-              React.createElement('span', null, label), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, value)) : null;
+            const gray = 'rgba(0,0,0,0.45)', dark = 'rgba(0,0,0,0.85)';
             return React.createElement('div', {
               key: a.id, onClick: () => toggleAttoLinkSel(a.id),
-              style: { padding: 16, borderBottom: idx < attoLinkCandidates.length - 1 ? '1px solid #f0f0f0' : 'none', backgroundColor: sel ? '#f9f7ff' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, transition: 'background-color 0.2s' },
+              style: {
+                padding: '12px 16px',
+                borderBottom: idx < attoLinkPageItems.length - 1 ? '1px solid #f0f0f0' : 'none',
+                backgroundColor: sel ? '#f9f7ff' : 'transparent',
+                cursor: 'pointer', display: 'flex', alignItems: 'flex-start',
+                justifyContent: 'space-between', gap: 16, transition: 'background-color 0.2s',
+              },
             },
               React.createElement('div', { style: { flex: 1 } },
-                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, marginBottom: 8 } },
-                  React.createElement('span', { style: { fontWeight: 500 } }, a.title),
-                  React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 13, padding: '2px 8px' } }, a.kind),
-                  statoDotNode(a.stato),
+                // Prima riga: titolo + tag identificativo + stato (come header accordion di inventory-systems)
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, marginBottom: 6 } },
+                  React.createElement('span', { style: { fontWeight: 500, color: dark } }, a.title),
+                  React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 12, padding: '1px 7px' } }, a.tag),
+                  sel ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: window.GRAVITY_THEME.token.colorPrimary, fontWeight: 500, marginLeft: 'auto' } },
+                    React.createElement(CheckCircleFilled, { style: { fontSize: 14 } }), 'Selezionata') : null,
                 ),
-                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 24, fontSize: 12, color: 'rgba(0,0,0,0.45)', flexWrap: 'wrap' } },
-                  detail(a.kind === 'Contratto Privato' ? 'Proprietario:' : 'Ente:', a.subtitle),
-                  detail('Stipula:', a.dataStipula),
-                  detail('Scadenza:', a.dataScadenza),
+                // Seconda riga: metadati per tipo (Ente+Scadenza per Concessione; Tipo+Stipula+Scadenza+Fg./Part. per Contratto)
+                // Loop generico su a.meta — stesso pattern di PermitUtenzeAccordion in inventory-systems
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 20, fontSize: 12, color: gray, flexWrap: 'wrap' } },
+                  a.meta.filter(m => m.value).map((m, i) =>
+                    React.createElement('span', { key: i, style: { display: 'flex', gap: 5 } },
+                      React.createElement('span', null, m.label + ':'),
+                      React.createElement('span', { style: { color: dark } }, m.value))),
+                  a.stato ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 5 } },
+                    React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', backgroundColor: STATO_DOT_COLOR_V2[STATO_BADGE_V2[a.stato] || 'default'] } }),
+                    a.stato) : null,
                 ),
               ),
               React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', paddingTop: 2 } },
@@ -1740,6 +1831,10 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
             );
           }),
     ),
+    attoLinkFiltered.length > ATTO_LINK_PAGE_SIZE
+      ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', paddingTop: 16 } },
+          React.createElement(Pagination, { current: attoLinkPageSafe, total: attoLinkFiltered.length, pageSize: ATTO_LINK_PAGE_SIZE, onChange: p => setAttoLinkPage(p), size: 'small', showSizeChanger: false }))
+      : null,
   );
 
   // v2 — Autorizzazione: drawer con navigazione verticale a sezioni (LAYOUT.md §3.9, nota
@@ -1919,13 +2014,20 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
             (() => {
               const disabled = f.includeConcessioneSuoloPubblico;
               const hasAtti = attiProvenienzaRecords.length > 0;
-              const btnInner = React.createElement(Button, {
-                icon: React.createElement(LinkOutlined), disabled, onClick: openAttoLink,
-              }, 'Collega permesso');
+              // Dropdown con due voci separate (come in inventory-systems): "Collega Concessione"
+              // e "Collega Contratto Privato" — drawer distinti, stessa UX ma senza accordion utenze.
+              const dropdownItems = {
+                items: [
+                  { key: 'concessione', label: 'Collega Concessione', onClick: () => openAttoLink('concessione') },
+                  { key: 'contratto', label: 'Collega Contratto Privato', onClick: () => openAttoLink('contratto') },
+                ],
+              };
+              const dropdownBtn = React.createElement(Dropdown, { menu: dropdownItems, disabled, trigger: ['click'] },
+                React.createElement(Button, { icon: React.createElement(LinkOutlined) }, 'Collega permesso'));
               const collegaAttoBtn = disabled
                 ? React.createElement(Tooltip, { title: 'Non serve collegarla: l\'hai già inclusa spuntando "Include automaticamente concessione di suolo pubblico" qui sopra.' },
-                    React.createElement('span', null, btnInner))
-                : btnInner;
+                    React.createElement('span', null, dropdownBtn))
+                : dropdownBtn;
               // v2 — quando il check "Include automaticamente concessione di suolo pubblico" è
               // attivo, l'intero box (non solo il pulsante) va "spento" in modo visibile — non
               // basta il pulsante disabilitato con tooltip, va comunicata a colpo d'occhio anche
@@ -1948,18 +2050,31 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
                   ? React.createElement('div', {
                       style: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 },
                     },
-                      attiProvenienzaRecords.map(rec => React.createElement(window.GravityEntityCard, {
-                        key: rec.id,
-                        title: rec.title,
-                        badges: [{ text: rec.kind, variant: 'default' }],
-                        menu: [{ key: 'scollega', label: 'Scollega', icon: 'DeleteOutlined', danger: true, onClick: () => scollegaAtto(rec.id) }],
-                        fields: [
-                          { icon: 'BankOutlined', label: rec.kind === 'Contratto Privato' ? 'Proprietario:' : 'Ente:', value: rec.subtitle },
-                          { icon: 'CalendarOutlined', label: 'Data Stipula:', value: rec.dataStipula },
-                          { icon: 'ThunderboltOutlined', label: 'Stato:', valueNode: statoDotNode(rec.stato) },
-                        ],
-                        footer: rec.dataScadenza ? `Scade il ${rec.dataScadenza}` : null,
-                      })),
+                      attiProvenienzaRecords.map(rec => {
+                        // Campi per tipo, coerenti con la meta del drawer di selezione:
+                        // Concessione: Ente + Stato (meta: Ente·Scadenza — Scadenza va nel footer).
+                        // Contratto: Tipo + Stipula + Fg./Part. + Stato (Scadenza nel footer).
+                        const isContr = rec.kind === 'Contratto Privato';
+                        const fields = isContr
+                          ? [
+                              { icon: 'TagOutlined', label: 'Tipo:', value: rec.tipoContratto },
+                              { icon: 'CalendarOutlined', label: 'Stipula:', value: rec.dataStipula },
+                              rec.catasto ? { icon: 'HomeOutlined', label: 'Fg./Part.:', value: rec.catasto } : null,
+                              { icon: 'ThunderboltOutlined', label: 'Stato:', valueNode: statoDotNode(rec.stato) },
+                            ].filter(Boolean)
+                          : [
+                              { icon: 'BankOutlined', label: 'Ente:', value: rec.ente },
+                              { icon: 'ThunderboltOutlined', label: 'Stato:', valueNode: statoDotNode(rec.stato) },
+                            ];
+                        return React.createElement(window.GravityEntityCard, {
+                          key: rec.id,
+                          title: rec.title,
+                          badges: [{ text: rec.kind, variant: 'default' }],
+                          menu: [{ key: 'scollega', label: 'Scollega', icon: 'DeleteOutlined', danger: true, onClick: () => scollegaAtto(rec.id) }],
+                          fields,
+                          footer: rec.dataScadenza ? 'Scade il ' + rec.dataScadenza : null,
+                        });
+                      }),
                     )
                   : gravLinkEmpty({ description: 'Nessun atto di provenienza collegato.', action: collegaAttoBtn }),
               ),
