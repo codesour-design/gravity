@@ -1242,23 +1242,18 @@ window.HANDOFF_NOTES = [
   {
     id: 'struttura-fuori-sprint-coming-soon',
     title: 'Cespiti e dispositivi: fuori sprint, ma nel layout come "coming soon"',
-    body: 'Il contenuto reale di questa sezione (US#1.3, GRP-628: censimento cespiti e dispositivi) **non è nello scope di questa sprint**. La tab e i due box **vanno comunque inseriti nel layout di GRP-622**: al posto dei campi va mostrato il placeholder "coming soon" (illustrazione + breve testo sul contenuto in arrivo), non la sezione nascosta o assente. ==Disattivando "Interfaccia semplificata"== si vede comunque il contenuto reale così com\'è progettato — riferimento per quando la sprint futura la implementerà davvero.',
+    body: 'Il contenuto reale (US#1.3, GRP-628) **non è nello scope di questa sprint**: tab e box restano nel layout di GRP-622 con il placeholder "coming soon". ==Disattivando "Interfaccia semplificata"== si vede il contenuto reale così com\'è progettato.',
   },
   {
     id: 'commerciale-fuori-sprint-coming-soon',
     title: 'Commerciale: fuori sprint, ma nel layout come "coming soon"',
-    body: 'Il contenuto reale di questa sezione (US#1.5, GRP-631: identità commerciale, modello di vendita, moduli collegati) **non è nello scope di questa sprint**. La tab e i suoi tre box **vanno comunque inseriti nel layout di GRP-622**: al posto dei campi va mostrato il placeholder "coming soon" (illustrazione + breve testo sul contenuto in arrivo), non la sezione nascosta o assente. ==Disattivando "Interfaccia semplificata"== si vede comunque il contenuto reale così com\'è progettato — riferimento per quando la sprint futura la implementerà davvero.',
+    body: 'Il contenuto reale (US#1.5, GRP-631) **non è nello scope di questa sprint**: tab e box restano nel layout di GRP-622 con il placeholder "coming soon". ==Disattivando "Interfaccia semplificata"== si vede il contenuto reale così com\'è progettato.',
   },
   // ── US#1 — Anagrafica e ubicazione: note di design/criteri aperti ───────
   {
     id: 'anagrafica-nome-progressivo',
     title: 'Nome impianto: nomenclatura definita',
     body: 'Il nome si compone in automatico da **{Canale}-{Progressivo}** (es. `OOH-101`), la nomenclatura confermata con il CTO — stessa logica già in uso in Pianificazione, con la sigla provincia sostituita dal canale:\n- **Canale**: OOH o DOOH;\n- **Progressivo**: numero che disambigua impianti con lo stesso canale, sempre su **minimo 3 cifre** (`001`, `002`, …) ma non limitato a 3: oltre `999` si espande a 4+ cifre senza troncare (qui simulato contando gli impianti esistenti compatibili; in produzione andrebbe garantito dal backend su tutti gli impianti).',
-  },
-  {
-    id: 'struttura-collapse-non-card',
-    title: 'Cespiti e Dispositivi: componente collapse, non card',
-    body: 'I campi variano troppo da tipo a tipo (una Fondazione e un Player multimediale non condividono quasi nulla) per stare in una card a layout fisso: il componente usato è un **accordion** (Collapse), che si adatta al contenuto di ciascun tipo.',
   },
   // ── US#1.1 — Iter autorizzativo: note di design/criteri aperti ──────────
   {
@@ -1286,22 +1281,5 @@ window.HANDOFF_NOTES = [
     id: 'facce-commerciale-spostamento-tab-commerciale',
     title: 'Commerciale (drawer Faccia): fuori sprint, in attesa di spostamento nella tab Commerciale',
     body: '==Fuori sprint==: l\'intera sottosezione **Commerciale** del drawer Faccia (**Modello di vendita** e **Prezzo faccia**) verrà spostata nella **tab Commerciale** del form (nel box Modello commerciale) — le indicazioni di design definitive arriveranno in una sprint futura. Nel frattempo entrambi i campi **appartengono già al modello dati esistente delle facce**: va concordato con il team di sviluppo cosa farne nell\'immediato, in attesa dello spostamento. Anche una volta spostata, resterà comunque possibile impostare modello e prezzo di ogni singola faccia anche da quella tab.',
-  },
-  // ── US#1.3 — Cespiti e dispositivi: note di design/criteri aperti ───────
-  {
-    id: 'struttura-fondazione-date-validazione',
-    title: 'Fondazione: manca la validazione tra le date',
-    body: 'Il criterio di accettazione richiede che "Data fine lavori" non possa precedere "Data inizio lavori".\n==Nel prototipo oggi== `saveAsset()` non confronta le due date in alcun modo: si può salvare un cespite Fondazione con la data di fine lavori antecedente a quella di inizio, senza alcun avviso.',
-  },
-  // ── US#1.5 — Commerciale: note di design/criteri aperti ─────────────────
-  {
-    id: 'commerciale-galleria-copertina-auto',
-    title: 'Galleria: la copertina non subentra automaticamente',
-    body: 'Il criterio di accettazione richiede che, eliminando la foto di copertina, la prima foto rimanente diventi copertina in automatico.\n==Nel prototipo oggi== lo stato `coverPhoto` non viene mai reimpostato quando il file a cui punta viene rimosso da `fileList`: dopo l\'eliminazione nessuna foto risulta più segnata come copertina, finché l\'utente non ne sceglie una manualmente.',
-  },
-  {
-    id: 'commerciale-moduli-distanza-mancante',
-    title: 'Collega impianto: manca la distanza',
-    body: 'Il criterio di accettazione chiede che il selettore moduli mostri, oltre alla ricerca testuale, anche la distanza dall\'impianto corrente.\n==Nel prototipo oggi== ogni riga mostra solo ID, tipo, indirizzo e formato — nessun calcolo o visualizzazione della distanza tra i due impianti.',
   },
 ];

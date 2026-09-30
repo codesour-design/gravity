@@ -1668,44 +1668,58 @@ function PermitFormDrawer({ open, type, isV2, concessioniList, autorizzazioniLis
   const attoLinkDrawerNode = React.createElement(Drawer, {
     title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
       React.createElement(DiscardCloseIcon, { dirty: isAttoLinkDirty(), onDiscard: closeAttoLink }), 'Collega permesso'),
-    placement: 'right', width: 640, closable: false, rootClassName: 'grav-permit-link-drawer',
+    placement: 'right', closable: false, rootClassName: 'grav-permit-link-drawer',
     maskClosable: !isAttoLinkDirty(), keyboard: !isAttoLinkDirty(),
     onClose: closeAttoLink, open: attoLinkOpen,
-    styles: { body: { padding: 24 } },
+    styles: { wrapper: { width: '50%' }, body: { padding: 24 } },
     extra: React.createElement(Space, null,
       React.createElement(DiscardButton, { dirty: isAttoLinkDirty(), onDiscard: closeAttoLink }, 'Annulla'),
       React.createElement(Button, {
-        type: 'primary', icon: React.createElement(LinkOutlined), onClick: confirmAttoLink,
+        type: attoLinkSelected.length > 0 ? 'primary' : 'default', icon: React.createElement(LinkOutlined), onClick: confirmAttoLink,
         disabled: attoLinkSelected.length === 0,
       }, 'Collega'),
     ),
   },
+    // Stessa struttura del drawer "Collega permesso" di Nuovo Impianto (inventory-systems):
+    // intestazione titolo + descrizione, ricerca, elenco in box con bordo, senza box grigio.
+    React.createElement('div', { style: { marginBottom: 20 } },
+      React.createElement(Typography.Title, { level: 4, style: { margin: '0 0 4px' } }, 'Trova la concessione o il contratto da collegare'),
+      React.createElement(Typography.Text, { type: 'secondary' }, 'Puoi selezionarne più di uno. Cerca per identificativo o ente.'),
+    ),
     React.createElement(Input, {
       value: attoLinkSearch, onChange: e => setAttoLinkSearch(e.target.value),
-      placeholder: 'Cerca per identificativo o ente…', allowClear: true, prefix: React.createElement(SearchOutlined),
-      style: { marginBottom: 16 },
+      placeholder: 'Cerca concessione o contratto...', allowClear: true, prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }),
+      style: { marginBottom: 20 },
     }),
-    attoLinkCandidates.length === 0
-      ? React.createElement(Empty, { description: 'Nessuna Concessione o Contratto trovato', image: Empty.PRESENTED_IMAGE_SIMPLE })
-      : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
-          attoLinkCandidates.map(a => {
+    React.createElement('div', { style: { border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' } },
+      attoLinkCandidates.length === 0
+        ? React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: 'rgba(0,0,0,0.45)', fontSize: 13 } }, 'Nessuna concessione o contratto disponibile')
+        : attoLinkCandidates.map((a, idx) => {
             const sel = attoLinkSelected.includes(a.id);
+            const detail = (label, value) => value ? React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+              React.createElement('span', null, label), React.createElement('span', { style: { color: 'rgba(0,0,0,0.85)' } }, value)) : null;
             return React.createElement('div', {
               key: a.id, onClick: () => toggleAttoLinkSel(a.id),
-              style: {
-                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 6,
-                border: sel ? '1px solid #3E00FB' : '1px solid #F0F0F0', background: sel ? '#F5F2FF' : '#fff', cursor: 'pointer',
-              },
+              style: { padding: 16, borderBottom: idx < attoLinkCandidates.length - 1 ? '1px solid #f0f0f0' : 'none', backgroundColor: sel ? '#f9f7ff' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, transition: 'background-color 0.2s' },
             },
-              React.createElement(Checkbox, { checked: sel, onClick: e => e.stopPropagation(), onChange: () => toggleAttoLinkSel(a.id) }),
               React.createElement('div', { style: { flex: 1 } },
-                React.createElement('div', { style: { fontSize: 14, fontWeight: 500, color: 'rgba(0,0,0,0.88)' } }, a.title),
-                React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, a.subtitle),
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, marginBottom: 8 } },
+                  React.createElement('span', { style: { fontWeight: 500 } }, a.title),
+                  React.createElement(Tag, { style: { margin: 0, border: '1px solid #d9d9d9', color: 'rgba(0,0,0,0.65)', backgroundColor: '#fafafa', fontSize: 13, padding: '2px 8px' } }, a.kind),
+                  statoDotNode(a.stato),
+                ),
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 24, fontSize: 12, color: 'rgba(0,0,0,0.45)', flexWrap: 'wrap' } },
+                  detail(a.kind === 'Contratto Privato' ? 'Proprietario:' : 'Ente:', a.subtitle),
+                  detail('Stipula:', a.dataStipula),
+                  detail('Scadenza:', a.dataScadenza),
+                ),
               ),
-              React.createElement(Tag, null, a.kind),
+              React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', paddingTop: 2 } },
+                React.createElement(Checkbox, { checked: sel, onClick: e => e.stopPropagation(), onChange: () => toggleAttoLinkSel(a.id) }),
+              ),
             );
           }),
-        ),
+    ),
   );
 
   // v2 — Autorizzazione: drawer con navigazione verticale a sezioni (LAYOUT.md §3.9, nota

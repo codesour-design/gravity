@@ -427,6 +427,9 @@
     .ni-section-title { font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.35); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 16px; }
     .ni-grid { display: grid; gap: 16px 12px; margin-bottom: 16px; }
     .ni-grid:last-child { margin-bottom: 0; }
+    /* Row/Col dei g2/g3/g4: stessa spaziatura verticale tra righe del vecchio .ni-grid */
+    .ni-row { margin-bottom: 16px; }
+    .ni-row:last-child { margin-bottom: 0; }
     /* In ogni riga del grid i campi sono colonne flex: il controllo si allinea in basso
        così gli input restano sulla stessa linea anche quando le label vanno a capo su 2 righe */
     .ni-grid .ni-field { margin-bottom: 0; display: flex; flex-direction: column; }
@@ -2929,7 +2932,7 @@ function AssetAccordion({ list, onView, onRemove, editing, drafts, onDraftChange
   });
 }
 
-function GrantsAccordion({ data, selectedRowKey, onRowSelect, kindLabel = 'concessione' }) {
+function GrantsAccordion({ data, selectedRowKey, onRowSelect, kindLabel = 'concessione', showHint = true }) {
   const [searchText, setSearchText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [activeKeys, setActiveKeys] = useState(data.length > 0 ? [data[0].key] : []);
@@ -3001,10 +3004,10 @@ function GrantsAccordion({ data, selectedRowKey, onRowSelect, kindLabel = 'conce
   });
 
   return React.createElement('div', null,
-    React.createElement(Input, { placeholder: 'Cerca ' + kindLabel + '...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: 16 }, allowClear: true }),
-    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', gap: 6 } }, 'Seleziona ' + (kindLabel === 'concessione' ? 'una' : 'un') + ' ' + kindLabel + " e scegli il numero utenza che vuoi collegare all'impianto", React.createElement(HandoffDesignNote, { id: 'iter-scaduti-avviso', placement: 'bottom' })),
+    React.createElement(Input, { placeholder: 'Cerca ' + kindLabel + '...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: showHint ? 16 : 20 }, allowClear: true }),
+    showHint ? React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', gap: 6 } }, 'Seleziona ' + (kindLabel === 'concessione' ? 'una' : 'un') + ' ' + kindLabel + " e scegli il numero utenza che vuoi collegare all'impianto", React.createElement(HandoffDesignNote, { id: 'iter-scaduti-avviso', placement: 'bottom' })) : null,
     React.createElement(Collapse, { items: collapseItems, ghost: false, style: { backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 6 }, activeKey: activeKeys, onChange: keys => setActiveKeys(keys) }),
-    filtered.length > pageSize ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', padding: '16px 0', borderTop: '1px solid #f0f0f0', marginTop: 16 } },
+    filtered.length > pageSize ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: 20 } },
       React.createElement(Pagination, { current: currentPage, total: filtered.length, pageSize: pageSize, onChange: setCurrentPage, size: 'small' }),
     ) : null,
   );
@@ -3022,9 +3025,7 @@ function ContrattiList({ data, selectedKey, onRowSelect }) {
   });
 
   return React.createElement('div', null,
-    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
-      "Seleziona il contratto privato da collegare all'impianto"),
-    React.createElement(Input, { placeholder: 'Cerca contratto privato...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => setSearchText(e.target.value), style: { marginBottom: 16 }, allowClear: true }),
+    React.createElement(Input, { placeholder: 'Cerca contratto privato...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => setSearchText(e.target.value), style: { marginBottom: 20 }, allowClear: true }),
     React.createElement('div', { style: { border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' } },
       filtered.length > 0
         ? filtered.map((ct, idx) => {
@@ -3159,16 +3160,14 @@ function AutorizzazioniEsposizioneList({ data, selectedRowKey, onRowSelect }) {
   });
 
   return React.createElement('div', null,
-    React.createElement('div', { style: { marginBottom: 16, padding: '12px 16px', backgroundColor: '#f6f7f9', borderRadius: 6, fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
-      "Seleziona l'autorizzazione di esposizione pubblicitaria da collegare all'impianto"),
-    React.createElement(Input, { placeholder: 'Cerca per ente o protocollo...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: 16 }, allowClear: true }),
+    React.createElement(Input, { placeholder: 'Cerca per ente o protocollo...', prefix: React.createElement(SearchOutlined, { style: { color: 'rgba(0,0,0,0.45)' } }), value: searchText, onChange: e => { setSearchText(e.target.value); setCurrentPage(1); }, style: { marginBottom: 20 }, allowClear: true }),
     esposizioni.length > 0 ? React.createElement(Collapse, {
       items: collapseItems,
       activeKey: activeKeys,
       onChange: setActiveKeys,
       style: { backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 6 },
     }) : React.createElement('div', { style: { padding: '24px 16px', textAlign: 'center', color: 'rgba(0,0,0,0.45)', fontSize: 13, border: '1px solid #d9d9d9', borderRadius: 6 } }, 'Nessuna autorizzazione disponibile'),
-    filtered.length > pageSize ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', paddingTop: 16 } },
+    filtered.length > pageSize ? React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', paddingTop: 20 } },
       React.createElement(Pagination, { current: currentPage, total: filtered.length, pageSize, onChange: p => { setCurrentPage(p); setActiveKeys([]); }, size: 'small', showSizeChanger: false }),
     ) : null,
   );
@@ -5846,7 +5845,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const SECTIONS = [
     { id: 'identita',        label: 'Anagrafica e ubicazione' },
     { id: 'dati-amministrativi',   label: 'Iter autorizzativo' },
-    { id: 'oneri-economici',       label: 'Oneri economici' },
+    ...(isV2 ? [{ id: 'oneri-economici', label: 'Oneri economici' }] : []),
     { id: 'caratteristiche', label: 'Dati tecnici' },
     { id: 'struttura',       label: isV2 ? 'Struttura' : 'Cespiti e dispositivi' },
     { id: 'affissione',      label: 'Squadre' },
@@ -6437,10 +6436,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   const sec = (id, title, description, ...children) =>
     _sections.push({
       key: id,
-      label: _navLabel(id, title,
-        id === 'struttura' ? React.createElement(HandoffDesignNote, { id: 'struttura-fuori-sprint-coming-soon', placement: 'right' }) :
-        id === 'commerciale' ? React.createElement(HandoffDesignNote, { id: 'commerciale-fuori-sprint-coming-soon', placement: 'right' }) : null),
+      label: _navLabel(id, title, null),
       title, description,
+      dirty: !!sectionDirty[id] && !disabledSections.includes(id),
       disabled: disabledSections.includes(id),
       children: children.length === 1 ? children[0] : React.createElement(React.Fragment, null, ...children),
     });
@@ -6459,9 +6457,9 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
   }, n);
 
   // Grid helpers — Row/Col AntD (LAYOUT.md §2.1), sostituiscono .ni-grid CSS
-  const g2 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 12 }, c)));
-  const g3 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 8 }, c)));
-  const g4 = (...f) => React.createElement(Row, { gutter: [12, 16] }, f.map((c, i) => React.createElement(Col, { key: i, span: 6 }, c)));
+  const g2 = (...f) => React.createElement(Row, { gutter: [12, 16], className: 'ni-row' }, f.map((c, i) => React.createElement(Col, { key: i, span: 12 }, c)));
+  const g3 = (...f) => React.createElement(Row, { gutter: [12, 16], className: 'ni-row' }, f.map((c, i) => React.createElement(Col, { key: i, span: 8 }, c)));
+  const g4 = (...f) => React.createElement(Row, { gutter: [12, 16], className: 'ni-row' }, f.map((c, i) => React.createElement(Col, { key: i, span: 6 }, c)));
   // Sotto-intestazione dentro un box (per raggruppare più sottosezioni in un'unica card).
   // `extra`: nodo opzionale allineato a destra sulla stessa riga del titolo
   // (es. uno switch che riguarda l'intera sottosezione sottostante).
@@ -6696,11 +6694,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
       hasRequired[id] ? React.createElement('span', { style: { color: '#FF4D4F', fontSize: 13, lineHeight: 1 } }, ' *') : null,
       hdNote || null,
     ),
-    sectionDirty[id] ? React.createElement(Tooltip, { title: 'Modifiche non salvate in questa sezione' },
-      React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', lineHeight: 0, flexShrink: 0 } },
-        React.createElement('span', { style: { width: 5, height: 5, borderRadius: '50%', background: window.GRAVITY_THEME.token.colorPrimary, display: 'block' } })
-      )
-    ) : null,
   );
 
         // ── 1. Identità
@@ -6934,7 +6927,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
         ),
 
         // ── 3. Oneri economici
-        sec('oneri-economici', 'Oneri economici', React.createElement(React.Fragment, null, 'Costi ricorrenti e continuativi per il mantenimento e l\'esercizio dell\'impianto: canone suolo pubblico, utenze, connettività, polizza RC e contratti di manutenzione.', React.createElement(HandoffDesignNote, { id: 'oneri-fornitori-crud', placement: 'right' })),
+        isV2 && sec('oneri-economici', 'Oneri economici', React.createElement(React.Fragment, null, 'Costi ricorrenti e continuativi per il mantenimento e l\'esercizio dell\'impianto: canone suolo pubblico, utenze, connettività, polizza RC e contratti di manutenzione.', React.createElement(HandoffDesignNote, { id: 'oneri-fornitori-crud', placement: 'right' })),
           ...ONERE_TYPES.map(t => {
             const o = oneri[t.id];
             const f = (k, v) => setOnereField(t.id, k, v);
@@ -7334,7 +7327,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
     },
       React.createElement(React.Fragment, null,
         React.createElement('div', { style: { marginBottom: 20 } },
-          React.createElement(Typography.Title, { level: 4, style: { margin: '0 0 2px' } },
+          React.createElement(Typography.Title, { level: 4, style: { margin: '0 0 4px' } },
             permitDrawerType === 'autorizzazione'
               ? "Trova l'autorizzazione da collegare"
               : permitDrawerType === 'contratto'
@@ -7342,7 +7335,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
                 : 'Trova la concessione da collegare'),
           React.createElement(Typography.Text, { type: 'secondary' },
             permitDrawerType === 'autorizzazione'
-              ? "Seleziona l'atto e il codice cimasa da associare all'impianto. Vengono mostrate solo le autorizzazioni di esposizione pubblicitaria attive."
+              ? "Clicca su un atto per vedere le cimase al suo interno e seleziona quella da collegare all'impianto. Vengono mostrate solo le autorizzazioni di esposizione pubblicitaria attive."
               : permitDrawerType === 'contratto'
                 ? 'Cerca per proprietario/locatore, identificativo o tipo. Vengono mostrati solo i contratti attivi.'
                 : "Seleziona la concessione e il numero utenza da associare all'impianto. Vengono mostrate solo le concessioni attive."),
@@ -7354,7 +7347,7 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             : React.createElement(GrantsAccordion, {
                 data: GRANTS_DATA.filter(g => g.status === 'Attiva'),
                 selectedRowKey: permitRowKey, onRowSelect: setPermitRowKey,
-                kindLabel: 'concessione',
+                kindLabel: 'concessione', showHint: false,
               }),
       ),
     ),
@@ -7548,35 +7541,6 @@ function NewImpiantoFullDrawer({ open, onClose, initialValues = {}, onSave, edit
             description: 'Seleziona un tipo per vedere i campi da compilare',
             image: Empty.PRESENTED_IMAGE_SIMPLE, style: { padding: '16px 0', margin: '8px 0' },
           }),
-    ),
-
-    // Drawer oneri economici — selezione multipla dal catalogo
-    React.createElement(Drawer, {
-      title: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-        React.createElement(DiscardCloseIcon, { dirty: onereKeys.length > 0, onDiscard: () => { setOnereKeys([]); setOnereDrawerOpen(false); } }), 'Aggiungi oneri economici'),
-      placement: 'right', width: 640,
-      styles: { body: { padding: 24 } },
-      closable: false, maskClosable: onereKeys.length === 0, keyboard: onereKeys.length === 0,
-      onClose: () => { setOnereKeys([]); setOnereDrawerOpen(false); }, open: onereDrawerOpen,
-      extra: React.createElement(Space, null,
-        React.createElement(DiscardButton, { dirty: onereKeys.length > 0, onDiscard: () => { setOnereKeys([]); setOnereDrawerOpen(false); } }, 'Annulla'),
-        React.createElement(Button, {
-          type: onereKeys.length > 0 ? 'primary' : 'default',
-          disabled: onereKeys.length === 0,
-          onClick: () => {
-            const nuovi = onereKeys.map(k => ONERI_DATA.find(x => x.key === k)).filter(Boolean).map(o => ({ id: o.key, tipo: o.tipo, enteForn: o.enteForn, riferimento: o.riferimento, importo: o.importo, periodicita: o.periodicita, dataInizio: o.dataInizio, dataScadenza: o.dataScadenza, status: o.status, isActive: o.isActive }));
-            setAddedOneri(prev => {
-              const esistenti = new Set(prev.map(x => x.id));
-              return [...prev, ...nuovi.filter(n => !esistenti.has(n.id))];
-            });
-            setOnereKeys([]);
-            setOnereDrawerOpen(false);
-            antdMsg.success(nuovi.length === 1 ? 'Onere economico aggiunto' : nuovi.length + ' oneri economici aggiunti');
-          },
-        }, onereKeys.length > 0 ? 'Aggiungi (' + onereKeys.length + ')' : 'Aggiungi'),
-      ),
-    },
-      React.createElement(OneriCatalogList, { data: ONERI_DATA, selectedKeys: onereKeys, onSelectionChange: setOnereKeys }),
     ),
 
     // Drawer collegamento moduli — GravityEntityPickerDrawer (LAYOUT.md §3.10)
