@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gravity — Portafoglio</title>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />
+  <script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+  <script src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <script src="https://unpkg.com/@ant-design/icons@5/dist/index.umd.js"></script>
+  <script src="../_shared/tokens.js"></script>
+
+  <script>
+    window.GRAVITY_NAV = {
+      section: 'Commercial',
+      item: 'Wallet',
+      logoSrc: '../../brand/Gravity_type.svg',
+      appHref: '../user-profile/index.html',
+    };
+  </script>
+  <script src="../_shared/navbar.js"></script>
+  <script src="../_shared/section-drawer.js"></script>
+
+  <script>
+    (function () {
+      var CONFIGS  = { v1: './handoff-steps.js' };
+      var APPROVED = 'v1';
+      var params = new URLSearchParams(location.search);
+      if (!params.has('handoff')) return;
+      var v = (params.get('handoff') || APPROVED).toLowerCase();
+      var cfg = CONFIGS[v] || CONFIGS[APPROVED];
+      window.__HANDOFF_ACTIVE = true;
+      document.write('<scr' + 'ipt src="' + cfg + '"></scr' + 'ipt>');
+    })();
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--gravity-font-body);
+      background: var(--gravity-bg);
+      color: var(--gravity-text);
+      font-size: var(--gravity-fs-sm);
+      line-height: var(--gravity-lh-body);
+    }
+    h1, h2, h3, h4, h5, h6 { margin: 0; }
+
+    .app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+    .page-content { flex: 1; padding: 24px 32px; }
+
+    /* ── Table — allineato al pattern negotiations ─── */
+    .ant-table-thead > tr > th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ant-table-cell-fix-left,
+    .ant-table-cell-fix-right { background: #fff !important; z-index: 3 !important; }
+    .ant-table-thead > tr > th.ant-table-cell-fix-left,
+    .ant-table-thead > tr > th.ant-table-cell-fix-right { background: #fafafa !important; }
+    .ant-table-tbody > tr:hover > td,
+    .ant-table-tbody > tr.ant-table-row-hover > td { background: rgba(62,0,251,0.04) !important; }
+    .ant-table-tbody > tr:hover > td.ant-table-cell-fix-left,
+    .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right,
+    .ant-table-tbody > tr.ant-table-row-hover > td.ant-table-cell-fix-left,
+    .ant-table-tbody > tr.ant-table-row-hover > td.ant-table-cell-fix-right {
+      background: rgba(62,0,251,0.04) !important; z-index: 3 !important;
+    }
+    .ant-table-tbody > tr { cursor: pointer; }
+
+    /* ── Row hover: occhio sul nome ─── */
+    .nome-cell { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .nome-eye { opacity: 0; transition: opacity 0.15s; color: var(--gravity-primary); flex-shrink: 0; }
+    .ant-table-tbody > tr:hover .nome-eye,
+    .ant-table-tbody > tr.ant-table-row-hover .nome-eye { opacity: 1; }
+
+    /* ── Empty state ─── */
+    .gv-empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 40px 24px; text-align: center;
+    }
+
+    /* ── Info box (dettaglio) ─── */
+    .info-box {
+      background: var(--gravity-bg-container);
+      border: 1px solid var(--gravity-border-secondary, #f0f0f0);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .info-box-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--gravity-border-secondary, #f0f0f0);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: rgba(0,0,0,0.45);
+    }
+    .info-box-body { padding: 12px 16px; }
+    .info-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 13px; color: rgba(0,0,0,0.88); margin-bottom: 10px;
+    }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-row-label { color: rgba(0,0,0,0.45); min-width: 120px; flex-shrink: 0; }
+    .info-row-value { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+    /* ── Logo placeholder ─── */
+    .logo-placeholder {
+      width: 100%; height: 88px;
+      border: 1px dashed var(--gravity-border, #d9d9d9);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--gravity-bg, #f5f5f5);
+      color: rgba(0,0,0,0.25);
+      font-size: 12px;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+    .logo-placeholder:hover { border-color: var(--gravity-primary, #3E00FB); color: var(--gravity-primary, #3E00FB); }
+
+    /* ── Attività event ─── */
+    .activity-item {
+      display: flex; gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot { width: 8px; height: 8px; border-radius: 50%; background: #3E00FB; flex-shrink: 0; margin-top: 5px; }
+    .activity-body { flex: 1; min-width: 0; }
+    .activity-title { font-size: 13px; font-weight: 500; color: rgba(0,0,0,0.88); margin-bottom: 2px; }
+    .activity-meta { font-size: 12px; color: rgba(0,0,0,0.45); }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/javascript">
+window.applyGravityTokens();
+
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+const {
+  ConfigProvider, App,
+  Typography, Space, Divider, Row, Col,
+  Button, Input, Select, Form, Upload, Tooltip,
+  Table, Tag, Avatar, Tabs,
+  Modal, Alert, Popconfirm,
+} = antd;
+
+const {
+  PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined,
+  SearchOutlined, MoreOutlined,
+  ArrowLeftOutlined, UserOutlined, MailOutlined,
+  PhoneOutlined, GlobalOutlined, BankOutlined,
+  CopyOutlined, FileTextOutlined,
+  EnvironmentOutlined, SaveOutlined,
+  InfoCircleOutlined, CloseOutlined,
+  UploadOutlined, IdcardOutlined, ShopOutlined,
+} = icons;
+
+const { Title, Text } = Typography;
+
+// ── Palette avatar (identica a negotiations) ──────────────────────────────────
+const AVATAR_PALETTE = [
+  { bg: '#F0EAFF', fg: '#3E00FB' },
+  { bg: '#E6F7FF', fg: '#0958D9' },
+  { bg: '#FFF7E6', fg: '#D46B08' },
+  { bg: '#F6FFED', fg: '#389E0D' },
+  { bg: '#FFF1F0', fg: '#CF1322' },
+  { bg: '#E8F5E9', fg: '#2E7D32' },
+];
+function nameColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
+}
+
+// ── Dati select ───────────────────────────────────────────────────────────────
+const BUSINESS_AREAS = [
+  'Automotive', 'Alimentare', 'Bancario & Assicurativo', 'Cultura & Spettacolo',
+  'Energia', 'Energia & Petrolio', 'Farmaceutico', 'Fashion Retail', 'Fintech',
+  'Grande Distribuzione', 'Immobiliare', 'Media & Entertainment', 'Non Profit',
+  'Retail Lusso', 'Tecnologia', 'Telecomunicazioni', 'Turismo & PA',
+];
+
+const RUOLI_CONTATTO = [
+  'Advertising Manager', 'Brand Manager', 'Campaign Manager', 'CMO',
+  'Head of Communications', 'Marketing Director', 'Media & Brand Director',
+  'Media Buyer', 'Media Planner', 'Referente commerciale',
+  'Responsabile Comunicazione', 'Responsabile Marketing', 'Senior Brand Manager',
+];
+
+const PREFISSI = ['+39', '+44', '+33', '+49', '+34', '+1', '+41'];
+
+const GEO = {
+  'Lazio':           { 'RM': { label: 'Roma',    comuni: { 'Roma': ['00100','00136','00185','00198'], 'Fiumicino': ['00054'] } }, 'VT': { label: 'Viterbo',  comuni: { 'Viterbo': ['01100'] } } },
+  'Lombardia':       { 'MI': { label: 'Milano',  comuni: { 'Milano': ['20100','20121','20135'], 'Sesto San Giovanni': ['20099'] } }, 'BG': { label: 'Bergamo', comuni: { 'Bergamo': ['24100'] } } },
+  'Sicilia':         { 'PA': { label: 'Palermo', comuni: { 'Palermo': ['90100','90127','90141'] } }, 'CT': { label: 'Catania', comuni: { 'Catania': ['95100','95121'] } } },
+  'Piemonte':        { 'TO': { label: 'Torino',  comuni: { 'Torino': ['10100','10121','10138'] } } },
+  'Campania':        { 'NA': { label: 'Napoli',  comuni: { 'Napoli': ['80100','80121'] } } },
+  'Emilia-Romagna':  { 'BO': { label: 'Bologna', comuni: { 'Bologna': ['40100','40121'] } } },
+  'Toscana':         { 'FI': { label: 'Firenze', comuni: { 'Firenze': ['50100','50121','50127'] } } },
+  'Veneto':          { 'VE': { label: 'Venezia', comuni: { 'Venezia': ['30100','30121'] } } },
+};
+
+// ── Mock data inserzionisti ───────────────────────────────────────────────────
+const MOCK_INSERZIONISTI = [
+  {
+    key: 'ins-001', ragioneSociale: 'Enel SpA',
+    indirizzo: 'Viale Regina Margherita, 137', civico: '137',
+    regione: 'Lazio', provincia: 'RM', comune: 'Roma', cap: '00198',
+    businessArea: 'Energia', legaleRappresentante: 'Flavio Cattaneo',
+    prefisso: '+39', telefono: '06 8305 1', email: 'comunicazioni@enel.com',
+    partitaIva: '00811720580', codiceFiscale: '00811720580',
+    pec: 'enel.spa@pec.it', codiceSdi: 'T04ZHR3', sito: 'https://www.enel.com',
+    contatto: { nome: 'Marco', cognome: 'Ferretti', ruolo: 'Media & Brand Director',
+      telefono: '+39 06 8305 5512', email: 'marco.ferretti@enel.com', emailSecondaria: 'm.ferretti@gmail.com',
+      note: 'Preferisce comunicazioni via email. Disponibile il mattino.' },
+    trattativaCollegata: 'Piano annuale brand awareness 2026 — OOH + DOOH + Web',
+    commerciale: 'Lorenzo Bianchi',
+  },
+  {
+    key: 'ins-002', ragioneSociale: 'Stellantis Italia',
+    indirizzo: 'Corso Giovanni Agnelli, 200', civico: '200',
+    regione: 'Piemonte', provincia: 'TO', comune: 'Torino', cap: '10100',
+    businessArea: 'Automotive', legaleRappresentante: 'Carlos Tavares',
+    prefisso: '+39', telefono: '011 9936111', email: 'info@stellantis.com',
+    partitaIva: '12278470017', codiceFiscale: '12278470017',
+    pec: 'stellantis.italia@legalmail.it', codiceSdi: 'M5UXCR1', sito: 'https://www.stellantis.com',
+    contatto: { nome: 'Lucia', cognome: 'Bianchi', ruolo: 'Campaign Manager',
+      telefono: '+39 02 6824 7700', email: 'lucia.bianchi@stellantis.com', emailSecondaria: '',
+      note: '' },
+    trattativaCollegata: 'Lancio nuova gamma veicoli elettrici — Q1/Q2 2026',
+    commerciale: 'Giulia Romano',
+  },
+  {
+    key: 'ins-003', ragioneSociale: 'ENIT – Agenzia Nazionale del Turismo',
+    indirizzo: 'Via Marghera, 2', civico: '2',
+    regione: 'Lazio', provincia: 'RM', comune: 'Roma', cap: '00185',
+    businessArea: 'Turismo & PA', legaleRappresentante: 'Giovanni Bastianelli',
+    prefisso: '+39', telefono: '06 49711', email: 'info@enit.it',
+    partitaIva: '07606571003', codiceFiscale: '07606571003',
+    pec: 'enit@pec.it', codiceSdi: '', sito: 'https://www.enit.it',
+    contatto: null,
+    trattativaCollegata: null,
+    commerciale: null,
+  },
+  {
+    key: 'ins-004', ragioneSociale: 'Mediaset Premium',
+    indirizzo: 'Viale Europa, 44', civico: '44',
+    regione: 'Lombardia', provincia: 'MI', comune: 'Milano', cap: '20121',
+    businessArea: 'Media & Entertainment', legaleRappresentante: 'Pier Silvio Berlusconi',
+    prefisso: '+39', telefono: '02 25141', email: 'comunicazione@mediaset.it',
+    partitaIva: '09032310154', codiceFiscale: '09032310154',
+    pec: 'mediaset@pec.it', codiceSdi: 'XXXXXXX', sito: 'https://www.mediaset.it',
+    contatto: { nome: 'Sara', cognome: 'Colombo', ruolo: 'Media Buyer',
+      telefono: '+39 02 2100 5533', email: 'sara.colombo@mediaset.it', emailSecondaria: '',
+      note: '' },
+    trattativaCollegata: null,
+    commerciale: null,
+  },
+  {
+    key: 'ins-005', ragioneSociale: 'Esselunga SpA',
+    indirizzo: 'Via Giambologna, 1', civico: '1',
+    regione: 'Lombardia', provincia: 'MI', comune: 'Sesto San Giovanni', cap: '20099',
+    businessArea: 'Grande Distribuzione', legaleRappresentante: 'Sami Kahale',
+    prefisso: '+39', telefono: '02 26228228', email: 'stampa@esselunga.it',
+    partitaIva: '05907380966', codiceFiscale: '05907380966',
+    pec: 'esselunga.spa@pecgruppo.esselunga.it', codiceSdi: 'XXXXXXX', sito: 'https://www.esselunga.it',
+    contatto: { nome: 'Filippo', cognome: 'Martini', ruolo: 'Media Planner',
+      telefono: '+39 02 7539 0022', email: 'filippo.martini@esselunga.it', emailSecondaria: '',
+      note: 'Referente su tutto il nord Italia. Contattare prima di ottobre per le campagne natalizie.' },
+    trattativaCollegata: 'Piano stagionale GDO: Primavera + Estate + Autunno',
+    commerciale: 'Alessandro Costa',
+  },
+  {
+    key: 'ins-006', ragioneSociale: 'Rinascente Group',
+    indirizzo: 'Piazza del Duomo', civico: '1',
+    regione: 'Lombardia', provincia: 'MI', comune: 'Milano', cap: '20121',
+    businessArea: 'Retail Lusso', legaleRappresentante: 'Pierluigi Cocchini',
+    prefisso: '+39', telefono: '02 88521', email: 'press@rinascente.it',
+    partitaIva: '00709360153', codiceFiscale: '00709360153',
+    pec: 'rinascente@pec.it', codiceSdi: 'XXXXXXX', sito: 'https://www.rinascente.it',
+    contatto: { nome: 'Valentina', cognome: 'Greco', ruolo: 'Senior Brand Manager',
+      telefono: '+39 02 8852 6619', email: 'v.greco@rinascente.it', emailSecondaria: '',
+      note: '' },
+    trattativaCollegata: null,
+    commerciale: null,
+  },
+  {
+    key: 'ins-007', ragioneSociale: 'Zara Italia Srl',
+    indirizzo: 'Via Tortona, 37', civico: '37',
+    regione: 'Lombardia', provincia: 'MI', comune: 'Milano', cap: '20135',
+    businessArea: '', legaleRappresentante: 'Óscar García Maceiras',
+    prefisso: '+39', telefono: '02 8724900', email: 'comunicazione@zara.it',
+    partitaIva: '03433810969', codiceFiscale: '03433810969',
+    pec: 'zara.italia@pec.it', codiceSdi: '', sito: 'https://www.zara.com',
+    contatto: { nome: 'Gianni', cognome: 'Esposito', ruolo: 'Marketing Director',
+      telefono: '+39 02 6671 4487', email: 'g.esposito@zara.it', emailSecondaria: '',
+      note: '' },
+    trattativaCollegata: null,
+    commerciale: null,
+  },
+  {
+    key: 'ins-008', ragioneSociale: 'Eni SpA',
+    indirizzo: 'Piazzale Enrico Mattei, 1', civico: '1',
+    regione: 'Lazio', provincia: 'RM', comune: 'Roma', cap: '00144',
+    businessArea: 'Energia & Petrolio', legaleRappresentante: 'Claudio Descalzi',
+    prefisso: '+39', telefono: '06 59821', email: 'info@eni.com',
+    partitaIva: '00905811006', codiceFiscale: '00905811006',
+    pec: 'eni.spa@pec.eni.com', codiceSdi: 'X2OHTE5', sito: 'https://www.eni.com',
+    contatto: { nome: 'Chiara', cognome: 'Moretti', ruolo: 'Head of Communications',
+      telefono: '+39 06 5982 1140', email: 'c.moretti@eni.com', emailSecondaria: 'chiara.moretti@gmail.com',
+      note: '' },
+    trattativaCollegata: 'Campagna corporate sostenibilità — annuale 4 flight',
+    commerciale: 'Alessandro Costa',
+  },
+  {
+    key: 'ins-009', ragioneSociale: 'TIM S.p.A.',
+    indirizzo: 'Via Gaetano Negri, 1', civico: '1',
+    regione: 'Lombardia', provincia: 'MI', comune: 'Milano', cap: '20123',
+    businessArea: 'Telecomunicazioni', legaleRappresentante: 'Pietro Labriola',
+    prefisso: '+39', telefono: '06 36881', email: 'media.relations@tim.it',
+    partitaIva: '00488410010', codiceFiscale: '00488410010',
+    pec: 'tim.spa@pec.tim.it', codiceSdi: 'XXXXXXX', sito: 'https://www.tim.it',
+    contatto: { nome: 'Roberto', cognome: 'Fontana', ruolo: 'Advertising Manager',
+      telefono: '+39 06 3688 0044', email: 'r.fontana@tim.it', emailSecondaria: '',
+      note: '' },
+    trattativaCollegata: 'Promozione offerta fibra — campagna nazionale Q2',
+    commerciale: 'Federica Mancini',
+  },
+  {
+    key: 'ins-010', ragioneSociale: 'Satispay SpA',
+    indirizzo: 'Via Soperga, 9', civico: '9',
+    regione: 'Lombardia', provincia: 'MI', comune: 'Milano', cap: '20127',
+    businessArea: 'Fintech', legaleRappresentante: 'Alberto Dalmasso',
+    prefisso: '+39', telefono: '02 8081 5550', email: 'press@satispay.com',
+    partitaIva: '07516650967', codiceFiscale: '07516650967',
+    pec: 'satispay@pec.it', codiceSdi: 'XXXXXXX', sito: 'https://www.satispay.com',
+    contatto: { nome: 'Elena', cognome: 'Caruso', ruolo: 'Marketing Lead',
+      telefono: '+39 02 8724 6633', email: 'elena.caruso@satispay.com', emailSecondaria: '',
+      note: 'Disponibile principalmente via Slack. Per invii urgenti usare email.' },
+    trattativaCollegata: 'Lancio app mobile — digital OOH aeroporti + metropolitane',
+    commerciale: 'Federica Mancini',
+  },
+  {
+    key: 'ins-011', ragioneSociale: 'Fondazione Telethon',
+    indirizzo: 'Via Poerio, 14', civico: '14',
+    regione: 'Campania', provincia: 'NA', comune: 'Napoli', cap: '80121',
+    businessArea: 'Non Profit', legaleRappresentante: 'Francesca Pasinelli',
+    prefisso: '+39', telefono: '081 5640111', email: 'info@telethon.it',
+    partitaIva: '03470380482', codiceFiscale: '03470380482',
+    pec: 'telethon@pec.it', codiceSdi: '', sito: 'https://www.telethon.it',
+    contatto: null,
+    trattativaCollegata: null,
+    commerciale: null,
+  },
+  {
+    key: 'ins-012', ragioneSociale: 'Teatro alla Scala',
+    indirizzo: 'Via Filodrammatici, 2', civico: '2',
+    regione: 'Lombardia', provincia: 'MI', comune: 'Milano', cap: '20121',
+    businessArea: 'Cultura & Spettacolo', legaleRappresentante: 'Dominique Meyer',
+    prefisso: '+39', telefono: '02 88791', email: 'press@teatroallascala.org',
+    partitaIva: '01668090150', codiceFiscale: '01668090150',
+    pec: 'teatroallascala@pec.it', codiceSdi: '', sito: 'https://www.teatroallascala.org',
+    contatto: { nome: 'Marta', cognome: 'Conti', ruolo: 'Responsabile Marketing',
+      telefono: '+39 02 8879 1100', email: 'marta.conti@teatroallascala.org', emailSecondaria: '',
+      note: '' },
+    trattativaCollegata: null,
+    commerciale: null,
+  },
+];
+
+// ── AstronautSVG — empty state illustration ───────────────────────────────────
+function AstronautSVG({ size = 80 }) {
+  return React.createElement('svg', {
+    width: size, height: size, viewBox: '0 0 80 80', fill: 'none', xmlns: 'http://www.w3.org/2000/svg',
+  },
+    React.createElement('ellipse', { cx: 40, cy: 53, rx: 17, ry: 19, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
+    React.createElement('circle',  { cx: 40, cy: 28, r: 15, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
+    React.createElement('ellipse', { cx: 40, cy: 28, rx: 9, ry: 8, fill: '#B0C4F8', opacity: '0.7' }),
+    React.createElement('ellipse', { cx: 40, cy: 28, rx: 9, ry: 8, fill: 'none', stroke: '#C8C8D4', strokeWidth: 1.5 }),
+    React.createElement('ellipse', { cx: 21, cy: 50, rx: 4.5, ry: 10, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5, transform: 'rotate(-20 21 50)' }),
+    React.createElement('ellipse', { cx: 59, cy: 50, rx: 4.5, ry: 10, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5, transform: 'rotate(20 59 50)' }),
+    React.createElement('ellipse', { cx: 33, cy: 72, rx: 5, ry: 7, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
+    React.createElement('ellipse', { cx: 47, cy: 72, rx: 5, ry: 7, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
+    React.createElement('circle', { cx: 10, cy: 14, r: 1.5, fill: '#C8C8D4' }),
+    React.createElement('circle', { cx: 68, cy: 10, r: 2, fill: '#C8C8D4' }),
+    React.createElement('circle', { cx: 70, cy: 30, r: 1.2, fill: '#C8C8D4' }),
+    React.createElement('circle', { cx: 6, cy: 36, r: 1, fill: '#C8C8D4' })
+  );
+}
+
+// ── EmptyState — componente riutilizzabile ────────────────────────────────────
+function EmptyState({ title, description, action, size = 'default' }) {
+  const s = size === 'small' ? 56 : 80;
+  return React.createElement('div', { className: 'gv-empty-state' },
+    React.createElement(AstronautSVG, { size: s }),
+    React.createElement('p', { style: { marginTop: 16, marginBottom: 4, fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.88)' } },
+      title || 'Qui non c\'è nulla!'
+    ),
+    description && React.createElement('p', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', marginBottom: action ? 16 : 0, marginTop: 0 } }, description),
+    action && React.createElement('div', { style: { marginTop: description ? 0 : 12 } }, action)
+  );
+}
+
+// ── AdvertiserAvatar — avatar con iniziali colorate ───────────────────────────
+function AdvertiserAvatar({ name, size = 32 }) {
+  const initials = name.split(/[\s–\-]+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  const { bg, fg } = nameColor(name);
+  return React.createElement(Avatar, {
+    size, shape: 'circle',
+    style: { background: bg, color: fg, fontWeight: 700, fontSize: Math.round(size * 0.38), flexShrink: 0 },
+  }, initials);
+}
+
+// ── makeSearchColumn — helper per filterDropdown testuale ──────────────────────
+function makeSearchColumn(field, placeholder) {
+  return {
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) =>
+      React.createElement('div', { style: { padding: 8 }, onKeyDown: e => e.stopPropagation() },
+        React.createElement(Input, {
+          placeholder: placeholder || 'Cerca...',
+          value: selectedKeys[0] || '',
+          onChange: e => setSelectedKeys(e.target.value ? [e.target.value] : []),
+          onPressEnter: () => confirm(),
+          style: { marginBottom: 8, display: 'block', width: 220 },
+          autoFocus: true,
+        }),
+        React.createElement(Space, null,
+          React.createElement(Button, {
+            type: 'primary', size: 'small', style: { width: 100 },
+            icon: React.createElement(SearchOutlined),
+            onClick: () => confirm(),
+          }, 'Cerca'),
+          React.createElement(Button, {
+            size: 'small', style: { width: 100 },
+            onClick: () => { clearFilters && clearFilters(); confirm(); },
+          }, 'Reset')
+        )
+      ),
+    filterIcon: filtered =>
+      React.createElement(SearchOutlined, { style: { color: filtered ? '#3E00FB' : undefined } }),
+    onFilter: (value, record) =>
+      String(record[field] || '').toLowerCase().includes(value.toLowerCase()),
+  };
+}
+
+// ── GravityPageHeader — header dettaglio (pattern negotiations) ───────────────
+function GravityPageHeader({ backLabel, onBack, title, entityName, meta, actions }) {
+  meta    = meta    || [];
+  actions = actions || [];
+  const metaItems = meta.flatMap((item, i) => {
+    const parts = [];
+    if (i > 0) parts.push(React.createElement('span', { key: `sep${i}`, style: { color: 'rgba(0,0,0,0.25)', margin: '0 2px' } }, '·'));
+    parts.push(
+      React.createElement('div', { key: `m${i}`, style: { display: 'inline-flex', alignItems: 'center', gap: 5 } },
+        React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)' } }, `${item.label}:`),
+        typeof item.value === 'string'
+          ? React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)' } }, item.value)
+          : item.value
+      )
+    );
+    return parts;
+  });
+  return React.createElement('div', {
+    style: {
+      background: '#fff', borderRadius: 8, padding: '16px 20px',
+      border: '1px solid rgba(0,0,0,0.06)', marginBottom: 20,
+    },
+  },
+    onBack && React.createElement(Button, {
+      type: 'link', icon: React.createElement(ArrowLeftOutlined), onClick: onBack,
+      style: { padding: 0, marginBottom: 8, fontSize: 13, color: '#3E00FB', height: 'auto', display: 'block' },
+    }, backLabel || 'Indietro'),
+    React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 } },
+      React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: metaItems.length ? 6 : 0 } },
+          React.createElement(Title, { level: 4, style: { margin: 0 } }, title),
+          entityName && React.createElement(React.Fragment, null,
+            React.createElement('span', { style: { color: 'rgba(0,0,0,0.2)', fontWeight: 200, fontSize: 22, lineHeight: 1 } }, '|'),
+            React.createElement('span', { style: { fontSize: 15, color: 'rgba(0,0,0,0.65)', fontWeight: 400 } }, entityName)
+          )
+        ),
+        metaItems.length > 0 && React.createElement('div', {
+          style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 8px' },
+        }, ...metaItems)
+      ),
+      actions.length > 0 && React.createElement('div', {
+        style: { display: 'flex', gap: 8, flexShrink: 0, alignItems: 'flex-start', paddingTop: 2 },
+      }, ...actions)
+    )
+  );
+}
+
+// ── EliminaModal ──────────────────────────────────────────────────────────────
+function EliminaModal({ open, ragioneSociale, onConfirm, onCancel }) {
+  return React.createElement(Modal, {
+    open, onCancel, footer: null, width: 440, centered: true,
+    title: 'Conferma Eliminazione',
+    closable: true,
+  },
+    React.createElement('div', { style: { padding: '8px 0 4px' } },
+      React.createElement(Text, { style: { fontSize: 14, color: 'rgba(0,0,0,0.88)' } },
+        'Sei sicuro di voler eliminare l\'inserzionista ',
+        React.createElement('strong', null, ragioneSociale),
+        ' definitivamente?'
+      ),
+      React.createElement('div', {
+        style: {
+          marginTop: 12, padding: '10px 12px',
+          background: '#FFF2F0', border: '1px solid #FFCCC7', borderRadius: 6,
+        },
+      },
+        React.createElement(Text, { style: { fontSize: 13, color: '#CF1322' } },
+          React.createElement('strong', null, 'Questa azione non può essere annullata.')
+        )
+      ),
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 } },
+        React.createElement(Button, { onClick: onCancel }, 'Annulla'),
+        React.createElement(Button, { type: 'primary', danger: true, onClick: onConfirm }, 'Elimina')
+      )
+    )
+  );
+}
+
+// ── AnagraficaForm — sezione Anagrafica nel drawer ────────────────────────────
+function AnagraficaForm({ values, onChange }) {
+  const regioni = Object.keys(GEO).sort();
+  const province = values.regione ? Object.entries(GEO[values.regione] || {}).map(([k, v]) => ({ value: k, label: `${v.label} (${k})` })) : [];
+  const comuni = (values.regione && values.provincia && GEO[values.regione]?.[values.provincia])
+    ? Object.keys(GEO[values.regione][values.provincia].comuni).map(c => ({ value: c, label: c }))
+    : [];
+  const caps = (values.regione && values.provincia && values.comune && GEO[values.regione]?.[values.provincia]?.comuni?.[values.comune])
+    ? GEO[values.regione][values.provincia].comuni[values.comune].map(c => ({ value: c, label: c }))
+    : [];
+
+  const set = (field) => (v) => {
+    const next = { ...values, [field]: v };
+    if (field === 'regione')   { next.provincia = ''; next.comune = ''; next.cap = ''; }
+    if (field === 'provincia') { next.comune = ''; next.cap = ''; }
+    if (field === 'comune')    { next.cap = ''; }
+    onChange(next);
+  };
+
+  return React.createElement('div', null,
+    // Banner CRM
+    React.createElement(Alert, {
+      type: 'info', showIcon: true,
+      message: 'Dati sincronizzati con CRM esterno',
+      description: 'Alcune informazioni potrebbero essere gestite da Salesforce. Le modifiche effettuate qui saranno sovrascritte al prossimo ciclo di sincronizzazione.',
+      style: { marginBottom: 20, borderRadius: 8 },
+      closable: false,
+    }),
+
+    React.createElement(window.GravityFormArea, { title: 'Dati aziendali' },
+      React.createElement(Form, { layout: 'vertical' },
+        React.createElement(Row, { gutter: 16 },
+          React.createElement(Col, { span: 24 },
+            React.createElement(Form.Item, { label: 'Nome Azienda', required: true },
+              React.createElement(Input, {
+                placeholder: 'Es. Acme Italia Srl',
+                value: values.ragioneSociale, onChange: e => set('ragioneSociale')(e.target.value),
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'Partita IVA', required: true },
+              React.createElement(Input, {
+                placeholder: 'IT00000000000',
+                value: values.partitaIva, onChange: e => set('partitaIva')(e.target.value),
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'Codice Fiscale', required: true },
+              React.createElement(Input, {
+                placeholder: '00000000000',
+                value: values.codiceFiscale, onChange: e => set('codiceFiscale')(e.target.value),
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'Rappresentante Legale' },
+              React.createElement(Input, {
+                placeholder: 'Nome Cognome',
+                value: values.legaleRappresentante, onChange: e => set('legaleRappresentante')(e.target.value),
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'Business Area' },
+              React.createElement(Select, {
+                placeholder: 'Seleziona', value: values.businessArea || undefined,
+                onChange: set('businessArea'), style: { width: '100%' }, allowClear: true,
+                options: BUSINESS_AREAS.map(b => ({ value: b, label: b })),
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'Numero di Telefono' },
+              React.createElement(Input, {
+                addonBefore: React.createElement(Select, {
+                  value: values.prefisso || '+39', onChange: set('prefisso'),
+                  style: { width: 72 },
+                  options: PREFISSI.map(p => ({ value: p, label: p })),
+                  popupMatchSelectWidth: false,
+                }),
+                placeholder: '06 1234 5678', value: values.telefono || '',
+                onChange: e => set('telefono')(e.target.value),
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'Email' },
+              React.createElement(Input, {
+                placeholder: 'info@azienda.it',
+                value: values.email, onChange: e => set('email')(e.target.value),
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'Codice SDI' },
+              React.createElement(Input, {
+                placeholder: 'XXXXXXX',
+                value: values.codiceSdi, onChange: e => set('codiceSdi')(e.target.value),
+                maxLength: 7,
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'Sito Web' },
+              React.createElement(Input, {
+                placeholder: 'https://www.azienda.it',
+                value: values.sito, onChange: e => set('sito')(e.target.value),
+                prefix: React.createElement(GlobalOutlined, { style: { color: 'rgba(0,0,0,0.25)' } }),
+              })
+            )
+          ),
+          React.createElement(Col, { span: 24 },
+            React.createElement(Form.Item, { label: 'PEC' },
+              React.createElement(Input, {
+                placeholder: 'azienda@pec.it',
+                value: values.pec, onChange: e => set('pec')(e.target.value),
+              })
+            )
+          ),
+          React.createElement(Col, { span: 24 },
+            React.createElement(Form.Item, { label: 'Logo azienda' },
+              React.createElement('div', null,
+                React.createElement(Upload, {
+                  accept: '.jpg,.jpeg,.png',
+                  maxCount: 1,
+                  listType: 'picture-card',
+                  showUploadList: false,
+                  beforeUpload: (file) => {
+                    const isImg = file.type === 'image/jpeg' || file.type === 'image/png';
+                    if (!isImg) { antd.message.error('Sono accettati solo file JPG o PNG.'); return false; }
+                    const is2MB = file.size / 1024 / 1024 < 2;
+                    if (!is2MB) { antd.message.error('Il file non può superare 2 MB.'); return false; }
+                    return false;
+                  },
+                },
+                  React.createElement('div', null,
+                    React.createElement(UploadOutlined, { style: { fontSize: 20, color: 'rgba(0,0,0,0.25)' } }),
+                    React.createElement('div', { style: { marginTop: 8, fontSize: 12, color: 'rgba(0,0,0,0.45)' } }, 'Carica logo')
+                  )
+                ),
+                React.createElement(Text, { type: 'secondary', style: { fontSize: 11, display: 'block', marginTop: 4 } },
+                  'Formati accettati: JPG, PNG — Dimensione massima: 2 MB'
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
+
+    React.createElement(window.GravityFormArea, { title: 'Informazioni geografiche' },
+      React.createElement(Form, { layout: 'vertical' },
+        React.createElement(Row, { gutter: 16 },
+          React.createElement(Col, { span: 18 },
+            React.createElement(Form.Item, { label: 'Indirizzo', required: true },
+              React.createElement(Input, {
+                placeholder: 'Via Roma, 1',
+                value: values.indirizzo, onChange: e => set('indirizzo')(e.target.value),
+              })
+            )
+          ),
+          React.createElement(Col, { span: 6 },
+            React.createElement(Form.Item, { label: 'N. Civico', required: true },
+              React.createElement(Input, {
+                placeholder: '1',
+                value: values.civico, onChange: e => set('civico')(e.target.value),
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'Regione' },
+              React.createElement(Select, {
+                placeholder: 'Seleziona', value: values.regione || undefined,
+                onChange: set('regione'), style: { width: '100%' }, allowClear: true,
+                options: regioni.map(r => ({ value: r, label: r })),
+                showSearch: true,
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'Provincia' },
+              React.createElement(Select, {
+                placeholder: values.regione ? 'Seleziona' : 'Prima seleziona Regione',
+                value: values.provincia || undefined, onChange: set('provincia'),
+                style: { width: '100%' }, allowClear: true,
+                disabled: !values.regione,
+                options: province,
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'Comune' },
+              React.createElement(Select, {
+                placeholder: values.provincia ? 'Seleziona' : 'Prima seleziona Provincia',
+                value: values.comune || undefined, onChange: set('comune'),
+                style: { width: '100%' }, allowClear: true,
+                disabled: !values.provincia,
+                options: comuni,
+                showSearch: true,
+              })
+            )
+          ),
+          React.createElement(Col, { span: 12 },
+            React.createElement(Form.Item, { label: 'CAP' },
+              React.createElement(Select, {
+                placeholder: values.comune ? 'Seleziona' : 'Prima seleziona Comune',
+                value: values.cap || undefined, onChange: set('cap'),
+                style: { width: '100%' }, allowClear: true,
+                disabled: !values.comune,
+                options: caps,
+              })
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+// ── ContattoForm — sezione Contatto nel drawer ────────────────────────────────
+function ContattoForm({ values, onChange }) {
+  const MAX_NOTE = 40;
+  const set = field => v => onChange({ ...values, [field]: v });
+  const setE = field => e => onChange({ ...values, [field]: e.target.value });
+  const contatto = values.contatto || {};
+  const setC = field => v => onChange({ ...values, contatto: { ...contatto, [field]: v } });
+  const setCE = field => e => onChange({ ...values, contatto: { ...contatto, [field]: e.target.value } });
+
+  return React.createElement(window.GravityFormArea, { title: 'Persona di riferimento' },
+    React.createElement(Form, { layout: 'vertical' },
+      React.createElement(Row, { gutter: 16 },
+        React.createElement(Col, { span: 12 },
+          React.createElement(Form.Item, { label: 'Nome' },
+            React.createElement(Input, { placeholder: 'Mario', value: contatto.nome || '', onChange: setCE('nome') })
+          )
+        ),
+        React.createElement(Col, { span: 12 },
+          React.createElement(Form.Item, { label: 'Cognome' },
+            React.createElement(Input, { placeholder: 'Rossi', value: contatto.cognome || '', onChange: setCE('cognome') })
+          )
+        ),
+        React.createElement(Col, { span: 12 },
+          React.createElement(Form.Item, { label: 'Ruolo' },
+            React.createElement(Select, {
+              placeholder: 'Seleziona', value: contatto.ruolo || undefined,
+              onChange: setC('ruolo'), style: { width: '100%' }, allowClear: true,
+              options: RUOLI_CONTATTO.map(r => ({ value: r, label: r })),
+              showSearch: true,
+            })
+          )
+        ),
+        React.createElement(Col, { span: 12 },
+          React.createElement(Form.Item, { label: 'Numero di Telefono' },
+            React.createElement(Input, { placeholder: '+39 06 1234 5678', value: contatto.telefono || '', onChange: setCE('telefono') })
+          )
+        ),
+        React.createElement(Col, { span: 12 },
+          React.createElement(Form.Item, { label: 'Email' },
+            React.createElement(Input, { placeholder: 'mario.rossi@azienda.it', value: contatto.email || '', onChange: setCE('email') })
+          )
+        ),
+        React.createElement(Col, { span: 12 },
+          React.createElement(Form.Item, { label: 'Email Secondaria' },
+            React.createElement(Input, { placeholder: 'mario.rossi@gmail.com', value: contatto.emailSecondaria || '', onChange: setCE('emailSecondaria') })
+          )
+        ),
+        React.createElement(Col, { span: 24 },
+          React.createElement(Form.Item, { label: 'Note' },
+            React.createElement(Input.TextArea, {
+              placeholder: 'Preferenze di contatto, disponibilità...',
+              value: contatto.note || '',
+              onChange: e => { if (e.target.value.length <= MAX_NOTE) setCE('note')(e); },
+              rows: 3, maxLength: MAX_NOTE, showCount: true,
+            })
+          )
+        )
+      )
+    )
+  );
+}
+
+// ── InserzionistaSectionDrawer ────────────────────────────────────────────────
+function InserzionistaSectionDrawer({ open, onClose, inserzionista, onSave }) {
+  const isEdit = !!inserzionista;
+
+  const emptyValues = {
+    ragioneSociale: '', partitaIva: '', codiceFiscale: '',
+    legaleRappresentante: '', businessArea: '', prefisso: '+39', telefono: '',
+    email: '', pec: '', codiceSdi: '', sito: '',
+    indirizzo: '', civico: '', regione: '', provincia: '', comune: '', cap: '',
+    contatto: { nome: '', cognome: '', ruolo: '', telefono: '', email: '', emailSecondaria: '', note: '' },
+  };
+
+  const [activeSection, setActiveSection] = useState('anagrafica');
+  const [values, setValues] = useState(emptyValues);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setActiveSection('anagrafica');
+      setDirty(false);
+      setValues(inserzionista ? {
+        ragioneSociale: inserzionista.ragioneSociale || '',
+        partitaIva: inserzionista.partitaIva || '',
+        codiceFiscale: inserzionista.codiceFiscale || '',
+        legaleRappresentante: inserzionista.legaleRappresentante || '',
+        businessArea: inserzionista.businessArea || '',
+        prefisso: inserzionista.prefisso || '+39',
+        telefono: inserzionista.telefono || '',
+        email: inserzionista.email || '',
+        pec: inserzionista.pec || '',
+        codiceSdi: inserzionista.codiceSdi || '',
+        sito: inserzionista.sito || '',
+        indirizzo: inserzionista.indirizzo || '',
+        civico: inserzionista.civico || '',
+        regione: inserzionista.regione || '',
+        provincia: inserzionista.provincia || '',
+        comune: inserzionista.comune || '',
+        cap: inserzionista.cap || '',
+        contatto: inserzionista.contatto ? { ...inserzionista.contatto } : { nome: '', cognome: '', ruolo: '', telefono: '', email: '', emailSecondaria: '', note: '' },
+      } : emptyValues);
+    }
+  }, [open, inserzionista]);
+
+  const handleChange = useCallback((next) => {
+    setValues(next);
+    setDirty(true);
+  }, []);
+
+  const handleSave = () => {
+    if (!values.ragioneSociale.trim()) {
+      antd.message.error('Il campo Nome Azienda è obbligatorio.');
+      setActiveSection('anagrafica');
+      return;
+    }
+    onSave(values);
+    onClose();
+  };
+
+  const handleClose = () => {
+    if (dirty) return; // maskClosable / Popconfirm gestiscono il caso
+    onClose();
+  };
+
+  const saveBtn = React.createElement(Button, {
+    type: 'primary', icon: React.createElement(SaveOutlined),
+    disabled: isEdit && !dirty,
+    onClick: handleSave,
+  }, isEdit ? 'Aggiorna' : 'Salva');
+
+  const discardPopconfirmProps = {
+    title: 'Modifiche non salvate',
+    description: 'Vuoi davvero uscire? Le modifiche andranno perse.',
+    okText: 'Esci e scarta',
+    cancelText: 'Continua a modificare',
+    okButtonProps: { danger: true },
+    placement: 'bottomRight',
+    onConfirm: onClose,
+  };
+
+  const cancelBtn = dirty
+    ? React.createElement(Popconfirm, discardPopconfirmProps,
+        React.createElement(Button, null, 'Annulla')
+      )
+    : React.createElement(Button, { onClick: onClose }, 'Annulla');
+
+  const closeBtn = dirty
+    ? React.createElement(Popconfirm, discardPopconfirmProps,
+        React.createElement(Button, {
+          type: 'text',
+          icon: React.createElement(CloseOutlined),
+          style: { color: 'rgba(0,0,0,0.45)' },
+        })
+      )
+    : React.createElement(Button, {
+        type: 'text',
+        icon: React.createElement(CloseOutlined),
+        style: { color: 'rgba(0,0,0,0.45)' },
+        onClick: onClose,
+      });
+
+  const sections = [
+    {
+      key: 'anagrafica', label: 'Anagrafica',
+      title: 'Anagrafica', description: 'Dati aziendali e sede legale dell\'inserzionista.',
+      children: React.createElement(AnagraficaForm, { values, onChange: handleChange }),
+    },
+    {
+      key: 'contatto', label: 'Contatto',
+      title: 'Contatto', description: 'Persona di riferimento per le comunicazioni commerciali.',
+      children: React.createElement(ContattoForm, { values, onChange: handleChange }),
+    },
+  ];
+
+  return React.createElement(window.GravitySectionDrawer, {
+    open, dirty, onClose: handleClose,
+    title: React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 12 } },
+      closeBtn,
+      isEdit ? `Modifica — ${inserzionista?.ragioneSociale || 'Inserzionista'}` : 'Nuovo Inserzionista'
+    ),
+    extra: React.createElement(Space, null, cancelBtn, saveBtn),
+    activeKey: activeSection, onActiveKeyChange: setActiveSection,
+    sections,
+  });
+}
+
+// ── InserzionistiDetail ───────────────────────────────────────────────────────
+function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [tipoFiltro, setTipoFiltro] = useState(null);
+
+  const indirizzoCompleto = [inserzionista.indirizzo, inserzionista.comune, inserzionista.cap].filter(Boolean).join(', ');
+  const hasBusinessArea = !!inserzionista.businessArea;
+
+  const nuovoPreventivoCTA = hasBusinessArea
+    ? React.createElement(Button, {
+        type: 'primary',
+        icon: React.createElement(FileTextOutlined),
+        onClick: () => antd.message.info('Apre il wizard Preventivo nel modulo Trattative.'),
+      }, 'Nuovo Preventivo')
+    : React.createElement(Tooltip, {
+        title: 'Specifica la Business Area prima di creare un preventivo.',
+        placement: 'left',
+      },
+        React.createElement('span', null,
+          React.createElement(Button, { type: 'primary', icon: React.createElement(FileTextOutlined), disabled: true }, 'Nuovo Preventivo')
+        )
+      );
+
+  // ── Tab Overview ───────────────────────────────────────────────────────────
+  const overviewContent = React.createElement(Row, { gutter: 20 },
+    // Colonna sinistra (2/3)
+    React.createElement(Col, { span: 16 },
+      // Logo placeholder
+      React.createElement('div', {
+        className: 'logo-placeholder',
+        onClick: () => antd.message.info('Carica il logo dell\'inserzionista.'),
+      },
+        React.createElement(Space, { direction: 'vertical', align: 'center', size: 4, style: { pointerEvents: 'none' } },
+          React.createElement(UploadOutlined, { style: { fontSize: 20 } }),
+          React.createElement('span', null, 'Carica logo')
+        )
+      ),
+
+      // Box Informazioni Generali
+      React.createElement('div', { className: 'info-box' },
+        React.createElement('div', { className: 'info-box-header' }, 'Informazioni Generali'),
+        React.createElement('div', { className: 'info-box-body' },
+          React.createElement('div', { className: 'info-row' },
+            React.createElement('span', { className: 'info-row-label' }, 'Rappresentante Legale'),
+            React.createElement('span', { className: 'info-row-value' }, inserzionista.legaleRappresentante || '—')
+          ),
+          React.createElement('div', { className: 'info-row' },
+            React.createElement('span', { className: 'info-row-label' }, 'Business Area'),
+            React.createElement('span', { className: 'info-row-value' },
+              inserzionista.businessArea
+                ? React.createElement(Tag, { color: 'purple' }, inserzionista.businessArea)
+                : React.createElement(Text, { type: 'secondary' }, 'Non specificata')
+            )
+          ),
+          React.createElement('div', { className: 'info-row' },
+            React.createElement('span', { className: 'info-row-label' }, 'Indirizzo'),
+            React.createElement('span', { className: 'info-row-value' },
+              indirizzoCompleto || '—',
+              indirizzoCompleto && React.createElement(Tooltip, { title: 'Copia indirizzo' },
+                React.createElement(Button, {
+                  type: 'text', size: 'small', icon: React.createElement(CopyOutlined),
+                  style: { color: 'rgba(0,0,0,0.3)', padding: 0, height: 20, width: 20 },
+                  onClick: () => { navigator.clipboard?.writeText(indirizzoCompleto); antd.message.success('Indirizzo copiato.'); },
+                })
+              )
+            )
+          ),
+          React.createElement('div', { className: 'info-row' },
+            React.createElement('span', { className: 'info-row-label' }, 'Telefono'),
+            React.createElement('span', { className: 'info-row-value' },
+              inserzionista.telefono ? `${inserzionista.prefisso || ''} ${inserzionista.telefono}`.trim() : '—',
+              inserzionista.telefono && React.createElement(Tooltip, { title: 'Chiama' },
+                React.createElement(Button, {
+                  type: 'text', size: 'small', icon: React.createElement(PhoneOutlined),
+                  style: { color: '#3E00FB', padding: 0, height: 20, width: 20 },
+                  onClick: () => antd.message.info('Apertura chiamata.'),
+                })
+              )
+            )
+          ),
+          React.createElement('div', { className: 'info-row' },
+            React.createElement('span', { className: 'info-row-label' }, 'Email'),
+            React.createElement('span', { className: 'info-row-value' },
+              inserzionista.email || '—',
+              inserzionista.email && React.createElement(Tooltip, { title: 'Invia email' },
+                React.createElement(Button, {
+                  type: 'text', size: 'small', icon: React.createElement(MailOutlined),
+                  style: { color: 'rgba(0,0,0,0.3)', padding: 0, height: 20, width: 20 },
+                  onClick: () => window.open(`mailto:${inserzionista.email}`),
+                })
+              )
+            )
+          )
+        )
+      ),
+
+      // Box Dati Fiscali
+      React.createElement('div', { className: 'info-box' },
+        React.createElement('div', { className: 'info-box-header' }, 'Dati Fiscali'),
+        React.createElement('div', { className: 'info-box-body' },
+          React.createElement('div', { className: 'info-row' },
+            React.createElement('span', { className: 'info-row-label' }, 'Partita IVA'),
+            React.createElement('span', { className: 'info-row-value' }, inserzionista.partitaIva || '—')
+          ),
+          React.createElement('div', { className: 'info-row' },
+            React.createElement('span', { className: 'info-row-label' }, 'Codice Fiscale'),
+            React.createElement('span', { className: 'info-row-value' }, inserzionista.codiceFiscale || '—')
+          ),
+          React.createElement('div', { className: 'info-row' },
+            React.createElement('span', { className: 'info-row-label' }, 'PEC'),
+            React.createElement('span', { className: 'info-row-value' }, inserzionista.pec || '—')
+          ),
+          React.createElement('div', { className: 'info-row' },
+            React.createElement('span', { className: 'info-row-label' }, 'Codice SDI'),
+            React.createElement('span', { className: 'info-row-value' },
+              inserzionista.codiceSdi
+                ? React.createElement('code', { style: { background: '#f5f5f5', padding: '1px 6px', borderRadius: 4, fontSize: 12 } }, inserzionista.codiceSdi)
+                : React.createElement(Text, { type: 'secondary' }, '—')
+            )
+          )
+        )
+      )
+    ),
+
+    // Colonna destra (1/3): Contatto
+    React.createElement(Col, { span: 8 },
+      React.createElement('div', { className: 'info-box', style: { height: '100%' } },
+        React.createElement('div', { className: 'info-box-header' }, 'Contatto'),
+        React.createElement('div', { className: 'info-box-body' },
+          inserzionista.contatto
+            ? React.createElement('div', null,
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 } },
+                  React.createElement(AdvertiserAvatar, { name: `${inserzionista.contatto.nome} ${inserzionista.contatto.cognome}`, size: 40 }),
+                  React.createElement('div', null,
+                    React.createElement('div', { style: { fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.88)' } },
+                      `${inserzionista.contatto.nome} ${inserzionista.contatto.cognome}`
+                    ),
+                    React.createElement(Text, { type: 'secondary', style: { fontSize: 12 } }, inserzionista.contatto.ruolo || '')
+                  )
+                ),
+                React.createElement('div', { className: 'info-row' },
+                  React.createElement('span', { className: 'info-row-label' }, 'Telefono'),
+                  React.createElement('span', { className: 'info-row-value', style: { fontSize: 12 } }, inserzionista.contatto.telefono || '—')
+                ),
+                React.createElement('div', { className: 'info-row' },
+                  React.createElement('span', { className: 'info-row-label' }, 'Email'),
+                  React.createElement('span', { className: 'info-row-value', style: { fontSize: 12 } }, inserzionista.contatto.email || '—')
+                ),
+                inserzionista.contatto.emailSecondaria && React.createElement('div', { className: 'info-row' },
+                  React.createElement('span', { className: 'info-row-label' }, 'Email (alt.)'),
+                  React.createElement('span', { className: 'info-row-value', style: { fontSize: 12 } }, inserzionista.contatto.emailSecondaria)
+                ),
+                inserzionista.contatto.note && React.createElement('div', null,
+                  React.createElement(Divider, { style: { margin: '10px 0' } }),
+                  React.createElement(Text, { type: 'secondary', style: { fontSize: 12 } }, inserzionista.contatto.note)
+                )
+              )
+            : React.createElement(EmptyState, {
+                size: 'small',
+                title: 'Qui non c\'è nulla!',
+                description: 'Nessun contatto associato a questo inserzionista.',
+                action: React.createElement(Button, {
+                  size: 'small', icon: React.createElement(EditOutlined),
+                  onClick: onModifica,
+                }, 'Aggiungi contatto'),
+              })
+        )
+      )
+    )
+  );
+
+  // ── Tab Attività ───────────────────────────────────────────────────────────
+  const mockAttivita = inserzionista.trattativaCollegata
+    ? [
+        { id: 'a1', tipo: 'Trattativa', descrizione: inserzionista.trattativaCollegata, data: '05/01/2026', utente: 'Lorenzo Bianchi' },
+        { id: 'a2', tipo: 'Preventivo', descrizione: 'Preventivo #PRV-2026-001 inviato', data: '12/02/2026', utente: 'Lorenzo Bianchi' },
+        { id: 'a3', tipo: 'Nota', descrizione: 'Call di allineamento sul brief creativo', data: '18/03/2026', utente: 'Davide Serra' },
+      ]
+    : [];
+
+  const tipiAttivita = [...new Set(mockAttivita.map(a => a.tipo))];
+  const attivitaFiltrate = tipoFiltro ? mockAttivita.filter(a => a.tipo === tipoFiltro) : mockAttivita;
+
+  const attivitaContent = React.createElement('div', null,
+    React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 16 } },
+      React.createElement(Select, {
+        placeholder: 'Filtra per tipo', allowClear: true,
+        value: tipoFiltro, onChange: setTipoFiltro,
+        style: { width: 180 },
+        options: tipiAttivita.map(t => ({ value: t, label: t })),
+      }),
+      React.createElement(Select, {
+        placeholder: 'Filtra per utente', allowClear: true,
+        style: { width: 200 },
+        options: [...new Set(mockAttivita.map(a => a.utente))].map(u => ({ value: u, label: u })),
+      })
+    ),
+    attivitaFiltrate.length === 0
+      ? React.createElement(EmptyState, {
+          title: 'Qui non c\'è nulla!',
+          description: 'Quando verranno create trattative, opportunità, ordini o fatture per questo inserzionista, compariranno in questo elenco.',
+        })
+      : React.createElement('div', {
+          style: { background: '#fff', borderRadius: 8, border: '1px solid #f0f0f0', padding: '4px 16px' },
+        },
+          attivitaFiltrate.map(a =>
+            React.createElement('div', { key: a.id, className: 'activity-item' },
+              React.createElement('div', { className: 'activity-dot' }),
+              React.createElement('div', { className: 'activity-body' },
+                React.createElement('div', { className: 'activity-title' }, a.descrizione),
+                React.createElement('div', { className: 'activity-meta' },
+                  React.createElement(Tag, { style: { margin: 0, fontSize: 11, borderRadius: 4 } }, a.tipo),
+                  ' · ',
+                  a.data,
+                  ' · ',
+                  a.utente
+                )
+              )
+            )
+          )
+        )
+  );
+
+  const tabItems = [
+    { key: 'overview', label: 'Overview', children: overviewContent },
+    { key: 'attivita', label: 'Attività', children: attivitaContent },
+  ];
+
+  return React.createElement('div', { className: 'page-content' },
+    React.createElement(GravityPageHeader, {
+      backLabel: 'Torna alla lista',
+      onBack,
+      title: 'Inserzionista',
+      entityName: inserzionista.ragioneSociale,
+      meta: [
+        { label: 'Indirizzo', value: indirizzoCompleto || 'Non specificato' },
+        { label: 'Business Area', value: inserzionista.businessArea || 'Non specificata' },
+      ],
+      actions: [
+        React.createElement(Button, {
+          key: 'modifica', icon: React.createElement(EditOutlined),
+          onClick: onModifica,
+        }, 'Modifica Inserzionista'),
+        nuovoPreventivoCTA,
+      ],
+    }),
+    React.createElement(Tabs, {
+      activeKey: activeTab, onChange: setActiveTab,
+      items: tabItems,
+      style: { background: 'transparent' },
+    })
+  );
+}
+
+// ── ListaInserzionisti ────────────────────────────────────────────────────────
+function ListaInserzionisti({ data, onViewDetail, onNuovo, onModifica, onElimina }) {
+  const columns = [
+    {
+      title: 'Nome Inserzionista',
+      key: 'ragioneSociale',
+      dataIndex: 'ragioneSociale',
+      width: 280,
+      fixed: 'left',
+      ...makeSearchColumn('ragioneSociale', 'Cerca per ragione sociale...'),
+      render: (v, row) =>
+        React.createElement('div', { className: 'nome-cell' },
+          React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 10 } },
+            React.createElement(AdvertiserAvatar, { name: v, size: 28 }),
+            React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', fontWeight: 500 } }, v)
+          ),
+          React.createElement(EyeOutlined, { className: 'nome-eye' })
+        ),
+    },
+    {
+      title: 'Indirizzo',
+      key: 'indirizzo',
+      dataIndex: 'indirizzo',
+      width: 240,
+      ...makeSearchColumn('indirizzo', 'Cerca per indirizzo...'),
+      render: (v, row) => {
+        const full = [v, row.comune, row.cap].filter(Boolean).join(', ');
+        return React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, full || '—');
+      },
+    },
+    {
+      title: 'Settore Commerciale',
+      key: 'businessArea',
+      dataIndex: 'businessArea',
+      width: 170,
+      render: (v) => v
+        ? React.createElement(Tag, { color: 'purple', style: { margin: 0 } }, v)
+        : React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—'),
+    },
+    {
+      title: 'Contatto',
+      key: 'contatto',
+      width: 180,
+      render: (_, row) => {
+        if (!row.contatto) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—');
+        const fullName = `${row.contatto.nome} ${row.contatto.cognome}`;
+        return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+          React.createElement(AdvertiserAvatar, { name: fullName, size: 24 }),
+          React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, fullName)
+        );
+      },
+    },
+    {
+      title: 'Commerciale',
+      key: 'commerciale',
+      dataIndex: 'commerciale',
+      width: 180,
+      render: (v) => {
+        if (!v) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—');
+        return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+          React.createElement(AdvertiserAvatar, { name: v, size: 24 }),
+          React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v)
+        );
+      },
+    },
+    {
+      title: 'Preventivo',
+      key: 'preventivo',
+      width: 260,
+      render: (_, row) => {
+        if (row.trattativaCollegata) {
+          return React.createElement(Tag, {
+            icon: React.createElement(FileTextOutlined),
+            color: 'purple',
+            style: { maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' },
+            onClick: (e) => { e.stopPropagation(); antd.message.info('Apre la trattativa collegata.'); },
+          }, row.trattativaCollegata);
+        }
+        return React.createElement(Tooltip, {
+          title: 'Non è stato possibile trovare una trattativa associata a questo inserzionista.',
+          placement: 'top',
+        },
+          React.createElement(antd.Select, {
+            disabled: true,
+            placeholder: 'Nessuna trattativa',
+            style: { width: '100%', pointerEvents: 'none' },
+            size: 'small',
+          })
+        );
+      },
+    },
+    {
+      title: '',
+      key: 'azioni',
+      width: 60,
+      fixed: 'right',
+      render: (_, row) =>
+        React.createElement('div', { onClick: e => e.stopPropagation() },
+          React.createElement(antd.Dropdown, {
+            trigger: ['click'],
+            menu: {
+              items: [
+                { key: 'view',    label: 'Visualizza', icon: React.createElement(EyeOutlined) },
+                { key: 'edit',    label: 'Modifica',   icon: React.createElement(EditOutlined) },
+                { type: 'divider' },
+                { key: 'delete',  label: 'Elimina',    icon: React.createElement(DeleteOutlined), danger: true },
+              ],
+              onClick: ({ key }) => {
+                if (key === 'view')   onViewDetail(row);
+                if (key === 'edit')   onModifica(row);
+                if (key === 'delete') onElimina(row);
+              },
+            },
+          },
+            React.createElement(Button, {
+              type: 'text', size: 'small',
+              icon: React.createElement(MoreOutlined),
+              style: { color: 'rgba(0,0,0,0.45)' },
+            })
+          )
+        ),
+    },
+  ];
+
+  return React.createElement('div', null,
+    // Tabella con container card
+    React.createElement('div', {
+      style: { background: '#fff', borderRadius: 10, border: '1px solid rgba(0,0,0,0.06)', overflow: 'hidden' },
+    },
+      React.createElement('div', { style: { padding: '12px 20px 4px' } },
+        React.createElement(Text, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } },
+          `${data.length} inserzionist${data.length === 1 ? 'a' : 'i'}`
+        )
+      ),
+      React.createElement('div', { style: { padding: '0 20px 20px' } },
+        React.createElement(Table, {
+          dataSource: data,
+          columns,
+          rowKey: 'key',
+          size: 'middle',
+          scroll: { x: 1400 },
+          pagination: {
+            pageSize: 10,
+            showSizeChanger: false,
+            showTotal: (total) => `${total} inserzionisti`,
+            style: { margin: '12px 0 4px' },
+          },
+          style: { borderRadius: 0 },
+          onRow: (record) => ({ onClick: () => onViewDetail(record) }),
+        })
+      )
+    )
+  );
+}
+
+// ── AppRoot ───────────────────────────────────────────────────────────────────
+function AppRoot() {
+  const [view, setView] = useState('lista'); // 'lista' | 'dettaglio'
+  const [current, setCurrent] = useState(null);
+  const [data, setData] = useState(MOCK_INSERZIONISTI);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTarget, setDrawerTarget] = useState(null); // null = nuovo, obj = modifica
+  const [elimina, setElimina] = useState(null); // obj da eliminare
+
+  const handleViewDetail = (row) => { setCurrent(row); setView('dettaglio'); };
+  const handleBack       = () => { setCurrent(null); setView('lista'); };
+
+  const handleNuovo = () => { setDrawerTarget(null); setDrawerOpen(true); };
+  const handleModifica = (row) => { setDrawerTarget(row || current); setDrawerOpen(true); };
+
+  const handleSave = (values) => {
+    if (drawerTarget) {
+      // modifica
+      setData(prev => prev.map(r => r.key === drawerTarget.key ? { ...r, ...values, contatto: values.contatto } : r));
+      if (current?.key === drawerTarget.key) setCurrent(prev => ({ ...prev, ...values, contatto: values.contatto }));
+      antd.message.success('Inserzionista aggiornato.');
+    } else {
+      // creazione
+      const newRec = { ...values, key: `ins-${Date.now()}`, trattativaCollegata: null };
+      setData(prev => [newRec, ...prev]);
+      antd.message.success('Inserzionista creato.');
+    }
+    setDrawerOpen(false);
+  };
+
+  const handleElimina = (row) => setElimina(row);
+  const handleEliminaConfirm = () => {
+    setData(prev => prev.filter(r => r.key !== elimina.key));
+    if (current?.key === elimina.key) handleBack();
+    antd.message.success(`${elimina.ragioneSociale} eliminato.`);
+    setElimina(null);
+  };
+
+  return React.createElement('div', { className: 'app-shell' },
+    React.createElement(window.GravityNavbar),
+
+    view === 'lista'
+      ? React.createElement('div', { className: 'page-content' },
+          // ── Header lista ──────────────────────────────────────────────────
+          React.createElement('div', {
+            style: {
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: '#fff', borderRadius: 8, padding: '16px 20px',
+              border: '1px solid rgba(0,0,0,0.06)', marginBottom: 20,
+            },
+          },
+            React.createElement(Title, { level: 3, style: { margin: 0 } }, 'Lista Inserzionisti'),
+            React.createElement(Button, {
+              type: 'primary', icon: React.createElement(PlusOutlined),
+              onClick: handleNuovo,
+            }, 'Nuovo Inserzionista')
+          ),
+          React.createElement(ListaInserzionisti, {
+            data,
+            onViewDetail: handleViewDetail,
+            onNuovo: handleNuovo,
+            onModifica: handleModifica,
+            onElimina: handleElimina,
+          })
+        )
+      : React.createElement(InserzionistiDetail, {
+          inserzionista: current,
+          onBack: handleBack,
+          onModifica: () => handleModifica(current),
+        }),
+
+    // ── Drawer creazione / modifica ─────────────────────────────────────────
+    React.createElement(InserzionistaSectionDrawer, {
+      open: drawerOpen,
+      onClose: () => setDrawerOpen(false),
+      inserzionista: drawerTarget,
+      onSave: handleSave,
+    }),
+
+    // ── Modale eliminazione ─────────────────────────────────────────────────
+    React.createElement(EliminaModal, {
+      open: !!elimina,
+      ragioneSociale: elimina?.ragioneSociale || '',
+      onConfirm: handleEliminaConfirm,
+      onCancel: () => setElimina(null),
+    })
+  );
+}
+
+function Root() {
+  return React.createElement(ConfigProvider, { theme: window.GRAVITY_THEME },
+    React.createElement(App, null,
+      React.createElement(AppRoot)
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Root));
+</script>
+</body>
+</html>
