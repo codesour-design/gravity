@@ -64,6 +64,7 @@ window.GRAVITY_PROTOTYPES = {
   'user-profile': {
     label: 'Profilo utente', status: 'in-progress',
     entry: 'user-profile/index.html',
+    handoff: 'user-profile/index--handoff.html',
   },
   'inventory-map': {
     label: 'Inventario mappa', status: 'in-progress',

@@ -507,4 +507,13 @@
   }
 
   window.GravityNavbar = GravityNavbar;
+
+  // Dati di navigazione esposti per le pagine che NON possono usare <GravityNavbar>
+  // (es. user-profile, che ha una navbar con menu avatar proprio): così ruoli, voci,
+  // etichette e link restano in un solo posto. Vedi components/navbar.md.
+  window.GravityNavData = {
+    ROLES: ROLES, ROLE_NAV: ROLE_NAV, ROLE_ITEMS: ROLE_ITEMS, NAV: NAV,
+    SECTION_LABEL: SECTION_LABEL, ITEM_LABEL: ITEM_LABEL, ROLE_USER: ROLE_USER,
+    registryLinks: registryLinks,
+  };
 }());

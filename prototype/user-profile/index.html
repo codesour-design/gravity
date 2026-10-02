@@ -23,10 +23,43 @@
   <!-- Registro prototipi — risolve i link di menu (vedi NAV, replica pattern navbar.js) -->
   <script src="../_shared/registry.js"></script>
 
+  <!-- Dati di navigazione condivisi (ruoli, voci, link): window.GravityNavData -->
+  <script src="../_shared/navbar.js"></script>
+  <!-- Dati Portafoglio (revisioni): la card "Anagrafiche da verificare" è allineata al Portafoglio commerciale -->
+  <script src="../_shared/portafoglio-data.js"></script>
+
+  <!-- Mappa (V2): Leaflet + moduli condivisi marker/popover -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="../_shared/map-interactions.js"></script>
+  <script src="../_shared/map-popover.js"></script>
+
+  <!-- Loader handoff: attivo solo con ?handoff (le note di design con la tazzina compaiono solo lì) -->
+  <script>
+    (function () {
+      var CONFIGS  = { v1: './handoff-steps.js', v2: './handoff-steps-v2.js' };
+      var APPROVED = 'v1';
+      window.__PROFILE_UI_VERSION = APPROVED;
+      var params = new URLSearchParams(location.search);
+      if (!params.has('handoff')) return;
+      var v = (params.get('handoff') || APPROVED).toLowerCase();
+      var cfg = CONFIGS[v] || CONFIGS[APPROVED];
+      window.__PROFILE_UI_VERSION = CONFIGS[v] ? v : APPROVED;
+      window.__HANDOFF_ACTIVE = true;
+      document.write('<scr' + 'ipt src="' + cfg + '"></scr' + 'ipt>');
+    })();
+  </script>
+
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; background: #f5f5f5; }
 
+    /* Infobox mappa impianti (stesso stile del Parco Impianti) */
+    .ss-map-infobox { position: absolute; bottom: 40px; left: 16px; background: rgba(255,255,255,0.98); border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.06); z-index: 400; width: 244px; overflow: hidden; }
+    .ss-infobox-header { padding: 14px 16px 12px; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+    .ss-infobox-count { font-size: 40px; font-weight: 700; color: rgba(0,0,0,0.88); line-height: 1; letter-spacing: -1px; }
+    .ss-infobox-count-label { font-size: 12px; font-weight: 400; color: rgba(0,0,0,0.4); }
     /* Navbar: menu orizzontale altezza fissa — stesso pattern di navbar.js */
     .gv-nav-menu.ant-menu-horizontal { border-bottom: none !important; height: 64px !important; line-height: 64px !important; }
     .gv-nav-menu.ant-menu-horizontal > .ant-menu-item,
@@ -73,7 +106,7 @@
 window.applyGravityTokens();
 
 // ── Globals ──────────────────────────────────────────────────────────────────
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef, useMemo } = React;
 const {
   ConfigProvider, App, Layout, Space, Typography,
   Button, Avatar, Upload, Modal, Form, Input, Select, Card, Tag,
@@ -87,17 +120,8 @@ const {
 } = icons;
 const { Title, Text } = Typography;
 
-// ── Dati navigazione (replica pattern navbar.js) ─────────────────────────────
-
-const ROLES = ['Tenant Admin', 'Inventory Manager', 'Operation Manager', 'Planner', 'Sales'];
-
-const ROLE_NAV = {
-  'Tenant Admin':      ['Overview', 'Inventory', 'Commercial', 'Delivery', 'Settings'],
-  'Inventory Manager': ['Overview', 'Inventory'],
-  'Operation Manager': ['Overview', 'Inventory', 'Commercial', 'Delivery'],
-  'Planner':           ['Overview', 'Inventory', 'Delivery'],
-  'Sales':             ['Commercial', 'Delivery'],
-};
+// ── Dati navigazione — da navbar.js (unica fonte di verità, vedi components/navbar.md) ──
+const { ROLES, ROLE_NAV, ROLE_ITEMS, NAV, SECTION_LABEL, ITEM_LABEL, ROLE_USER } = window.GravityNavData;
 
 // Mode-aware come navbar.js (vedi components/navbar.md → "Link mode-aware"): se
 // questa pagina è stata raggiunta in modalità handoff (login da /handoff, vedi
@@ -105,49 +129,15 @@ const ROLE_NAV = {
 // ne ha uno, altrimenti ricadono sul pulito.
 const isHandoff = new URLSearchParams(location.search).has('handoff');
 
+// Le note di design (icona Coffee rossa) si vedono SOLO in modalità handoff (v1 e successive),
+// mai nella pagina pulita index.html.
+const SHOW_DESIGN_NOTES = !!window.__HANDOFF_ACTIVE;
+
 // Esplicita la modalità nel titolo della scheda browser, come navbar.js.
 document.title += isHandoff ? ' · Handoff' : ' · Demo';
 
-function regLink(key) {
-  const p = (window.GRAVITY_PROTOTYPES || {})[key];
-  if (!p) return undefined;
-  const page = (isHandoff && p.handoff) ? p.handoff : p.entry;
-  return page ? '../' + page : undefined;
-}
-
-const NAV = {
-  Overview:   { items: ['Per te', 'Dashboard finance', 'Dashboard analytics'],
-                links: { 'Per te': './index.html' } },
-  Inventory:  { items: ['Systems', 'Licenses', 'Supplier'],
-                links: { Systems: regLink('inventory-systems') } },
-  Commercial: { items: ['Wallet', 'Activities', 'Negotiations', 'Orders'],
-                links: { Negotiations: regLink('negotiations') } },
-  Delivery:   { items: ['Campaigns', 'Plannings', 'Collections'],
-                links: { Plannings: regLink('planning'), Collections: regLink('poi-collections') } },
-  Settings:   { items: ['Users', 'Tenants'], links: {} },
-};
-
-const SECTION_LABEL = {
-  Overview: 'Panoramica', Inventory: 'Inventario', Commercial: 'Commerciale',
-  Delivery: 'Espletamento', Settings: 'Impostazioni',
-};
-
-const ITEM_LABEL = {
-  'Per te': 'Per te',
-  'Dashboard finance': 'Dashboard Finance', 'Dashboard analytics': 'Dashboard Analytics',
-  'Systems': 'Impianti', 'Licenses': 'Permessi', 'Supplier': 'Fornitori',
-  'Wallet': 'Portafoglio', 'Activities': 'Attività', 'Negotiations': 'Trattative', 'Orders': 'Ordini',
-  'Campaigns': 'Campagne', 'Plannings': 'Pianificazioni', 'Collections': 'Collezioni POI',
-  'Users': 'Utenti', 'Tenants': 'Tenant',
-};
-
-const ROLE_USER = {
-  'Tenant Admin':      { nome: 'Sofia',   cognome: 'Marchetti' },
-  'Inventory Manager': { nome: 'Tommaso', cognome: 'Ferrara'   },
-  'Operation Manager': { nome: 'Davide',  cognome: 'Serra'     },
-  'Planner':           { nome: 'Giulia',  cognome: 'Romano'    },
-  'Sales':             { nome: 'Lorenzo', cognome: 'Bianchi'   },
-};
+// Link dei prototipi: derivati dal registro come in navbar.js (mode-aware); "Per te" è questa pagina.
+const NAV_LINKS = Object.assign({}, window.GravityNavData.registryLinks(), { 'Overview/Per te': './index.html' + (isHandoff ? location.search : '') });
 
 const AVATAR_PALETTE = [
   { bg: '#F0EAFF', fg: '#3E00FB' },
@@ -313,10 +303,36 @@ const OM_PREVENTIVI = _omBuild(14, (k) => {
   };
 });
 
+// Link al Portafoglio commerciale (card "Anagrafiche da verificare"). In handoff mantiene la stessa
+// versione di questa pagina (V1 → portafoglio v1, V2 → portafoglio v2, dove c'è la vista Operation Manager).
+const PORTAFOGLIO_HREF = (() => {
+  const p = (window.GRAVITY_PROTOTYPES || {})['portafoglio'];
+  if (!p) return undefined;
+  // ?tab=revisione apre direttamente la tab "Da revisionare" (vista Operation Manager, v2)
+  return isHandoff ? '../portafoglio/index.html?handoff=' + window.__PROFILE_UI_VERSION + '&tab=revisione' : '../' + p.entry + '?tab=revisione';
+})();
+
 // Anagrafiche da verificare (23) — dati incompleti (spesso solo nome insegna)
 const _anaMiss = ['P.IVA mancante', 'PEC e codice univoco assenti', 'sede legale incompleta', 'codice fiscale da inserire', 'solo recapito telefonico — ragione sociale da verificare', 'IBAN e condizioni di pagamento assenti'];
 const _anaTime = ['1 ora fa', '2 ore fa', '3 ore fa', 'oggi', 'ieri', '2 gg fa', '3 gg fa', '4 gg fa', '5 gg fa'];
-const OM_ANAGRAFICHE = [
+// V2: le anagrafiche derivano dalle revisioni del Portafoglio commerciale (stessa fonte dati, quindi
+// stesso numero della tab "Da revisionare"); V1 resta sui dati di esempio.
+const _anaFromPortafoglio = () => {
+  const P = window.GravityPortafoglio;
+  const today = dayjs().startOf('day');
+  const rel = (iso) => { const d = today.diff(dayjs(iso), 'day'); return d <= 0 ? 'oggi' : d === 1 ? 'ieri' : d + ' gg fa'; };
+  return P.allRevisioni(P.load('v2'))
+    .sort((a, b) => (b.data || '').localeCompare(a.data || ''))
+    .map((it) => ({
+      title: it.label + ' — ' + it.inserzionista.ragioneSociale + (it.soggetto ? ' · ' + it.soggetto : ''),
+      desc: 'Richiesto da ' + it.richiestoDa + ' · ' + P.formatData(it.data),
+      time: rel(it.data),
+      priority: it.stato === 'in_attesa' ? 'high' : 'medium',
+      category: 'Anagrafiche',
+      href: PORTAFOGLIO_HREF,
+    }));
+};
+const OM_ANAGRAFICHE = window.__PROFILE_UI_VERSION === 'v2' ? _anaFromPortafoglio() : [
   { title: 'Completa anagrafica — BrandX S.r.l.', desc: 'P.IVA e sede legale incomplete', time: '2 ore fa', priority: 'high', category: 'Anagrafiche' },
   ..._omBuild(22, (k) => ({ title: 'Completa anagrafica — ' + _pick(_omClienti, k), desc: _pick(_anaMiss, k), time: _pick(_anaTime, k), priority: k < 3 ? 'high' : k < 13 ? 'medium' : 'low', category: 'Anagrafiche' })),
 ];
@@ -363,7 +379,7 @@ const ROLE_METRICS = {
   ],
   // Vista di riferimento — dati esatti da Figma Make (5 metriche operative)
   'Operation Manager': [
-    { label: 'Anagrafiche da verificare',  value: _omCount('Anagrafiche'),  trend: 'da completare',        trendUp: false, icon: 'IdcardOutlined',       action: 'Vai a Portafoglio commerciale', designNote: 'App e flusso commerciale propedeutici per questa card.' },
+    { label: 'Anagrafiche da verificare',  value: _omCount('Anagrafiche'),  trend: 'da completare',        trendUp: false, icon: 'IdcardOutlined',       action: 'Vai a Portafoglio commerciale', href: PORTAFOGLIO_HREF, designNote: 'App e flusso commerciale propedeutici per questa card.' },
     { label: 'Inserzionisti da assegnare', value: _omCount('Assegnazioni'), trend: 'lead da smistare',     trendUp: false, icon: 'UsergroupAddOutlined', action: 'Assegna Inserzionista', disabled: true, popover: 'Wizard da definire', designNote: 'App e flusso commerciale propedeutici per questa card. Casistica: accade quando arrivano lead da sito, media monitor o altre situazioni in cui si verifica il caso di anagrafiche inserzionisti che non hanno agenti commerciali assegnati. Necessaria review modello dati Inserzionisti.' },
     { label: 'Pagamenti scaduti',          value: _omCount('Pagamenti'),    trend: 'azione richiesta',     trendUp: false, icon: 'CreditCardOutlined',   action: 'Vai a ordini', designNote: 'Necessario redesign ordini con plausibile integrazione ERP per stato pagamenti e ampliamento modello dati attuale. Nuova funzionalità necessaria: recupero crediti.' },
     { label: 'Preventivi da approvare',    value: _omCount('Preventivi'),   trend: 'intervento operation', trendUp: false, icon: 'FileTextOutlined',     action: 'Vai a preventivi', disabled: true, popover: 'Work in progress, sprint imminenti', designNote: 'Necessario rivedere flusso preventivi come conseguenza del redesign del flusso trattative.' },
@@ -650,8 +666,11 @@ function GravityNavbarTenant({ role, onRoleChange, tenantKey, onTenantChange, te
     return {
       key: sec,
       label: SECTION_LABEL[sec] || sec,
-      children: conf.items.map((item) => {
-        const link = conf.links[item];
+      children: conf.items.filter((item) => {
+        const allowed = (ROLE_ITEMS[role] || {})[sec];
+        return !allowed || allowed.indexOf(item) !== -1;
+      }).map((item) => {
+        const link = NAV_LINKS[sec + '/' + item];
         const lbl  = ITEM_LABEL[item] || item;
         return {
           key: sec + '/' + item,
@@ -731,7 +750,8 @@ function GravityNavbarTenant({ role, onRoleChange, tenantKey, onTenantChange, te
 
     // Destra: campana | avatar (role switcher) + tenant switcher
     h('div', { style: { display: 'flex', alignItems: 'center', gap: 16, padding: '0 80px', flexShrink: 0 } },
-      h(BellOutlined, { style: { fontSize: 18, color: 'rgba(0,0,0,0.45)', cursor: 'pointer' } }),
+      h('span', { id: 'gravity-bell-btn', style: { display: 'inline-flex' } },
+        h(BellOutlined, { style: { fontSize: 18, color: 'rgba(0,0,0,0.45)', cursor: 'pointer' } })),
       h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
         h(Dropdown, { menu: { items: avatarMenuItems }, trigger: ['click'], placement: 'bottom' },
           avatarSrc
@@ -936,7 +956,7 @@ function MetricCard({ label, value, icon, action, href, disabled, popover, desig
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 8px' } },
       React.createElement(Ico, { style: { color: 'rgba(0,0,0,0.88)', fontSize: 16, flexShrink: 0 } }),
       React.createElement(Text, { strong: true, ellipsis: true, style: { fontSize: 14, flex: 1 } }, label),
-      designNote && React.createElement(Popover, {
+      designNote && SHOW_DESIGN_NOTES && React.createElement(Popover, {
         trigger: 'hover', placement: 'top',
         content: React.createElement('div', { style: { maxWidth: 280 } },
           React.createElement('div', { style: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#FF4A1C', marginBottom: 6 } }, 'Nota di design'),
@@ -1017,6 +1037,7 @@ function ProductCard({ name, desc, color, icon }) {
 // Nota di design dell'area app (riusa l'icona Coffee rossa delle KPI).
 // Il popover contiene la spiegazione + il button che nasconde l'area.
 function AppsDesignNote({ onHide, appsView, onToggleView }) {
+  if (!SHOW_DESIGN_NOTES) return null;
   return React.createElement(Popover, {
     trigger: 'hover', placement: 'bottomLeft',
     content: React.createElement('div', { style: { maxWidth: 340 } },
@@ -1138,11 +1159,13 @@ function DeadlineCalendar({ role }) {
 function ProductsSection({ role, onHide, appsView, onToggleView }) {
   const allowed = ROLE_APPS[role] || [];
   const apps = PRODUCTS.filter((p) => allowed.includes(p.name));
-  const calendar = appsView === 'calendar';
+  // V2: "Le tue app" è spenta, al suo posto resta solo la vista Scadenze (calendario).
+  const isV2 = window.__PROFILE_UI_VERSION === 'v2';
+  const calendar = isV2 || appsView === 'calendar';
   return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, width: '100%' } },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
       React.createElement(Title, { level: 4, style: { margin: 0 } }, calendar ? 'Scadenze' : 'Le tue app'),
-      React.createElement(AppsDesignNote, { onHide, appsView, onToggleView })
+      !isV2 && React.createElement(AppsDesignNote, { onHide, appsView, onToggleView })
     ),
     calendar
       ? React.createElement(Card, { bordered: false, style: { border: '1px solid #f0f0f0', borderRadius: 10, background: '#fff' }, styles: { body: { padding: 16 } } },
@@ -1274,10 +1297,340 @@ function TaskColumn({ tasks, label }) {
   );
 }
 
+// ── Mappa impianti (V2 · Operation Manager e Sales) ───────────────────────────
+// Stessa mappa della vista "Commerciale" del Parco Impianti (inventory-systems): marker per
+// stato commerciale, cluster, card al click, infobox con conteggi/filtro per stato e
+// periodo di consultazione (RangePicker). In più, solo gli impianti dell'area di competenza.
+// Niente drawer con lista. Dati: mock locale (strade/coordinate coerenti con il Planning,
+// più qualche zona fuori area — Catania, Messina, Siracusa — per mostrare il filtro).
+const MAP_ROLES = ['Operation Manager', 'Sales'];
+const PROVINCE_CODE = { Palermo: 'PA', Trapani: 'TP', Agrigento: 'AG', Caltanissetta: 'CL' };
+// Stato commerciale (come inventory-systems): etichette italiane, colori LAYOUT.md §6.3
+const STATO_COMM = {
+  'Disponibile': { key: 'Available', label: 'Disponibile', dot: '#52C41A', file: 'available' },
+  'In Opzione':  { key: 'In Option', label: 'In Opzione',  dot: '#EB2F96', file: 'inOption'  },
+  'Riservato':   { key: 'Reserved',  label: 'Riservato',   dot: '#1677FF', file: 'reserved'  },
+};
+const MAP_PHOTOS = [
+  '../_shared/assets/system-photos/6x3-poster-asti-1024x731.jpg',
+  '../_shared/assets/system-photos/Affissioni-poster-Milano.jpg',
+  '../_shared/assets/system-photos/Pescara_Piccola.jpg',
+  '../_shared/assets/system-photos/Realizzazione-Grandi-Impianti-pubblicitari-e-Cartellonistica-Lecce-scaled.jpg',
+  '../_shared/assets/system-photos/quali-sono-le-regole-del-codice-della-strada-per-la-pubblicita-lungo-le-strade-e-sui-veicoli.jpg',
+];
+const MAP_FORMATS = {
+  'Palina': '120×176 cm', 'Cartello': '140×200 cm', 'Pensilina': '120×176 cm', 'Cassonetto': '120×176 cm',
+  'Fermata Bus': '120×176 cm', 'Stendardo': '70×200 cm', 'Palo Luce': '60×140 cm', 'Fioriera': '100×50 cm',
+  'Billboard': '6×3 m', 'Alux': '4×3 m', 'Totem': '55×100 cm',
+};
+
+const MAP_SYSTEMS = (() => {
+  const OOH = ['Palina','Palina','Cartello','Cartello','Pensilina','Cassonetto','Fermata Bus','Stendardo','Palo Luce','Fioriera'];
+  const DOOH = ['Billboard','Billboard','Alux','Totem'];
+  const STATES = ['Disponibile','Disponibile','Disponibile','Disponibile','Disponibile','In Opzione','In Opzione','Riservato','Riservato'];
+  // [via, lat1, lng1, lat2, lng2, n, città, provincia, canale]
+  const ZONES = [
+    ['Via della Libertà',      38.1196, 13.3570, 38.1490, 13.3408, 7, 'Palermo', 'PA', 'DOOH'],
+    ['Via Roma',               38.1079, 13.3662, 38.1182, 13.3641, 6, 'Palermo', 'PA', 'DOOH'],
+    ['Via Maqueda',            38.1065, 13.3608, 38.1212, 13.3545, 6, 'Palermo', 'PA', 'DOOH'],
+    ['Corso V. Emanuele',      38.1120, 13.3452, 38.1112, 13.3710, 6, 'Palermo', 'PA', 'OOH'],
+    ['Via Notarbartolo',       38.1292, 13.3468, 38.1400, 13.3432, 6, 'Palermo', 'PA', 'OOH'],
+    ['Corso Calatafimi',       38.1075, 13.3440, 38.0882, 13.3148, 6, 'Palermo', 'PA', 'OOH'],
+    ['Via Oreto',              38.1062, 13.3558, 38.0988, 13.3628, 5, 'Palermo', 'PA', 'OOH'],
+    ['Via Fardella',           37.9782, 12.6048, 37.9865, 12.6148, 5, 'Trapani', 'TP', 'DOOH'],
+    ['Corso V. Emanuele',      37.9688, 12.5928, 37.9710, 12.6062, 5, 'Trapani', 'TP', 'OOH'],
+    ['Viale delle Sirene',     37.7985, 12.4298, 37.8042, 12.4390, 5, 'Marsala', 'TP', 'DOOH'],
+    ['Via XI Maggio',          37.7978, 12.4362, 37.8012, 12.4428, 4, 'Marsala', 'TP', 'OOH'],
+    ['Via Atenea',             37.3102, 13.5748, 37.3128, 13.5812, 5, 'Agrigento', 'AG', 'DOOH'],
+    ['Viale della Vittoria',   37.3068, 13.5682, 37.3102, 13.5748, 5, 'Agrigento', 'AG', 'OOH'],
+    ['Corso V. Emanuele',      37.4905, 14.0608, 37.4940, 14.0678, 5, 'Caltanissetta', 'CL', 'DOOH'],
+    ['Via Turati',             37.4882, 14.0530, 37.4920, 14.0595, 4, 'Caltanissetta', 'CL', 'OOH'],
+    // Fuori area di competenza (Sicilia Occidentale)
+    ['Via Etnea',              37.5079, 15.0830, 37.5200, 15.0860, 6, 'Catania', 'CT', 'DOOH'],
+    ['Corso Italia',           37.5170, 15.0800, 37.5210, 15.0925, 5, 'Catania', 'CT', 'OOH'],
+    ['Via Garibaldi',          38.1860, 15.5560, 38.2000, 15.5530, 5, 'Messina', 'ME', 'OOH'],
+    ['Viale Teocrito',         37.0770, 15.2800, 37.0810, 15.2720, 4, 'Siracusa', 'SR', 'OOH'],
+  ];
+  const out = [];
+  let n = 1;
+  ZONES.forEach(([street, la1, ln1, la2, ln2, count, city, province, channel]) => {
+    for (let i = 0; i < count; i++, n++) {
+      const t = (i + 0.5) / count;
+      const types = channel === 'DOOH' ? DOOH : OOH;
+      const type = types[(n * 3 + i * 7) % types.length];
+      out.push({
+        id: 'SYS-' + String(n).padStart(3, '0'),
+        code: channel + '-' + String(n).padStart(3, '0'),
+        canale: channel, province, city, tipo: type,
+        indirizzo: street + ', ' + (4 + (i * 13 + n * 3) % 180),
+        zona: city + ' (' + province + ')',
+        formato: MAP_FORMATS[type] || '—',
+        foto: MAP_PHOTOS[n % MAP_PHOTOS.length],
+        lat: +(la1 + t * (la2 - la1)).toFixed(6),
+        lng: +(ln1 + t * (ln2 - ln1)).toFixed(6),
+        stato: STATES[(n * 7 + i * 11) % STATES.length],
+      });
+    }
+  });
+  return out;
+})();
+
+// Dimensione marker per zoom (stessa scala del Parco Impianti)
+function mapMarkerSize(zoom) {
+  const z = Math.min(Math.max(Math.round(zoom || 10), 0), 16);
+  if (z <= 11) return [18, 27];
+  if (z === 12) return [20, 30];
+  if (z === 13) return [24, 36];
+  if (z === 14) return [28, 42];
+  if (z === 15) return [34, 51];
+  return [40, 60];
+}
+function mapMarkerIcon(src, zoom, flags) {
+  const f = flags || {};
+  let [w, h] = mapMarkerSize(zoom);
+  if (f.isFocused)      { w = Math.round(w * 1.4);  h = Math.round(h * 1.4); }
+  else if (f.isHovered) { w = Math.round(w * 1.12); h = Math.round(h * 1.12); }
+  const svgContent = window.GravityMap.getCachedSvg(src);
+  let iconUrl = src;
+  if (svgContent) {
+    const vb = /viewBox="([^"]*)"/i.exec(svgContent);
+    const inner = svgContent.replace(/<\?xml[^>]*\?>\s*/i, '').replace(/<svg[^>]*>/i, '').replace(/<\/svg>\s*$/i, '');
+    const defs = f.isFocused ? '<defs><filter id="fs" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#3E00FB" flood-opacity="0.5"/></filter></defs>' : '';
+    const wrapped = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="' + (vb ? vb[1] : '0 0 78 120') + '">' +
+      defs + '<g ' + (f.isFocused ? 'filter="url(#fs)"' : '') + '>' + inner + '</g></svg>';
+    iconUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(wrapped);
+  }
+  return L.icon({ iconUrl, iconSize: [w, h], iconAnchor: [Math.round(w / 2), Math.round(h * 0.92)] });
+}
+
+function SystemsMap() {
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const layerRef = useRef(null);
+  const [tick, setTick] = useState(0);              // ridisegno a ogni zoom/spostamento
+  const [cardId, setCardId] = useState(null);       // impianto con card aperta
+  const [cardReady, setCardReady] = useState(false); // card visibile solo a fine zoom
+  const [cardPx, setCardPx] = useState(null);
+  const [statoFilter, setStatoFilter] = useState([]);   // etichette stato commerciale
+  // Periodo di consultazione: default ultimi 14 giorni (oggi incluso), come nel Parco Impianti
+  const [dateRange, setDateRange] = useState(() => [dayjs().subtract(13, 'day').startOf('day'), dayjs().startOf('day')]);
+  const rangeStartKey = dateRange[0].format('YYYY-MM-DD');
+
+  const codes = COMPETENCY.provinces.map((p) => PROVINCE_CODE[p]).filter(Boolean);
+  // Impianti dell'area di competenza; per periodi che iniziano dopo oggi, opzioni e riserve in
+  // scadenza tornano disponibili (mock deterministico per impianto/data, come inventory-systems).
+  const base = useMemo(() => {
+    const daysAhead = dateRange[0].diff(dayjs().startOf('day'), 'day');
+    return MAP_SYSTEMS.filter((s) => codes.indexOf(s.province) !== -1).map((s) => {
+      if (daysAhead <= 0 || s.stato === 'Disponibile') return s;
+      const h = (parseInt(s.id.replace(/\D/g, ''), 10) || 0) + daysAhead;
+      return h % 3 === 0 ? Object.assign({}, s, { stato: 'Disponibile' }) : s;
+    });
+  }, [rangeStartKey]);
+  // Conteggi per stato ignorando il filtro stato (altrimenti selezionandone uno gli altri andrebbero a 0)
+  const statoCounts = useMemo(() => {
+    const c = {};
+    base.forEach((s) => { c[s.stato] = (c[s.stato] || 0) + 1; });
+    return c;
+  }, [base]);
+  const shown = useMemo(() => base.filter((s) => !statoFilter.length || statoFilter.indexOf(s.stato) !== -1), [base, statoFilter]);
+  const items = useMemo(() => shown.map((s) => ({ id: s.id, position: { lat: s.lat, lng: s.lng }, sys: s })), [shown]);
+  const itemsRef = useRef(items); itemsRef.current = items;
+  const cardRef = useRef(null); cardRef.current = cardId;
+  const srcOf = (s) => window.GravityMap.markerSrc(s.tipo, STATO_COMM[s.stato].file, s.canale);
+  const card = cardId ? base.find((s) => s.id === cardId) : null;
+
+  const recalcCardPx = () => {
+    const map = mapRef.current;
+    const s = cardRef.current && itemsRef.current.find((it) => it.id === cardRef.current);
+    if (!map || !s) { setCardPx(null); return; }
+    const pt = map.latLngToContainerPoint([s.position.lat, s.position.lng]);
+    const markerH = Math.round(mapMarkerSize(map.getZoom())[1] * 1.4);
+    setCardPx({ x: Math.floor(pt.x), markerY: Math.floor(pt.y), markerH });
+  };
+
+  // Init mappa (una volta)
+  useEffect(() => {
+    if (mapRef.current || !containerRef.current || !window.L) return;
+    const map = L.map(containerRef.current, { zoomControl: true, attributionControl: false });
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16 }).addTo(map);
+    layerRef.current = L.layerGroup().addTo(map);
+    // Si apre inquadrando l'area di competenza (solo gli impianti in area)
+    map.fitBounds(L.latLngBounds(itemsRef.current.map((it) => [it.position.lat, it.position.lng])), { padding: [24, 24] });
+    map.on('zoomend moveend', () => setTick((n) => n + 1));
+    map.on('move', recalcCardPx);
+    mapRef.current = map;
+    return () => { map.remove(); mapRef.current = null; };
+  }, []);
+
+  // Periodo o filtro cambiati: chiude la card
+  useEffect(() => { setCardId(null); }, [rangeStartKey, statoFilter]);
+
+  // Marker + cluster (motore condiviso GravityMap, soglia decluster a zoom 15)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    let cancelled = false;
+    const GM = window.GravityMap;
+    const allSrcs = [];
+    MAP_SYSTEMS.forEach((s) => Object.keys(STATO_COMM).forEach((k) => allSrcs.push(GM.markerSrc(s.tipo, STATO_COMM[k].file, s.canale))));
+    GM.preloadAll([...new Set(allSrcs)]).then(() => {
+      if (cancelled || !mapRef.current) return;
+      layerRef.current.clearLayers();
+      const zoom = map.getZoom();
+      const res = GM.computeGridClusters(map, items);
+      const hasFocus = !!cardId;
+      res.clusters.forEach((c) => {
+        const mk = (hovered) => { const g = GM.makeClusterSvg(c.members.length, { hovered }); return L.icon({ iconUrl: g.url, iconSize: [g.size, g.size], iconAnchor: [g.size / 2, g.size / 2] }); };
+        const cm = L.marker([c.center.lat, c.center.lng], { icon: mk(false), zIndexOffset: 1000 + c.members.length });
+        cm.on('click', () => GM.fitBoundsToMembers(map, c.members, { padding: 40 }));
+        cm.on('mouseover', () => cm.setIcon(mk(true)));
+        cm.on('mouseout',  () => cm.setIcon(mk(false)));
+        cm.addTo(layerRef.current);
+      });
+      res.members.forEach((it) => {
+        const isFocused = it.id === cardId;
+        const flags = (extra) => Object.assign({ isFocused }, extra);
+        const mk = L.marker([it.position.lat, it.position.lng], {
+          icon: mapMarkerIcon(srcOf(it.sys), zoom, flags()),
+          opacity: hasFocus && !isFocused ? 0.3 : 1,
+          zIndexOffset: isFocused ? 2000 : 1,
+        });
+        mk.on('mouseover', () => { if (!isFocused) mk.setIcon(mapMarkerIcon(srcOf(it.sys), zoom, flags({ isHovered: true }))); });
+        mk.on('mouseout',  () => { mk.setIcon(mapMarkerIcon(srcOf(it.sys), zoom, flags())); });
+        mk.on('click', () => setCardId(it.id));
+        mk.addTo(layerRef.current);
+      });
+    });
+    return () => { cancelled = true; };
+  }, [tick, cardId, items]);
+
+  // Click su marker: zoom/pan sul marker (con offset per lasciare spazio alla card); la card
+  // compare a fine movimento.
+  useEffect(() => {
+    const map = mapRef.current;
+    setCardReady(false);
+    if (!map || !cardId) return;
+    const s = itemsRef.current.find((it) => it.id === cardId);
+    if (!s) return;
+    const targetZoom = map.getZoom() < 15 ? 16 : map.getZoom();
+    const h = containerRef.current ? containerRef.current.clientHeight : 0;
+    const pt = map.project(L.latLng(s.position.lat, s.position.lng), targetZoom);
+    map.setView(map.unproject(L.point(pt.x, pt.y + h * 0.26), targetZoom), targetZoom);
+    const show = () => { recalcCardPx(); setCardReady(true); };
+    map.once('moveend', show);
+    const t = setTimeout(show, 600);
+    return () => { map.off('moveend', show); clearTimeout(t); };
+  }, [cardId]);
+
+  const toggleStato = (label) => setStatoFilter((prev) => prev.indexOf(label) !== -1 ? prev.filter((x) => x !== label) : prev.concat(label));
+  const { Tag, DatePicker } = antd;
+  const CHANNEL_TAG = {
+    DOOH: { margin: 0, fontSize: 12, color: '#C41D7F', background: '#FFF0F6', border: '1px solid #FFADD2' },
+    OOH:  { margin: 0, fontSize: 12, color: '#389E0D', background: '#F6FFED', border: '1px solid #B7EB8F' },
+  };
+  const row = (Ico, label, value) => React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, lineHeight: '20px' } },
+    React.createElement(Ico, { style: { fontSize: 16, color: 'rgba(0,0,0,0.45)', flexShrink: 0 } }),
+    React.createElement('span', { style: { fontWeight: 600, color: 'rgba(0,0,0,0.88)', flexShrink: 0 } }, label + ':'),
+    React.createElement('span', { style: { fontWeight: 400, color: 'rgba(0,0,0,0.65)' } }, value));
+
+  const renderCard = () => {
+    if (!card || !cardReady || !cardPx) return null;
+    const containerH = containerRef.current ? containerRef.current.clientHeight : 0;
+    const EST_H = 190;
+    const spaceBelow = containerH - cardPx.markerY - 8;
+    const flip = spaceBelow >= EST_H || spaceBelow >= cardPx.markerY;   // true = card sotto il marker
+    const rawTop = flip ? cardPx.markerY + 4 : cardPx.markerY - cardPx.markerH - 4;
+    const top = containerH
+      ? (flip ? Math.max(8, Math.min(rawTop, containerH - EST_H - 8)) : Math.max(EST_H + 8, Math.min(rawTop, containerH - 8)))
+      : rawTop;
+    const st = STATO_COMM[card.stato];
+    return React.createElement('div', {
+      style: {
+        position: 'absolute', left: cardPx.x, top, transform: 'translate(-50%,' + (flip ? '0' : '-100%') + ')',
+        zIndex: 500, width: 380, borderRadius: 8, border: '1px solid #f0f0f0', background: '#fff',
+        boxShadow: '0 8px 32px rgba(62,0,251,0.18), 0 2px 8px rgba(0,0,0,0.10)', overflow: 'hidden',
+      },
+      onClick: (e) => e.stopPropagation(),
+    },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 10px 8px 12px', borderBottom: '1px solid #f0f0f0' } },
+        React.createElement('span', { style: { fontSize: 16, fontWeight: 600, color: 'rgba(0,0,0,0.88)', lineHeight: '24px' } }, card.code),
+        React.createElement(Button, { type: 'text', size: 'small', icon: React.createElement(icons.CloseOutlined, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } }), onClick: () => setCardId(null) })
+      ),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'stretch' } },
+        React.createElement('div', { style: { width: 160, flexShrink: 0, overflow: 'hidden' } },
+          React.createElement('img', { src: card.foto, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } })),
+        React.createElement('div', { style: { flex: 1, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '1px solid #f0f0f0', minWidth: 0 } },
+          React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
+            React.createElement(Tag, { style: CHANNEL_TAG[card.canale] }, card.canale),
+            React.createElement(Tag, {
+              icon: window.GravityMap.systypeIconSrc(card.tipo, card.canale)
+                ? React.createElement('img', { src: window.GravityMap.systypeIconSrc(card.tipo, card.canale), style: { width: 12, height: 12, verticalAlign: 'middle', marginRight: 4 } }) : undefined,
+              style: { margin: 0, fontSize: 12, color: 'rgba(0,0,0,0.65)', background: '#fff', border: '1px solid #d9d9d9' },
+            }, card.tipo)),
+          React.createElement('div', null,
+            React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.65)', lineHeight: '20px' } }, card.indirizzo),
+            React.createElement('div', { style: { fontSize: 12, color: 'rgba(0,0,0,0.45)', lineHeight: '20px' } }, card.zona)),
+          React.createElement('div', { style: { height: 1, background: '#f0f0f0' } }),
+          React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 7 } },
+            row(icons.ExpandOutlined, 'Formato', card.formato),
+            row(icons.ThunderboltOutlined, 'Stato', React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
+              React.createElement('span', { style: { width: 8, height: 8, borderRadius: '50%', background: st.dot } }), st.label))))),
+      React.createElement('div', { style: { borderTop: '1px solid #f0f0f0', padding: '8px 12px', display: 'flex', justifyContent: 'flex-end' } },
+        React.createElement(Button, {
+          icon: React.createElement(icons.EyeOutlined, { style: { fontSize: 12 } }),
+          onClick: () => { window.location.href = '../inventory-systems/index.html?sys=' + card.id + (isHandoff ? '&handoff' : ''); },
+        }, 'Vai al dettaglio'))
+    );
+  };
+
+  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 12, width: '100%' } },
+    // Contesto: area di competenza + periodo di consultazione
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 } },
+      React.createElement('div', { style: { fontSize: 13 } },
+        React.createElement('span', { style: { color: 'rgba(0,0,0,0.45)' } }, 'Area di competenza: '),
+        React.createElement('strong', { style: { color: 'rgba(0,0,0,0.88)' } }, COMPETENCY.area)),
+      React.createElement(DatePicker.RangePicker, {
+        value: dateRange, format: 'DD/MM/YYYY', allowClear: false, style: { width: 290 },
+        onChange: (v) => { if (v && v[0] && v[1]) setDateRange([v[0].startOf('day'), v[1].startOf('day')]); },
+        presets: [
+          { label: 'Ultimi 14 giorni',   value: [dayjs().subtract(13, 'day'), dayjs()] },
+          { label: 'Prossimi 14 giorni', value: [dayjs(), dayjs().add(13, 'day')] },
+          { label: 'Prossimi 30 giorni', value: [dayjs(), dayjs().add(29, 'day')] },
+        ],
+      })
+    ),
+    React.createElement('div', { style: { position: 'relative', height: 560, borderRadius: 10, overflow: 'hidden', border: '1px solid #f0f0f0' } },
+      React.createElement('div', { ref: containerRef, style: { position: 'absolute', inset: 0 } }),
+      renderCard(),
+      // Infobox in basso a sinistra: totale + stati commerciali (filtro rapido)
+      !cardId && React.createElement('div', { className: 'ss-map-infobox' },
+        React.createElement('div', { className: 'ss-infobox-header' },
+          React.createElement('div', { className: 'ss-infobox-count' }, shown.length),
+          React.createElement('div', { className: 'ss-infobox-count-label' }, 'spazi')),
+        React.createElement('div', { style: { padding: '8px 16px 12px', display: 'flex', flexDirection: 'column', gap: 6 } },
+          Object.keys(STATO_COMM).map((label) => {
+            const active = statoFilter.indexOf(label) !== -1;
+            return React.createElement('div', {
+              key: label, role: 'button', tabIndex: 0, 'aria-pressed': active,
+              title: active ? 'Rimuovi filtro ' + label : 'Filtra: ' + label,
+              onClick: () => toggleStato(label),
+              onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleStato(label); } },
+              style: { display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: '0 -8px', padding: '2px 8px', borderRadius: 4, background: active ? '#F0EAFF' : 'transparent' },
+            },
+              React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.88)', minWidth: 20 } }, statoCounts[label] || 0),
+              React.createElement('span', { style: { width: 8, height: 8, borderRadius: '50%', background: STATO_COMM[label].dot, flexShrink: 0 } }),
+              React.createElement('span', { style: { fontSize: 13, color: active ? '#3E00FB' : 'rgba(0,0,0,0.65)', fontWeight: active ? 500 : 400 } }, label));
+          })))
+    )
+  );
+}
+
 const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
 
 // Marker nota di design (icona Coffee rossa) — popover in hover. Riusato in più punti.
 function DesignNoteBulb({ note, placement }) {
+  if (!SHOW_DESIGN_NOTES) return null;
   return React.createElement(Popover, {
     trigger: 'hover', placement: placement || 'top',
     content: React.createElement('div', { style: { maxWidth: 300 } },
@@ -1290,7 +1643,7 @@ function DesignNoteBulb({ note, placement }) {
   );
 }
 
-function ActivitiesSection({ role, onSeeAll }) {
+function ActivitiesSection({ role, onSeeAll, withTabs }) {
   const all = ROLE_PENDING[role] || [];
   const studied = STUDIED_ROLES.includes(role) && all.length > 0;
 
@@ -1324,7 +1677,7 @@ function ActivitiesSection({ role, onSeeAll }) {
     // Header: titolo (+ nota di design) a sinistra, "Vedi tutte (N)" all'estrema destra
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%' } },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-        React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
+        !withTabs && React.createElement(Title, { level: 4, style: { margin: 0 } }, 'Le tue attività'),
         React.createElement(DesignNoteBulb, { placement: 'bottomLeft', note: 'Le attività sono conseguenza della realizzazione dei flussi descritti dalle card delle metriche.' })
       ),
       React.createElement(Button, { type: 'link', onClick: onSeeAll, icon: React.createElement(icons.ArrowRightOutlined, { style: { fontSize: 12 } }), iconPosition: 'end', style: { padding: 0, height: 'auto' } },
@@ -1467,7 +1820,18 @@ function AppRoot() {
       ? React.createElement(ActivitiesSection, { role, onSeeAll: () => setSeeAllOpen(true) })
       : React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start', width: '100%' } },
           React.createElement('div', { style: { flex: '1 1 0', minWidth: 320 } },
-            React.createElement(ActivitiesSection, { role, onSeeAll: () => setSeeAllOpen(true) })
+            // V2 · Operation Manager e Sales: tab Attività / Impianti (mappa) solo sopra la colonna
+            // delle attività; il calendario scadenze a destra resta sempre visibile.
+            (window.__PROFILE_UI_VERSION === 'v2' && MAP_ROLES.includes(role))
+              ? React.createElement(antd.Tabs, {
+                  defaultActiveKey: 'attivita', destroyInactiveTabPane: true,
+                  items: [
+                    { key: 'attivita', label: 'Attività',
+                      children: React.createElement(ActivitiesSection, { role, withTabs: true, onSeeAll: () => setSeeAllOpen(true) }) },
+                    { key: 'impianti', label: 'Impianti', children: React.createElement(SystemsMap) },
+                  ],
+                })
+              : React.createElement(ActivitiesSection, { role, onSeeAll: () => setSeeAllOpen(true) })
           ),
           // Area app esplorativa: nota + nascondi sull'icona Coffee del titolo
           React.createElement('div', { style: { flex: '0 1 500px', minWidth: 320 } },
@@ -1516,6 +1880,11 @@ function AppRoot() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(AppRoot));
+</script>
+
+<!-- Motore handoff — caricato solo se il loader in <head> ha attivato il layer. -->
+<script>
+  if (window.__HANDOFF_ACTIVE) document.write('<scr' + 'ipt src="../_shared/handoff.js"></scr' + 'ipt>');
 </script>
 </body>
 </html>
