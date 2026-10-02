@@ -110,6 +110,20 @@ elencata tra le sezioni del ruolo.
 Le chiavi di `GRAVITY_NAV` restano in inglese; i label mostrati sono in italiano
 (`SECTION_LABEL`/`ITEM_LABEL` in `navbar.js`).
 
+### Pagine che non usano `<GravityNavbar>` (es. `user-profile`)
+
+Se una pagina ha una navbar propria (menu avatar diverso), **non deve duplicare** ruoli, voci,
+etichette e link: li legge da `window.GravityNavData` (esposto da `navbar.js`, che va caricato
+come per gli altri prototipi):
+
+```js
+const { ROLES, ROLE_NAV, ROLE_ITEMS, NAV, SECTION_LABEL, ITEM_LABEL, ROLE_USER } = window.GravityNavData;
+const links = window.GravityNavData.registryLinks(); // chiave 'Sezione/Voce' → URL (mode-aware)
+```
+
+Un nuovo prototipo registrato in `registry.js` con il campo `nav` compare così in automatico, senza
+toccare la pagina. Ricordati di applicare `ROLE_ITEMS` (voci ristrette per ruolo, es. Sales → solo Systems).
+
 ---
 
 ## Ruoli e accesso

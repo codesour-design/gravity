@@ -27,9 +27,15 @@ Il prototipo è l'**unica fonte** — niente copie "handoff". Il layer si attiva
 Solo i prototipi collegati a una voce di navbar (campo `nav` in `registry.js`) hanno un layer
 handoff, così la navigazione mode-aware (`navbar.js`) non ricade mai sul pulito per mancanza di
 destinazione: `inventory-systems`, `planning`, `poi-collections`, `negotiations`,
-`campaign-delivery`. I prototipi senza voce di menu (`user-profile`, `single-signon`,
-`inventory-map`, `inventory-system-detail--administrative`, `app-sales`) non ne hanno: non sono
-raggiunti dalla navigazione cross-prototipo, quindi non serve un layer.
+`campaign-delivery`. I prototipi senza voce di menu (`single-signon`, `inventory-map`,
+`inventory-system-detail--administrative`, `app-sales`) non ne hanno: non sono raggiunti dalla
+navigazione cross-prototipo, quindi non serve un layer.
+
+**Eccezione — `user-profile` ("Per te")**: pur senza voce `nav` ha un layer handoff (V1 = versione
+attuale approvata, V2 in definizione), perché è la home dopo il login `/handoff`. Le note di design
+con la tazzina (Coffee rossa) sono inline nel prototipo e gated da `SHOW_DESIGN_NOTES`
+(`window.__HANDOFF_ACTIVE`): si vedono solo con `?handoff` (v1 e successive), mai in `index.html`
+pulito. Il flag di versione UI è `window.__PROFILE_UI_VERSION`.
 
 Per `poi-collections`, `negotiations` e `campaign-delivery` il layer è **solo infrastruttura**:
 `handoff-steps.js` ha `HANDOFF_TOURS = []` e `HANDOFF_META.versions` con una singola voce
