@@ -26,12 +26,14 @@
 
   <script>
     (function () {
-      var CONFIGS  = { v1: './handoff-steps.js' };
+      var CONFIGS  = { v1: './handoff-steps.js', v2: './handoff-steps-v2.js' };
       var APPROVED = 'v1';
+      window.__PORTAFOGLIO_UI_VERSION = APPROVED;
       var params = new URLSearchParams(location.search);
       if (!params.has('handoff')) return;
       var v = (params.get('handoff') || APPROVED).toLowerCase();
       var cfg = CONFIGS[v] || CONFIGS[APPROVED];
+      window.__PORTAFOGLIO_UI_VERSION = CONFIGS[v] ? v : APPROVED;
       window.__HANDOFF_ACTIVE = true;
       document.write('<scr' + 'ipt src="' + cfg + '"></scr' + 'ipt>');
     })();
@@ -69,6 +71,9 @@
     .ant-table-tbody > tr { cursor: pointer; }
 
     /* ── Row hover: occhio sul nome ─── */
+    .ant-table-expanded-row > .ant-table-cell { background: #fafafa !important; padding: 0 !important; }
+    .ant-table-expanded-row .ant-table-thead > tr > th { background: #f5f5f5 !important; }
+    .ant-table-cell.ant-table-row-expand-icon-cell { padding: 0 !important; text-align: center; }
     .nome-cell { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .nome-eye { opacity: 0; transition: opacity 0.15s; color: var(--gravity-primary); flex-shrink: 0; }
     .ant-table-tbody > tr:hover .nome-eye,
@@ -156,6 +161,7 @@ const {
   EnvironmentOutlined, SaveOutlined,
   InfoCircleOutlined, CloseOutlined,
   UploadOutlined, IdcardOutlined, ShopOutlined,
+  PictureOutlined, CheckOutlined, ClockCircleOutlined, DownOutlined, RightOutlined, AuditOutlined,
 } = icons;
 
 const { Title, Text } = Typography;
@@ -371,37 +377,152 @@ const MOCK_INSERZIONISTI = [
   },
 ];
 
-// ── AstronautSVG — empty state illustration ───────────────────────────────────
-function AstronautSVG({ size = 80 }) {
-  return React.createElement('svg', {
-    width: size, height: size, viewBox: '0 0 80 80', fill: 'none', xmlns: 'http://www.w3.org/2000/svg',
+// businessArea → array (supporto multi-settore)
+MOCK_INSERZIONISTI.forEach(function(r) {
+  r.businessArea = r.businessArea ? [r.businessArea] : [];
+});
+// Aziende multi-settore
+var multiSector = {
+  'ins-004': ['Media & Entertainment', 'Telecomunicazioni'],
+  'ins-006': ['Retail Lusso', 'Grande Distribuzione'],
+  'ins-009': ['Telecomunicazioni', 'Media & Entertainment'],
+};
+Object.keys(multiSector).forEach(function(k) {
+  var r = MOCK_INSERZIONISTI.find(function(r) { return r.key === k; });
+  if (r) r.businessArea = multiSector[k];
+});
+
+// Stato approvazione — assegnato dopo la definizione per mantenere i mock leggibili
+;['ins-001','ins-002','ins-005','ins-008','ins-009','ins-010'].forEach(function(k) {
+  var r = MOCK_INSERZIONISTI.find(function(r) { return r.key === k; });
+  if (r) r.stato = 'approvato';
+});
+MOCK_INSERZIONISTI.forEach(function(r) { if (!r.stato) r.stato = 'in_attesa'; });
+
+// Stati v2 (inserzionisti e contatti), gestiti dall'Operation Manager:
+//  in_attesa     → inserito da un sales: l'OM verifica se esiste già / è assegnato ad altro commerciale
+//  da_completare → approvato dall'OM: restano da verificare i campi e aggiungere le info mancanti
+//  completato    → tutto a posto
+const STATI_V2 = {
+  in_attesa:     { label: 'In attesa',     badge: 'warning' },
+  da_completare: { label: 'Da completare', badge: 'processing' },
+  completato:    { label: 'Completato',    badge: 'success' },
+};
+function StatoBadge({ stato }) {
+  const s = STATI_V2[stato] || STATI_V2.completato;
+  return React.createElement(antd.Badge, { status: s.badge, text: s.label });
+}
+function formatData(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return d + '/' + m + '/' + y;
+}
+
+// Contatti multipli + stato/richiedente/data per ogni entità (v2 — vista Operation Manager).
+// Il primo contatto deriva da `contatto`; gli extra simulano lead e contatti aggiuntivi.
+(function () {
+  var STATO_INS = {
+    'ins-003': 'in_attesa', 'ins-004': 'in_attesa', 'ins-007': 'in_attesa', 'ins-012': 'in_attesa',
+    'ins-006': 'da_completare', 'ins-011': 'da_completare',
+  };
+  var RICHIEDENTE = {
+    'ins-001': 'Lorenzo Bianchi', 'ins-002': 'Giulia Romano', 'ins-003': 'Federica Mancini', 'ins-004': 'Giulia Romano',
+    'ins-005': 'Alessandro Costa', 'ins-006': 'Lorenzo Bianchi', 'ins-007': 'Alessandro Costa', 'ins-008': 'Alessandro Costa',
+    'ins-009': 'Federica Mancini', 'ins-010': 'Federica Mancini', 'ins-011': 'Lorenzo Bianchi', 'ins-012': 'Giulia Romano',
+  };
+  var DATA_INS = {
+    'ins-003': '2026-09-29', 'ins-004': '2026-09-30', 'ins-007': '2026-09-26', 'ins-012': '2026-09-30',
+    'ins-006': '2026-09-22', 'ins-011': '2026-09-18',
+  };
+  var EXTRA = {
+    'ins-001': [{ nome: 'Paola',  cognome: 'Ferri',   ruolo: 'Brand Manager',     telefono: '+39 06 8305 1122', email: 'paola.ferri@enel.com',      tipo: 'Lead',     stato: 'in_attesa',     data: '2026-09-30', richiestoDa: 'Lorenzo Bianchi' }],
+    'ins-003': [{ nome: 'Chiara', cognome: 'Neri',    ruolo: 'Resp. Promozione',  telefono: '+39 06 4975 1',    email: 'c.neri@enit.it',            tipo: 'Lead',     stato: 'in_attesa',     data: '2026-09-29', richiestoDa: 'Federica Mancini' }],
+    'ins-005': [{ nome: 'Luca',   cognome: 'Pini',    ruolo: 'Media Planner',     telefono: '+39 02 9267 5500', email: 'luca.pini@esselunga.it',    tipo: 'Contatto', stato: 'completato' }],
+    'ins-009': [{ nome: 'Sara',   cognome: 'Villa',   ruolo: 'Digital Marketing', telefono: '+39 06 3688 0101', email: 'sara.villa@tim.it',         tipo: 'Contatto', stato: 'da_completare', data: '2026-09-25', richiestoDa: 'Federica Mancini' }],
+    'ins-010': [{ nome: 'Marco',  cognome: 'Greco',   ruolo: 'Growth Manager',    telefono: '+39 02 8081 5560', email: 'marco.greco@satispay.com',  tipo: 'Lead',     stato: 'completato' }],
+  };
+  var FIRST_STATO = { 'ins-004': ['in_attesa', '2026-09-30'], 'ins-006': ['da_completare', '2026-09-22'], 'ins-012': ['in_attesa', '2026-09-30'] };
+  MOCK_INSERZIONISTI.forEach(function (r) {
+    r.statoV2 = STATO_INS[r.key] || 'completato';
+    r.richiestoDa = RICHIEDENTE[r.key];
+    r.dataRichiesta = DATA_INS[r.key] || '2026-08-15';
+    var list = [];
+    if (r.contatto) {
+      var f = FIRST_STATO[r.key];
+      list.push(Object.assign({}, r.contatto, {
+        tipo: 'Contatto',
+        stato: f ? f[0] : 'completato',
+        data: f ? f[1] : r.dataRichiesta,
+        richiestoDa: r.richiestoDa,
+      }));
+    }
+    (EXTRA[r.key] || []).forEach(function (c) { list.push(c); });
+    r.contatti = list.map(function (c, i) {
+      return Object.assign({ id: r.key + '-c' + (i + 1), richiestoDa: r.richiestoDa, data: r.dataRichiesta }, c);
+    });
+  });
+})();
+
+// Revisioni richieste: una per ogni inserzionista/contatto/lead non ancora "Completato".
+// La tab "Da revisionare" è una proiezione (flat) degli stessi dati della tab "Inserzionisti".
+function getRevisioni(r) {
+  var items = [];
+  if (r.statoV2 && r.statoV2 !== 'completato') {
+    items.push({
+      id: r.key, kind: 'Inserzionista', soggetto: null, stato: r.statoV2,
+      richiestoDa: r.richiestoDa, data: r.dataRichiesta,
+      label: (r.statoV2 === 'in_attesa' ? 'Verifica' : 'Completa') + ' inserzionista',
+    });
+  }
+  (r.contatti || []).forEach(function (c) {
+    if (c.stato && c.stato !== 'completato') {
+      var what = c.tipo === 'Lead' ? 'lead' : 'contatto';
+      items.push({
+        id: c.id, kind: c.tipo, soggetto: c.nome + ' ' + c.cognome, stato: c.stato,
+        richiestoDa: c.richiestoDa, data: c.data,
+        label: (c.stato === 'in_attesa' ? 'Verifica ' : 'Completa ') + what,
+      });
+    }
+  });
+  return items;
+}
+
+// ── InfoRow — riga label / valore con azione opzionale ───────────────────────
+function InfoRow({ label, value, placeholder, actionIcon, onAction, labelWidth }) {
+  const lw = labelWidth || 148;
+  const empty = value == null || value === '';
+  const display = empty ? (placeholder !== undefined ? placeholder : 'Non specificato') : value;
+  return React.createElement('div', {
+    style: {
+      display: 'flex', alignItems: 'center',
+      padding: '9px 0', borderBottom: '1px solid #f0f0f0', minHeight: 38,
+    },
   },
-    React.createElement('ellipse', { cx: 40, cy: 53, rx: 17, ry: 19, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
-    React.createElement('circle',  { cx: 40, cy: 28, r: 15, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
-    React.createElement('ellipse', { cx: 40, cy: 28, rx: 9, ry: 8, fill: '#B0C4F8', opacity: '0.7' }),
-    React.createElement('ellipse', { cx: 40, cy: 28, rx: 9, ry: 8, fill: 'none', stroke: '#C8C8D4', strokeWidth: 1.5 }),
-    React.createElement('ellipse', { cx: 21, cy: 50, rx: 4.5, ry: 10, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5, transform: 'rotate(-20 21 50)' }),
-    React.createElement('ellipse', { cx: 59, cy: 50, rx: 4.5, ry: 10, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5, transform: 'rotate(20 59 50)' }),
-    React.createElement('ellipse', { cx: 33, cy: 72, rx: 5, ry: 7, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
-    React.createElement('ellipse', { cx: 47, cy: 72, rx: 5, ry: 7, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
-    React.createElement('circle', { cx: 10, cy: 14, r: 1.5, fill: '#C8C8D4' }),
-    React.createElement('circle', { cx: 68, cy: 10, r: 2, fill: '#C8C8D4' }),
-    React.createElement('circle', { cx: 70, cy: 30, r: 1.2, fill: '#C8C8D4' }),
-    React.createElement('circle', { cx: 6, cy: 36, r: 1, fill: '#C8C8D4' })
+    React.createElement('span', {
+      style: { fontWeight: 600, minWidth: lw, flexShrink: 0, fontSize: 13, color: 'rgba(0,0,0,0.88)' },
+    }, label),
+    React.createElement('span', {
+      style: { flex: 1, fontSize: 13, color: empty ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.65)' },
+    }, display),
+    (!empty && actionIcon)
+      ? React.createElement(Button, {
+          type: 'text', size: 'small', icon: actionIcon,
+          style: { color: '#1677ff', flexShrink: 0, padding: '0 4px', height: 22 },
+          onClick: onAction,
+        })
+      : null
   );
 }
 
-// ── EmptyState — componente riutilizzabile ────────────────────────────────────
-function EmptyState({ title, description, action, size = 'default' }) {
-  const s = size === 'small' ? 56 : 80;
-  return React.createElement('div', { className: 'gv-empty-state' },
-    React.createElement(AstronautSVG, { size: s }),
-    React.createElement('p', { style: { marginTop: 16, marginBottom: 4, fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.88)' } },
-      title || 'Qui non c\'è nulla!'
-    ),
-    description && React.createElement('p', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', marginBottom: action ? 16 : 0, marginTop: 0 } }, description),
-    action && React.createElement('div', { style: { marginTop: description ? 0 : 12 } }, action)
-  );
+// ── SectionTitle — intestazione sezione info ──────────────────────────────────
+function SectionTitle({ children }) {
+  return React.createElement('div', {
+    style: {
+      fontWeight: 600, fontSize: 13, color: 'rgba(0,0,0,0.88)',
+      paddingBottom: 8, marginBottom: 2,
+      borderBottom: '2px solid #f0f0f0',
+    },
+  }, children);
 }
 
 // ── AdvertiserAvatar — avatar con iniziali colorate ───────────────────────────
@@ -937,29 +1058,28 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [tipoFiltro, setTipoFiltro] = useState(null);
 
+  const isV2 = window.__PORTAFOGLIO_UI_VERSION === 'v2';
   const indirizzoCompleto = [inserzionista.indirizzo, inserzionista.comune, inserzionista.cap].filter(Boolean).join(', ');
-  const hasBusinessArea = !!inserzionista.businessArea;
+  const businessAreas = Array.isArray(inserzionista.businessArea) ? inserzionista.businessArea.filter(Boolean) : (inserzionista.businessArea ? [inserzionista.businessArea] : []);
+  const hasBusinessArea = businessAreas.length > 0;
+  const telefonoCompleto = inserzionista.telefono
+    ? `${inserzionista.prefisso || ''} ${inserzionista.telefono}`.trim()
+    : null;
 
   const nuovoPreventivoCTA = hasBusinessArea
     ? React.createElement(Button, {
-        type: 'primary',
-        icon: React.createElement(FileTextOutlined),
+        type: 'primary', icon: React.createElement(FileTextOutlined),
         onClick: () => antd.message.info('Apre il wizard Preventivo nel modulo Trattative.'),
       }, 'Nuovo Preventivo')
-    : React.createElement(Tooltip, {
-        title: 'Specifica la Business Area prima di creare un preventivo.',
-        placement: 'left',
-      },
+    : React.createElement(Tooltip, { title: 'Specifica la Business Area prima di creare un preventivo.', placement: 'left' },
         React.createElement('span', null,
           React.createElement(Button, { type: 'primary', icon: React.createElement(FileTextOutlined), disabled: true }, 'Nuovo Preventivo')
         )
       );
 
-  // ── Tab Overview ───────────────────────────────────────────────────────────
-  const overviewContent = React.createElement(Row, { gutter: 20 },
-    // Colonna sinistra (2/3)
+  // ── Overview v2 — layout precedente (info-box, tag grigio) ────────────────
+  const overviewV2 = React.createElement(Row, { gutter: 20 },
     React.createElement(Col, { span: 16 },
-      // Logo placeholder
       React.createElement('div', {
         className: 'logo-placeholder',
         onClick: () => antd.message.info('Carica il logo dell\'inserzionista.'),
@@ -969,8 +1089,6 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
           React.createElement('span', null, 'Carica logo')
         )
       ),
-
-      // Box Informazioni Generali
       React.createElement('div', { className: 'info-box' },
         React.createElement('div', { className: 'info-box-header' }, 'Informazioni Generali'),
         React.createElement('div', { className: 'info-box-body' },
@@ -981,8 +1099,10 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
           React.createElement('div', { className: 'info-row' },
             React.createElement('span', { className: 'info-row-label' }, 'Business Area'),
             React.createElement('span', { className: 'info-row-value' },
-              inserzionista.businessArea
-                ? React.createElement(Tag, { color: 'purple' }, inserzionista.businessArea)
+              businessAreas.length
+                ? React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
+                    businessAreas.map(a => React.createElement(Tag, { key: a, style: { margin: 0 } }, a))
+                  )
                 : React.createElement(Text, { type: 'secondary' }, 'Non specificata')
             )
           ),
@@ -1002,8 +1122,8 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
           React.createElement('div', { className: 'info-row' },
             React.createElement('span', { className: 'info-row-label' }, 'Telefono'),
             React.createElement('span', { className: 'info-row-value' },
-              inserzionista.telefono ? `${inserzionista.prefisso || ''} ${inserzionista.telefono}`.trim() : '—',
-              inserzionista.telefono && React.createElement(Tooltip, { title: 'Chiama' },
+              telefonoCompleto || '—',
+              telefonoCompleto && React.createElement(Tooltip, { title: 'Chiama' },
                 React.createElement(Button, {
                   type: 'text', size: 'small', icon: React.createElement(PhoneOutlined),
                   style: { color: '#3E00FB', padding: 0, height: 20, width: 20 },
@@ -1020,15 +1140,13 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
                 React.createElement(Button, {
                   type: 'text', size: 'small', icon: React.createElement(MailOutlined),
                   style: { color: 'rgba(0,0,0,0.3)', padding: 0, height: 20, width: 20 },
-                  onClick: () => window.open(`mailto:${inserzionista.email}`),
+                  onClick: () => window.open('mailto:' + inserzionista.email),
                 })
               )
             )
           )
         )
       ),
-
-      // Box Dati Fiscali
       React.createElement('div', { className: 'info-box' },
         React.createElement('div', { className: 'info-box-header' }, 'Dati Fiscali'),
         React.createElement('div', { className: 'info-box-body' },
@@ -1055,8 +1173,6 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
         )
       )
     ),
-
-    // Colonna destra (1/3): Contatto
     React.createElement(Col, { span: 8 },
       React.createElement('div', { className: 'info-box', style: { height: '100%' } },
         React.createElement('div', { className: 'info-box-header' }, 'Contatto'),
@@ -1064,10 +1180,10 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
           inserzionista.contatto
             ? React.createElement('div', null,
                 React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 } },
-                  React.createElement(AdvertiserAvatar, { name: `${inserzionista.contatto.nome} ${inserzionista.contatto.cognome}`, size: 40 }),
+                  React.createElement(AdvertiserAvatar, { name: inserzionista.contatto.nome + ' ' + inserzionista.contatto.cognome, size: 40 }),
                   React.createElement('div', null,
                     React.createElement('div', { style: { fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.88)' } },
-                      `${inserzionista.contatto.nome} ${inserzionista.contatto.cognome}`
+                      inserzionista.contatto.nome + ' ' + inserzionista.contatto.cognome
                     ),
                     React.createElement(Text, { type: 'secondary', style: { fontSize: 12 } }, inserzionista.contatto.ruolo || '')
                   )
@@ -1094,14 +1210,109 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
                 title: 'Qui non c\'è nulla!',
                 description: 'Nessun contatto associato a questo inserzionista.',
                 action: React.createElement(Button, {
-                  size: 'small', icon: React.createElement(EditOutlined),
-                  onClick: onModifica,
+                  size: 'small', icon: React.createElement(EditOutlined), onClick: onModifica,
                 }, 'Aggiungi contatto'),
               })
         )
       )
     )
   );
+
+  // ── Overview v1 — nuovo layout a 3 colonne (tag viola) ────────────────────
+  const overviewV1 = React.createElement('div', {
+    style: { background: '#fff', borderRadius: 8, padding: '24px', border: '1px solid rgba(0,0,0,0.06)' },
+  },
+    React.createElement(Row, { gutter: 24, align: 'top', wrap: false },
+      React.createElement(Col, { flex: '160px' },
+        React.createElement('div', {
+          style: {
+            width: 130, height: 130,
+            border: '1px dashed #d9d9d9', borderRadius: 8,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', background: '#fafafa',
+          },
+          onClick: () => antd.message.info('Carica il logo dell\'inserzionista.'),
+        },
+          React.createElement(PictureOutlined, { style: { fontSize: 28, color: 'rgba(0,0,0,0.25)' } }),
+          React.createElement('span', { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)', marginTop: 8 } }, 'Logo')
+        )
+      ),
+      React.createElement(Col, { flex: 'auto' },
+        React.createElement(Title, { level: 4, style: { margin: '0 0 16px' } }, inserzionista.ragioneSociale),
+        React.createElement('div', { style: { marginBottom: 20 } },
+          React.createElement(SectionTitle, null, 'Informazioni Generali'),
+          React.createElement(InfoRow, { label: 'Legale Rappresentante', value: inserzionista.legaleRappresentante }),
+          React.createElement(InfoRow, { label: 'Business Area',
+            value: businessAreas.length
+              ? React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4 } },
+                  businessAreas.map(a => React.createElement(Tag, { key: a, color: 'purple', style: { margin: 0 } }, a))
+                )
+              : null,
+          }),
+          React.createElement(InfoRow, {
+            label: 'Indirizzo', value: indirizzoCompleto || null,
+            actionIcon: React.createElement(CopyOutlined),
+            onAction: () => { navigator.clipboard?.writeText(indirizzoCompleto); antd.message.success('Indirizzo copiato.'); },
+          }),
+          React.createElement(InfoRow, {
+            label: 'Telefono', value: telefonoCompleto,
+            actionIcon: React.createElement(PhoneOutlined),
+            onAction: () => antd.message.info('Apertura chiamata.'),
+          }),
+          React.createElement(InfoRow, {
+            label: 'Email', value: inserzionista.email || null,
+            actionIcon: React.createElement(MailOutlined),
+            onAction: () => window.open('mailto:' + inserzionista.email),
+          })
+        ),
+        React.createElement('div', null,
+          React.createElement(SectionTitle, null, 'Dati Fiscali'),
+          React.createElement(InfoRow, {
+            label: 'Partita IVA', value: inserzionista.partitaIva || null,
+            actionIcon: React.createElement(CopyOutlined),
+            onAction: () => { navigator.clipboard?.writeText(inserzionista.partitaIva); antd.message.success('Partita IVA copiata.'); },
+          }),
+          React.createElement(InfoRow, { label: 'Codice Fiscale', value: inserzionista.codiceFiscale }),
+          React.createElement(InfoRow, { label: 'PEC', value: inserzionista.pec }),
+          React.createElement(InfoRow, { label: 'Codice SDI', value: inserzionista.codiceSdi })
+        )
+      ),
+      React.createElement(Col, { flex: '280px' },
+        React.createElement('div', { style: { borderLeft: '1px solid #f0f0f0', paddingLeft: 24 } },
+          React.createElement(SectionTitle, null, 'Contatto'),
+          inserzionista.contatto
+            ? React.createElement('div', null,
+                React.createElement(InfoRow, { label: 'Nome',             value: inserzionista.contatto.nome,                  labelWidth: 100 }),
+                React.createElement(InfoRow, { label: 'Cognome',          value: inserzionista.contatto.cognome,               labelWidth: 100 }),
+                React.createElement(InfoRow, { label: 'Ruolo',            value: inserzionista.contatto.ruolo,                 labelWidth: 100 }),
+                React.createElement(InfoRow, {
+                  label: 'Telefono', value: inserzionista.contatto.telefono || null, labelWidth: 100,
+                  actionIcon: React.createElement(PhoneOutlined),
+                  onAction: () => antd.message.info('Apertura chiamata.'),
+                }),
+                React.createElement(InfoRow, {
+                  label: 'Email', value: inserzionista.contatto.email || null, labelWidth: 100,
+                  actionIcon: React.createElement(MailOutlined),
+                  onAction: () => window.open('mailto:' + inserzionista.contatto.email),
+                }),
+                React.createElement(InfoRow, { label: 'Email Secondaria',  value: inserzionista.contatto.emailSecondaria || null, labelWidth: 100 }),
+                React.createElement(InfoRow, { label: 'Note',              value: inserzionista.contatto.note || null,          labelWidth: 100, placeholder: '—' })
+              )
+            : React.createElement(EmptyState, {
+                size: 'small',
+                title: 'Nessun contatto',
+                description: 'Nessun contatto associato a questo inserzionista.',
+                action: React.createElement(Button, {
+                  size: 'small', icon: React.createElement(EditOutlined), onClick: onModifica,
+                }, 'Aggiungi contatto'),
+              })
+        )
+      )
+    )
+  );
+
+  const overviewContent = isV2 ? overviewV2 : overviewV1;
 
   // ── Tab Attività ───────────────────────────────────────────────────────────
   const mockAttivita = inserzionista.trattativaCollegata
@@ -1115,7 +1326,9 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
   const tipiAttivita = [...new Set(mockAttivita.map(a => a.tipo))];
   const attivitaFiltrate = tipoFiltro ? mockAttivita.filter(a => a.tipo === tipoFiltro) : mockAttivita;
 
-  const attivitaContent = React.createElement('div', null,
+  const attivitaContent = React.createElement('div', {
+    style: isV2 ? null : { background: '#fff', borderRadius: 8, padding: '20px 24px', border: '1px solid rgba(0,0,0,0.06)' },
+  },
     React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 16 } },
       React.createElement(Select, {
         placeholder: 'Filtra per tipo', allowClear: true,
@@ -1131,8 +1344,10 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
     ),
     attivitaFiltrate.length === 0
       ? React.createElement(EmptyState, {
-          title: 'Qui non c\'è nulla!',
-          description: 'Quando verranno create trattative, opportunità, ordini o fatture per questo inserzionista, compariranno in questo elenco.',
+          title: isV2 ? 'Qui non c\'è nulla!' : 'Al momento non ci sono eventi.',
+          description: isV2
+            ? 'Quando verranno create trattative, opportunità, ordini o fatture per questo inserzionista, compariranno in questo elenco.'
+            : 'Saranno visibili quando verranno registrati preventivi, opportunità, ordini o fatture per questo inserzionista.',
         })
       : React.createElement('div', {
           style: { background: '#fff', borderRadius: 8, border: '1px solid #f0f0f0', padding: '4px 16px' },
@@ -1144,10 +1359,7 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
                 React.createElement('div', { className: 'activity-title' }, a.descrizione),
                 React.createElement('div', { className: 'activity-meta' },
                   React.createElement(Tag, { style: { margin: 0, fontSize: 11, borderRadius: 4 } }, a.tipo),
-                  ' · ',
-                  a.data,
-                  ' · ',
-                  a.utente
+                  ' · ', a.data, ' · ', a.utente
                 )
               )
             )
@@ -1168,13 +1380,10 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
       entityName: inserzionista.ragioneSociale,
       meta: [
         { label: 'Indirizzo', value: indirizzoCompleto || 'Non specificato' },
-        { label: 'Business Area', value: inserzionista.businessArea || 'Non specificata' },
+        { label: 'Business Area', value: businessAreas.join(', ') || 'Non specificata' },
       ],
       actions: [
-        React.createElement(Button, {
-          key: 'modifica', icon: React.createElement(EditOutlined),
-          onClick: onModifica,
-        }, 'Modifica Inserzionista'),
+        React.createElement(Button, { key: 'modifica', icon: React.createElement(EditOutlined), onClick: onModifica }, 'Modifica Inserzionista'),
         nuovoPreventivoCTA,
       ],
     }),
@@ -1187,13 +1396,19 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
 }
 
 // ── ListaInserzionisti ────────────────────────────────────────────────────────
-function ListaInserzionisti({ data, onViewDetail, onNuovo, onModifica, onElimina }) {
+function ListaInserzionisti({ data, role, onViewDetail, onNuovo, onModifica, onElimina, onApprova }) {
+  const isV2 = window.__PORTAFOGLIO_UI_VERSION === 'v2';
+  const [filteredCount, setFilteredCount] = useState(data.length);
+
+  const uniqueFilters = (field) =>
+    [...new Set(data.map(r => r[field]).filter(Boolean))].sort().map(v => ({ text: v, value: v }));
+
   const columns = [
     {
       title: 'Nome Inserzionista',
       key: 'ragioneSociale',
       dataIndex: 'ragioneSociale',
-      width: 280,
+      width: 220,
       fixed: 'left',
       ...makeSearchColumn('ragioneSociale', 'Cerca per ragione sociale...'),
       render: (v, row) =>
@@ -1209,7 +1424,6 @@ function ListaInserzionisti({ data, onViewDetail, onNuovo, onModifica, onElimina
       title: 'Indirizzo',
       key: 'indirizzo',
       dataIndex: 'indirizzo',
-      width: 240,
       ...makeSearchColumn('indirizzo', 'Cerca per indirizzo...'),
       render: (v, row) => {
         const full = [v, row.comune, row.cap].filter(Boolean).join(', ');
@@ -1220,15 +1434,33 @@ function ListaInserzionisti({ data, onViewDetail, onNuovo, onModifica, onElimina
       title: 'Settore Commerciale',
       key: 'businessArea',
       dataIndex: 'businessArea',
-      width: 170,
-      render: (v) => v
-        ? React.createElement(Tag, { color: 'purple', style: { margin: 0 } }, v)
-        : React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—'),
+      width: 180,
+      filters: [...new Set(data.flatMap(r => r.businessArea || []))].sort().map(v => ({ text: v, value: v })),
+      filterSearch: true,
+      onFilter: (value, record) => (record.businessArea || []).includes(value),
+      render: (v) => {
+        const areas = Array.isArray(v) ? v.filter(Boolean) : (v ? [v] : []);
+        if (!areas.length) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—');
+        const tagColor = window.__PORTAFOGLIO_UI_VERSION === 'v2' ? undefined : 'purple';
+        const extra = areas.length - 1;
+        return React.createElement('div', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+          React.createElement(Tag, { color: tagColor, style: { margin: 0 } }, areas[0]),
+          extra > 0 ? React.createElement(Tooltip, { title: areas.slice(1).join(', ') },
+            React.createElement(Tag, { style: { margin: 0, cursor: 'default' } }, `+${extra}`)
+          ) : null
+        );
+      },
     },
     {
       title: 'Contatto',
       key: 'contatto',
-      width: 180,
+      width: 140,
+      ...makeSearchColumn('contatto', 'Cerca per contatto...'),
+      onFilter: (value, record) => {
+        if (!record.contatto) return false;
+        const full = `${record.contatto.nome || ''} ${record.contatto.cognome || ''}`.toLowerCase();
+        return full.includes(value.toLowerCase());
+      },
       render: (_, row) => {
         if (!row.contatto) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—');
         const fullName = `${row.contatto.nome} ${row.contatto.cognome}`;
@@ -1243,6 +1475,8 @@ function ListaInserzionisti({ data, onViewDetail, onNuovo, onModifica, onElimina
       key: 'commerciale',
       dataIndex: 'commerciale',
       width: 180,
+      filters: uniqueFilters('commerciale'),
+      onFilter: (value, record) => record.commerciale === value,
       render: (v) => {
         if (!v) return React.createElement('span', { style: { color: 'rgba(0,0,0,0.25)' } }, '—');
         return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
@@ -1254,28 +1488,42 @@ function ListaInserzionisti({ data, onViewDetail, onNuovo, onModifica, onElimina
     {
       title: 'Preventivo',
       key: 'preventivo',
-      width: 260,
+      width: 200,
+      filters: [{ text: 'Con trattativa', value: 'yes' }, { text: 'Senza trattativa', value: 'no' }],
+      onFilter: (value, record) => value === 'yes' ? !!record.trattativaCollegata : !record.trattativaCollegata,
       render: (_, row) => {
         if (row.trattativaCollegata) {
-          return React.createElement(Tag, {
-            icon: React.createElement(FileTextOutlined),
-            color: 'purple',
-            style: { maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' },
-            onClick: (e) => { e.stopPropagation(); antd.message.info('Apre la trattativa collegata.'); },
-          }, row.trattativaCollegata);
-        }
-        return React.createElement(Tooltip, {
-          title: 'Non è stato possibile trovare una trattativa associata a questo inserzionista.',
-          placement: 'top',
-        },
-          React.createElement(antd.Select, {
-            disabled: true,
-            placeholder: 'Nessuna trattativa',
-            style: { width: '100%', pointerEvents: 'none' },
+          return React.createElement(Button, {
             size: 'small',
-          })
-        );
+            icon: React.createElement(FileTextOutlined),
+            onClick: (e) => { e.stopPropagation(); antd.message.info('Apre la trattativa collegata.'); },
+          }, 'Vedi preventivo');
+        }
+        return React.createElement(Button, { size: 'small', disabled: true }, 'Nessuna trattativa');
       },
+    },
+    {
+      title: 'Stato',
+      key: 'stato',
+      dataIndex: 'stato',
+      width: 226,
+      filters: [
+        { text: 'Approvato', value: 'approvato' },
+        { text: 'In attesa', value: 'in_attesa' },
+      ],
+      onFilter: (value, record) => record.stato === value,
+      render: (v, row) => React.createElement('div', { style: { display: 'inline-flex', alignItems: 'center', gap: 48 } },
+        v === 'approvato'
+          ? React.createElement(antd.Badge, { status: 'success', text: 'Approvato' })
+          : React.createElement(antd.Badge, { status: 'warning', text: 'In attesa' }),
+        v === 'in_attesa' && role === 'Operation Manager'
+          ? React.createElement(Button, {
+              size: 'small', type: 'primary',
+              icon: React.createElement(CheckOutlined),
+              onClick: (e) => { e.stopPropagation(); onModifica(row); },
+            }, 'Approva')
+          : null
+      ),
     },
     {
       title: '',
@@ -1317,13 +1565,17 @@ function ListaInserzionisti({ data, onViewDetail, onNuovo, onModifica, onElimina
     },
       React.createElement('div', { style: { padding: '12px 20px 4px' } },
         React.createElement(Text, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } },
-          `${data.length} inserzionist${data.length === 1 ? 'a' : 'i'}`
+          filteredCount < data.length
+            ? `${filteredCount} di ${data.length} inserzionist${data.length === 1 ? 'a' : 'i'}`
+            : `${data.length} inserzionist${data.length === 1 ? 'a' : 'i'}`
         )
       ),
       React.createElement('div', { style: { padding: '0 20px 20px' } },
         React.createElement(Table, {
           dataSource: data,
-          columns,
+          columns: isV2
+            ? columns.filter(c => c.key !== 'commerciale' && c.key !== 'preventivo')
+            : columns.filter(c => c.key !== 'stato'),
           rowKey: 'key',
           size: 'middle',
           scroll: { x: 1400 },
@@ -1334,10 +1586,433 @@ function ListaInserzionisti({ data, onViewDetail, onNuovo, onModifica, onElimina
             style: { margin: '12px 0 4px' },
           },
           style: { borderRadius: 0 },
+          onChange: (_, __, ___, extra) => setFilteredCount(extra.currentDataSource.length),
           onRow: (record) => ({ onClick: () => onViewDetail(record) }),
         })
       )
     )
+  );
+}
+
+// ── Lista Inserzionisti — vista Operation Manager (v2) ────────────────────────
+// Due tab (Inserzionisti / Da revisionare), filtri nelle colonne, righe espandibili con i contatti.
+const EXPAND_COL_WIDTH = 40;
+const ACTIONS_COL_WIDTH = 64;
+const CONTATTI_SIDE_GAP = 0; // stesso scarto a sinistra e a destra della tabella contatti
+function ContattiExpanded({ contatti }) {
+  const cols = [
+    {
+      title: 'Nome', key: 'nome', width: 200,
+      render: (_, c) => {
+        const full = `${c.nome} ${c.cognome}`;
+        return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+          React.createElement(AdvertiserAvatar, { name: full, size: 24 }),
+          React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)' } }, full)
+        );
+      },
+    },
+    { title: 'Ruolo', dataIndex: 'ruolo', key: 'ruolo', width: 200,
+      render: v => React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v || '—') },
+    { title: 'Telefono', dataIndex: 'telefono', key: 'telefono', width: 170,
+      render: v => React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v || '—') },
+    { title: 'Email', dataIndex: 'email', key: 'email', width: 240,
+      render: v => React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v || '—') },
+    { title: 'Stato', dataIndex: 'stato', key: 'stato', width: 140,
+      render: v => React.createElement(StatoBadge, { stato: v }) },
+  ];
+  // La tabella contatti finisce dove finisce "Azioni Richieste": tutta la riga meno la colonna dei tre puntini.
+  return React.createElement('div', { style: { padding: `8px ${CONTATTI_SIDE_GAP}px` } },
+    React.createElement(Table, {
+      dataSource: contatti, columns: cols, rowKey: 'id',
+      size: 'small', pagination: false, style: { borderRadius: 0, width: `calc(100% - ${ACTIONS_COL_WIDTH}px)` }, className: 'contatti-table',
+    })
+  );
+}
+
+function RevisioneTable({ data, role, onViewDetail, onModifica, onElimina, onApprova, allData }) {
+  const [filteredCount, setFilteredCount] = useState(data.length);
+  const [expandedKeys, setExpandedKeys] = useState([]);
+  useEffect(() => setFilteredCount(data.length), [data.length]);
+  const toggleExpand = (key) =>
+    setExpandedKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  const dash = React.createElement('span', { style: { color: 'rgba(0,0,0,0.2)' } }, '—');
+  const person = (v) => v
+    ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+        React.createElement(AdvertiserAvatar, { name: v, size: 24 }),
+        React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v))
+    : dash;
+
+  const columns = [
+    {
+      title: 'Nome Inserzionista', key: 'ragioneSociale', dataIndex: 'ragioneSociale',
+      width: 240, fixed: 'left',
+      ...makeSearchColumn('ragioneSociale', 'Cerca per ragione sociale...'),
+      render: (v) =>
+        React.createElement('div', { className: 'nome-cell' },
+          React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 10 } },
+            React.createElement(AdvertiserAvatar, { name: v, size: 28 }),
+            React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', fontWeight: 500 } }, v)),
+          React.createElement(EyeOutlined, { className: 'nome-eye' })
+        ),
+    },
+    {
+      title: 'Settore Commerciale', key: 'businessArea', dataIndex: 'businessArea', width: 200,
+      filters: [...new Set(allData.flatMap(r => r.businessArea || []))].sort().map(v => ({ text: v, value: v })),
+      filterSearch: true,
+      onFilter: (value, record) => (record.businessArea || []).includes(value),
+      render: (v) => {
+        const areas = Array.isArray(v) ? v.filter(Boolean) : (v ? [v] : []);
+        if (!areas.length) return dash;
+        const extra = areas.length - 1;
+        return React.createElement('div', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+          React.createElement(Tag, { style: { margin: 0 } }, areas[0]),
+          extra > 0 ? React.createElement(Tooltip, { title: areas.slice(1).join(', ') },
+            React.createElement(Tag, { style: { margin: 0, cursor: 'default' } }, `+${extra}`)) : null
+        );
+      },
+    },
+    {
+      title: 'Legale Rappresentante', key: 'legaleRappresentante', dataIndex: 'legaleRappresentante', // senza width: assorbe lo spazio extra, così le altre colonne (e le Azioni) restano a larghezza fissa
+      ...makeSearchColumn('legaleRappresentante', 'Cerca per legale rappresentante...'),
+      render: (v) => v
+        ? React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v)
+        : dash,
+    },
+    {
+      title: 'Commerciale', key: 'commerciale', dataIndex: 'commerciale', width: 210,
+      filters: [...new Set(allData.map(r => r.commerciale).filter(Boolean))].sort().map(v => ({ text: v, value: v }))
+        .concat([{ text: 'Non assegnato', value: '__none' }]),
+      onFilter: (value, record) => value === '__none' ? !record.commerciale : record.commerciale === value,
+      render: (v) => person(v),
+    },
+    {
+      title: 'Contatti', key: 'contatti', width: 120, align: 'center',
+      filters: [{ text: 'Nessun contatto', value: 0 }, { text: '1 contatto', value: 1 }, { text: '2 o più contatti', value: 2 }],
+      onFilter: (value, record) => {
+        const n = (record.contatti || []).length;
+        return value === 2 ? n >= 2 : n === value;
+      },
+      render: (_, row) => {
+        const n = (row.contatti || []).length;
+        if (!n) return dash;
+        const open = expandedKeys.includes(row.key);
+        return React.createElement(Tooltip, { title: open ? 'Nascondi contatti' : 'Mostra contatti' },
+          React.createElement('span', {
+            role: 'button', tabIndex: 0,
+            onClick: (e) => { e.stopPropagation(); toggleExpand(row.key); },
+            onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleExpand(row.key); } },
+            style: {
+              display: 'inline-block', minWidth: 24, padding: '0 8px', borderRadius: 4, lineHeight: '20px',
+              fontSize: 12, fontWeight: 600, color: '#3E00FB', textAlign: 'center', cursor: 'pointer',
+              background: 'var(--gravity-primary-bg)', border: '1px solid #D3B8FF',
+            },
+          }, n));
+      },
+    },
+    {
+      title: 'Azioni Richieste', key: 'azioniRichieste', width: 190,
+      filters: [{ text: 'Da revisionare', value: 'yes' }, { text: 'Nessuna azione', value: 'no' }],
+      onFilter: (value, record) => value === 'yes' ? getRevisioni(record).length > 0 : getRevisioni(record).length === 0,
+      render: (_, row) => {
+        const items = getRevisioni(row);
+        if (!items.length) return dash;
+        return React.createElement(Tooltip, {
+          title: React.createElement('div', null, items.map((t, i) => React.createElement('div', { key: i }, t.label))),
+        },
+          React.createElement(Button, {
+            size: 'small',
+            onClick: (e) => { e.stopPropagation(); onViewDetail(row); },
+          }, `${items.length} da revisionare`));
+      },
+    },
+    {
+      title: '', key: 'azioni', width: ACTIONS_COL_WIDTH, fixed: 'right',
+      render: (_, row) =>
+        React.createElement('div', { onClick: e => e.stopPropagation() },
+          React.createElement(antd.Dropdown, {
+            trigger: ['click'], placement: 'bottomRight',
+            menu: {
+              items: [
+                { key: 'view', label: 'Visualizza', icon: React.createElement(EyeOutlined) },
+                row.statoV2 === 'in_attesa' ? { key: 'approve', label: 'Approva inserzionista', icon: React.createElement(CheckOutlined) } : null,
+                { key: 'edit', label: 'Modifica', icon: React.createElement(EditOutlined) },
+                { type: 'divider' },
+                { key: 'delete', label: 'Elimina', icon: React.createElement(DeleteOutlined), danger: true },
+              ].filter(Boolean),
+              onClick: ({ key, domEvent }) => {
+                domEvent && domEvent.stopPropagation();
+                if (key === 'view')    onViewDetail(row);
+                if (key === 'approve') onApprova(row);
+                if (key === 'edit')    onModifica(row);
+                if (key === 'delete')  onElimina(row);
+              },
+            },
+          },
+            React.createElement(Button, {
+              type: 'text', size: 'small', icon: React.createElement(MoreOutlined),
+              style: { color: 'rgba(0,0,0,0.3)' },
+            })
+          )
+        ),
+    },
+  ];
+
+  const noun = (n) => `${n} inserzionist${n === 1 ? 'a' : 'i'}`;
+  return React.createElement('div', null,
+    React.createElement('div', { style: { padding: '12px 20px 4px' } },
+      React.createElement(Text, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } },
+        filteredCount < data.length ? `${filteredCount} di ${noun(data.length)}` : noun(data.length))
+    ),
+    React.createElement('div', { style: { padding: '0 20px 20px' } },
+      React.createElement(Table, {
+        dataSource: data, columns, rowKey: 'key', size: 'middle',
+        scroll: { x: 1280 },
+        pagination: { pageSize: 10, showSizeChanger: false, showTotal: (t) => noun(t), style: { margin: '12px 0 4px' } },
+        style: { borderRadius: 0 },
+        onChange: (_, __, ___, extra) => setFilteredCount(extra.currentDataSource.length),
+        onRow: (record) => ({ onClick: () => onViewDetail(record), style: { cursor: 'pointer' } }),
+        expandable: {
+          fixed: 'left',
+          columnWidth: EXPAND_COL_WIDTH,
+          expandedRowKeys: expandedKeys,
+          rowExpandable: (r) => (r.contatti || []).length > 0,
+          expandedRowRender: (r) => React.createElement(ContattiExpanded, { contatti: r.contatti }),
+          expandIcon: ({ expanded, record, expandable }) => expandable
+            ? React.createElement(Tooltip, { title: expanded ? 'Nascondi contatti' : 'Mostra contatti' },
+                React.createElement(Button, {
+                  type: 'text', size: 'small',
+                  icon: expanded ? React.createElement(DownOutlined) : React.createElement(RightOutlined),
+                  style: { color: 'rgba(0,0,0,0.45)', fontSize: 11 },
+                  onClick: (e) => { e.stopPropagation(); toggleExpand(record.key); },
+                }))
+            : null,
+        },
+      })
+    )
+  );
+}
+
+// Tab "Da revisionare": una riga per ogni revisione richiesta (inserzionista, contatto o lead).
+function DaRevisionareTable({ rows, allData, onViewDetail, onModifica }) {
+  const [filteredCount, setFilteredCount] = useState(rows.length);
+  useEffect(() => setFilteredCount(rows.length), [rows.length]);
+  const dash = React.createElement('span', { style: { color: 'rgba(0,0,0,0.2)' } }, '—');
+  const person = (v) => v
+    ? React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+        React.createElement(AdvertiserAvatar, { name: v, size: 24 }),
+        React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, v))
+    : dash;
+  const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort().map(v => ({ text: v, value: v }));
+
+  const columns = [
+    {
+      title: 'Nome Inserzionista', key: 'ragioneSociale', width: 260, fixed: 'left',
+      ...makeSearchColumn('ragioneSociale', 'Cerca per ragione sociale...'),
+      onFilter: (value, rec) => rec.inserzionista.ragioneSociale.toLowerCase().includes(value.toLowerCase()),
+      render: (_, rec) =>
+        React.createElement('div', { className: 'nome-cell' },
+          React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 10 } },
+            React.createElement(AdvertiserAvatar, { name: rec.inserzionista.ragioneSociale, size: 28 }),
+            React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.88)', fontWeight: 500 } }, rec.inserzionista.ragioneSociale)),
+          React.createElement(EyeOutlined, { className: 'nome-eye' })
+        ),
+    },
+    {
+      title: 'Settore Commerciale', key: 'businessArea', width: 200,
+      filters: uniq(allData.flatMap(r => r.businessArea || [])), filterSearch: true,
+      onFilter: (value, rec) => (rec.inserzionista.businessArea || []).includes(value),
+      render: (_, rec) => {
+        const areas = (rec.inserzionista.businessArea || []).filter(Boolean);
+        if (!areas.length) return dash;
+        const extra = areas.length - 1;
+        return React.createElement('div', { style: { display: 'inline-flex', alignItems: 'center', gap: 4 } },
+          React.createElement(Tag, { style: { margin: 0 } }, areas[0]),
+          extra > 0 ? React.createElement(Tooltip, { title: areas.slice(1).join(', ') },
+            React.createElement(Tag, { style: { margin: 0, cursor: 'default' } }, `+${extra}`)) : null);
+      },
+    },
+    {
+      title: 'Commerciale', key: 'commerciale', width: 200,
+      filters: uniq(allData.map(r => r.commerciale)).concat([{ text: 'Non assegnato', value: '__none' }]),
+      onFilter: (value, rec) => value === '__none' ? !rec.inserzionista.commerciale : rec.inserzionista.commerciale === value,
+      render: (_, rec) => person(rec.inserzionista.commerciale),
+    },
+    {
+      title: 'Richiesto da', key: 'richiestoDa', width: 200,
+      filters: uniq(rows.map(r => r.richiestoDa)),
+      onFilter: (value, rec) => rec.richiestoDa === value,
+      render: (_, rec) => person(rec.richiestoDa),
+    },
+    {
+      title: 'Data', key: 'data', width: 120,
+      sorter: (a, b) => (a.data || '').localeCompare(b.data || ''),
+      defaultSortOrder: 'descend',
+      render: (_, rec) => React.createElement('span', { style: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } }, formatData(rec.data)),
+    },
+    {
+      title: 'Stato', key: 'stato', width: 150,
+      filters: [{ text: 'In attesa', value: 'in_attesa' }, { text: 'Da completare', value: 'da_completare' }, { text: 'Completato', value: 'completato' }],
+      onFilter: (value, rec) => rec.stato === value,
+      render: (_, rec) => React.createElement(StatoBadge, { stato: rec.stato }),
+    },
+    {
+      title: 'Azioni Richieste', key: 'azioniRichieste', width: 160,
+      render: (_, rec) => React.createElement(Button, {
+        size: 'small', icon: React.createElement(AuditOutlined),
+        onClick: (e) => { e.stopPropagation(); onViewDetail(rec.inserzionista); },
+      }, 'Revisiona'),
+    },
+    {
+      title: '', key: 'azioni', width: 64, fixed: 'right',
+      render: (_, rec) =>
+        React.createElement('div', { onClick: e => e.stopPropagation() },
+          React.createElement(antd.Dropdown, {
+            trigger: ['click'], placement: 'bottomRight',
+            menu: {
+              items: [
+                { key: 'view', label: 'Visualizza inserzionista', icon: React.createElement(EyeOutlined) },
+                { key: 'edit', label: 'Modifica inserzionista', icon: React.createElement(EditOutlined) },
+              ],
+              onClick: ({ key, domEvent }) => {
+                domEvent && domEvent.stopPropagation();
+                if (key === 'view') onViewDetail(rec.inserzionista);
+                if (key === 'edit') onModifica(rec.inserzionista);
+              },
+            },
+          },
+            React.createElement(Button, {
+              type: 'text', size: 'small', icon: React.createElement(MoreOutlined),
+              style: { color: 'rgba(0,0,0,0.3)' },
+            })
+          )
+        ),
+    },
+  ];
+
+  const noun = (n) => `${n} revision${n === 1 ? 'e' : 'i'}`;
+  return React.createElement('div', null,
+    React.createElement('div', { style: { padding: '12px 20px 4px' } },
+      React.createElement(Text, { style: { fontSize: 12, color: 'rgba(0,0,0,0.35)' } },
+        filteredCount < rows.length ? `${filteredCount} di ${noun(rows.length)}` : noun(rows.length))
+    ),
+    React.createElement('div', { style: { padding: '0 20px 20px' } },
+      React.createElement(Table, {
+        dataSource: rows, columns, rowKey: 'id', size: 'middle',
+        scroll: { x: 1250 },
+        pagination: { pageSize: 10, showSizeChanger: false, showTotal: (t) => noun(t), style: { margin: '12px 0 4px' } },
+        style: { borderRadius: 0 },
+        onChange: (_, __, ___, extra) => setFilteredCount(extra.currentDataSource.length),
+        onRow: (rec) => ({ onClick: () => onViewDetail(rec.inserzionista), style: { cursor: 'pointer' } }),
+      })
+    )
+  );
+}
+
+// ── DataCard ── 3-layer card (header / content / footer+divider opzionale) ────
+// Spec: Shaker UI – KPI Metric Cards  node-id=2530:18143
+// Header:  SF Pro Text 14px/600  lineHeight 22px
+// Content: SF Pro Text 24px/600  lineHeight 32px  (se string/number)
+// Footer:  SF Pro Text 14px/400  link button primary — separato da Divider
+function DataCard({ icon: Icon, label, value, valueExtra, footer, size }) {
+  return React.createElement('div', {
+    style: {
+      background: 'var(--gravity-bg-container)',
+      border: '1px solid var(--gravity-border-secondary, #f0f0f0)',
+      borderRadius: 8,
+    },
+  },
+    // ── Header ──────────────────────────────────────────────────────────────
+    // default: 14px/600   brief (size=small): 12px/500  — come nel planning
+    React.createElement('div', {
+      style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px' },
+    },
+      Icon && React.createElement('span', {
+        style: { display: 'flex', alignItems: 'center', fontSize: size === 'small' ? 14 : 18, color: 'rgba(0,0,0,0.45)' },
+      }, React.createElement(Icon)),
+      React.createElement('span', {
+        style: {
+          fontSize:   size === 'small' ? 12 : 14,
+          fontWeight: size === 'small' ? 500 : 600,
+          lineHeight: '22px',
+          color: 'rgba(0,0,0,0.88)',
+        },
+      }, label)
+    ),
+    // ── Content ─────────────────────────────────────────────────────────────
+    // default: padding 20px 12px, value 24px/600
+    // brief:   padding 8px 12px 12px, value 15px/700/1.4  — come nel planning
+    React.createElement('div', {
+      style: { padding: size === 'small' ? '8px 12px 12px' : '20px 12px' },
+    },
+      typeof value === 'string' || typeof value === 'number'
+        ? React.createElement('div', {
+            style: {
+              fontSize:   size === 'small' ? 15 : 24,
+              fontWeight: size === 'small' ? 700 : 600,
+              lineHeight: size === 'small' ? 1.4  : '32px',
+              color: 'rgba(0,0,0,0.88)',
+            },
+          }, value)
+        : value,
+      valueExtra && React.createElement(Text, {
+        type: 'secondary',
+        style: { fontSize: 12, marginTop: 4, display: 'block', lineHeight: '20px' },
+      }, valueExtra)
+    ),
+    // ── Footer (opzionale) ──────────────────────────────────────────────────
+    // brief: padding 8px 12px — come nel planning .data-card-action
+    footer && React.createElement(React.Fragment, null,
+      React.createElement(Divider, { style: { margin: 0 } }),
+      React.createElement('div', { style: { padding: size === 'small' ? '8px 12px' : '12px 12px' } }, footer)
+    )
+  );
+}
+
+function ListaInserzionistiOM(props) {
+  const { data } = props;
+  const daRevisionare = useMemo(() => data.flatMap(r => getRevisioni(r).map(it => ({ ...it, inserzionista: r }))), [data]);
+  // KPI: contano inserzionisti + contatti/lead per stato, indipendenti dalla tab attiva.
+  const kpi = useMemo(() => {
+    const out = {};
+    Object.keys(STATI_V2).forEach(k => { out[k] = { ins: 0, cont: 0 }; });
+    data.forEach(r => {
+      if (out[r.statoV2]) out[r.statoV2].ins++;
+      (r.contatti || []).forEach(c => { if (out[c.stato]) out[c.stato].cont++; });
+    });
+    return out;
+  }, [data]);
+  const daAssegnare = data.filter(r => !r.commerciale).length;
+  const kpiCard = (key, icon, label) => React.createElement(DataCard, {
+    icon, label,
+    value: kpi[key].ins + kpi[key].cont,
+    valueExtra: `${kpi[key].ins} inserzionist${kpi[key].ins === 1 ? 'a' : 'i'} · ${kpi[key].cont} contatt${kpi[key].cont === 1 ? 'o' : 'i'}`,
+  });
+  return React.createElement(React.Fragment, null,
+    React.createElement('div', {
+      style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28 },
+    },
+      kpiCard('in_attesa', ClockCircleOutlined, 'Da verificare'),
+      kpiCard('da_completare', EditOutlined, 'Da completare'),
+      React.createElement(DataCard, {
+        icon: UserOutlined, label: 'Da assegnare',
+        value: daAssegnare,
+        valueExtra: `su ${data.length} inserzionisti · senza commerciale`,
+      }),
+    ),
+  React.createElement('div', {
+    style: { background: '#fff', borderRadius: 10, border: '1px solid rgba(0,0,0,0.06)', overflow: 'hidden' },
+  },
+    React.createElement(Tabs, {
+      defaultActiveKey: 'tutti',
+      tabBarStyle: { padding: '0 20px', margin: 0 },
+      items: [
+        { key: 'tutti', label: 'Inserzionisti',
+          children: React.createElement(RevisioneTable, { ...props, data, allData: data }) },
+        { key: 'revisione', label: 'Da revisionare',
+          children: React.createElement(DaRevisionareTable, { rows: daRevisionare, allData: data, onViewDetail: props.onViewDetail, onModifica: props.onModifica }) },
+      ],
+    })
+  )
   );
 }
 
@@ -1349,6 +2024,13 @@ function AppRoot() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTarget, setDrawerTarget] = useState(null); // null = nuovo, obj = modifica
   const [elimina, setElimina] = useState(null); // obj da eliminare
+  const [role, setRole] = useState(() => localStorage.getItem('gravity_proto_role') || 'Sales');
+
+  useEffect(() => {
+    const handler = (e) => setRole(e.detail);
+    window.addEventListener('gravity:role-change', handler);
+    return () => window.removeEventListener('gravity:role-change', handler);
+  }, []);
 
   const handleViewDetail = (row) => { setCurrent(row); setView('dettaglio'); };
   const handleBack       = () => { setCurrent(null); setView('lista'); };
@@ -1369,6 +2051,12 @@ function AppRoot() {
       antd.message.success('Inserzionista creato.');
     }
     setDrawerOpen(false);
+  };
+
+  const handleApprova = (row) => {
+    setData(prev => prev.map(r => r.key === row.key
+      ? { ...r, stato: 'approvato', statoV2: r.statoV2 === 'in_attesa' ? 'da_completare' : r.statoV2 } : r));
+    antd.message.success(`${row.ragioneSociale} approvato.`);
   };
 
   const handleElimina = (row) => setElimina(row);
@@ -1398,12 +2086,15 @@ function AppRoot() {
               onClick: handleNuovo,
             }, 'Nuovo Inserzionista')
           ),
-          React.createElement(ListaInserzionisti, {
+          React.createElement(
+            (window.__PORTAFOGLIO_UI_VERSION === 'v2' && role === 'Operation Manager') ? ListaInserzionistiOM : ListaInserzionisti, {
             data,
+            role,
             onViewDetail: handleViewDetail,
             onNuovo: handleNuovo,
             onModifica: handleModifica,
             onElimina: handleElimina,
+            onApprova: handleApprova,
           })
         )
       : React.createElement(InserzionistiDetail, {
@@ -1439,6 +2130,11 @@ function Root() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Root));
+</script>
+
+<!-- Motore handoff — caricato solo se il loader in <head> ha attivato il layer. -->
+<script>
+  if (window.__HANDOFF_ACTIVE) document.write('<scr' + 'ipt src="../_shared/handoff.js"></scr' + 'ipt>');
 </script>
 </body>
 </html>
