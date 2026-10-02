@@ -487,6 +487,39 @@ function getRevisioni(r) {
   return items;
 }
 
+// ── AstronautSVG — empty state illustration ───────────────────────────────────
+function AstronautSVG({ size = 80 }) {
+  return React.createElement('svg', {
+    width: size, height: size, viewBox: '0 0 80 80', fill: 'none', xmlns: 'http://www.w3.org/2000/svg',
+  },
+    React.createElement('ellipse', { cx: 40, cy: 53, rx: 17, ry: 19, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
+    React.createElement('circle',  { cx: 40, cy: 28, r: 15, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
+    React.createElement('ellipse', { cx: 40, cy: 28, rx: 9, ry: 8, fill: '#B0C4F8', opacity: '0.7' }),
+    React.createElement('ellipse', { cx: 40, cy: 28, rx: 9, ry: 8, fill: 'none', stroke: '#C8C8D4', strokeWidth: 1.5 }),
+    React.createElement('ellipse', { cx: 21, cy: 50, rx: 4.5, ry: 10, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5, transform: 'rotate(-20 21 50)' }),
+    React.createElement('ellipse', { cx: 59, cy: 50, rx: 4.5, ry: 10, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5, transform: 'rotate(20 59 50)' }),
+    React.createElement('ellipse', { cx: 33, cy: 72, rx: 5, ry: 7, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
+    React.createElement('ellipse', { cx: 47, cy: 72, rx: 5, ry: 7, fill: '#E0E0E8', stroke: '#C8C8D4', strokeWidth: 1.5 }),
+    React.createElement('circle', { cx: 10, cy: 14, r: 1.5, fill: '#C8C8D4' }),
+    React.createElement('circle', { cx: 68, cy: 10, r: 2, fill: '#C8C8D4' }),
+    React.createElement('circle', { cx: 70, cy: 30, r: 1.2, fill: '#C8C8D4' }),
+    React.createElement('circle', { cx: 6, cy: 36, r: 1, fill: '#C8C8D4' })
+  );
+}
+
+// ── EmptyState — componente riutilizzabile ────────────────────────────────────
+function EmptyState({ title, description, action, size = 'default' }) {
+  const s = size === 'small' ? 56 : 80;
+  return React.createElement('div', { className: 'gv-empty-state' },
+    React.createElement(AstronautSVG, { size: s }),
+    React.createElement('p', { style: { marginTop: 16, marginBottom: 4, fontWeight: 600, fontSize: 14, color: 'rgba(0,0,0,0.88)' } },
+      title || 'Qui non c\'è nulla!'
+    ),
+    description && React.createElement('p', { style: { fontSize: 13, color: 'rgba(0,0,0,0.45)', marginBottom: action ? 16 : 0, marginTop: 0 } }, description),
+    action && React.createElement('div', { style: { marginTop: description ? 0 : 12 } }, action)
+  );
+}
+
 // ── InfoRow — riga label / valore con azione opzionale ───────────────────────
 function InfoRow({ label, value, placeholder, actionIcon, onAction, labelWidth }) {
   const lw = labelWidth || 148;
