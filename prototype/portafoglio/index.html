@@ -818,7 +818,7 @@ function InserzionistaSectionDrawer({ open, onClose, inserzionista, onSave }) {
 }
 
 // ── InserzionistiDetail ───────────────────────────────────────────────────────
-function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
+function InserzionistiDetail({ inserzionista, onBack, onModifica, revisioni }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [tipoFiltro, setTipoFiltro] = useState(null);
 
@@ -1136,7 +1136,21 @@ function InserzionistiDetail({ inserzionista, onBack, onModifica }) {
     { key: 'attivita', label: 'Attività', children: attivitaContent },
   ];
 
+  // Banner "Revisione richiesta" (V2 · Operation Manager): ciò che resta da fare su questo record;
+  // quella da cui arrivi (?rev=) è in evidenza e per prima.
+  const revBanner = (revisioni && revisioni.length)
+    ? React.createElement(Alert, {
+        type: 'warning', showIcon: true, style: { marginBottom: 16 },
+        message: revisioni.length === 1 ? 'Revisione richiesta' : revisioni.length + ' revisioni richieste',
+        description: React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } },
+          revisioni.slice().sort((a, b) => (b.id === _deepRev) - (a.id === _deepRev)).map((r) =>
+            React.createElement('div', { key: r.id, style: { fontWeight: r.id === _deepRev ? 600 : 400 } },
+              r.label + (r.soggetto ? ' — ' + r.soggetto : '') + ' · richiesto da ' + (r.richiestoDa || '—') + ' il ' + formatData(r.data)))),
+      })
+    : null;
+
   return React.createElement('div', { className: 'page-content' },
+    revBanner,
     React.createElement(GravityPageHeader, {
       backLabel: 'Torna alla lista',
       onBack,
@@ -1394,9 +1408,11 @@ function ContattiExpanded({ contatti }) {
 }
 
 function RevisioneTable({ data, role, onViewDetail, onModifica, onElimina, onApprova, allData }) {
-  const [filteredCount, setFilteredCount] = useState(data.length);
+  // Con ?assegna=1 la tabella parte filtrata su "Non assegnato": il conteggio iniziale lo riflette
+  const [filteredCount, setFilteredCount] = useState(() => new URLSearchParams(location.search).get('assegna') ? data.filter((r) => !r.commerciale).length : data.length);
   const [expandedKeys, setExpandedKeys] = useState([]);
-  useEffect(() => setFilteredCount(data.length), [data.length]);
+  const firstRun = useRef(true);   // al mount non azzerare il conteggio iniziale (filtro pre-applicato)
+  useEffect(() => { if (firstRun.current) { firstRun.current = false; return; } setFilteredCount(data.length); }, [data.length]);
   const toggleExpand = (key) =>
     setExpandedKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   const dash = React.createElement('span', { style: { color: 'rgba(0,0,0,0.2)' } }, '—');
@@ -1444,6 +1460,8 @@ function RevisioneTable({ data, role, onViewDetail, onModifica, onElimina, onApp
     },
     {
       title: 'Commerciale', key: 'commerciale', dataIndex: 'commerciale', width: 210,
+      // ?assegna=1 (link dalla home, "Assegna inserzionista"): parte già filtrata su "Non assegnato"
+      defaultFilteredValue: new URLSearchParams(location.search).get('assegna') ? ['__none'] : undefined,
       filters: [...new Set(allData.map(r => r.commerciale).filter(Boolean))].sort().map(v => ({ text: v, value: v }))
         .concat([{ text: 'Non assegnato', value: '__none' }]),
       onFilter: (value, record) => value === '__none' ? !record.commerciale : record.commerciale === value,
@@ -1782,9 +1800,15 @@ function ListaInserzionistiOM(props) {
 }
 
 // ── AppRoot ───────────────────────────────────────────────────────────────────
+// Deep link dalla home (V2): ?ins=<key>&rev=<id revisione> apre il dettaglio dell'inserzionista da lavorare.
+const _deepParams = new URLSearchParams(location.search);
+const _deepIns = (window.__PORTAFOGLIO_UI_VERSION === 'v2' && _deepParams.get('ins'))
+  ? (MOCK_INSERZIONISTI.find((r) => r.key === _deepParams.get('ins')) || null) : null;
+const _deepRev = _deepParams.get('rev');
+
 function AppRoot() {
-  const [view, setView] = useState('lista'); // 'lista' | 'dettaglio'
-  const [current, setCurrent] = useState(null);
+  const [view, setView] = useState(_deepIns ? 'dettaglio' : 'lista'); // 'lista' | 'dettaglio'
+  const [current, setCurrent] = useState(_deepIns);
   const [data, setData] = useState(MOCK_INSERZIONISTI);
   // V2: lo stato corrente viene salvato, così la home ("Anagrafiche da verificare") resta allineata.
   useEffect(() => {
@@ -1868,6 +1892,9 @@ function AppRoot() {
         )
       : React.createElement(InserzionistiDetail, {
           inserzionista: current,
+          // Revisioni da gestire su questo inserzionista (solo V2, Operation Manager)
+          revisioni: (window.__PORTAFOGLIO_UI_VERSION === 'v2' && role === 'Operation Manager' && current)
+            ? getRevisioni((data.find((r) => r.key === current.key)) || current) : [],
           onBack: handleBack,
           onModifica: () => handleModifica(current),
         }),
