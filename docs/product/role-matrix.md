@@ -55,6 +55,30 @@
 | Visualizza lista fornitori | `view_suppliers_list` | – | – | – | `view_suppliers_list` | `view_suppliers_list` |
 | Visualizza fornitore | `view_supplier` | – | – | – | `view_supplier` | `view_supplier` |
 
+### Vista del Parco Impianti per ruolo
+
+Il Parco Impianti ha due viste: **amministrativa** (stati Attivo / In Manutenzione / Inizializzato / Rimosso)
+e **commerciale** (stati Disponibile / In Opzione / Riservato, con periodo di consultazione). Ogni ruolo vede
+solo quelle che gli servono; lo switch tra le due esiste solo dove indicato.
+
+| Ruolo | Vista | Switch tra le viste | Azioni sul Parco | Stato |
+|---|---|---|---|---|
+| Operation Manager | **Solo commerciale** | No | Sola lettura | **Deciso** (02/10/2026) |
+| Inventory Manager | Solo amministrativa | No | Crea, modifica, cambia stato (vedi tabella sopra) | Come nel prototipo, da confermare |
+| Pianificatore | Solo commerciale | No | Da definire (sola lettura?) | Come nel prototipo, da confermare |
+| Commerciale (Sales) | Solo commerciale | No | Da definire (sola lettura?) | Come nel prototipo, da confermare |
+| Admin Tenant | Entrambe (default amministrativa) | Sì | Tutte | Come nel prototipo, da confermare |
+
+Note:
+- Per l'Operation Manager la vista commerciale non mostra il pulsante "Aggiungi" (tipologia/formato) né gli
+  stati amministrativi: coerente con il suo livello **I** (Informato) su "Gestione Spazi Pubblicitari".
+- Dalla home dell'Operation Manager la card "Spazi disponibili" porta al Parco in vista commerciale, già sul
+  periodo della quattordicina in corso (le quattordicine iniziano di lunedì). Conta solo gli spazi **Disponibili**
+  (non opzioni né riserve).
+- **Da chiarire:** cosa significano il filtro 🔑 e le eccezioni 🥸 sulle righe "Visualizza lista spazi" / "Visualizza
+  spazio" per Commerciale, Pianificatore e Operation Manager (area di competenza? canale? solo spazi vendibili?),
+  e se Commerciale e Pianificatore hanno azioni commerciali sul Parco (aggiungere a una pianificazione, riservare).
+
 ---
 
 ## Modulo Commercial / Campaign / Planning
